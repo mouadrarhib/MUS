@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./MUS-backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./MUS-backend/.env
+    ports:
+      - "5001:5000"
+
+  frontend:
+    build:
+      context: ./MUS-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:5001
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"

@@ -4,13 +4,15 @@ import client from "./api/client";
 
 function App() {
   const [status, setStatus] = useState("Checking backend connection...");
+  const [connected, setConnected] = useState(false);
 
   useEffect(() => {
     const checkHealth = async () => {
       try {
         const { data } = await client.get("/health");
         if (data?.ok) {
-          setStatus("Connected to backend API");
+          setConnected(true);
+          setStatus("Frontend is connected to the backend API");
         } else {
           setStatus("Backend reachable, but health check failed");
         }
@@ -26,7 +28,7 @@ function App() {
   return (
     <div className="card">
       <h1>MUS Frontend</h1>
-      <p>{status}</p>
+      <p className={connected ? "status success" : "status error"}>{status}</p>
       <p>
         Backend URL: <code>{import.meta.env.VITE_API_URL}</code>
       </p>

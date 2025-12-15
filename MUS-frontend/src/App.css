@@ -37,6 +37,18 @@
   padding: 2em;
 }
 
+.status {
+  font-weight: 600;
+}
+
+.success {
+  color: #16874f;
+}
+
+.error {
+  color: #c0392b;
+}
+
 .read-the-docs {
   color: #888;
 }
