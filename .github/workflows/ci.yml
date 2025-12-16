@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [mouad, haytham]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install backend dependencies
+        working-directory: MUS-backend
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: MUS-frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: MUS-frontend
+        run: npm run build
+
+      - name: Build Docker images with Compose
+        run: docker compose build
