@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import client from "./api/client";
+import { AppRouter } from '@/app/router';
 
 function App() {
   const [status, setStatus] = useState("Checking backend connection...");
@@ -26,13 +27,16 @@ function App() {
   }, []);
 
   return (
-    <div className="card">
-      <h1>MUS Frontend</h1>
-      <p className={connected ? "status success" : "status error"}>{status}</p>
-      <p>
-        Backend URL: <code>{import.meta.env.VITE_API_URL}</code>
-      </p>
-    </div>
+    <>
+      {/* <div className="card">
+        <h1>MUS Frontend</h1>
+        <p className={connected ? "status success" : "status error"}>{status}</p>
+        <p>
+          Backend URL: <code>{import.meta.env.VITE_API_URL}</code>
+        </p>
+      </div> */}
+      <AppRouter />
+    </>
   );
 }
 
