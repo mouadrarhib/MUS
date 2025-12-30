@@ -1,38 +1,24 @@
-import express from "express";
-import cors from "cors";
 import dotenv from "dotenv";
-import { Pool } from "pg";
+import app from "./src/app.js";
+import { sequelize } from "./src/models/index.js";
 
 dotenv.config();
-const app = express();
-
-app.use(cors());
-app.use(express.json());
-
-app.get("/health", (req, res) => res.json({ ok: true }));
-
-const pool = new Pool({
-  host: process.env.PGHOST,
-  port: Number(process.env.PGPORT) || 5432,
-  database: process.env.PGDATABASE,
-  user: process.env.PGUSER,
-  password: process.env.PGPASSWORD,
-  ssl: { rejectUnauthorized: false },
-});
 
 const startServer = async () => {
   try {
-    await pool.query("SELECT 1");
-    console.log("Connected to Supabase Postgres");
+    await sequelize.authenticate();
+    console.log("Connected to Postgres with Sequelize");
   } catch (error) {
     console.error("Database connection failed:", error.message);
     process.exit(1);
   }
 
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
+  app.listen(PORT, () => {
+    console.log(`API running on http://localhost:${PORT}`);
+    console.log(`Swagger docs: http://localhost:${PORT}/api/docs`);
+    console.log(`Swagger JSON (for Postman import): http://localhost:${PORT}/api/docs.json`);
+  });
 };
 
 startServer();
-
-export { pool };
