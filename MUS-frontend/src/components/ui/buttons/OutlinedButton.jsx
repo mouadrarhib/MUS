@@ -2,19 +2,9 @@ import { Button } from '@mui/material';
 import PropTypes from 'prop-types';
 
 /**
- * PrimaryButton - A primary action button component
- * @param {Object} props
- * @param {React.ReactNode} props.children - Button content
- * @param {Function} props.onClick - Click handler
- * @param {boolean} props.disabled - Disabled state
- * @param {boolean} props.loading - Loading state
- * @param {string} props.size - Button size ('small' | 'medium' | 'large')
- * @param {string} props.fullWidth - Full width button
- * @param {string} props.startIcon - Icon at the start
- * @param {string} props.endIcon - Icon at the end
- * @param {string} props.type - Button type ('button' | 'submit' | 'reset')
+ * OutlinedButton - An outlined button component
  */
-export const PrimaryButton = ({
+export const OutlinedButton = ({
   children,
   onClick,
   disabled = false,
@@ -30,7 +20,7 @@ export const PrimaryButton = ({
 }) => {
   return (
     <Button
-      variant="contained"
+      variant="outlined"
       color={color}
       onClick={onClick}
       disabled={disabled || loading}
@@ -49,7 +39,7 @@ export const PrimaryButton = ({
   );
 };
 
-PrimaryButton.propTypes = {
+OutlinedButton.propTypes = {
   children: PropTypes.node.isRequired,
   onClick: PropTypes.func,
   disabled: PropTypes.bool,

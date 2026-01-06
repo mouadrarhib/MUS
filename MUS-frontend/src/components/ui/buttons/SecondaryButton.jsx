@@ -2,19 +2,9 @@ import { Button } from '@mui/material';
 import PropTypes from 'prop-types';
 
 /**
- * PrimaryButton - A primary action button component
- * @param {Object} props
- * @param {React.ReactNode} props.children - Button content
- * @param {Function} props.onClick - Click handler
- * @param {boolean} props.disabled - Disabled state
- * @param {boolean} props.loading - Loading state
- * @param {string} props.size - Button size ('small' | 'medium' | 'large')
- * @param {string} props.fullWidth - Full width button
- * @param {string} props.startIcon - Icon at the start
- * @param {string} props.endIcon - Icon at the end
- * @param {string} props.type - Button type ('button' | 'submit' | 'reset')
+ * SecondaryButton - A secondary action button component
  */
-export const PrimaryButton = ({
+export const SecondaryButton = ({
   children,
   onClick,
   disabled = false,
@@ -24,14 +14,13 @@ export const PrimaryButton = ({
   startIcon,
   endIcon,
   type = 'button',
-  color = 'primary',
   sx,
   ...props
 }) => {
   return (
     <Button
       variant="contained"
-      color={color}
+      color="secondary"
       onClick={onClick}
       disabled={disabled || loading}
       size={size}
@@ -49,7 +38,7 @@ export const PrimaryButton = ({
   );
 };
 
-PrimaryButton.propTypes = {
+SecondaryButton.propTypes = {
   children: PropTypes.node.isRequired,
   onClick: PropTypes.func,
   disabled: PropTypes.bool,
@@ -59,7 +48,6 @@ PrimaryButton.propTypes = {
   startIcon: PropTypes.node,
   endIcon: PropTypes.node,
   type: PropTypes.oneOf(['button', 'submit', 'reset']),
-  color: PropTypes.oneOf(['primary', 'secondary', 'error', 'warning', 'info', 'success']),
   sx: PropTypes.object,
 };
 

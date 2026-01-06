@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -13,6 +14,7 @@ import {
   Link as MuiLink,
   Alert,
   Stack,
+  CircularProgress,
 } from '@mui/material';
 import {
   Visibility,
@@ -22,9 +24,15 @@ import {
   Person,
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useRegister as useRegisterHook } from '@/features/auth/hooks';
 import logo from '@/assets/images/logo.png';
 
 const Register = () => {
+  const navigate = useNavigate();
+  const { login: authLogin, isAdmin } = useAuth();
+  const { register: apiRegister, loading, error: apiError } = useRegisterHook();
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -38,6 +46,7 @@ const Register = () => {
   const [registerError, setRegisterError] = useState('');
   const [registerSuccess, setRegisterSuccess] = useState('');
 
+  
   const handleClickShowPassword = () => {
     setShowPassword(!showPassword);
   };
@@ -52,7 +61,6 @@ const Register = () => {
       ...formData,
       [name]: name === 'agreeToTerms' ? checked : value,
     });
-    // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -75,8 +83,8 @@ const Register = () => {
 
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
     }
 
     if (!formData.confirmPassword) {
@@ -93,22 +101,26 @@ const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setRegisterError('');
+    setRegisterSuccess('');
 
-    if (validateForm()) {
-      // Handle registration logic here
-      console.log('Form submitted:', formData);
+    if (!validateForm()) return;
 
-      // Simulate registration attempt
-      // Replace this with your actual registration API call
-      setRegisterSuccess('Account created successfully! Redirecting to login...');
-
-      // Simulate redirect after 2 seconds
+    try {
+      const response = await apiRegister(formData.email, formData.password, formData.fullName);
+      
+      setRegisterSuccess('Account created successfully! Logging you in...');
+      authLogin(response.data);
+      
       setTimeout(() => {
-        console.log('Redirecting to login page...');
-        // window.location.href = '/login';
-      }, 2000);
+        if (isAdmin) {
+          navigate('/admin');
+        }
+      }, 1000);
+    } catch (err) {
+      setRegisterError(apiError || 'Registration failed. Please try again.');
     }
   };
 
@@ -143,9 +155,9 @@ const Register = () => {
                 </Typography>
               </Box>
 
-              {registerError && (
+              {(registerError || apiError) && (
                 <Alert severity="error">
-                  {registerError}
+                  {registerError || apiError}
                 </Alert>
               )}
 
@@ -294,9 +306,17 @@ const Register = () => {
                   fullWidth
                   variant="contained"
                   size="large"
+                  disabled={loading}
                   sx={{ py: 1.4 }}
                 >
-                  Create Account
+                  {loading ? (
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <CircularProgress size={20} />
+                      <span>Creating account...</span>
+                    </Stack>
+                  ) : (
+                    'Create Account'
+                  )}
                 </Button>
 
                 <Typography variant="body2" color="text.secondary">
@@ -326,9 +346,6 @@ const Register = () => {
             })}
           >
             <Box sx={{ textAlign: { xs: 'center', md: 'left' }, maxWidth: 320 }}>
-              <Typography variant="h5" sx={{ mb: 1 }}>
-                Start with MUS
-              </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                 Build a clean profile and keep all your courses in one view.
               </Typography>

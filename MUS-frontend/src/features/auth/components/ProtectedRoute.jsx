@@ -3,7 +3,7 @@ import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children, requiredRole = null }) => {
-  const { isAuthenticated, role, loading } = useAuth();
+  const { isAuthenticated, loading, hasRole } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -26,8 +26,9 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (requiredRole && role !== requiredRole) {
-    return <Navigate to="/unauthorized" replace />;
+  if (requiredRole && !hasRole(requiredRole)) {
+    // No dedicated unauthorized route; send back to login
+    return <Navigate to="/login" replace />;
   }
 
   return children;

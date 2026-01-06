@@ -1,61 +1,56 @@
 import {
   FormControl,
-  InputLabel,
-  Select as MuiSelect,
-  MenuItem,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio as MuiRadio,
   FormHelperText,
 } from '@mui/material';
 import PropTypes from 'prop-types';
 
 /**
- * Select - A select dropdown component
+ * Radio - A radio button group component
  */
-export const Select = ({
+export const Radio = ({
   label,
   value,
   onChange,
   options = [],
   error,
   helperText,
-  required = false,
   disabled = false,
-  fullWidth = true,
-  size = 'medium',
-  placeholder,
+  required = false,
+  row = false,
+  color = 'primary',
   sx,
   ...props
 }) => {
   return (
     <FormControl
-      fullWidth={fullWidth}
       error={error}
       required={required}
       disabled={disabled}
-      size={size}
       sx={{
         ...sx,
       }}
     >
-      {label && <InputLabel>{label}</InputLabel>}
-      <MuiSelect
-        value={value}
-        onChange={onChange}
-        label={label}
-        placeholder={placeholder}
-        {...props}
-      >
+      {label && <FormLabel>{label}</FormLabel>}
+      <RadioGroup value={value} onChange={onChange} row={row} {...props}>
         {options.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
+          <FormControlLabel
+            key={option.value}
+            value={option.value}
+            control={<MuiRadio color={color} />}
+            label={option.label}
+          />
         ))}
-      </MuiSelect>
+      </RadioGroup>
       {helperText && <FormHelperText>{helperText}</FormHelperText>}
     </FormControl>
   );
 };
 
-Select.propTypes = {
+Radio.propTypes = {
   label: PropTypes.string,
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   onChange: PropTypes.func.isRequired,
@@ -64,14 +59,13 @@ Select.propTypes = {
       value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
       label: PropTypes.string.isRequired,
     })
-  ),
+  ).isRequired,
   error: PropTypes.bool,
   helperText: PropTypes.string,
-  required: PropTypes.bool,
   disabled: PropTypes.bool,
-  fullWidth: PropTypes.bool,
-  size: PropTypes.oneOf(['small', 'medium']),
-  placeholder: PropTypes.string,
+  required: PropTypes.bool,
+  row: PropTypes.bool,
+  color: PropTypes.oneOf(['primary', 'secondary', 'error', 'warning', 'info', 'success', 'default']),
   sx: PropTypes.object,
 };
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -13,6 +14,7 @@ import {
   Link as MuiLink,
   Alert,
   Stack,
+  CircularProgress,
 } from '@mui/material';
 import {
   Visibility,
@@ -21,18 +23,29 @@ import {
   Lock,
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useLogin as useLoginHook } from '@/features/auth/hooks';
+import { ForgotPasswordModal } from '@/components/auth/ForgotPasswordModal';
+import { useNotification } from '@/components/ui';
 import logo from '@/assets/images/logo.png';
 
 const Login = () => {
+  const navigate = useNavigate();
+  const { login: authLogin, isAdmin } = useAuth();
+  const { login: apiLogin, loading, error: apiError } = useLoginHook();
+  const { showError } = useNotification();
+  
   const [showPassword, setShowPassword] = useState(false);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
+    email: localStorage.getItem('rememberEmail') || '',
     password: '',
-    rememberMe: false,
+    rememberMe: !!localStorage.getItem('rememberEmail'),
   });
   const [errors, setErrors] = useState({});
   const [loginError, setLoginError] = useState('');
 
+  
   const handleClickShowPassword = () => {
     setShowPassword(!showPassword);
   };
@@ -43,7 +56,6 @@ const Login = () => {
       ...formData,
       [name]: name === 'rememberMe' ? checked : value,
     });
-    // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -61,29 +73,53 @@ const Login = () => {
 
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoginError('');
 
-    if (validateForm()) {
-      // Handle login logic here
-      console.log('Form submitted:', formData);
+    if (!validateForm()) return;
 
-      // Simulate login attempt
-      // Replace this with your actual login API call
-      if (formData.email === 'demo@example.com' && formData.password === 'password123') {
-        console.log('Login successful!');
-        // Redirect or handle successful login
+    try {
+      const response = await apiLogin(formData.email, formData.password);
+      
+      if (formData.rememberMe) {
+        localStorage.setItem('rememberEmail', formData.email);
       } else {
-        setLoginError('Invalid email or password. Try demo@example.com / password123');
+        localStorage.removeItem('rememberEmail');
       }
+
+      authLogin(response.data);
+      if (isAdmin) {
+        navigate('/admin');
+      }
+    } catch (err) {
+      // Extract error message from backend response
+      const errorMessage = err.response?.data?.message || 
+                          err.response?.data?.error || 
+                          apiError || 
+                          'Login failed. Please check your email and password.';
+      
+      // Log error to console
+      console.error('Login error:', {
+        message: errorMessage,
+        status: err.response?.status,
+        data: err.response?.data,
+        fullError: err
+      });
+      
+      // Set error state for UI display
+      setLoginError(errorMessage);
+      
+      // Show notification
+      showError(errorMessage);
     }
   };
 
@@ -115,17 +151,14 @@ const Login = () => {
                 </Typography>
                 <Typography variant="body2" color="text.secondary" component="div">
                   <Box component="span" sx={{ display: 'block' }}>
-                    Welcome to MUS.
-                  </Box>
-                  <Box component="span" sx={{ display: 'block' }}>
                     Use your email and password to continue.
                   </Box>
                 </Typography>
               </Box>
 
-              {loginError && (
+              {(loginError || apiError) && (
                 <Alert severity="error">
-                  {loginError}
+                  {loginError || apiError}
                 </Alert>
               )}
 
@@ -203,9 +236,22 @@ const Login = () => {
                     label="Remember me"
                   />
                   <MuiLink
-                    href="#"
+                    component="button"
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setForgotPasswordOpen(true);
+                    }}
                     underline="hover"
-                    sx={{ color: 'primary.main', fontWeight: 600 }}
+                    sx={{ 
+                      color: 'primary.main', 
+                      fontWeight: 600,
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      font: 'inherit',
+                    }}
                   >
                     Forgot password?
                   </MuiLink>
@@ -216,9 +262,17 @@ const Login = () => {
                   fullWidth
                   variant="contained"
                   size="large"
+                  disabled={loading}
                   sx={{ py: 1.4 }}
                 >
-                  Sign In
+                  {loading ? (
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <CircularProgress size={20} />
+                      <span>Signing in...</span>
+                    </Stack>
+                  ) : (
+                    'Sign In'
+                  )}
                 </Button>
 
                 <Typography variant="body2" color="text.secondary">
@@ -249,7 +303,7 @@ const Login = () => {
           >
             <Box sx={{ textAlign: { xs: 'center', md: 'left' }, maxWidth: 320 }}>
               <Typography variant="h5" sx={{ mb: 1 }}>
-                MUS
+                Moroccan Uni Student
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                 Keep your learning space clear, organized, and easy to track.
@@ -269,6 +323,11 @@ const Login = () => {
           </Box>
         </Paper>
       </Container>
+      
+      <ForgotPasswordModal
+        open={forgotPasswordOpen}
+        onClose={() => setForgotPasswordOpen(false)}
+      />
     </Box>
   );
 };

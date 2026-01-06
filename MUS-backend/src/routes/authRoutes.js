@@ -15,6 +15,8 @@ import {
   updatePassword,
   updateUserProfile,
   updateUser,
+  checkEmail,
+  forgotPassword,
 } from "../controllers/authController.js";
 import validateRequest from "./validateRequest.js";
 
@@ -41,6 +43,28 @@ router.post(
   ],
   validateRequest,
   login
+);
+
+// Public endpoints for forgot password
+router.post(
+  "/email/check",
+  [
+    body("email").isEmail().withMessage("Valid email is required"),
+  ],
+  validateRequest,
+  checkEmail
+);
+
+router.post(
+  "/password/forgot",
+  [
+    body("email").isEmail().withMessage("Valid email is required"),
+    body("new_password")
+      .isLength({ min: 8 })
+      .withMessage("New password must be at least 8 characters"),
+  ],
+  validateRequest,
+  forgotPassword
 );
 
 router.get("/me", authMiddleware, me);

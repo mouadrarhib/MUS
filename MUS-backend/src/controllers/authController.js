@@ -11,6 +11,8 @@ import {
   loginUser,
   registerUser,
   resetPassword,
+  resetPasswordByEmail,
+  checkEmailExists,
   setActive,
   updateProfile,
   updateUserById,
@@ -480,4 +482,79 @@ export const removeUserById = asyncHandler(async (req, res) => {
   const { id } = req.params;
   await deleteUserById(id);
   return successResponse(res, "User deleted", {}, 200);
+});
+
+/**
+ * @swagger
+ * /auth/email/check:
+ *   post:
+ *     summary: Check if email exists (public endpoint)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Email check result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     exists:
+ *                       type: boolean
+ *                     email:
+ *                       type: string
+ */
+export const checkEmail = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const result = await checkEmailExists(email);
+  return successResponse(res, "Email check completed", result);
+});
+
+/**
+ * @swagger
+ * /auth/password/forgot:
+ *   post:
+ *     summary: Reset password by email (public endpoint for forgot password)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, new_password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               new_password:
+ *                 type: string
+ *                 example: NewPass456!
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ */
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { email, new_password } = req.body;
+  const result = await resetPasswordByEmail(email, new_password);
+  return successResponse(res, "Password reset successfully", result);
 });

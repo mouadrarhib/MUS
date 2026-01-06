@@ -1,7 +1,11 @@
-import { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
-import { allRoutes } from './routes';
+import Login from '@/pages/auth/Login/Login';
+import Register from '@/pages/auth/Register/Register';
+import NotFound from '@/pages/NotFound/NotFound';
+import ProtectedRoute from '@/features/auth/components/ProtectedRoute';
+import AdminLayout from '@/layouts/AdminLayout/AdminLayout';
 
 const LoadingFallback = () => (
   <Box
@@ -17,25 +21,37 @@ const LoadingFallback = () => (
   </Box>
 );
 
-const renderRoutes = (routes) => {
-  return routes.map((route, index) => {
-    if (route.children) {
-      return (
-        <Route key={index} path={route.path} element={route.element}>
-          {renderRoutes(route.children)}
-        </Route>
-      );
-    }
-    return <Route key={index} {...route} />;
-  });
-};
+const AdminDashboard = lazy(() => import('@/pages/Admin/Dashboard/AdminDashboard'));
+const AdminUsers = lazy(() => import('@/pages/Admin/Users/Users'));
+const AdminCourses = lazy(() => import('@/pages/Admin/Courses/AdminCourses'));
+const AdminSettings = lazy(() => import('@/pages/Admin/Settings/AdminSettings'));
 
 export const AppRouter = () => {
   return (
     <Router>
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
-          {renderRoutes(allRoutes)}
+          {/* Auth routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          
+          {/* Admin routes */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="courses" element={<AdminCourses />} />
+            <Route path="settings" element={<AdminSettings />} />
+          </Route>
+          
+          {/* Public routes */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Suspense>
     </Router>

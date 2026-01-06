@@ -294,6 +294,42 @@ export const resetPassword = async (userId, newPassword) => {
   return { message: "Password reset" };
 };
 
+/**
+ * Check if email exists in the database (public endpoint)
+ */
+export const checkEmailExists = async (email) => {
+  if (!email) {
+    throw new AppError("Email is required", 400);
+  }
+
+  const user = await getUserByEmail(email);
+  return { exists: !!user, email };
+};
+
+/**
+ * Reset password by email (public endpoint for forgot password)
+ */
+export const resetPasswordByEmail = async (email, newPassword) => {
+  if (!email) {
+    throw new AppError("Email is required", 400);
+  }
+  if (!newPassword || newPassword.length < 8) {
+    throw new AppError("New password must be at least 8 characters", 400);
+  }
+
+  const user = await getUserByEmail(email);
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  if (user.is_active === false) {
+    throw new AppError("Account is disabled", 403);
+  }
+
+  // Use the existing resetPassword function
+  return await resetPassword(user.id, newPassword);
+};
+
 export const updateProfile = async (userId, full_name) => {
   if (typeof full_name === "undefined") throw new AppError("Full name is required", 400);
 

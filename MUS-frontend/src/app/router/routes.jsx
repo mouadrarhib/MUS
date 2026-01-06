@@ -4,6 +4,7 @@ import NotFound from '@/pages/NotFound/NotFound';
 import Login from '@/pages/auth/Login/Login';
 import Register from '@/pages/auth/Register/Register';
 import ProtectedRoute from '@/features/auth/components/ProtectedRoute';
+import { Navigate } from 'react-router-dom';
 
 // Admin Pages
 const AdminDashboard = lazy(() => import('@/pages/Admin/Dashboard/AdminDashboard'));
@@ -53,12 +54,8 @@ export const adminRoutes = [
 
 export const publicRoutes = [
   {
-    path: '/',
-    element: <Login />,
-  },
-  {
     path: '*',
-    element: <NotFound />,
+    element: <Navigate to="/login" replace />,
   },
 ];
 
