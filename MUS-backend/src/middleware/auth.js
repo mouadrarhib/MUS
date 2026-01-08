@@ -2,10 +2,7 @@ import { verifyToken } from "../utils/jwt.js";
 import AppError from "../helpers/appError.js";
 
 const authMiddleware = (req, _res, next) => {
-  const authHeader = req.headers.authorization || "";
-  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  const cookieToken = req.cookies?.auth_token || null;
-  const token = bearerToken || cookieToken;
+  const token = req.cookies?.auth_token;
 
   if (!token) {
     return next(new AppError("Authorization token missing", 401));

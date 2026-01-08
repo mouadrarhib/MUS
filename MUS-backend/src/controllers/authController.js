@@ -157,10 +157,11 @@ export const register = asyncHandler(async (req, res) => {
   const { full_name, email, password } = req.body;
   const result = await registerUser({ full_name, email, password });
   if (result?.token) {
+    const isProduction = process.env.NODE_ENV === "production";
     res.cookie("auth_token", result.token, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       path: "/",
     });
@@ -193,10 +194,11 @@ export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const result = await loginUser({ email, password });
   if (result?.token) {
+    const isProduction = process.env.NODE_ENV === "production";
     res.cookie("auth_token", result.token, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       path: "/",
     });
