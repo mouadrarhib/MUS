@@ -11,4 +11,27 @@ export const SQL = {
     DELETE: `SELECT public.sp_user_delete(:id)`,
     UPDATE_PROFILE: `SELECT * FROM public.sp_user_update_profile(:id, :full_name)`,
   },
+
+  ROLE: {
+    CREATE: `SELECT * FROM public.sp_role_create(:name, :description)`,
+    
+    GET_BY_ID: `SELECT * FROM public.sp_role_get_by_id(:id)`,
+    
+    GET_BY_NAME: `SELECT * FROM public.sp_role_get_by_name(:name)`,
+    
+    GET_ALL: `SELECT * FROM public.sp_role_get_all()`,
+    
+    UPDATE: `SELECT * FROM public.sp_role_update(:id, :name, :description)`,
+    
+    DELETE: `SELECT public.sp_role_delete(:id)`,
+    
+    EXISTS: `SELECT public.sp_role_exists(:name)`,
+    
+    ASSIGN_TO_USER: `SELECT * FROM public.sp_role_assign_to_user(:user_id, :role_id)`,
+    
+    REMOVE_FROM_USER: `SELECT public.sp_role_remove_from_user(:user_id, :role_id)`,
+    
+    GET_USER_ROLES: `SELECT * FROM public.sp_role_get_user_roles(:user_id)`,
+  },
+
 };
