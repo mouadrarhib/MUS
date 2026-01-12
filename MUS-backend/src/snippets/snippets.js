@@ -1,3 +1,5 @@
+import { UserRole } from "../models/index.js";
+
 export const SQL = {
   USER: {
     REGISTER: `SELECT * FROM public.sp_user_register(:full_name, :email, :password)`,
@@ -33,5 +35,15 @@ export const SQL = {
     
     GET_USER_ROLES: `SELECT * FROM public.sp_role_get_user_roles(:user_id)`,
   },
+
+  USER_ROLE: {
+    ASSIGN: `CALL public.assign_role_to_user(:user_id, :role_id)`,
+
+    GET_BY_USER: `SELECT * FROM public.get_roles_by_user(:user_id)`,
+
+    UPDATE: `CALL public.update_user_role(:user_id, :old_role_id, :new_role_id)`,
+
+    REMOVE: `CALL public.remove_role_from_user(:user_id, :role_id)`
+  }
 
 };

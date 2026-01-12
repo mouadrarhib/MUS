@@ -7,9 +7,6 @@ import {
     getRole,
     updateRole,
     deleteRole,
-    assignRole,
-    removeRole,
-    listUserRoles,
 } from "../controllers/roleController.js";
 import validateRequest from "./validateRequest.js";
 
@@ -53,33 +50,5 @@ router.delete(
     validateRequest,
     deleteRole
 );
-
-router.post(
-    "/assign",
-    [
-        body("userId").isUUID().withMessage("Valid user ID is required"),
-        body("roleId").isInt().withMessage("Valid role ID is required"),
-    ],
-    validateRequest,
-    assignRole
-);
-
-router.post(
-    "/remove",
-    [
-        body("userId").isUUID().withMessage("Valid user ID is required"),
-        body("roleId").isInt().withMessage("Valid role ID is required"),
-    ],
-    validateRequest,
-    removeRole
-);
-
-router.get(
-    "/user/:id",
-    [param("id").isUUID().withMessage("Valid user ID is required")],
-    validateRequest,
-    listUserRoles
-);
-
 
 export default router;
