@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { body, param } from "express-validator";
-import authMiddleware from "../middleware/auth.js";
 import {
     addRole,
     listRoles,
@@ -11,8 +10,6 @@ import {
 import validateRequest from "./validateRequest.js";
 
 const router = Router();
-
-router.use(authMiddleware);
 
 router.post(
     "/",

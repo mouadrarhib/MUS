@@ -2,6 +2,11 @@ import sequelize from "../config/database.js";
 import User from "./user.js";
 import Role from "./role.js";
 import UserRole from "./userRole.js";
+import InstitutionType from "./institutionType.js";
+import Institution from "./institution.js";
+import Domain from "./domain.js";
+import Program from "./program.js";
+import InstitutionProgram from "./institutionProgram.js";
 
 User.belongsToMany(Role, {
   through: UserRole,
@@ -15,4 +20,48 @@ Role.belongsToMany(User, {
   otherKey: "user_id",
 });
 
-export { sequelize, User, Role, UserRole };
+InstitutionType.hasMany(Institution, {
+  foreignKey: "institutionTypeId",
+  as: "institutions",
+});
+
+Institution.belongsTo(InstitutionType, {
+  foreignKey: "institutionTypeId",
+  as: "institutionType",
+});
+
+Domain.hasMany(Program, {
+  foreignKey: "domainId",
+  as: "programs",
+});
+
+Program.belongsTo(Domain, {
+  foreignKey: "domainId",
+  as: "domain",
+});
+
+Institution.belongsToMany(Program, {
+  through: InstitutionProgram,
+  foreignKey: "institutionId",
+  otherKey: "programId",
+  as: "programs",
+});
+
+Program.belongsToMany(Institution, {
+  through: InstitutionProgram,
+  foreignKey: "programId",
+  otherKey: "institutionId",
+  as: "institutions",
+});
+
+export {
+  sequelize,
+  User,
+  Role,
+  UserRole,
+  InstitutionType,
+  Institution,
+  Domain,
+  Program,
+  InstitutionProgram,
+};
