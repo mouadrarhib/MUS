@@ -7,6 +7,8 @@ import Institution from "./institution.js";
 import Domain from "./domain.js";
 import Program from "./program.js";
 import InstitutionProgram from "./institutionProgram.js";
+import Level from "./level.js";
+import Semester from "./semester.js";
 
 User.belongsToMany(Role, {
   through: UserRole,
@@ -54,6 +56,26 @@ Program.belongsToMany(Institution, {
   as: "institutions",
 });
 
+Program.hasMany(Level, {
+  foreignKey: "program_id",
+  as: "levels",
+});
+
+Level.belongsTo(Program, {
+  foreignKey: "program_id",
+  as: "program",
+});
+
+Level.hasMany(Semester, {
+  foreignKey: "level_id",
+  as: "semesters",
+});
+
+Semester.belongsTo(Level, {
+  foreignKey: "level_id",
+  as: "level",
+});
+
 export {
   sequelize,
   User,
@@ -64,4 +86,6 @@ export {
   Domain,
   Program,
   InstitutionProgram,
+  Level,
+  Semester,
 };

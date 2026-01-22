@@ -8,6 +8,9 @@ import domainRoutes from "./domainRoutes.js";
 import programRoutes from "./programRoutes.js";
 import institutionProgramRoutes from "./institutionProgramRoutes.js";
 import authMiddleware from "../middleware/auth.js";
+import levelRoutes from "./levelRoutes.js";
+import semesterRoutes from "./semesterRoutes.js";
+
 
 const router = Router();
 
@@ -20,5 +23,7 @@ router.use("/institutions", institutionRoutes);
 router.use("/domains", domainRoutes);
 router.use("/programs", programRoutes);
 router.use("/institution-programs", institutionProgramRoutes);
+router.use("/levels", levelRoutes);
+router.use("/semesters", semesterRoutes);
 
 export default router;
