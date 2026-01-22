@@ -169,5 +169,41 @@ export const SQL = {
     COUNT_SEMESTERS: `SELECT public.sp_level_count_semesters(:level_id)`,
     
     GET_FULL_DETAILS: `SELECT * FROM public.sp_level_get_full_details(:level_id)`,
-  }, 
+  },
+
+  SEMESTER: {
+    CREATE: `SELECT * FROM public.sp_semester_create(:level_id, :name, :sort_order)`,
+    
+    GET_BY_ID: `SELECT * FROM public.sp_semester_get_by_id(:id)`,
+    
+    GET_BY_NAME_LEVEL: `SELECT * FROM public.sp_semester_get_by_name_level(:name, :level_id)`,
+    
+    GET_ALL: `SELECT * FROM public.sp_semester_get_all()`,
+    
+    GET_BY_LEVEL: `SELECT * FROM public.sp_semester_get_by_level(:level_id)`,
+    
+    UPDATE: `SELECT * FROM public.sp_semester_update(:id, :name, :level_id, :sort_order)`,
+    
+    DELETE: `SELECT public.sp_semester_delete(:id)`,
+    
+    EXISTS: `SELECT public.sp_semester_exists(:name, :level_id)`,
+    
+    SEARCH: `SELECT * FROM public.sp_semester_search(:search_term)`,
+    
+    GET_WITH_MODULE_COUNT: `SELECT * FROM public.sp_semester_get_with_module_count()`,
+    
+    GET_MODULES: `SELECT * FROM public.sp_semester_get_modules(:semester_id)`,
+    
+    UPDATE_SORT_ORDER: `SELECT * FROM public.sp_semester_update_sort_order(:id, :sort_order)`,
+    
+    REORDER: `SELECT public.sp_semester_reorder(:semester_id_1, :semester_id_2)`,
+    
+    GET_NEXT_SORT_ORDER: `SELECT public.sp_semester_get_next_sort_order(:level_id)`,
+    
+    COUNT_MODULES: `SELECT public.sp_semester_count_modules(:semester_id)`,
+    
+    GET_FULL_HIERARCHY: `SELECT * FROM public.sp_semester_get_full_hierarchy(:semester_id)`,
+    
+    GET_FULL_DETAILS: `SELECT * FROM public.sp_semester_get_full_details(:semester_id)`,
+  },
 };
