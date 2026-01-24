@@ -61,6 +61,13 @@ CREATE TABLE public.users (
 	CONSTRAINT users_pkey PRIMARY KEY (id)
 );
 
+-- Table Triggers
+
+create trigger trg_users_set_updated_at before
+update
+    on
+    public.users for each row execute function sp_user_set_updated_at();
+
 
 -- public.institutions definition
 
@@ -108,8 +115,8 @@ CREATE TABLE public.resources (
 	id bigserial NOT NULL,
 	title text NOT NULL,
 	description text NULL,
-	"type" public.resource_type DEFAULT 'other'::resource_type NOT NULL,
-	status public.resource_status DEFAULT 'draft'::resource_status NOT NULL,
+	"type" public."resource_type" DEFAULT 'other'::resource_type NOT NULL,
+	status public."resource_status" DEFAULT 'draft'::resource_status NOT NULL,
 	url text NULL,
 	"language" text NULL,
 	license text NULL,
@@ -119,6 +126,13 @@ CREATE TABLE public.resources (
 	CONSTRAINT resources_pkey PRIMARY KEY (id),
 	CONSTRAINT resources_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
 );
+
+-- Table Triggers
+
+create trigger trg_resources_set_updated_at before
+update
+    on
+    public.resources for each row execute function sp_resource_set_updated_at();
 
 
 -- public.user_roles definition
@@ -244,6 +258,13 @@ CREATE TABLE public.student_profiles (
 	CONSTRAINT student_profiles_program_id_fkey FOREIGN KEY (program_id) REFERENCES public.programs(id),
 	CONSTRAINT student_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
+
+-- Table Triggers
+
+create trigger trg_student_profiles_set_updated_at before
+update
+    on
+    public.student_profiles for each row execute function sp_student_profile_set_updated_at();
 
 
 -- public.modules definition
