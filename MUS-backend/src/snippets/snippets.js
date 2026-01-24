@@ -206,4 +206,82 @@ export const SQL = {
     
     GET_FULL_DETAILS: `SELECT * FROM public.sp_semester_get_full_details(:semester_id)`,
   },
+
+   STUDENT_PROFILE: {
+    CREATE: `SELECT * FROM public.sp_student_profile_create(:user_id, :institution_id, :program_id, :current_semester_id)`,
+    
+    GET_BY_USER_ID: `SELECT * FROM public.sp_student_profile_get_by_user_id(:user_id)`,
+    
+    GET_ALL: `SELECT * FROM public.sp_student_profile_get_all()`,
+    
+    UPDATE: `SELECT * FROM public.sp_student_profile_update(:user_id, :institution_id, :program_id, :current_semester_id)`,
+    
+    UPDATE_INSTITUTION: `SELECT * FROM public.sp_student_profile_update_institution(:user_id, :institution_id)`,
+    
+    UPDATE_PROGRAM: `SELECT * FROM public.sp_student_profile_update_program(:user_id, :program_id)`,
+    
+    UPDATE_SEMESTER: `SELECT * FROM public.sp_student_profile_update_semester(:user_id, :current_semester_id)`,
+    
+    DELETE: `SELECT public.sp_student_profile_delete(:user_id)`,
+    
+    EXISTS: `SELECT public.sp_student_profile_exists(:user_id)`,
+    
+    GET_BY_INSTITUTION: `SELECT * FROM public.sp_student_profile_get_by_institution(:institution_id)`,
+    
+    GET_BY_PROGRAM: `SELECT * FROM public.sp_student_profile_get_by_program(:program_id)`,
+    
+    GET_BY_SEMESTER: `SELECT * FROM public.sp_student_profile_get_by_semester(:semester_id)`,
+    
+    COUNT_BY_INSTITUTION: `SELECT public.sp_student_profile_count_by_institution(:institution_id)`,
+    
+    COUNT_BY_PROGRAM: `SELECT public.sp_student_profile_count_by_program(:program_id)`,
+    
+    COUNT_BY_SEMESTER: `SELECT public.sp_student_profile_count_by_semester(:semester_id)`,
+    
+    GET_FULL_DETAILS: `SELECT * FROM public.sp_student_profile_get_full_details(:user_id)`,
+  },
+
+  RESOURCE: {
+    CREATE: `SELECT * FROM public.sp_resource_create(:title, :description, :type, :status, :url, :language, :license, :created_by)`,
+    
+    GET_BY_ID: `SELECT * FROM public.sp_resource_get_by_id(:id)`,
+    
+    GET_ALL: `SELECT * FROM public.sp_resource_get_all()`,
+    
+    GET_BY_TYPE: `SELECT * FROM public.sp_resource_get_by_type(:type)`,
+    
+    GET_BY_STATUS: `SELECT * FROM public.sp_resource_get_by_status(:status)`,
+    
+    GET_BY_CREATOR: `SELECT * FROM public.sp_resource_get_by_creator(:created_by)`,
+    
+    GET_BY_LANGUAGE: `SELECT * FROM public.sp_resource_get_by_language(:language)`,
+    
+    UPDATE: `SELECT * FROM public.sp_resource_update(:id, :title, :description, :type, :status, :url, :language, :license)`,
+    
+    UPDATE_STATUS: `SELECT * FROM public.sp_resource_update_status(:id, :status)`,
+    
+    PUBLISH: `SELECT * FROM public.sp_resource_publish(:id)`,
+    
+    ARCHIVE: `SELECT * FROM public.sp_resource_archive(:id)`,
+    
+    DELETE: `SELECT public.sp_resource_delete(:id)`,
+    
+    SEARCH: `SELECT * FROM public.sp_resource_search(:search_term)`,
+    
+    GET_PUBLISHED: `SELECT * FROM public.sp_resource_get_published()`,
+    
+    COUNT_BY_TYPE: `SELECT public.sp_resource_count_by_type(:type)`,
+    
+    COUNT_BY_STATUS: `SELECT public.sp_resource_count_by_status(:status)`,
+    
+    COUNT_BY_CREATOR: `SELECT public.sp_resource_count_by_creator(:created_by)`,
+    
+    GET_WITH_RATINGS: `SELECT * FROM public.sp_resource_get_with_ratings()`,
+    
+    GET_STATISTICS: `SELECT * FROM public.sp_resource_get_statistics(:resource_id)`,
+    
+    GET_TYPES: `SELECT * FROM public.sp_resource_get_types()`,
+    
+    GET_STATUSES: `SELECT * FROM public.sp_resource_get_statuses()`,
+  },
 };

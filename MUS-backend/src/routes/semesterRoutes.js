@@ -25,7 +25,7 @@ const router = Router();
 router.post(
   "/",
   [
-    body("level_id").isUUID().withMessage("Valid level ID is required"),
+    body("level_id").isInt().withMessage("Valid level ID is required"),
     body("name").isString().withMessage("Name is required"),
     body("sort_order").isInt().withMessage("Sort order is required"),
   ],
@@ -56,14 +56,14 @@ router.get(
 
 router.get(
   "/level/:levelId",
-  [param("levelId").isUUID().withMessage("Valid level ID is required")],
+  [param("levelId").isInt().withMessage("Valid level ID is required")],
   validateRequest,
   listSemestersByLevel
 );
 
 router.get(
   "/level/:levelId/next-sort-order",
-  [param("levelId").isUUID().withMessage("Valid level ID is required")],
+  [param("levelId").isInt().withMessage("Valid level ID is required")],
   validateRequest,
   getNextSortOrderHandler
 );
@@ -71,7 +71,7 @@ router.get(
 router.get(
   "/level/:levelId/name/:name",
   [
-    param("levelId").isUUID().withMessage("Valid level ID is required"),
+    param("levelId").isInt().withMessage("Valid level ID is required"),
     param("name").isString().withMessage("Name is required"),
   ],
   validateRequest,
@@ -90,7 +90,7 @@ router.patch(
   [
     param("id").isUUID().withMessage("Valid semester ID is required"),
     body("name").optional().isString(),
-    body("level_id").optional().isUUID(),
+    body("level_id").optional().isInt(),
     body("sort_order").optional().isInt(),
   ],
   validateRequest,

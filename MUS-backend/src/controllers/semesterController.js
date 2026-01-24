@@ -37,8 +37,7 @@ import {
  *           type: string
  *           format: uuid
  *         level_id:
- *           type: string
- *           format: uuid
+ *           type: integer
  *         name:
  *           type: string
  *         sort_order:
@@ -48,9 +47,8 @@ import {
  *       required: [level_id, name, sort_order]
  *       properties:
  *         level_id:
- *           type: string
- *           format: uuid
- *           example: "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6"
+ *           type: integer
+ *           example: 1
  *         name:
  *           type: string
  *           example: "Semester 1"
@@ -219,8 +217,7 @@ export const deleteExistingSemester = asyncHandler(async (req, res) => {
  *         name: levelId
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *       - in: path
  *         name: name
  *         required: true
@@ -424,8 +421,7 @@ export const reorderSemestersHandler = asyncHandler(async (req, res) => {
  *         name: levelId
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: Next sort order value
@@ -535,8 +531,7 @@ export const getSemesterFullDetailsHandler = asyncHandler(async (req, res) => {
  *         name: levelId
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: A list of semesters for the level
