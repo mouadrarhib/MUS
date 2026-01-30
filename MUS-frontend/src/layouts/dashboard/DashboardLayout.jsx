@@ -8,19 +8,26 @@ const DashboardLayout = () => {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [desktopOpen, setDesktopOpen] = useState(true);
 
   const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
+    if (isDesktop) {
+      setDesktopOpen(!desktopOpen);
+    } else {
+      setMobileOpen(!mobileOpen);
+    }
   };
+
+  const isSidebarOpen = isDesktop ? desktopOpen : mobileOpen;
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       {/* Header */}
-      <Header onMenuClick={handleDrawerToggle} />
+      <Header onMenuClick={handleDrawerToggle} isSidebarOpen={desktopOpen} />
 
       {/* Sidebar */}
       <Sidebar
-        open={mobileOpen}
+        open={isSidebarOpen}
         onClose={handleDrawerToggle}
         isDesktop={isDesktop}
       />
@@ -31,7 +38,7 @@ const DashboardLayout = () => {
         sx={{
           flexGrow: 1,
           p: { xs: 2, sm: 3 },
-          width: { xs: '100%', lg: `calc(100% - ${DRAWER_WIDTH}px)` },
+          width: { xs: '100%', lg: desktopOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%' },
           minHeight: '100vh',
           backgroundColor: 'background.default',
           mt: { xs: '56px', sm: '64px' }, // Height of AppBar
