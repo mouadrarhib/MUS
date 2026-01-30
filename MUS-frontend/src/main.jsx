@@ -1,19 +1,19 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
-import { ThemeProvider } from '@/app/providers/ThemeProvider'
-import { AuthProvider } from '@/features/auth/context/AuthContext'
-import { NotificationProvider } from '@/components/ui/notifications'
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import App from './App';
+import { AppProviders } from './app/providers/AppProvider';
+import { NotificationProvider } from '@/shared/components/ui';
+import './styles/global.css';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ThemeProvider>
-      <NotificationProvider>
-        <AuthProvider>
+    <BrowserRouter>
+      <AppProviders>
+        <NotificationProvider>
           <App />
-        </AuthProvider>
-      </NotificationProvider>
-    </ThemeProvider>
-  </StrictMode>,
-)
+        </NotificationProvider>
+      </AppProviders>
+    </BrowserRouter>
+  </StrictMode>
+);

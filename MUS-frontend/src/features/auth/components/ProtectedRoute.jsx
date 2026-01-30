@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 const ProtectedRoute = ({ children, requiredRole = null }) => {
   const { isAuthenticated, loading, hasRole } = useAuth();

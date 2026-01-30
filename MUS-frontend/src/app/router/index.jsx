@@ -1,11 +1,25 @@
-import { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { Box, CircularProgress } from '@mui/material';
-import Login from '@/pages/auth/Login/Login';
-import Register from '@/pages/auth/Register/Register';
-import NotFound from '@/pages/NotFound/NotFound';
-import ProtectedRoute from '@/features/auth/components/ProtectedRoute';
-import AdminLayout from '@/layouts/AdminLayout/AdminLayout';
+import { ProtectedRoute } from '@/features/auth/components';
+import { DashboardLayout } from '@/layouts';
+
+// Lazy loading des pages
+const Login = lazy(() => import('@/pages/auth/LoginPage'));
+const Register = lazy(() => import('@/pages/auth/RegisterPage'));
+const NotFound = lazy(() => import('@/pages/NotFound'));
+
+// Dashboard pages
+const DashboardPage = lazy(() => import('@/pages/admin/DashboardPage'));
+const UsersPage = lazy(() => import('@/pages/admin/UserPage'));
+// const ResourcesManagementPage = lazy(() => import('@/pages/admin/ResourcesManagementPage'));
+// const ModerationsPage = lazy(() => import('@/pages/admin/ModerationsPage'));
+// const CategoriesPage = lazy(() => import('@/pages/admin/CategoriesPage'));
+// const StatisticsPage = lazy(() => import('@/pages/admin/StatisticsPage'));
+// const TrendsPage = lazy(() => import('@/pages/admin/TrendsPage'));
+// const AnnouncementsPage = lazy(() => import('@/pages/admin/AnnouncementsPage'));
+// const SettingsPage = lazy(() => import('@/pages/admin/SettingsPage'));
+// const ProfilePage = lazy(() => import('@/pages/admin/ProfilePage'));
 
 const LoadingFallback = () => (
   <Box
@@ -21,39 +35,44 @@ const LoadingFallback = () => (
   </Box>
 );
 
-const AdminDashboard = lazy(() => import('@/pages/Admin/Dashboard/AdminDashboard'));
-const AdminUsers = lazy(() => import('@/pages/Admin/Users/Users'));
-const AdminCourses = lazy(() => import('@/pages/Admin/Courses/AdminCourses'));
-const AdminSettings = lazy(() => import('@/pages/Admin/Settings/AdminSettings'));
-
-export const AppRouter = () => {
+const AppRouter = () => {
   return (
-    <Router>
-      <Suspense fallback={<LoadingFallback />}>
-        <Routes>
-          {/* Auth routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          
-          {/* Admin routes */}
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute requiredRole="ADMIN">
-                <AdminLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="courses" element={<AdminCourses />} />
-            <Route path="settings" element={<AdminSettings />} />
-          </Route>
-          
-          {/* Public routes */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </Suspense>
-    </Router>
+    <Suspense fallback={<LoadingFallback />}>
+      <Routes>
+        {/* Redirect root to login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+
+        {/* Routes d'authentification */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        {/* Routes protégées avec DashboardLayout */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<DashboardPage />} />
+          <Route path="users" element={<UsersPage />} />
+          {/* <Route path="resources" element={<ResourcesManagementPage />} />
+          <Route path="moderations" element={<ModerationsPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
+          <Route path="statistics" element={<StatisticsPage />} />
+          <Route path="trends" element={<TrendsPage />} />
+          <Route path="announcements" element={<AnnouncementsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="profile" element={<ProfilePage />} /> */}
+        </Route>
+
+        {/* Route 404 */}
+        <Route path="/404" element={<NotFound />} />
+        <Route path="*" element={<Navigate to="/404" replace />} />
+      </Routes>
+    </Suspense>
   );
 };
+
+export default AppRouter;

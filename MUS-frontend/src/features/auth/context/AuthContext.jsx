@@ -1,7 +1,16 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import client from '@/api/client';
+import apiClient from '../../../config/apiClient';
 
 const AuthContext = createContext();
+
+const normalizeRoles = (rawRoles) => {
+  if (!Array.isArray(rawRoles)) return [];
+  return rawRoles
+    .filter((r) => r != null)
+    .map((r) => String(r).trim())
+    .filter(Boolean)
+    .map((r) => r.toUpperCase());
+};
 
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -17,27 +26,43 @@ export const AuthProvider = ({ children }) => {
 
     if (storedToken && storedRoles && storedUser) {
       setToken(storedToken);
-      setRoles(JSON.parse(storedRoles));
+      setRoles(normalizeRoles(JSON.parse(storedRoles)));
       setUser(JSON.parse(storedUser));
       setIsAuthenticated(true);
-      client.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
     }
 
     setLoading(false);
   }, []);
 
   const login = useCallback((userData) => {
-    const { token: newToken, user: newUser, data } = userData;
-    const userRoles = newUser?.roles || data?.user?.roles || [];
+    const newToken =
+      userData?.token ||
+      userData?.accessToken ||
+      userData?.data?.token ||
+      userData?.data?.accessToken ||
+      userData?.data?.data?.token ||
+      null;
+
+    const newUser =
+      userData?.user ||
+      userData?.data?.user ||
+      userData?.data?.data?.user ||
+      null;
+
+    const userRoles = normalizeRoles(newUser?.roles || userData?.roles || userData?.data?.roles || []);
     
     setToken(newToken);
     setRoles(userRoles);
-    setUser(newUser || data?.user);
+    setUser(newUser);
     setIsAuthenticated(true);
 
-    localStorage.setItem('authToken', newToken);
+    if (newToken) {
+      localStorage.setItem('authToken', newToken);
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+    }
     localStorage.setItem('userRoles', JSON.stringify(userRoles));
-    localStorage.setItem('userData', JSON.stringify(newUser || data?.user));
+    localStorage.setItem('userData', JSON.stringify(newUser));
   }, []);
 
   const logout = useCallback(() => {
@@ -52,9 +77,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('rememberEmail');
   }, []);
 
-  const hasRole = useCallback((requiredRole) => {
-    return roles.includes(requiredRole);
-  }, [roles]);
+  const hasRole = useCallback(
+    (requiredRole) => {
+      if (!requiredRole) return true;
+      const normalized = String(requiredRole).trim().toUpperCase();
+      return roles.includes(normalized);
+    },
+    [roles]
+  );
 
   const value = {
     isAuthenticated,
@@ -65,9 +95,9 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     hasRole,
-    isStudent: roles.includes('user') || roles.includes('student') || roles.includes('STUDENT'),
-    isAdmin: roles.includes('admin') || roles.includes('ADMIN'),
-    isModerator: roles.includes('moderator') || roles.includes('MODERATOR'),
+    isStudent: roles.includes('USER') || roles.includes('STUDENT'),
+    isAdmin: roles.includes('ADMIN'),
+    isModerator: roles.includes('MODERATOR'),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
