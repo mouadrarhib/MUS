@@ -241,47 +241,66 @@ export const SQL = {
     GET_FULL_DETAILS: `SELECT * FROM public.sp_student_profile_get_full_details(:user_id)`,
   },
 
-  RESOURCE: {
-    CREATE: `SELECT * FROM public.sp_resource_create(:title, :description, :type, :status, :url, :language, :license, :created_by)`,
-    
-    GET_BY_ID: `SELECT * FROM public.sp_resource_get_by_id(:id)`,
-    
-    GET_ALL: `SELECT * FROM public.sp_resource_get_all()`,
-    
-    GET_BY_TYPE: `SELECT * FROM public.sp_resource_get_by_type(:type)`,
-    
-    GET_BY_STATUS: `SELECT * FROM public.sp_resource_get_by_status(:status)`,
-    
-    GET_BY_CREATOR: `SELECT * FROM public.sp_resource_get_by_creator(:created_by)`,
-    
-    GET_BY_LANGUAGE: `SELECT * FROM public.sp_resource_get_by_language(:language)`,
-    
-    UPDATE: `SELECT * FROM public.sp_resource_update(:id, :title, :description, :type, :status, :url, :language, :license)`,
-    
-    UPDATE_STATUS: `SELECT * FROM public.sp_resource_update_status(:id, :status)`,
-    
-    PUBLISH: `SELECT * FROM public.sp_resource_publish(:id)`,
-    
-    ARCHIVE: `SELECT * FROM public.sp_resource_archive(:id)`,
-    
-    DELETE: `SELECT public.sp_resource_delete(:id)`,
-    
-    SEARCH: `SELECT * FROM public.sp_resource_search(:search_term)`,
-    
-    GET_PUBLISHED: `SELECT * FROM public.sp_resource_get_published()`,
-    
-    COUNT_BY_TYPE: `SELECT public.sp_resource_count_by_type(:type)`,
-    
-    COUNT_BY_STATUS: `SELECT public.sp_resource_count_by_status(:status)`,
-    
-    COUNT_BY_CREATOR: `SELECT public.sp_resource_count_by_creator(:created_by)`,
-    
-    GET_WITH_RATINGS: `SELECT * FROM public.sp_resource_get_with_ratings()`,
-    
-    GET_STATISTICS: `SELECT * FROM public.sp_resource_get_statistics(:resource_id)`,
-    
-    GET_TYPES: `SELECT * FROM public.sp_resource_get_types()`,
-    
-    GET_STATUSES: `SELECT * FROM public.sp_resource_get_statuses()`,
-  },
+RESOURCE: {
+  CREATE: `SELECT * FROM public.sp_resource_create(:title, :description, :status, :url, :language, :license, :created_by, :educational_type, :format, :resource_type_id, :metadata)`,
+  
+  GET_BY_ID: `SELECT * FROM public.sp_resource_get_by_id(:id)`,
+  
+  GET_ALL: `SELECT * FROM public.sp_resource_get_all()`,
+  
+  GET_BY_STATUS: `SELECT * FROM public.sp_resource_get_by_status(:status)`,
+  
+  GET_BY_EDUCATIONAL_TYPE: `SELECT * FROM public.sp_resource_get_by_educational_type(:educational_type)`,
+  
+  GET_BY_FORMAT: `SELECT * FROM public.sp_resource_get_by_format(:format)`,
+  
+  GET_BY_RESOURCE_TYPE: `SELECT * FROM public.sp_resource_get_by_resource_type(:resource_type_id)`,
+  
+  GET_BY_CREATOR: `SELECT * FROM public.sp_resource_get_by_creator(:created_by)`,
+  
+  GET_BY_LANGUAGE: `SELECT * FROM public.sp_resource_get_by_language(:language)`,
+  
+  UPDATE: `SELECT * FROM public.sp_resource_update(:id, :title, :description, :status, :url, :language, :license, :educational_type, :format, :resource_type_id, :metadata)`,
+  
+  UPDATE_METADATA: `SELECT * FROM public.sp_resource_update_metadata(:id, :metadata)`,
+  
+  UPDATE_STATUS: `SELECT * FROM public.sp_resource_update_status(:id, :status)`,
+  
+  PUBLISH: `SELECT * FROM public.sp_resource_publish(:id)`,
+  
+  ARCHIVE: `SELECT * FROM public.sp_resource_archive(:id)`,
+  
+  DELETE: `SELECT public.sp_resource_delete(:id)`,
+  
+  SEARCH: `SELECT * FROM public.sp_resource_search(:search_term)`,
+  
+  ADVANCED_SEARCH: `SELECT * FROM public.sp_resource_advanced_search(:search_term, :status, :educational_type, :format, :language, :resource_type_id)`,
+  
+  GET_PUBLISHED: `SELECT * FROM public.sp_resource_get_published()`,
+  
+  COUNT_BY_STATUS: `SELECT public.sp_resource_count_by_status(:status)`,
+  
+  COUNT_BY_EDUCATIONAL_TYPE: `SELECT public.sp_resource_count_by_educational_type(:educational_type)`,
+  
+  COUNT_BY_FORMAT: `SELECT public.sp_resource_count_by_format(:format)`,
+  
+  COUNT_BY_CREATOR: `SELECT public.sp_resource_count_by_creator(:created_by)`,
+  
+  GET_WITH_RATINGS: `SELECT * FROM public.sp_resource_get_with_ratings()`,
+  
+  GET_STATISTICS: `SELECT * FROM public.sp_resource_get_statistics(:resource_id)`,
+  
+  GET_STATUSES: `SELECT * FROM public.sp_resource_get_statuses()`,
+  
+  GET_EDUCATIONAL_TYPES: `SELECT * FROM public.sp_resource_get_educational_types()`,
+  
+  GET_FORMATS: `SELECT * FROM public.sp_resource_get_formats()`,
+  
+  SEARCH_BY_METADATA: `SELECT * FROM public.sp_resource_search_by_metadata(:metadata_key, :metadata_value)`,
+},
+
+
+
+
+
 };

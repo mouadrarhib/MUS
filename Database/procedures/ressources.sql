@@ -19,35 +19,50 @@ FOR EACH ROW
 EXECUTE FUNCTION sp_resource_set_updated_at();
 
 -- 1. Create Resource
-CREATE OR REPLACE FUNCTION public.sp_resource_create(
-    p_title TEXT,
+CREATE OR REPLACE FUNCTION public.sp_resource_update(
+    p_id BIGINT,
+    p_title TEXT DEFAULT NULL,
     p_description TEXT DEFAULT NULL,
-    p_type TEXT DEFAULT 'other',
-    p_status TEXT DEFAULT 'draft',
+    p_type TEXT DEFAULT NULL,
+    p_status TEXT DEFAULT NULL,
     p_url TEXT DEFAULT NULL,
     p_language TEXT DEFAULT NULL,
     p_license TEXT DEFAULT NULL,
-    p_created_by UUID DEFAULT NULL
+    p_educational_type TEXT DEFAULT NULL,
+    p_format TEXT DEFAULT NULL
 )
-RETURNS TABLE(id BIGINT, title TEXT, description TEXT, type TEXT, status TEXT, 
-              url TEXT, language TEXT, license TEXT, created_by UUID, 
+RETURNS TABLE(id BIGINT, title TEXT, description TEXT, "type" TEXT, status TEXT, 
+              url TEXT, "language" TEXT, license TEXT, created_by UUID,
+              educational_type TEXT, format TEXT,
               created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ) 
 LANGUAGE plpgsql
 AS $$
 BEGIN
     RETURN QUERY
-    INSERT INTO public.resources (title, description, type, status, url, language, license, created_by)
-    VALUES (p_title, p_description, p_type::resource_type, p_status::resource_status, 
-            p_url, p_language, p_license, p_created_by)
+    UPDATE public.resources
+    SET 
+        title = COALESCE(p_title, resources.title),
+        description = COALESCE(p_description, resources.description),
+        "type" = COALESCE(p_type::resource_type, resources.type),
+        status = COALESCE(p_status::resource_status, resources.status),
+        url = COALESCE(p_url, resources.url),
+        "language" = COALESCE(p_language, resources.language),
+        license = COALESCE(p_license, resources.license),
+        educational_type = COALESCE(p_educational_type::resource_educational_type, resources.educational_type),
+        format = COALESCE(p_format::resource_format, resources.format)
+    WHERE resources.id = p_id
     RETURNING resources.id, resources.title, resources.description, 
               resources.type::TEXT, resources.status::TEXT, resources.url, 
               resources.language, resources.license, resources.created_by,
+              resources.educational_type::TEXT, resources.format::TEXT,
               resources.created_at, resources.updated_at;
+    
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Resource with ID % not found', p_id;
+    END IF;
 EXCEPTION
     WHEN invalid_text_representation THEN
-        RAISE EXCEPTION 'Invalid type or status value';
-    WHEN foreign_key_violation THEN
-        RAISE EXCEPTION 'User ID % does not exist', p_created_by;
+        RAISE EXCEPTION 'Invalid type, status, educational_type or format value';
 END;
 $$;
 
@@ -477,3 +492,35 @@ BEGIN
     ORDER BY enumsortorder;
 END;
 $$;
+
+
+
+---------------------------------------------------------------------------------------------------------
+-- helpers -----------
+-- ============================================
+-- CHECK YOUR ACTUAL ENUM VALUES
+-- ============================================
+
+-- Check resource_type ENUM
+SELECT enumlabel::TEXT as available_types
+FROM pg_enum
+WHERE enumtypid = 'public.resource_type'::regtype
+ORDER BY enumsortorder;
+
+-- Check resource_status ENUM
+SELECT enumlabel::TEXT as available_statuses
+FROM pg_enum
+WHERE enumtypid = 'public.resource_status'::regtype
+ORDER BY enumsortorder;
+
+-- Check resource_educational_type ENUM
+SELECT enumlabel::TEXT as available_educational_types
+FROM pg_enum
+WHERE enumtypid = 'public.resource_educational_type'::regtype
+ORDER BY enumsortorder;
+
+-- Check resource_format ENUM
+SELECT enumlabel::TEXT as available_formats
+FROM pg_enum
+WHERE enumtypid = 'public.resource_format'::regtype
+ORDER BY enumsortorder;
