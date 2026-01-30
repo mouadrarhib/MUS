@@ -49,7 +49,7 @@ const Login = () => {
   // If already authenticated as ADMIN, keep user out of the login page
   useEffect(() => {
     if (isAuthenticated && hasRole('ADMIN')) {
-      const from = location.state?.from?.pathname || '/admin';
+      const from = location.state?.from?.pathname || '/dashboard';
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, hasRole, navigate, location.state]);
@@ -108,7 +108,7 @@ const Login = () => {
       // `authAPI.login()` already returns the response body, not an axios response.
       authLogin(response);
       // Navigate optimistically; ProtectedRoute will enforce role access.
-      navigate('/admin', { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       // Extract error message from backend response
       const errorMessage = err.response?.data?.message || 
