@@ -315,7 +315,7 @@ const Sidebar = ({ open, onClose, isDesktop }) => {
 
       {/* Desktop Drawer (permanent) */}
       <Drawer
-        variant="permanent"
+        variant="persistent"
         sx={{
           display: { xs: 'none', lg: 'block' },
           '& .MuiDrawer-paper': {
@@ -324,7 +324,7 @@ const Sidebar = ({ open, onClose, isDesktop }) => {
             borderRight: `1px solid ${theme.palette.divider}`,
           },
         }}
-        open
+        open={open}
       >
         {drawerContent}
       </Drawer>

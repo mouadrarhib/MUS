@@ -31,7 +31,7 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import { useThemeMode } from '@/app/providers/ThemeContext';
 import { DRAWER_WIDTH } from './Sidebar';
 
-const Header = ({ onMenuClick }) => {
+const Header = ({ onMenuClick, isSidebarOpen = true }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -84,8 +84,8 @@ const Header = ({ onMenuClick }) => {
       position="fixed"
       elevation={0}
       sx={{
-        width: { xs: '100%', lg: `calc(100% - ${DRAWER_WIDTH}px)` },
-        ml: { xs: 0, lg: `${DRAWER_WIDTH}px` },
+        width: { xs: '100%', lg: isSidebarOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%' },
+        ml: { xs: 0, lg: isSidebarOpen ? `${DRAWER_WIDTH}px` : 0 },
         backgroundColor: 'background.paper',
         borderBottom: `1px solid ${theme.palette.divider}`,
         color: 'text.primary',
@@ -98,7 +98,7 @@ const Header = ({ onMenuClick }) => {
           aria-label="open drawer"
           edge="start"
           onClick={onMenuClick}
-          sx={{ mr: 2, display: { lg: 'none' } }}
+          sx={{ mr: 2 }}
         >
           <MenuIcon />
         </IconButton>
