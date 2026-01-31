@@ -299,8 +299,89 @@ RESOURCE: {
   SEARCH_BY_METADATA: `SELECT * FROM public.sp_resource_search_by_metadata(:metadata_key, :metadata_value)`,
 },
 
+MODULE: {
+  CREATE: `SELECT * FROM public.sp_module_create(:semester_id, :code, :title, :description)`,
 
+  GET_BY_ID: `SELECT * FROM public.sp_module_get_by_id(:id)`,
+  
+  GET_BY_CODE_SEMESTER: `SELECT * FROM public.sp_module_get_by_code_semester(:code, :semester_id)`,
+  
+  GET_ALL: `SELECT * FROM public.sp_module_get_all()`,
+  
+  GET_BY_SEMESTER: `SELECT * FROM public.sp_module_get_by_semester(:semester_id)`,
+  
+  UPDATE: `SELECT * FROM public.sp_module_update(:id, :code, :title, :description, :semester_id)`,
+  
+  DELETE: `SELECT public.sp_module_delete(:id)`,
+  
+  EXISTS: `SELECT public.sp_module_exists(:code, :semester_id)`,
+  
+  SEARCH: `SELECT * FROM public.sp_module_search(:search_term)`,
+  
+  GET_WITH_RESOURCE_COUNT: `SELECT * FROM public.sp_module_get_with_resource_count()`,
+  
+  GET_RESOURCES: `SELECT * FROM public.sp_module_get_resources(:module_id)`,
+  
+  COUNT_RESOURCES: `SELECT public.sp_module_count_resources(:module_id)`,
+  
+  GET_FULL_HIERARCHY: `SELECT * FROM public.sp_module_get_full_hierarchy(:module_id)`,
+  
+  GET_FULL_DETAILS: `SELECT * FROM public.sp_module_get_full_details(:module_id)`,
+  
+  GET_BY_LEVEL: `SELECT * FROM public.sp_module_get_by_level(:level_id)`,
+  
+  GET_BY_PROGRAM: `SELECT * FROM public.sp_module_get_by_program(:program_id)`,
+  
+  GET_BY_DOMAIN: `SELECT * FROM public.sp_module_get_by_domain(:domain_id)`,
+  
+  COUNT_BY_SEMESTER: `SELECT public.sp_module_count_by_semester(:semester_id)`,
+  
+  GET_STATISTICS: `SELECT * FROM public.sp_module_get_statistics(:module_id)`,
+  
+  GET_BY_RESOURCE_TYPE: `SELECT * FROM public.sp_module_get_by_resource_type(:resource_type_id)`,
+},
 
+RATING: {
+  CREATE: `SELECT * FROM public.sp_rating_create(:user_id, :resource_id, :score, :comment)`,
+  
+  GET_BY_USER_RESOURCE: `SELECT * FROM public.sp_rating_get_by_user_resource(:user_id, :resource_id)`,
+  
+  GET_BY_RESOURCE: `SELECT * FROM public.sp_rating_get_by_resource(:resource_id)`,
+  
+  GET_BY_USER: `SELECT * FROM public.sp_rating_get_by_user(:user_id)`,
+  
+  UPDATE: `SELECT * FROM public.sp_rating_update(:user_id, :resource_id, :score, :comment)`,
+  
+  DELETE: `SELECT public.sp_rating_delete(:user_id, :resource_id)`,
+  
+  EXISTS: `SELECT public.sp_rating_exists(:user_id, :resource_id)`,
+  
+  GET_AVERAGE: `SELECT * FROM public.sp_rating_get_average(:resource_id)`,
+  
+  GET_STATISTICS: `SELECT * FROM public.sp_rating_get_statistics(:resource_id)`,
+  
+  GET_RESOURCES_WITH_RATINGS: `SELECT * FROM public.sp_rating_get_resources_with_ratings()`,
+  
+  GET_TOP_RATED: `SELECT * FROM public.sp_rating_get_top_rated(:limit, :min_ratings)`,
+  
+  GET_RECENT: `SELECT * FROM public.sp_rating_get_recent(:limit)`,
+  
+  GET_BY_SCORE: `SELECT * FROM public.sp_rating_get_by_score(:resource_id, :score)`,
+  
+  COUNT_BY_RESOURCE: `SELECT public.sp_rating_count_by_resource(:resource_id)`,
+  
+  COUNT_BY_USER: `SELECT public.sp_rating_count_by_user(:user_id)`,
+  
+  GET_USER_SUMMARY: `SELECT * FROM public.sp_rating_get_user_summary(:user_id)`,
+  
+  GET_WITH_COMMENTS: `SELECT * FROM public.sp_rating_get_with_comments(:resource_id)`,
+  
+  UPSERT: `SELECT * FROM public.sp_rating_upsert(:user_id, :resource_id, :score, :comment)`,
+  
+  GET_BY_DATE_RANGE: `SELECT * FROM public.sp_rating_get_by_date_range(:resource_id, :start_date, :end_date)`,
+  
+  DELETE_BY_RESOURCE: `SELECT public.sp_rating_delete_by_resource(:resource_id)`,
+},
 
 
 };
