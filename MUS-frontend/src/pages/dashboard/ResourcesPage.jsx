@@ -1,16 +1,16 @@
 import React from 'react';
-import { UserList } from '../../features/users';
+import { ResourceList } from '../../features/resources';
 import { PageHeader, PageTitle } from '../../shared/components/common';
 
-function UsersPage() {
+function ResourcesPage() {
   return (
     <div>
       <PageHeader>
-        <PageTitle>User Management</PageTitle>
+        <PageTitle>Resources</PageTitle>
       </PageHeader>
-      <UserList />
+      <ResourceList />
     </div>
   );
 }
 
-export default UsersPage;
+export default ResourcesPage;

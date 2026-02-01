@@ -12,6 +12,7 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 // Dashboard pages
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
 const UsersPage = lazy(() => import('@/pages/users/UsersPage'));
+const ResourcesPage = lazy(() => import('@/pages/dashboard/ResourcesPage'));
 
 const LoadingFallback = () => (
   <Box
@@ -49,6 +50,7 @@ const AppRouter = () => {
         >
           <Route index element={<DashboardPage />} />
           <Route path="users" element={<UsersPage />} />
+          <Route path="resources" element={<ResourcesPage />} />
         </Route>
 
         {/* Route 404 */}
