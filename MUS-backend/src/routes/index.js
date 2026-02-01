@@ -14,6 +14,7 @@ import studentProfileRoutes from "./studentProfileRoutes.js";
 import resourceRoutes from "./resourceRoutes.js";
 import moduleRoutes from "./moduleRoutes.js";
 import ratingRoutes from "./ratingRoutes.js";
+import favoriteRoutes from "./favoriteRoutes.js";
 
 
 const router = Router();
@@ -33,6 +34,6 @@ router.use("/student-profiles", studentProfileRoutes);
 router.use("/resources", resourceRoutes);
 router.use("/modules", moduleRoutes);
 router.use("/ratings", ratingRoutes);
-
+router.use("/favorites", favoriteRoutes);
 
 export default router;

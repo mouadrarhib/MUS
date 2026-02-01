@@ -383,5 +383,57 @@ RATING: {
   DELETE_BY_RESOURCE: `SELECT public.sp_rating_delete_by_resource(:resource_id)`,
 },
 
+FAVORITE: {
+  // Add/Remove operations (avec mapping des noms)
+  ADD: `
+    SELECT 
+      fav_user_id AS user_id,
+      fav_resource_id AS resource_id,
+      fav_created_at AS created_at
+    FROM public.sp_favorite_add(:user_id, :resource_id)
+  `,
+  
+  REMOVE: `SELECT public.sp_favorite_remove(:user_id, :resource_id)`,
+  
+  TOGGLE: `
+    SELECT 
+      fav_is_favorited AS is_favorited,
+      fav_action AS action
+    FROM public.sp_favorite_toggle(:user_id, :resource_id)
+  `,
+  
+  REMOVE_ALL_BY_USER: `SELECT public.sp_favorite_remove_all_by_user(:user_id)`,
+  
+  // Check operations
+  EXISTS: `SELECT public.sp_favorite_exists(:user_id, :resource_id)`,
+  
+  // Get user favorites (les autres fonctions retournent les bons noms directement)
+  GET_BY_USER: `SELECT * FROM public.sp_favorite_get_by_user(:user_id)`,
+  
+  GET_BY_USER_STATUS: `SELECT * FROM public.sp_favorite_get_by_user_status(:user_id, :status)`,
+  
+  GET_BY_USER_EDUCATIONAL_TYPE: `SELECT * FROM public.sp_favorite_get_by_user_educational_type(:user_id, :educational_type)`,
+  
+  GET_BY_USER_FORMAT: `SELECT * FROM public.sp_favorite_get_by_user_format(:user_id, :format)`,
+  
+  GET_RECENT_BY_USER: `SELECT * FROM public.sp_favorite_get_recent_by_user(:user_id, :limit)`,
+  
+  // Count operations
+  COUNT_BY_USER: `SELECT public.sp_favorite_count_by_user(:user_id)`,
+  
+  COUNT_BY_RESOURCE: `SELECT public.sp_favorite_count_by_resource(:resource_id)`,
+  
+  // Statistics and analytics
+  GET_USER_STATISTICS: `SELECT * FROM public.sp_favorite_get_user_statistics(:user_id)`,
+  
+  GET_MOST_POPULAR: `SELECT * FROM public.sp_favorite_get_most_popular(:limit)`,
+  
+  // Search
+  SEARCH_BY_USER: `SELECT * FROM public.sp_favorite_search_by_user(:user_id, :search_term)`,
+  
+  // Admin/Analytics
+  GET_USERS_BY_RESOURCE: `SELECT * FROM public.sp_favorite_get_users_by_resource(:resource_id)`,
+},
+
 
 };
