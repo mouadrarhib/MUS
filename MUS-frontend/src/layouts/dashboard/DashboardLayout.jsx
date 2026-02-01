@@ -38,10 +38,22 @@ const DashboardLayout = () => {
         sx={{
           flexGrow: 1,
           p: { xs: 2, sm: 3 },
-          width: { xs: '100%', lg: desktopOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%' },
+          width: { lg: `calc(100% - ${DRAWER_WIDTH}px)` },
           minHeight: '100vh',
           backgroundColor: 'background.default',
           mt: { xs: '56px', sm: '64px' }, // Height of AppBar
+          transition: theme.transitions.create(['margin', 'width'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
+          ...(desktopOpen && isDesktop && {
+            marginLeft: `${DRAWER_WIDTH}px`,
+            width: `calc(100% - ${DRAWER_WIDTH}px)`,
+            transition: theme.transitions.create(['margin', 'width'], {
+              easing: theme.transitions.easing.easeOut,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
+          }),
         }}
       >
         <Outlet />

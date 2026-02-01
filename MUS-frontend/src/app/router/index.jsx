@@ -10,16 +10,8 @@ const Register = lazy(() => import('@/pages/auth/RegisterPage'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
 // Dashboard pages
-const DashboardPage = lazy(() => import('@/pages/admin/DashboardPage'));
-const UsersPage = lazy(() => import('@/pages/admin/UserPage'));
-// const ResourcesManagementPage = lazy(() => import('@/pages/admin/ResourcesManagementPage'));
-// const ModerationsPage = lazy(() => import('@/pages/admin/ModerationsPage'));
-// const CategoriesPage = lazy(() => import('@/pages/admin/CategoriesPage'));
-// const StatisticsPage = lazy(() => import('@/pages/admin/StatisticsPage'));
-// const TrendsPage = lazy(() => import('@/pages/admin/TrendsPage'));
-// const AnnouncementsPage = lazy(() => import('@/pages/admin/AnnouncementsPage'));
-// const SettingsPage = lazy(() => import('@/pages/admin/SettingsPage'));
-// const ProfilePage = lazy(() => import('@/pages/admin/ProfilePage'));
+const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
+const UsersPage = lazy(() => import('@/pages/users/UsersPage'));
 
 const LoadingFallback = () => (
   <Box
@@ -57,14 +49,6 @@ const AppRouter = () => {
         >
           <Route index element={<DashboardPage />} />
           <Route path="users" element={<UsersPage />} />
-          {/* <Route path="resources" element={<ResourcesManagementPage />} />
-          <Route path="moderations" element={<ModerationsPage />} />
-          <Route path="categories" element={<CategoriesPage />} />
-          <Route path="statistics" element={<StatisticsPage />} />
-          <Route path="trends" element={<TrendsPage />} />
-          <Route path="announcements" element={<AnnouncementsPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="profile" element={<ProfilePage />} /> */}
         </Route>
 
         {/* Route 404 */}
