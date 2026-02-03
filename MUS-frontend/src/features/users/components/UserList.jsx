@@ -1,108 +1,101 @@
 import React, { useState, useEffect } from 'react';
 import {
   Card,
-  PrimaryButton,
   TextField,
-  IconButton,
-  Avatar,
-  Badge,
   Alert,
   Loading,
-  Skeleton,
-  Divider,
+  PrimaryButton,
 } from '../../../shared/components/ui';
-import { getUsers } from '../services/userService';
+import { PageHeader } from '../../../shared/components/common';
+import UserTable from './UserTable';
 
-// Mock user data
 const mockUsers = [
   {
     id: 1,
     name: 'John Doe',
     email: 'john.doe@example.com',
     avatar: 'https://i.pravatar.cc/150?img=1',
-    status: 'Active',
+    status: 'active',
+    role: 'student',
+    university: 'State University',
+    semester: 'Fall 2024',
+    field: 'Computer Science',
   },
   {
     id: 2,
     name: 'Jane Smith',
     email: 'jane.smith@example.com',
     avatar: 'https://i.pravatar.cc/150?img=2',
-    status: 'Inactive',
+    status: 'inactive',
+    role: 'professor',
+    university: 'Tech Institute',
+    specialty: 'Artificial Intelligence',
   },
   {
     id: 3,
     name: 'Peter Jones',
     email: 'peter.jones@example.com',
     avatar: 'https://i.pravatar.cc/150?img=3',
-    status: 'Active',
+    status: 'active',
+    role: 'admin',
   },
 ];
 
 export const UserList = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState(mockUsers);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        // Replace with actual API call
-        // const fetchedUsers = await getUsers();
-        // setUsers(fetchedUsers);
-        setTimeout(() => {
-          setUsers(mockUsers);
-          setLoading(false);
-        }, 1000);
-      } catch (err) {
-        setError('Failed to fetch users.');
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
-  }, []);
 
   const filteredUsers = users.filter((user) =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleEdit = (user) => {
+    // TODO: Implement edit functionality
+    console.log('Editing user:', user);
+  };
+
+  const handleDelete = (userId) => {
+    // TODO: Implement delete functionality
+    setUsers(users.filter((user) => user.id !== userId));
+  };
+
+  const handleStatusChange = (userId, status) => {
+    // TODO: Implement status change functionality
+    setUsers(
+      users.map((user) =>
+        user.id === userId ? { ...user, status } : user
+      )
+    );
+  };
+
+
   return (
-    <Card>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h2>User Management</h2>
-        <PrimaryButton>New User</PrimaryButton>
-      </div>
-      <TextField
-        label="Search Users"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        style={{ marginBottom: '16px' }}
+    <>
+      <PageHeader
+        title="User Management"
+        rightContent={<PrimaryButton>New User</PrimaryButton>}
       />
-      {error && <Alert severity="error">{error}</Alert>}
-      {loading ? (
-        <Skeleton count={3} height={60} />
-      ) : (
-        <div>
-          {filteredUsers.map((user, index) => (
-            <React.Fragment key={user.id}>
-              <div style={{ display: 'flex', alignItems: 'center', padding: '16px 0' }}>
-                <Avatar src={user.avatar} alt={user.name} />
-                <div style={{ marginLeft: '16px', flexGrow: 1 }}>
-                  <div style={{ fontWeight: 'bold' }}>{user.name}</div>
-                  <div>{user.email}</div>
-                </div>
-                <Badge label={user.status} color={user.status === 'Active' ? 'success' : 'default'} />
-                <div style={{ marginLeft: '16px' }}>
-                  <IconButton icon="edit" />
-                  <IconButton icon="delete" />
-                </div>
-              </div>
-              {index < filteredUsers.length - 1 && <Divider />}
-            </React.Fragment>
-          ))}
-        </div>
-      )}
-    </Card>
+      <Card>
+        <TextField
+          label="Search Users"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ mb: 2 }}
+        />
+        {error && <Alert severity="error">{error}</Alert>}
+        {loading ? (
+          <Loading />
+        ) : (
+          <UserTable
+            users={filteredUsers}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onStatusChange={handleStatusChange}
+          />
+        )}
+      </Card>
+    </>
   );
 };
