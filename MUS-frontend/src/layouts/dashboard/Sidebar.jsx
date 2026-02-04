@@ -23,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import { useState } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { Scrollbar } from '@/shared/components/ui/navigation';
 import navigationConfig from './config-navigation';
 import Logo from '@/assets/images/logo.png';
 
@@ -253,10 +254,12 @@ const Sidebar = ({ open, onClose, isDesktop }) => {
       </Box>
 
       {/* Navigation */}
-      <Box sx={{ flexGrow: 1, overflowY: 'auto', py: 2 }}>
-        <List disablePadding>
-          {navigationConfig.map((section, index) => renderNavSection(section, index))}
-        </List>
+      <Box sx={{ flexGrow: 1, position: 'relative', overflow: 'hidden' }}>
+        <Scrollbar>
+          <List disablePadding sx={{ py: 2 }}>
+            {navigationConfig.map((section, index) => renderNavSection(section, index))}
+          </List>
+        </Scrollbar>
       </Box>
 
       <Divider />
