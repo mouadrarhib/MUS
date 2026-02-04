@@ -11,20 +11,15 @@ import {
   IconButton,
   Box,
   Typography,
+  Switch,
+  Tooltip,
 } from '@mui/material';
 import { Visibility, Edit, Delete } from '@mui/icons-material';
 
-import {
-  ConfirmDialog,
-} from '../../../shared/components/common';
-import { useNotification } from '../../../shared/components/ui';
 import UserDetailsModal from './UserDetailsModal';
 
 const UserTable = ({ users, onEdit, onDelete, onStatusChange }) => {
-  const { showSuccess, showError } = useNotification();
   const [selectedUser, setSelectedUser] = useState(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState(null);
 
   const handleViewDetails = (user) => {
     setSelectedUser(user);
@@ -32,24 +27,6 @@ const UserTable = ({ users, onEdit, onDelete, onStatusChange }) => {
 
   const handleCloseModal = () => {
     setSelectedUser(null);
-  };
-
-  const openDeleteDialog = (user) => {
-    setUserToDelete(user);
-    setConfirmOpen(true);
-  };
-
-  const closeDeleteDialog = () => {
-    setConfirmOpen(false);
-    setUserToDelete(null);
-  };
-
-  const handleDelete = () => {
-    if (userToDelete) {
-      onDelete(userToDelete.id);
-      showSuccess(`User ${userToDelete.name} deleted successfully.`);
-      closeDeleteDialog();
-    }
   };
 
   const getStatusChipColor = (status) => {
@@ -107,6 +84,14 @@ const UserTable = ({ users, onEdit, onDelete, onStatusChange }) => {
                   />
                 </TableCell>
                 <TableCell align="right">
+                  <Tooltip title={user.status === 'active' ? 'Deactivate User' : 'Activate User'}>
+                    <Switch
+                      checked={user.status === 'active'}
+                      onChange={(e) => onStatusChange(user.id, e.target.checked ? 'active' : 'inactive')}
+                      size="small"
+                      color="success"
+                    />
+                  </Tooltip>
                   <IconButton
                     size="small"
                     onClick={() => handleViewDetails(user)}
@@ -123,7 +108,7 @@ const UserTable = ({ users, onEdit, onDelete, onStatusChange }) => {
                   </IconButton>
                   <IconButton
                     size="small"
-                    onClick={() => openDeleteDialog(user)}
+                    onClick={() => onDelete(user)}
                     aria-label="delete user"
                   >
                     <Delete />
@@ -134,13 +119,10 @@ const UserTable = ({ users, onEdit, onDelete, onStatusChange }) => {
           </TableBody>
         </Table>
       </TableContainer>
-      <UserDetailsModal user={selectedUser} onClose={handleCloseModal} />
-      <ConfirmDialog
-        open={confirmOpen}
-        onClose={closeDeleteDialog}
-        onConfirm={handleDelete}
-        title="Delete User"
-        description={`Are you sure you want to delete ${userToDelete?.name}? This action cannot be undone.`}
+      <UserDetailsModal
+        user={selectedUser}
+        open={!!selectedUser}
+        onClose={handleCloseModal}
       />
     </>
   );

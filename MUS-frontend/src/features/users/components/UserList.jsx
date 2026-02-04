@@ -5,9 +5,11 @@ import {
   Alert,
   Loading,
   PrimaryButton,
+  useNotification,
 } from '../../../shared/components/ui';
-import { PageHeader } from '../../../shared/components/common';
+import { PageHeader, ConfirmDialog } from '../../../shared/components/common';
 import UserTable from './UserTable';
+import EditUserModal from './EditUserModal';
 
 const mockUsers = [
   {
@@ -20,6 +22,7 @@ const mockUsers = [
     university: 'State University',
     semester: 'Fall 2024',
     field: 'Computer Science',
+    createdAt: new Date().toISOString(),
   },
   {
     id: 2,
@@ -30,6 +33,7 @@ const mockUsers = [
     role: 'professor',
     university: 'Tech Institute',
     specialty: 'Artificial Intelligence',
+    createdAt: new Date().toISOString(),
   },
   {
     id: 3,
@@ -38,27 +42,44 @@ const mockUsers = [
     avatar: 'https://i.pravatar.cc/150?img=3',
     status: 'active',
     role: 'admin',
+    createdAt: new Date().toISOString(),
   },
 ];
 
 export const UserList = () => {
+  const { showSuccess } = useNotification();
   const [users, setUsers] = useState(mockUsers);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingUser, setEditingUser] = useState(null);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   const filteredUsers = users.filter((user) =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleEdit = (user) => {
-    // TODO: Implement edit functionality
-    console.log('Editing user:', user);
+    setEditingUser(user);
   };
 
-  const handleDelete = (userId) => {
-    // TODO: Implement delete functionality
-    setUsers(users.filter((user) => user.id !== userId));
+  const handleSave = (editedUser) => {
+    setUsers(
+      users.map((user) =>
+        user.id === editedUser.id ? editedUser : user
+      )
+    );
+    setEditingUser(null);
+  };
+
+  const handleDelete = (user) => {
+    setUserToDelete(user);
+  };
+
+  const handleConfirmDelete = () => {
+    setUsers(users.filter((user) => user.id !== userToDelete.id));
+    showSuccess(`User ${userToDelete.name} deleted successfully.`);
+    setUserToDelete(null);
   };
 
   const handleStatusChange = (userId, status) => {
@@ -95,6 +116,19 @@ export const UserList = () => {
             onStatusChange={handleStatusChange}
           />
         )}
+        <EditUserModal
+          user={editingUser}
+          open={!!editingUser}
+          onClose={() => setEditingUser(null)}
+          onSave={handleSave}
+        />
+        <ConfirmDialog
+          open={!!userToDelete}
+          onClose={() => setUserToDelete(null)}
+          onConfirm={handleConfirmDelete}
+          title="Delete User"
+          description={`Are you sure you want to delete ${userToDelete?.name}? This action cannot be undone.`}
+        />
       </Card>
     </>
   );
