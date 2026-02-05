@@ -20,7 +20,7 @@ export const Footer = () => {
           <Link color="inherit" href="/">
             Moroccan University Students Platform
           </Link>{' '}
-          {newDgDate().getFullYear()}
+          {new Date().getFullYear()}
           {'.'}
         </Typography>
       </Container>
@@ -28,6 +28,4 @@ export const Footer = () => {
   );
 };
 
-function newDgDate() {
-    return new Date();
-}
+

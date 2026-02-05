@@ -2,41 +2,16 @@ import {
   AppBar,
   Toolbar,
   Typography,
-  Box,
-  IconButton,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material';
-import { Menu as MenuIcon, Notifications, AccountCircle } from '@mui/icons-material';
-import PropTypes from 'prop-types';
 
 /**
  * Navbar - A reusable navigation bar component
  */
-export const Navbar = ({
-  title,
-  onMenuClick,
-  showMenuButton = false,
-  rightActions,
-  logo,
-  elevation = 1,
-  sx,
-  hideTitle = false,
-  logoSx,
-  ...props
-}) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
+export const Navbar = () => {
   return (
     <AppBar
       position="fixed"
-      elevation={elevation}
-      sx={{
-        zIndex: (theme) => theme.zIndex.drawer + 1,
-        ...sx,
-      }}
-      {...props}
+      elevation={1}
     >
       <Toolbar
         sx={{
@@ -44,73 +19,18 @@ export const Navbar = ({
           px: { xs: 2, sm: 3 },
         }}
       >
-        {showMenuButton && (
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={onMenuClick}
-            sx={{ mr: 2, display: { md: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-        )}
-
-        {logo && (
-          <Box
-            component="img"
-            src={logo}
-            alt="Logo"
-            sx={{
-              height: 42,
-              mr: hideTitle ? 0 : 2,
-              display: 'block',
-              borderRadius: 2,
-              ...logoSx,
-            }}
-          />
-        )}
-
-        {!hideTitle && (
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{
-              flexGrow: { xs: 1, md: 0 },
-              fontWeight: 700,
-              mr: { md: 4 },
-            }}
-          >
-            {title}
-          </Typography>
-        )}
-
-        <Box sx={{ flexGrow: 1 }} />
-
-        {rightActions && (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-            }}
-          >
-            {rightActions}
-          </Box>
-        )}
+        <Typography
+          variant="h6"
+          component="div"
+          sx={{
+            flexGrow: 1,
+            fontWeight: 700,
+          }}
+        >
+          MUS Platform
+        </Typography>
       </Toolbar>
     </AppBar>
   );
-};
-
-Navbar.propTypes = {
-  title: PropTypes.string.isRequired,
-  onMenuClick: PropTypes.func,
-  showMenuButton: PropTypes.bool,
-  rightActions: PropTypes.node,
-  logo: PropTypes.string,
-  elevation: PropTypes.number,
-  sx: PropTypes.object,
-  hideTitle: PropTypes.bool,
-  logoSx: PropTypes.object,
 };
 

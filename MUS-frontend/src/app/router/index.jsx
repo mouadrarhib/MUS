@@ -2,18 +2,13 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { Box, CircularProgress } from '@mui/material';
 import { ProtectedRoute } from '@/features/auth/components';
-import { DashboardLayout } from '@/layouts';
+import { MainLayout } from '@/layouts';
 
 // Lazy loading des pages
 const Login = lazy(() => import('@/pages/auth/LoginPage'));
 const Register = lazy(() => import('@/pages/auth/RegisterPage'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
-
-// Dashboard pages
-const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
-const UsersPage = lazy(() => import('@/pages/users/UsersPage'));
-const ResourcesPage = lazy(() => import('@/pages/dashboard/ResourcesPage'));
-const ModerationsPage = lazy(() => import('@/pages/dashboard/ModerationsPage'));
+const HomePage = lazy(() => import('@/pages/HomePage'));
 
 const LoadingFallback = () => (
   <Box
@@ -40,20 +35,17 @@ const AppRouter = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Routes protégées avec DashboardLayout */}
+        {/* Routes protégées */}
         <Route
-          path="/dashboard"
+          path="/home"
           element={
             <ProtectedRoute>
-              <DashboardLayout />
+              <MainLayout>
+                <HomePage />
+              </MainLayout>
             </ProtectedRoute>
           }
-        >
-          <Route index element={<DashboardPage />} />
-          <Route path="users" element={<UsersPage />} />
-          <Route path="resources" element={<ResourcesPage />} />
-          <Route path="moderations" element={<ModerationsPage />} />
-        </Route>
+        />
 
         {/* Route 404 */}
         <Route path="/404" element={<NotFound />} />

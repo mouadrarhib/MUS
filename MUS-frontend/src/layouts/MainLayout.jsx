@@ -1,9 +1,9 @@
-import { Outlet } from 'react-router-dom';
+
 import { Box } from '@mui/material';
 import { Navbar } from '@/shared/components/ui/navigation/Navbar';
 import { Footer } from '@/shared/components/ui/navigation/Footer';
 
-const MainLayout = () => {
+const MainLayout = ({ children }) => {
   return (
     <Box
       sx={{
@@ -13,7 +13,7 @@ const MainLayout = () => {
       }}
     >
       {/* Navbar */}
-      <Navbar title="MUS Platform" />
+      <Navbar />
 
       {/* Main Content */}
       <Box
@@ -23,7 +23,7 @@ const MainLayout = () => {
           pt: { xs: '56px', sm: '64px' }, // Height of navbar
         }}
       >
-        <Outlet />
+        {children}
       </Box>
 
       {/* Footer */}
