@@ -3,7 +3,7 @@ import { Card, CardContent, Typography, Box, alpha, useTheme } from '@mui/materi
 import { TrendingUp, TrendingDown } from '@mui/icons-material';
 import PropTypes from 'prop-types';
 
-function StatCard({ title, value, icon, trend, trendValue, color = 'primary', subtitle }) {
+export function StatCard({ title, value, icon, trend, trendValue, color = 'primary', subtitle }) {
   const theme = useTheme();
   const isPositive = trend === 'up';
 
@@ -175,5 +175,3 @@ StatCard.propTypes = {
   color: PropTypes.oneOf(['primary', 'secondary', 'success', 'warning', 'error', 'info']),
   subtitle: PropTypes.string,
 };
-
-export default StatCard;

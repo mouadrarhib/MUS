@@ -9,4 +9,5 @@ export { TableContainer } from './TableContainer';
 export { TableHead } from './TableHead';
 export { TableRow } from './TableRow';
 export { Paper } from './Paper';
+export { StatCard } from './StatCard';
 // StatCard and CourseCard are in common folder, import them from there if needed

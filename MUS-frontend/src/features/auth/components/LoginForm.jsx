@@ -32,7 +32,7 @@ import { ForgotPasswordModal } from './ForgotPasswordModal';
 export const LoginForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login: authLogin, isAuthenticated, hasRole } = useAuth();
+  const { login: authLogin, isAuthenticated } = useAuth(); // Removed hasRole as we redirect everyone
   const { login: apiLogin, loading, error: apiError } = useLogin();
   const { showError } = useNotification();
   
@@ -46,13 +46,15 @@ export const LoginForm = () => {
   const [errors, setErrors] = useState({});
   const [loginError, setLoginError] = useState('');
 
-  // If already authenticated as ADMIN, keep user out of the login page
+  // --- FIX 1: Redirect ALL authenticated users to Dashboard ---
   useEffect(() => {
-    if (isAuthenticated && hasRole('ADMIN')) {
-      const from = location.state?.from?.pathname || '/home';
+    if (isAuthenticated) {
+      // If user came from a specific page (e.g. tried to visit /library), send them back there.
+      // Otherwise, send them to the Dashboard.
+      const from = location.state?.from?.pathname || '/dashboard';
       navigate(from, { replace: true });
     }
-  }, [isAuthenticated, hasRole, navigate, location.state]);
+  }, [isAuthenticated, navigate, location.state]);
 
   
   const handleClickShowPassword = () => {
@@ -105,10 +107,14 @@ export const LoginForm = () => {
         localStorage.removeItem('rememberEmail');
       }
 
-      // `authAPI.login()` already returns the response body, not an axios response.
+      // `authAPI.login()` already returns the response body
       authLogin(response);
-      // Navigate optimistically; ProtectedRoute will enforce role access.
-      navigate('/home', { replace: true });
+      
+      // --- FIX 2: Explicitly navigate to Dashboard on success ---
+      // The useEffect above handles the state change, but this ensures 
+      // the redirect happens immediately after the login action
+      navigate('/dashboard', { replace: true });
+
     } catch (err) {
       // Extract error message from backend response
       const errorMessage = err.response?.data?.message || 
@@ -116,7 +122,6 @@ export const LoginForm = () => {
                           apiError || 
                           'Login failed. Please check your email and password.';
       
-      // Log error to console
       console.error('Login error:', {
         message: errorMessage,
         status: err.response?.status,
@@ -124,10 +129,7 @@ export const LoginForm = () => {
         fullError: err
       });
       
-      // Set error state for UI display
       setLoginError(errorMessage);
-      
-      // Show notification
       showError(errorMessage);
     }
   };
