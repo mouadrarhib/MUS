@@ -14,6 +14,7 @@ const DashboardLayout = lazy(() => import('@/layouts/DashboardLayout'));
 // Lazy load Dashboard Pages
 // (Make sure to create src/features/dashboard/pages/Overview.jsx)
 const DashboardOverview = lazy(() => import('@/features/dashboard/pages/Overview'));
+const UsersPage = lazy(() => import('@/features/users/pages/Users'));
 
 const LoadingFallback = () => (
   <Box
@@ -51,7 +52,10 @@ const AppRouter = () => {
         >
           {/* Default Page: Overview */}
           <Route index element={<DashboardOverview />} />
-          
+
+          {/* Users Management Page */}
+          <Route path="users" element={<UsersPage />} />
+
           {/* Add future pages here, e.g.: */}
           {/* <Route path="library" element={<LibraryPage />} /> */}
         </Route>

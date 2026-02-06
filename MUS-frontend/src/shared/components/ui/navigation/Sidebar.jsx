@@ -1,3 +1,4 @@
+// src/shared/components/ui/navigation/Sidebar.jsx
 import {
   Drawer,
   Box,
@@ -5,19 +6,11 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Divider,
   Typography,
-  useTheme,
-  useMediaQuery,
-  Toolbar,
-  Collapse,
-  Avatar
+  alpha
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { ExpandLess, ExpandMore, Logout } from '@mui/icons-material';
-import { useAuth } from '@/features/auth/context/AuthContext';
 
 export const Sidebar = ({
   items = [],
@@ -25,15 +18,9 @@ export const Sidebar = ({
   open = true,
   onClose,
   variant = 'permanent',
-  sx,
-  ...props
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth(); // Access auth context
-
   const activePath = location.pathname;
 
   const isPathActive = (path) => {
@@ -41,116 +28,114 @@ export const Sidebar = ({
     return activePath === path || activePath.startsWith(path + '/');
   };
 
-  // --- LOGIC: Group Expansion Management ---
-  const initialOpenGroups = useMemo(() => {
-    const result = {};
-    items.forEach((item, index) => {
-      if (item?.type === 'group' && Array.isArray(item.children)) {
-        const key = item.key || `group-${index}`;
-        result[key] = item.children.some((child) => isPathActive(child.path));
-      }
-    });
-    return result;
-  }, [items, activePath]);
-
-  const [openGroups, setOpenGroups] = useState(initialOpenGroups);
-
-  const toggleGroup = (groupKey) => {
-    setOpenGroups((prev) => ({ ...prev, [groupKey]: !prev[groupKey] }));
-  };
-
   const handleItemClick = (path) => {
     if (path) navigate(path);
-    if (isMobile && onClose) onClose();
+    if (onClose && variant === 'temporary') onClose();
   };
 
-  // --- CONTENT: The Scrollable List ---
   const drawerContent = (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* 1. Header (Logo Area) */}
-      <Toolbar sx={{ px: 2.5, minHeight: 64 }}>
-        <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', letterSpacing: 1 }}>
-          MUS<Box component="span" sx={{ color: 'text.primary' }}>Dashboard</Box>
-        </Typography>
-      </Toolbar>
-      <Divider />
+    <Box
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: 'background.paper',
+      }}
+    >
+      {/* Sidebar Header */}
+      <Box
+        sx={{
+          p: 3,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Box display="flex" alignItems="center" gap={1.5}>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: 1.5,
+              background: (theme) =>
+                `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontWeight: 700,
+              fontSize: '1.1rem',
+            }}
+          >
+            M
+          </Box>
+          <Typography variant="h6" fontWeight="700" color="text.primary">
+            MUS
+          </Typography>
+        </Box>
+      </Box>
 
-      {/* 2. Navigation Items (Scrollable) */}
-      <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 2, py: 2 }}>
-        <List component="nav" disablePadding>
+      {/* Navigation Items */}
+      <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', p: 2 }}>
+        <List sx={{ p: 0 }}>
           {items.map((item, index) => {
-            // --- RENDER SECTION HEADER ---
+            // Render section headers
             if (item.type === 'section') {
               return (
-                <Box key={index} sx={{ mt: 2.5, mb: 1, px: 1.5 }}>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase' }}>
+                <Box key={index} sx={{ mt: index > 0 ? 3 : 1, mb: 1 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    fontWeight={600}
+                    textTransform="uppercase"
+                    letterSpacing={0.5}
+                    sx={{ px: 2 }}
+                  >
                     {item.label}
                   </Typography>
                 </Box>
               );
             }
 
-            // --- RENDER GROUP (Dropdown) ---
-            if (item.type === 'group') {
-              const groupKey = item.key || `group-${index}`;
-              const isOpen = openGroups[groupKey];
-              const isActive = item.children?.some(c => isPathActive(c.path));
-              
-              return (
-                <Box key={groupKey} sx={{ mb: 0.5 }}>
-                  <ListItemButton 
-                    onClick={() => toggleGroup(groupKey)}
-                    selected={isActive}
-                    sx={{ borderRadius: 1.5 }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 40, color: isActive ? 'primary.main' : 'inherit' }}>
-                      {item.icon}
-                    </ListItemIcon>
-                    <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: 600 }} />
-                    {isOpen ? <ExpandLess /> : <ExpandMore />}
-                  </ListItemButton>
-                  
-                  <Collapse in={isOpen} timeout="auto" unmountOnExit>
-                    <List component="div" disablePadding sx={{ pl: 2 }}>
-                      {item.children.map((child, idx) => (
-                        <ListItemButton
-                          key={idx}
-                          onClick={() => handleItemClick(child.path)}
-                          selected={isPathActive(child.path)}
-                          sx={{ borderRadius: 1.5, mt: 0.5 }}
-                        >
-                           <ListItemIcon sx={{ minWidth: 36, color: isPathActive(child.path) ? 'primary.main' : 'inherit' }}>
-                             {child.icon}
-                           </ListItemIcon>
-                          <ListItemText primary={child.label} />
-                        </ListItemButton>
-                      ))}
-                    </List>
-                  </Collapse>
-                </Box>
-              );
-            }
-
-            // --- RENDER SINGLE ITEM ---
             const isActive = isPathActive(item.path);
+
             return (
               <ListItemButton
                 key={index}
                 onClick={() => handleItemClick(item.path)}
                 selected={isActive}
-                sx={{ 
-                  borderRadius: 1.5, 
+                sx={{
                   mb: 0.5,
-                  bgcolor: isActive ? 'primary.lighter' : 'transparent',
-                  color: isActive ? 'primary.main' : 'text.primary'
+                  borderRadius: 2,
+                  py: 1.5,
+                  px: 2,
+                  transition: 'all 0.2s',
+                  color: isActive ? 'primary.main' : 'text.primary',
+                  bgcolor: isActive ? alpha('#667eea', 0.1) : 'transparent',
+                  '&:hover': {
+                    bgcolor: isActive ? alpha('#667eea', 0.15) : 'action.hover',
+                  },
+                  '&.Mui-selected': {
+                    bgcolor: alpha('#667eea', 0.1),
+                    '&:hover': {
+                      bgcolor: alpha('#667eea', 0.15),
+                    },
+                  },
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 40, color: isActive ? 'primary.main' : 'text.secondary' }}>
+                <ListItemIcon
+                  sx={{
+                    minWidth: 40,
+                    color: isActive ? 'primary.main' : 'text.secondary',
+                  }}
+                >
                   {item.icon}
                 </ListItemIcon>
-                <ListItemText 
-                  primary={item.label} 
-                  primaryTypographyProps={{ fontWeight: isActive ? 600 : 500 }} 
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{
+                    fontWeight: isActive ? 600 : 500,
+                    fontSize: '0.95rem',
+                  }}
                 />
               </ListItemButton>
             );
@@ -158,51 +143,40 @@ export const Sidebar = ({
         </List>
       </Box>
 
-      {/* 3. Footer (User Profile) */}
-      <Divider />
-      <Box sx={{ p: 2 }}>
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            p: 1.5, 
-            borderRadius: 2,
-            bgcolor: 'action.hover',
-            cursor: 'pointer'
-          }}
-          onClick={() => navigate('/dashboard/profile')}
-        >
-          <Avatar 
-            src={user?.avatar} 
-            sx={{ width: 40, height: 40, mr: 1.5 }}
-          >
-            {user?.full_name?.charAt(0)}
-          </Avatar>
-          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-            <Typography variant="subtitle2" noWrap>
-              {user?.full_name || 'Guest'}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" noWrap display="block">
-              {user?.role || 'Visitor'}
-            </Typography>
-          </Box>
-        </Box>
+      {/* Footer Section (Optional) */}
+      <Box
+        sx={{
+          p: 2,
+          borderTop: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Typography variant="caption" color="text.secondary">
+          © 2026 MUS Platform
+        </Typography>
       </Box>
     </Box>
   );
 
   return (
     <Drawer
-      variant={isMobile ? 'temporary' : variant}
+      variant={variant}
       open={open}
       onClose={onClose}
       sx={{
-        width: open ? width : 0,
+        width: width,
         flexShrink: 0,
-        '& .MuiDrawer-paper': { width, boxSizing: 'border-box', borderRight: '1px solid', borderColor: 'divider' },
-        ...sx
+        '& .MuiDrawer-paper': {
+          width: width,
+          boxSizing: 'border-box',
+          border: variant === 'permanent' ? 'none' : undefined,
+          borderRight: variant === 'permanent' ? '1px solid' : undefined,
+          borderColor: variant === 'permanent' ? 'divider' : undefined,
+        },
       }}
-      {...props}
+      ModalProps={{
+        keepMounted: true, // Better mobile performance
+      }}
     >
       {drawerContent}
     </Drawer>
@@ -214,6 +188,5 @@ Sidebar.propTypes = {
   width: PropTypes.number,
   open: PropTypes.bool,
   onClose: PropTypes.func,
-  variant: PropTypes.string,
-  sx: PropTypes.object
+  variant: PropTypes.oneOf(['permanent', 'temporary']),
 };

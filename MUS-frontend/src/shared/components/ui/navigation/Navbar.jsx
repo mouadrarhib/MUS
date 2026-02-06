@@ -1,3 +1,4 @@
+// src/shared/components/ui/navigation/Navbar.jsx
 import PropTypes from 'prop-types';
 import {
   AppBar,
@@ -9,18 +10,21 @@ import {
   Menu,
   MenuItem,
   Divider,
-  ListItemIcon
+  ListItemIcon,
+  alpha
 } from '@mui/material';
-import { 
-  Menu as MenuIcon, 
-  Logout, 
-  Settings, 
-  Person 
+import {
+  Menu as MenuIcon,
+  Logout,
+  Settings,
+  Person
 } from '@mui/icons-material';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useState } from 'react';
 
-export const Navbar = ({ onMenuClick, sx }) => {
+const NAVBAR_HEIGHT = 64;
+
+export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
   const { user, logout } = useAuth();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
@@ -34,72 +38,181 @@ export const Navbar = ({ onMenuClick, sx }) => {
   };
 
   return (
-    <AppBar position="fixed" elevation={1} sx={{ bgcolor: 'background.paper', color: 'text.primary', ...sx }}>
-      <Toolbar sx={{ minHeight: 64, px: { xs: 2, sm: 3 } }}>
-        {/* Mobile Toggle Button */}
+    <AppBar
+      position="fixed"
+      elevation={0}
+      sx={{
+        bgcolor: 'background.paper',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        color: 'text.primary',
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+        height: NAVBAR_HEIGHT,
+      }}
+    >
+      <Toolbar sx={{ height: NAVBAR_HEIGHT, px: { xs: 2, sm: 3 } }}>
+        {/* Menu Toggle Button */}
         <IconButton
-          color="inherit"
-          aria-label="open drawer"
           edge="start"
           onClick={onMenuClick}
-          sx={{ mr: 2 }}
+          sx={{
+            mr: 2,
+            color: 'text.primary',
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+          }}
         >
           <MenuIcon />
         </IconButton>
 
-        {/* Logo / Title */}
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 700, color: 'primary.main' }}>
-          MUS Platform
-        </Typography>
+        {/* Logo / Platform Name */}
+        <Box display="flex" alignItems="center" gap={1.5}>
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: 2,
+              background: (theme) =>
+                `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontWeight: 700,
+              fontSize: '1.2rem',
+              boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+            }}
+          >
+            M
+          </Box>
+          <Typography
+            variant="h6"
+            fontWeight="700"
+            sx={{
+              display: { xs: 'none', sm: 'block' },
+              background: (theme) =>
+                `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            MUS Platform
+          </Typography>
+        </Box>
 
-        {/* User Profile Menu */}
-        <Box>
-          <IconButton onClick={handleMenuOpen} size="small" sx={{ ml: 2 }}>
-            <Avatar 
-              alt={user?.full_name} 
-              src={user?.avatar} 
-              sx={{ width: 40, height: 40, bgcolor: 'primary.main' }}
+        {/* Spacer */}
+        <Box sx={{ flexGrow: 1 }} />
+
+        {/* User Profile Section */}
+        <Box display="flex" alignItems="center" gap={2}>
+          {/* User Name - Hidden on mobile */}
+          <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+            <Typography variant="body2" fontWeight={600} color="text.primary">
+              {user?.full_name || 'User'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {user?.role || 'Student'}
+            </Typography>
+          </Box>
+
+          {/* Avatar with Menu */}
+          <IconButton
+            onClick={handleMenuOpen}
+            size="small"
+            sx={{
+              p: 0.5,
+              '&:hover': {
+                bgcolor: 'transparent',
+              },
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 40,
+                height: 40,
+                bgcolor: 'primary.main',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                  boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                },
+              }}
             >
               {user?.full_name?.charAt(0) || 'U'}
             </Avatar>
           </IconButton>
-          
+
+          {/* Dropdown Menu */}
           <Menu
             anchorEl={anchorEl}
             open={open}
             onClose={handleMenuClose}
             onClick={handleMenuClose}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             PaperProps={{
               elevation: 0,
               sx: {
-                overflow: 'visible',
-                filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+                minWidth: 220,
                 mt: 1.5,
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'divider',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
+                overflow: 'visible',
+                '&:before': {
+                  content: '""',
+                  display: 'block',
+                  position: 'absolute',
+                  top: 0,
+                  right: 14,
+                  width: 10,
+                  height: 10,
+                  bgcolor: 'background.paper',
+                  transform: 'translateY(-50%) rotate(45deg)',
+                  zIndex: 0,
+                  borderLeft: '1px solid',
+                  borderTop: '1px solid',
+                  borderColor: 'divider',
+                },
               },
             }}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
           >
-            <Box sx={{ px: 2, py: 1 }}>
-              <Typography variant="subtitle2" noWrap>
+            {/* User Info Header */}
+            <Box sx={{ px: 2, py: 1.5 }}>
+              <Typography variant="body2" fontWeight={600}>
                 {user?.full_name || 'User'}
               </Typography>
-              <Typography variant="caption" color="text.secondary" noWrap>
-                {user?.email}
+              <Typography variant="caption" color="text.secondary">
+                {user?.email || 'No email'}
               </Typography>
             </Box>
+
             <Divider />
-            <MenuItem onClick={handleMenuClose}>
-              <ListItemIcon><Person fontSize="small" /></ListItemIcon>
+
+            {/* Menu Items */}
+            <MenuItem sx={{ py: 1.5, px: 2 }}>
+              <ListItemIcon>
+                <Person fontSize="small" />
+              </ListItemIcon>
               Profile
             </MenuItem>
-            <MenuItem onClick={handleMenuClose}>
-              <ListItemIcon><Settings fontSize="small" /></ListItemIcon>
+
+            <MenuItem sx={{ py: 1.5, px: 2 }}>
+              <ListItemIcon>
+                <Settings fontSize="small" />
+              </ListItemIcon>
               Settings
             </MenuItem>
+
             <Divider />
-            <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
-              <ListItemIcon><Logout fontSize="small" color="error" /></ListItemIcon>
+
+            <MenuItem onClick={handleLogout} sx={{ py: 1.5, px: 2, color: 'error.main' }}>
+              <ListItemIcon>
+                <Logout fontSize="small" color="error" />
+              </ListItemIcon>
               Logout
             </MenuItem>
           </Menu>
@@ -110,6 +223,9 @@ export const Navbar = ({ onMenuClick, sx }) => {
 };
 
 Navbar.propTypes = {
-  onMenuClick: PropTypes.func,
-  sx: PropTypes.object,
+  onMenuClick: PropTypes.func.isRequired,
+  sidebarOpen: PropTypes.bool,
+  sidebarWidth: PropTypes.number,
 };
+
+export { NAVBAR_HEIGHT };

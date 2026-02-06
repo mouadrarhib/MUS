@@ -45,8 +45,7 @@ export const DASHBOARD_NAVIGATION = [
   {
     label: 'Users',
     path: '/dashboard/users',
-    icon: <Group />,
-    roles: ['ADMIN']
+    icon: <Group />
   },
 
   // SHARED
