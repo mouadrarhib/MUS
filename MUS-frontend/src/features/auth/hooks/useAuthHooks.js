@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import authService from '../services/authService';
+import authService from '@/services/authService';
 
 export const useLogin = () => {
   const [loading, setLoading] = useState(false);
@@ -77,7 +77,6 @@ export const useLogout = () => {
 
   return { logout, loading, error };
 };
-
 export const useProfile = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

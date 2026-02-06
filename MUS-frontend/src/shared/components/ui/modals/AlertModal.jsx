@@ -1,6 +1,6 @@
 import { Modal } from './Modal';
 import { Alert, AlertTitle } from '@mui/material';
-import { PrimaryButton } from '../buttons/PrimaryButton';
+import { PrimaryButton } from '../buttons';
 import PropTypes from 'prop-types';
 
 /**
@@ -43,4 +43,3 @@ AlertModal.propTypes = {
   severity: PropTypes.oneOf(['error', 'warning', 'info', 'success']),
   buttonText: PropTypes.string,
 };
-

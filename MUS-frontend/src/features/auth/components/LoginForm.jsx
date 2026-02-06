@@ -29,7 +29,7 @@ import logo from '@/assets/images/logo.png';
 import { useNotification } from '../../../shared/components/ui/notifications';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
 
-const Login = () => {
+export const LoginForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login: authLogin, isAuthenticated, hasRole } = useAuth();
@@ -357,5 +357,3 @@ const Login = () => {
     </Box>
   );
 };
-
-export default Login;

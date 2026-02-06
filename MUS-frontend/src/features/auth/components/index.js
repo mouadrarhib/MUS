@@ -1,4 +1,4 @@
-export { default as LoginForm } from './LoginForm';
-export { default as RegisterForm } from './RegisterForm';
-export { ForgotPasswordModal } from './ForgotPasswordModal';
-export { default as ProtectedRoute } from './ProtectedRoute';
+export * from './LoginForm';
+export * from './RegisterForm';
+export * from './ForgotPasswordModal';
+export * from './ProtectedRoute';

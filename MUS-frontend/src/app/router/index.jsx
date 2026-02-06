@@ -1,8 +1,7 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { Box, CircularProgress } from '@mui/material';
 import { ProtectedRoute } from '@/features/auth/components';
-import { MainLayout } from '@/layouts';
 
 // Lazy loading des pages
 const Login = lazy(() => import('@/pages/auth/LoginPage'));
@@ -36,16 +35,13 @@ const AppRouter = () => {
         <Route path="/register" element={<Register />} />
 
         {/* Routes protégées */}
-        <Route
-          path="/home"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <HomePage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
+        <Route element={
+          <ProtectedRoute>
+            <Outlet />
+          </ProtectedRoute>
+        }>
+          <Route path="/home" element={<HomePage />} />
+        </Route>
 
         {/* Route 404 */}
         <Route path="/404" element={<NotFound />} />

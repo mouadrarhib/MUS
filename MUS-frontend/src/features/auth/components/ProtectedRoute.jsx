@@ -2,7 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from '@/features/auth/context/AuthContext';
 
-const ProtectedRoute = ({ children, requiredRole = null }) => {
+export const ProtectedRoute = ({ children, requiredRole = null }) => {
   const { isAuthenticated, loading, hasRole } = useAuth();
   const location = useLocation();
 
@@ -33,5 +33,3 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
 
   return children;
 };
-
-export default ProtectedRoute;

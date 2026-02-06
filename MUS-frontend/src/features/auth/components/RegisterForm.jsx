@@ -28,7 +28,7 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import logo from '@/assets/images/logo.png';
 import { useRegister } from '../hooks/useAuthHooks';
 
-const Register = () => {
+export const RegisterForm = () => {
   const navigate = useNavigate();
   const { login: authLogin, isAdmin } = useAuth();
   const { register: apiRegister, loading, error: apiError } = useRegister();
@@ -367,5 +367,3 @@ const Register = () => {
     </Box>
   );
 };
-
-export default Register;

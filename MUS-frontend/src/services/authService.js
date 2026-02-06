@@ -1,4 +1,4 @@
-import apiClient from '@/config/apiClient';
+import apiClient from '@/services/api';
 
 const AUTH_ENDPOINTS = {
   REGISTER: 'api/auth/register',

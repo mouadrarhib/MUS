@@ -1,6 +1,5 @@
 import { Modal } from './Modal';
-import { PrimaryButton } from '../buttons/PrimaryButton';
-import { OutlinedButton } from '../buttons/OutlinedButton';
+import { PrimaryButton, OutlinedButton } from '../buttons';
 import PropTypes from 'prop-types';
 
 /**
@@ -53,4 +52,3 @@ ConfirmModal.propTypes = {
   confirmColor: PropTypes.oneOf(['primary', 'secondary', 'error', 'warning', 'info', 'success']),
   loading: PropTypes.bool,
 };
-

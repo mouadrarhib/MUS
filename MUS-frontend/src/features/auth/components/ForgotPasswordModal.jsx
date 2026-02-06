@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Box, Typography, Stepper, Step, StepLabel } from '@mui/material';
 import { Email as EmailIcon, Lock as LockIcon } from '@mui/icons-material';
-import authService from '@/features/auth/services/authService'
+import authService from '@/services/authService'
 import { Modal, TextField, PrimaryButton, OutlinedButton, useNotification } from '../../../shared/components/ui';
 
 
