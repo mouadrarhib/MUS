@@ -1,0 +1,98 @@
+[
+  {
+    "id": "res_101",
+    "title": "Analyse Mathématique 1 - Examen Corrigé",
+    "description": "Session Normale 2023/2024 avec correction détaillée.",
+    "status": "published", 
+    "educationalType": "exam", 
+    "format": "pdf",
+    "url": "/uploads/analyse_s1_2024.pdf",
+    "pricePoints": 0,
+    "createdAt": "2024-01-20T10:00:00Z",
+    "stats": {
+      "totalFavorites": 120,
+      "totalRatings": 45,
+      "avgRating": 4.7,
+      "downloads": 350
+    },
+    "academicContext": {
+      "moduleCode": "MATH101",
+      "moduleTitle": "Analyse 1",
+      "semesterName": "Semestre 1",
+      "levelName": "1ère Année",
+      "programName": "MIP (Math Info Physique)",
+      "isExamRelated": true,
+      "difficulty": "medium"
+    },
+    "author": {
+      "id": "u_student_01",
+      "name": "Yassine Etudiant",
+      "role": "student",
+      "institution": "Université Hassan II"
+    }
+  },
+  {
+    "id": "res_102",
+    "title": "Introduction à React JS",
+    "description": "Cours complet sur les composants et les hooks.",
+    "status": "published",
+    "educationalType": "course",
+    "format": "video",
+    "url": "https://youtube.com/watch?v=xyz123",
+    "pricePoints": 50,
+    "createdAt": "2024-02-05T16:00:00Z",
+    "stats": {
+      "totalFavorites": 200,
+      "totalRatings": 80,
+      "avgRating": 4.9,
+      "downloads": 120
+    },
+    "academicContext": {
+      "moduleCode": "INFO305",
+      "moduleTitle": "Web Development",
+      "semesterName": "Semestre 5",
+      "levelName": "3ème Année",
+      "programName": "Génie Informatique",
+      "isExamRelated": false,
+      "difficulty": "hard"
+    },
+    "author": {
+      "id": "u_teacher_01",
+      "name": "Prof. Alami",
+      "role": "teacher",
+      "institution": "Université Cadi Ayyad"
+    }
+  },
+  {
+    "id": "res_103",
+    "title": "Resumé Comptabilité Générale",
+    "description": "Fiche de révision pour le chapitre des amortissements.",
+    "status": "draft",
+    "educationalType": "notes",
+    "format": "powerpoint",
+    "url": "/uploads/compta_draft.pptx",
+    "pricePoints": 10,
+    "createdAt": "2024-02-06T09:00:00Z",
+    "stats": {
+      "totalFavorites": 0,
+      "totalRatings": 0,
+      "avgRating": 0,
+      "downloads": 0
+    },
+    "academicContext": {
+      "moduleCode": "ECO201",
+      "moduleTitle": "Comptabilité Générale",
+      "semesterName": "Semestre 2",
+      "levelName": "1ère Année",
+      "programName": "Sciences Économiques",
+      "isExamRelated": true,
+      "difficulty": "easy"
+    },
+    "author": {
+      "id": "u_student_01",
+      "name": "Yassine Etudiant",
+      "role": "student",
+      "institution": "Université Hassan II"
+    }
+  }
+]

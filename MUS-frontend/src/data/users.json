@@ -1,0 +1,64 @@
+[
+  {
+    "id": "u_admin_01",
+    "fullName": "Admin Moussa",
+    "email": "admin@mus.ma",
+    "password": "password123",
+    "isActive": true,
+    "userRoles": ["admin"],
+    "avatar": "https://i.pravatar.cc/150?u=admin",
+    "createdAt": "2024-01-01T10:00:00Z"
+  },
+  {
+    "id": "u_student_01",
+    "fullName": "Yassine Etudiant",
+    "email": "yassine@student.mus.ma",
+    "password": "password123",
+    "isActive": true,
+    "userRoles": ["student"],
+    "avatar": "https://i.pravatar.cc/150?u=yassine",
+    "createdAt": "2024-09-15T09:30:00Z",
+    "profile": {
+      "hasProfile": true,
+      "institutionName": "Université Hassan II",
+      "institutionCity": "Casablanca",
+      "institutionType": "Public University",
+      "programName": "Génie Informatique",
+      "domainName": "Sciences & Techniques",
+      "currentSemesterName": "Semestre 5",
+      "levelName": "3ème Année Licence",
+      "profileCompletionPercentage": 95
+    },
+    "stats": {
+      "totalResourcesCreated": 12,
+      "publishedResources": 10,
+      "totalFavoritesReceived": 45,
+      "avgRatingReceived": 4.5,
+      "lastResourceCreatedAt": "2024-02-01T14:20:00Z"
+    }
+  },
+  {
+    "id": "u_teacher_01",
+    "fullName": "Prof. Alami",
+    "email": "alami@prof.mus.ma",
+    "password": "password123",
+    "isActive": true,
+    "userRoles": ["teacher"],
+    "avatar": "https://i.pravatar.cc/150?u=alami",
+    "createdAt": "2023-09-01T08:00:00Z",
+    "profile": {
+      "hasProfile": true,
+      "institutionName": "Université Cadi Ayyad",
+      "institutionCity": "Marrakech",
+      "institutionType": "Public University",
+      "programName": "Sciences Économiques",
+      "domainName": "Économie Gestion"
+    },
+    "stats": {
+      "totalResourcesCreated": 50,
+      "publishedResources": 48,
+      "totalFavoritesReceived": 320,
+      "avgRatingReceived": 4.8
+    }
+  }
+]

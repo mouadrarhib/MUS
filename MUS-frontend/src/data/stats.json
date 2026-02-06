@@ -1,0 +1,29 @@
+{
+  "studentsOverview": {
+    "totalStudents": 1500,
+    "activeStudents": 1250,
+    "inactiveStudents": 250,
+    "profileCompletionPercentage": 78.5,
+    "studentsWithProfile": 1177,
+    "studentsWithoutProfile": 323
+  },
+  "resourceMetrics": {
+    "totalResourcesByStudents": 3500,
+    "publishedResources": 3100,
+    "draftResources": 300,
+    "archivedResources": 100,
+    "resourcesLast7Days": 120,
+    "resourcesLast30Days": 540
+  },
+  "engagementMetrics": {
+    "avgResourcesPerStudent": 2.33,
+    "avgFavoritesPerStudent": 15.5,
+    "avgRatingGivenByStudents": 4.2,
+    "totalDownloads": 45000
+  },
+  "topPerformers": {
+    "mostActiveStudentId": "u_student_01",
+    "mostActiveStudentName": "Yassine Etudiant",
+    "mostActiveStudentResources": 12
+  }
+}
