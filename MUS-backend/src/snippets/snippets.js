@@ -1,16 +1,212 @@
 import { UserRole } from "../models/index.js";
 
 export const SQL = {
+  ADMIN: {
+    // ===========================================================================
+    // STUDENTS MANAGEMENT
+    // ===========================================================================
+    
+    // ===== LISTE & DÉTAILS STUDENTS =====
+    GET_ALL_STUDENTS: `SELECT * FROM vw_admin_students_list ORDER BY account_created_at DESC`,
+    
+    GET_STUDENT_DETAILS: `
+      SELECT * FROM vw_admin_student_full_details 
+      WHERE user_id = :user_id
+    `,
+    
+    GET_STUDENTS_STATISTICS: `SELECT * FROM vw_admin_students_statistics`,
+    
+    // ===== FILTRES STUDENTS =====
+    FILTER_STUDENTS_BY_STATUS: `
+      SELECT * FROM vw_admin_students_list 
+      WHERE is_active = :is_active
+      ORDER BY account_created_at DESC
+    `,
+    
+    FILTER_STUDENTS_BY_PROFILE: `
+      SELECT * FROM vw_admin_students_list 
+      WHERE has_profile = :has_profile
+      ORDER BY account_created_at DESC
+    `,
+    
+    FILTER_STUDENTS_BY_INSTITUTION: `
+      SELECT * FROM vw_admin_students_list 
+      WHERE institution_id = :institution_id
+      ORDER BY account_created_at DESC
+    `,
+    
+    FILTER_STUDENTS_BY_PROGRAM: `
+      SELECT * FROM vw_admin_students_list 
+      WHERE program_id = :program_id
+      ORDER BY account_created_at DESC
+    `,
+    
+    // ===== RECHERCHE STUDENTS =====
+    SEARCH_STUDENTS: `
+      SELECT * FROM vw_admin_students_list
+      WHERE LOWER(full_name) LIKE LOWER(:search)
+      OR LOWER(email) LIKE LOWER(:search)
+      ORDER BY account_created_at DESC
+    `,
+    
+    // ===========================================================================
+    // RESOURCES MANAGEMENT - ARCHITECTURE MULTI-ROLES
+    // ===========================================================================
+    
+    // ===== VUE PRINCIPALE (Tous les rôles) =====
+    
+    GET_ALL_USER_RESOURCES: `
+      SELECT * FROM vw_admin_user_resources 
+      ORDER BY resource_created_at DESC
+    `,
+    
+    GET_USER_RESOURCES_BY_CREATOR: `
+      SELECT * FROM vw_admin_user_resources 
+      WHERE creator_id = :creator_id
+      ORDER BY resource_created_at DESC
+    `,
+    
+    // ===== VUES SPÉCIALISÉES PAR RÔLE =====
+    
+    GET_ALL_STUDENT_RESOURCES: `
+      SELECT * FROM vw_admin_student_resources 
+      ORDER BY resource_created_at DESC
+    `,
+    
+    GET_ALL_TEACHER_RESOURCES: `
+      SELECT * FROM vw_admin_teacher_resources 
+      ORDER BY resource_created_at DESC
+    `,
+    
+    // ===== FILTRES RESOURCES =====
+    
+    FILTER_RESOURCES_BY_ROLE: `
+      SELECT * FROM vw_admin_user_resources 
+      WHERE :role = ANY(creator_roles)
+      ORDER BY resource_created_at DESC
+    `,
+    
+    FILTER_RESOURCES_BY_STATUS: `
+      SELECT * FROM vw_admin_user_resources 
+      WHERE resource_status = :status
+      ORDER BY resource_created_at DESC
+    `,
+    
+    FILTER_RESOURCES_BY_MODULE: `
+      SELECT * FROM vw_admin_user_resources 
+      WHERE module_id = :module_id
+      ORDER BY resource_created_at DESC
+    `,
+    
+    FILTER_RESOURCES_BY_PROGRAM: `
+      SELECT * FROM vw_admin_user_resources 
+      WHERE program_id = :program_id
+      ORDER BY resource_created_at DESC
+    `,
+    
+    FILTER_RESOURCES_BY_DOMAIN: `
+      SELECT * FROM vw_admin_user_resources 
+      WHERE domain_id = :domain_id
+      ORDER BY resource_created_at DESC
+    `,
+    
+    // ===== STATISTIQUES RESOURCES =====
+    
+    GET_RESOURCES_STATS_BY_ROLE: `
+      SELECT 
+        primary_role,
+        COUNT(DISTINCT resource_id) AS total_resources,
+        COUNT(DISTINCT resource_id) FILTER (WHERE resource_status = 'published') AS published,
+        COUNT(DISTINCT resource_id) FILTER (WHERE resource_status = 'draft') AS draft,
+        COUNT(DISTINCT resource_id) FILTER (WHERE resource_status = 'archived') AS archived,
+        COUNT(DISTINCT creator_id) AS total_creators,
+        AVG(avg_rating)::NUMERIC(3,2) AS avg_rating_all,
+        SUM(total_favorites)::BIGINT AS total_favorites_all,
+        SUM(total_ratings)::BIGINT AS total_ratings_all
+      FROM vw_admin_user_resources
+      GROUP BY primary_role
+      ORDER BY total_resources DESC
+    `,
+    
+    GET_RESOURCES_STATS_BY_STATUS: `
+      SELECT 
+        resource_status,
+        COUNT(DISTINCT resource_id) AS total,
+        COUNT(DISTINCT creator_id) AS total_creators,
+        AVG(avg_rating)::NUMERIC(3,2) AS avg_rating
+      FROM vw_admin_user_resources
+      GROUP BY resource_status
+      ORDER BY total DESC
+    `,
+    
+    GET_RESOURCES_STATS_BY_MODULE: `
+      SELECT 
+        module_id,
+        module_code,
+        module_title,
+        COUNT(DISTINCT resource_id) AS total_resources,
+        COUNT(DISTINCT creator_id) AS total_creators,
+        AVG(avg_rating)::NUMERIC(3,2) AS avg_rating
+      FROM vw_admin_user_resources
+      WHERE module_id IS NOT NULL
+      GROUP BY module_id, module_code, module_title
+      ORDER BY total_resources DESC
+    `,
+    
+    // ===== RECHERCHE RESOURCES =====
+    
+    SEARCH_RESOURCES: `
+      SELECT * FROM vw_admin_user_resources
+      WHERE LOWER(resource_title) LIKE LOWER(:search)
+      OR LOWER(resource_description) LIKE LOWER(:search)
+      OR LOWER(creator_name) LIKE LOWER(:search)
+      ORDER BY resource_created_at DESC
+    `,
+    
+    SEARCH_RESOURCES_BY_CREATOR: `
+      SELECT * FROM vw_admin_user_resources
+      WHERE (LOWER(resource_title) LIKE LOWER(:search)
+      OR LOWER(resource_description) LIKE LOWER(:search))
+      AND creator_id = :creator_id
+      ORDER BY resource_created_at DESC
+    `,
+    
+    // ===========================================================================
+    // COMPATIBILITÉ - ANCIENNES REQUÊTES (à garder pour ne pas casser le code)
+    // ===========================================================================
+    
+    /**
+     * @deprecated Utiliser GET_USER_RESOURCES_BY_CREATOR à la place
+     * Cette requête utilise l'ancien nom de colonne student_user_id
+     * mais reste fonctionnelle grâce aux alias dans la vue
+     */
+    GET_STUDENT_RESOURCES: `
+      SELECT * FROM vw_admin_student_resources 
+      WHERE student_user_id = :user_id
+      ORDER BY resource_created_at DESC
+    `,
+  },
+
+
   USER: {
     REGISTER: `SELECT * FROM public.sp_user_register(:full_name, :email, :password)`,
+    
     LOGIN: `SELECT * FROM public.sp_user_login(:email, :password)`,
+    
     GET_BY_EMAIL: `SELECT * FROM public.sp_user_get_by_email(:email)`,
+    
     GET_BY_ID: `SELECT * FROM public.sp_user_get_by_id(:id)`,
+    
     CHANGE_EMAIL: `SELECT * FROM public.sp_user_change_email(:id, :new_email)`,
+    
     CHANGE_PASSWORD: `SELECT public.sp_user_change_password(:id, :old_password, :new_password)`,
+    
     RESET_PASSWORD: `SELECT public.sp_user_reset_password(:id, :new_password)`,
+    
     SET_ACTIVE: `SELECT public.sp_user_set_active(:id, :is_active)`,
+    
     DELETE: `SELECT public.sp_user_delete(:id)`,
+    
     UPDATE_PROFILE: `SELECT * FROM public.sp_user_update_profile(:id, :full_name)`,
   },
 
@@ -48,11 +244,17 @@ export const SQL = {
 
   INSTITUTION_TYPE: {
     CREATE: `SELECT * FROM public.sp_institution_type_create(:name)`,
+    
     GET_BY_ID: `SELECT * FROM public.sp_institution_type_get_by_id(:id)`,
+    
     GET_BY_NAME: `SELECT * FROM public.sp_institution_type_get_by_name(:name)`,
+    
     GET_ALL: `SELECT * FROM public.sp_institution_type_get_all()`,
+    
     UPDATE: `SELECT * FROM public.sp_institution_type_update(:id, :name)`,
+    
     DELETE: `SELECT public.sp_institution_type_delete(:id)`,
+    
     EXISTS: `SELECT public.sp_institution_type_exists(:name)`,
   },
 

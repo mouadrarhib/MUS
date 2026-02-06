@@ -70,7 +70,7 @@ router.get(
   searchFavoritesHandler
 );
 
-// Get most popular (public route - no specific user needed)
+// Get most popular
 router.get(
   "/most-popular",
   [query("limit").optional().isInt({ min: 1, max: 100 })],
@@ -81,7 +81,11 @@ router.get(
 // Get favorites by status
 router.get(
   "/by-status/:status",
-  [param("status").isString().withMessage("Valid status is required")],
+  [
+    param("status")
+      .isIn(["draft", "published", "archived"])
+      .withMessage("Status must be: draft, published, or archived")
+  ],
   validateRequest,
   listFavoritesByStatusHandler
 );
@@ -89,7 +93,11 @@ router.get(
 // Get favorites by educational type
 router.get(
   "/by-educational-type/:educationalType",
-  [param("educationalType").isString()],
+  [
+    param("educationalType")
+      .isIn(["exam", "course", "correction", "notes", "resume"])
+      .withMessage("Educational type must be: exam, course, correction, notes, or resume")
+  ],
   validateRequest,
   listFavoritesByEducationalTypeHandler
 );
@@ -97,7 +105,11 @@ router.get(
 // Get favorites by format
 router.get(
   "/by-format/:format",
-  [param("format").isString()],
+  [
+    param("format")
+      .isIn(["pdf", "video", "powerpoint", "word", "excel", "image", "audio", "zip", "other"])
+      .withMessage("Format must be: pdf, video, powerpoint, word, excel, image, audio, zip, or other")
+  ],
   validateRequest,
   listFavoritesByFormatHandler
 );

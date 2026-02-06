@@ -25,7 +25,7 @@ import {
  * @swagger
  * tags:
  *   name: Favorites
- *   description: Favorite resources management (Student only)
+ *   description: Favorite resources management
  */
 
 
@@ -33,17 +33,6 @@ import {
  * @swagger
  * components:
  *   schemas:
- *     Favorite:
- *       type: object
- *       properties:
- *         user_id:
- *           type: string
- *           format: uuid
- *         resource_id:
- *           type: integer
- *         created_at:
- *           type: string
- *           format: date-time
  *     FavoriteRequest:
  *       type: object
  *       required: [resource_id]
@@ -79,7 +68,6 @@ export const addFavoriteHandler = asyncHandler(async (req, res) => {
 
   const favorite = await addFavorite(userId, resource_id);
   
-  // Si la ressource était déjà favorite, favorite sera null/undefined
   if (!favorite) {
     return successResponse(res, "Resource already in favorites", null, 200);
   }
@@ -135,7 +123,7 @@ export const toggleFavoriteHandler = asyncHandler(async (req, res) => {
  *           type: integer
  *     responses:
  *       200:
- *         description: Resource removed from favorites successfully
+ *         description: Resource removed successfully
  */
 export const removeFavoriteHandler = asyncHandler(async (req, res) => {
   const userId = getCurrentUserId();
@@ -158,7 +146,7 @@ export const removeFavoriteHandler = asyncHandler(async (req, res) => {
  * @swagger
  * /favorites/check/{resourceId}:
  *   get:
- *     summary: Check if a resource is in favorites
+ *     summary: Check if a resource is favorited
  *     tags: [Favorites]
  *     security:
  *       - bearerAuth: []
@@ -171,14 +159,14 @@ export const removeFavoriteHandler = asyncHandler(async (req, res) => {
  *           type: integer
  *     responses:
  *       200:
- *         description: Favorite check result
+ *         description: Check result
  */
 export const checkFavoriteHandler = asyncHandler(async (req, res) => {
   const userId = getCurrentUserId();
   const { resourceId } = req.params;
 
   const exists = await checkFavoriteExists(userId, parseInt(resourceId));
-  return successResponse(res, "Favorite check completed", { is_favorited: exists });
+  return successResponse(res, "Check completed", { is_favorited: exists });
 });
 
 
@@ -193,7 +181,7 @@ export const checkFavoriteHandler = asyncHandler(async (req, res) => {
  *       - cookieAuth: []
  *     responses:
  *       200:
- *         description: A list of favorites
+ *         description: List of favorites
  */
 export const listMyFavoritesHandler = asyncHandler(async (req, res) => {
   const userId = getCurrentUserId();
@@ -207,7 +195,7 @@ export const listMyFavoritesHandler = asyncHandler(async (req, res) => {
  * @swagger
  * /favorites/by-status/{status}:
  *   get:
- *     summary: Get user favorites by status
+ *     summary: Get favorites by status
  *     tags: [Favorites]
  *     security:
  *       - bearerAuth: []
@@ -218,17 +206,17 @@ export const listMyFavoritesHandler = asyncHandler(async (req, res) => {
  *         required: true
  *         schema:
  *           type: string
- *           enum: [published, draft, archived]
+ *           enum: [draft, published, archived]
  *     responses:
  *       200:
- *         description: A list of favorites
+ *         description: Filtered favorites
  */
 export const listFavoritesByStatusHandler = asyncHandler(async (req, res) => {
   const userId = getCurrentUserId();
   const { status } = req.params;
 
-  const favorites = await getUserFavoritesByStatus(userId, status);
-  return successResponse(res, `Favorites with status '${status}' retrieved successfully`, favorites);
+  const favorites = await getUserFavoritesByStatus(userId, status.toLowerCase());
+  return successResponse(res, "Favorites retrieved successfully", favorites);
 });
 
 
@@ -236,7 +224,7 @@ export const listFavoritesByStatusHandler = asyncHandler(async (req, res) => {
  * @swagger
  * /favorites/by-educational-type/{educationalType}:
  *   get:
- *     summary: Get user favorites by educational type
+ *     summary: Get favorites by educational type
  *     tags: [Favorites]
  *     security:
  *       - bearerAuth: []
@@ -247,16 +235,17 @@ export const listFavoritesByStatusHandler = asyncHandler(async (req, res) => {
  *         required: true
  *         schema:
  *           type: string
+ *           enum: [exam, course, correction, notes, resume]
  *     responses:
  *       200:
- *         description: A list of favorites
+ *         description: Filtered favorites
  */
 export const listFavoritesByEducationalTypeHandler = asyncHandler(async (req, res) => {
   const userId = getCurrentUserId();
   const { educationalType } = req.params;
 
-  const favorites = await getUserFavoritesByEducationalType(userId, educationalType);
-  return successResponse(res, `Favorites retrieved successfully`, favorites);
+  const favorites = await getUserFavoritesByEducationalType(userId, educationalType.toLowerCase());
+  return successResponse(res, "Favorites retrieved successfully", favorites);
 });
 
 
@@ -264,7 +253,7 @@ export const listFavoritesByEducationalTypeHandler = asyncHandler(async (req, re
  * @swagger
  * /favorites/by-format/{format}:
  *   get:
- *     summary: Get user favorites by format
+ *     summary: Get favorites by format
  *     tags: [Favorites]
  *     security:
  *       - bearerAuth: []
@@ -275,16 +264,17 @@ export const listFavoritesByEducationalTypeHandler = asyncHandler(async (req, re
  *         required: true
  *         schema:
  *           type: string
+ *           enum: [pdf, video, powerpoint, word, excel, image, audio, zip, other]
  *     responses:
  *       200:
- *         description: A list of favorites
+ *         description: Filtered favorites
  */
 export const listFavoritesByFormatHandler = asyncHandler(async (req, res) => {
   const userId = getCurrentUserId();
   const { format } = req.params;
 
-  const favorites = await getUserFavoritesByFormat(userId, format);
-  return successResponse(res, `Favorites retrieved successfully`, favorites);
+  const favorites = await getUserFavoritesByFormat(userId, format.toLowerCase());
+  return successResponse(res, "Favorites retrieved successfully", favorites);
 });
 
 
@@ -305,7 +295,7 @@ export const countMyFavoritesHandler = asyncHandler(async (req, res) => {
   const userId = getCurrentUserId();
   const count = await countUserFavorites(userId);
   
-  return successResponse(res, "Favorite count retrieved successfully", { count });
+  return successResponse(res, "Count retrieved successfully", { count });
 });
 
 
@@ -326,13 +316,13 @@ export const countMyFavoritesHandler = asyncHandler(async (req, res) => {
  *           type: integer
  *     responses:
  *       200:
- *         description: Favorite count
+ *         description: Count result
  */
 export const countResourceFavoritesHandler = asyncHandler(async (req, res) => {
   const { resourceId } = req.params;
   const count = await countResourceFavorites(parseInt(resourceId));
   
-  return successResponse(res, "Resource favorite count retrieved successfully", { count });
+  return successResponse(res, "Count retrieved successfully", { count });
 });
 
 
@@ -351,9 +341,11 @@ export const countResourceFavoritesHandler = asyncHandler(async (req, res) => {
  *         schema:
  *           type: integer
  *           default: 10
+ *           minimum: 1
+ *           maximum: 100
  *     responses:
  *       200:
- *         description: A list of most popular favorites
+ *         description: Popular favorites
  */
 export const listMostPopularFavoritesHandler = asyncHandler(async (req, res) => {
   const { limit = 10 } = req.query;
@@ -378,9 +370,11 @@ export const listMostPopularFavoritesHandler = asyncHandler(async (req, res) => 
  *         schema:
  *           type: integer
  *           default: 10
+ *           minimum: 1
+ *           maximum: 100
  *     responses:
  *       200:
- *         description: A list of recent favorites
+ *         description: Recent favorites
  */
 export const listRecentFavoritesHandler = asyncHandler(async (req, res) => {
   const userId = getCurrentUserId();
@@ -423,13 +417,13 @@ export const removeAllFavoritesHandler = asyncHandler(async (req, res) => {
  *       - cookieAuth: []
  *     responses:
  *       200:
- *         description: Favorite statistics
+ *         description: Statistics data
  */
 export const getUserStatisticsHandler = asyncHandler(async (req, res) => {
   const userId = getCurrentUserId();
   const statistics = await getUserFavoriteStatistics(userId);
   
-  return successResponse(res, "Favorite statistics retrieved successfully", statistics);
+  return successResponse(res, "Statistics retrieved successfully", statistics);
 });
 
 
@@ -485,7 +479,7 @@ export const searchFavoritesHandler = asyncHandler(async (req, res) => {
  *           type: integer
  *     responses:
  *       200:
- *         description: A list of users
+ *         description: List of users
  */
 export const listUsersWhoFavoritedHandler = asyncHandler(async (req, res) => {
   const { resourceId } = req.params;

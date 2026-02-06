@@ -4,7 +4,7 @@ import { hashPassword, comparePassword } from "../utils/password.js";
 import { generateToken } from "../utils/jwt.js";
 import { SQL } from "../snippets/index.js";
 
-const DEFAULT_ROLE = "user";
+const DEFAULT_ROLE = "student";
 
 const sanitizeUser = (userInstance) => {
   if (!userInstance) return null;
@@ -32,10 +32,13 @@ const getRolesForUser = async (userId, transaction) => {
   return roles.map((role) => role.name);
 };
 
-const ensureDefaultRole = async (transaction) => {
+const ensureStudentRole = async (transaction) => {
   const [role] = await Role.findOrCreate({
-    where: { name: DEFAULT_ROLE },
-    defaults: { description: "Default application user" },
+    where: { name: "student" },
+    defaults: { 
+      name: "student",
+      description: "Student user with access to create and share educational resources" 
+    },
     transaction,
   });
   return role;
@@ -130,9 +133,9 @@ export const registerUser = async ({ full_name, email, password }) => {
       );
     }
 
-    const defaultRole = await ensureDefaultRole(transaction);
+    const studentRole = await ensureStudentRole(transaction);
     await UserRole.findOrCreate({
-      where: { user_id: userInstance.id, role_id: defaultRole.id },
+      where: { user_id: userInstance.id, role_id: studentRole.id },
       defaults: { assigned_at: new Date() },
       transaction,
     });

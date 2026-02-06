@@ -15,6 +15,8 @@ import resourceRoutes from "./resourceRoutes.js";
 import moduleRoutes from "./moduleRoutes.js";
 import ratingRoutes from "./ratingRoutes.js";
 import favoriteRoutes from "./favoriteRoutes.js";
+import adminRoutes from "./adminRoutes.js";
+import resourceModuleMapRoutes from "./resourceModuleMapRoutes.js";
 
 
 const router = Router();
@@ -32,8 +34,11 @@ router.use("/levels", levelRoutes);
 router.use("/semesters", semesterRoutes);
 router.use("/student-profiles", studentProfileRoutes);
 router.use("/resources", resourceRoutes);
+router.use("/ressouces-module-map", resourceModuleMapRoutes);
 router.use("/modules", moduleRoutes);
 router.use("/ratings", ratingRoutes);
 router.use("/favorites", favoriteRoutes);
+router.use("/admin", adminRoutes);
+
 
 export default router;
