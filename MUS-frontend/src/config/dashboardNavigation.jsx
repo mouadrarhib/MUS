@@ -4,7 +4,8 @@ import {
   UploadFile, 
   AccountBalanceWallet, 
   AdminPanelSettings,
-  Group 
+  Group,
+  Description
 } from '@mui/icons-material';
 
 export const DASHBOARD_NAVIGATION = [
@@ -46,6 +47,11 @@ export const DASHBOARD_NAVIGATION = [
     label: 'Users',
     path: '/dashboard/users',
     icon: <Group />
+  },
+  {
+    label: 'Resources',
+    path: '/dashboard/resources',
+    icon: <Description />
   },
 
   // SHARED
