@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import logo from '@/assets/images/logo.png';
 
 export const Sidebar = ({
   items = [],
@@ -42,38 +43,6 @@ export const Sidebar = ({
         bgcolor: 'background.paper',
       }}
     >
-      {/* Sidebar Header */}
-      <Box
-        sx={{
-          p: 3,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Box display="flex" alignItems="center" gap={1.5}>
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 1.5,
-              background: (theme) =>
-                `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontWeight: 700,
-              fontSize: '1.1rem',
-            }}
-          >
-            M
-          </Box>
-          <Typography variant="h6" fontWeight="700" color="text.primary">
-            MUS
-          </Typography>
-        </Box>
-      </Box>
-
       {/* Navigation Items */}
       <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', p: 2 }}>
         <List sx={{ p: 0 }}>

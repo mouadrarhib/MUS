@@ -18,7 +18,6 @@ export const DASHBOARD_NAVIGATION = [
   },
 
   // STUDENT
-  { type: 'section', label: 'Learning', roles: ['STUDENT'] },
   {
     label: 'My Library',
     path: '/dashboard/library',

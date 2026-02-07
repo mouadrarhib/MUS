@@ -21,6 +21,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useState } from 'react';
+import logo from '@/assets/images/logo.png';
 
 const NAVBAR_HEIGHT = 64;
 
@@ -66,39 +67,18 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
           <MenuIcon />
         </IconButton>
 
-        {/* Logo / Platform Name */}
-        <Box display="flex" alignItems="center" gap={1.5}>
+        {/* Logo */}
+        <Box display="flex" alignItems="center">
           <Box
+            component="img"
+            src={logo}
+            alt="MUS Logo"
             sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              background: (theme) =>
-                `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontWeight: 700,
-              fontSize: '1.2rem',
-              boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+              height: 50,
+              width: 'auto',
+              objectFit: 'contain',
             }}
-          >
-            M
-          </Box>
-          <Typography
-            variant="h6"
-            fontWeight="700"
-            sx={{
-              display: { xs: 'none', sm: 'block' },
-              background: (theme) =>
-                `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            MUS Platform
-          </Typography>
+          />
         </Box>
 
         {/* Spacer */}
@@ -106,43 +86,72 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
 
         {/* User Profile Section */}
         <Box display="flex" alignItems="center" gap={2}>
-          {/* User Name - Hidden on mobile */}
-          <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-            <Typography variant="body2" fontWeight={600} color="text.primary">
-              {user?.full_name || 'User'}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {user?.role || 'Student'}
-            </Typography>
-          </Box>
-
-          {/* Avatar with Menu */}
-          <IconButton
-            onClick={handleMenuOpen}
-            size="small"
+          <Box 
+            display="flex" 
+            alignItems="center" 
+            gap={1.5}
             sx={{
-              p: 0.5,
+              px: 2,
+              py: 1,
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'divider',
+              bgcolor: 'background.paper',
+              transition: 'all 0.2s',
+              cursor: 'pointer',
               '&:hover': {
-                bgcolor: 'transparent',
+                bgcolor: 'action.hover',
+                borderColor: 'primary.main',
+                boxShadow: (theme) => `0 2px 8px ${alpha(theme.palette.primary.main, 0.15)}`,
               },
             }}
+            onClick={handleMenuOpen}
           >
+            {/* User Name and Role - Hidden on mobile */}
+            <Box sx={{ display: { xs: 'none', md: 'block' }, textAlign: 'right' }}>
+              <Typography 
+                variant="body2" 
+                fontWeight={600} 
+                color="text.primary"
+                sx={{ lineHeight: 1.3 }}
+              >
+                {user?.full_name || 'User'}
+              </Typography>
+              <Box
+                component="span"
+                sx={{
+                  display: 'inline-block',
+                  px: 1,
+                  py: 0.25,
+                  borderRadius: 1,
+                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                  color: 'primary.main',
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                }}
+              >
+                {user?.role || 'Student'}
+              </Box>
+            </Box>
+
+            {/* Avatar */}
             <Avatar
               sx={{
-                width: 40,
-                height: 40,
+                width: 42,
+                height: 42,
                 bgcolor: 'primary.main',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                '&:hover': {
-                  transform: 'scale(1.05)',
-                  boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
-                },
+                fontWeight: 700,
+                fontSize: '1.1rem',
+                border: '2px solid',
+                borderColor: 'background.paper',
+                boxShadow: (theme) => `0 2px 8px ${alpha(theme.palette.primary.main, 0.25)}`,
               }}
             >
               {user?.full_name?.charAt(0) || 'U'}
             </Avatar>
-          </IconButton>
+          </Box>
 
           {/* Dropdown Menu */}
           <Menu
