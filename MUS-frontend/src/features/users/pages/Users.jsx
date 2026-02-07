@@ -1,6 +1,6 @@
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { useState, useEffect } from 'react';
-import { Add } from '@mui/icons-material';
+import { Add, Delete as DeleteIcon, Warning as WarningIcon } from '@mui/icons-material';
 import usersService from '@/services/usersService';
 import UsersStatsCards from '../components/UsersStatsCards';
 import UsersTable from '../components/UsersTable';
@@ -14,6 +14,8 @@ const Users = () => {
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [viewingUser, setViewingUser] = useState(null);
+  const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   // Load users on component mount
   useEffect(() => {
@@ -74,28 +76,59 @@ const Users = () => {
   };
 
   const handleDeleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        await usersService.deleteUser(userId);
-        await loadUsers();
-      } catch (error) {
-        console.error('Error deleting user:', error);
-      }
+    const userToDeleteObj = users.find(u => u.id === userId);
+    setUserToDelete(userToDeleteObj);
+    setOpenDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return;
+    try {
+      await usersService.deleteUser(userToDelete.id);
+      await loadUsers();
+      setOpenDeleteConfirm(false);
+      setUserToDelete(null);
+    } catch (error) {
+      console.error('Error deleting user:', error);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setOpenDeleteConfirm(false);
+    setUserToDelete(null);
   };
 
   const activeUsers = users.filter(u => u.isActive).length;
   const teachers = users.filter(u => u.userRoles?.includes('teacher')).length;
 
   return (
-    <Box>
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
       {/* Header */}
-      <Box mb={4} display="flex" justifyContent="space-between" alignItems="flex-start">
+      <Box 
+        mb={4} 
+        display="flex" 
+        justifyContent="space-between" 
+        alignItems="flex-start"
+        sx={{
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2,
+        }}
+      >
         <Box>
-          <Typography variant="h4" fontWeight="700" gutterBottom>
+          <Typography 
+            variant="h4" 
+            fontWeight="700" 
+            gutterBottom
+            sx={{
+              background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
             Users Management
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
             Manage all platform users, their roles, and status
           </Typography>
         </Box>
@@ -103,6 +136,20 @@ const Users = () => {
           variant="contained"
           startIcon={<Add />}
           onClick={handleOpenDialog}
+          size="large"
+          sx={{
+            borderRadius: 2,
+            px: 3,
+            py: 1.5,
+            textTransform: 'none',
+            fontWeight: 600,
+            boxShadow: 2,
+            '&:hover': {
+              boxShadow: 4,
+              transform: 'translateY(-2px)',
+            },
+            transition: 'all 0.3s ease',
+          }}
         >
           Add User
         </Button>
@@ -138,6 +185,63 @@ const Users = () => {
         user={viewingUser}
         onClose={handleCloseDetailsDialog}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={openDeleteConfirm}
+        onClose={handleCancelDelete}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <WarningIcon sx={{ color: 'error.main', fontSize: 28 }} />
+            <Typography variant="h6" fontWeight="700">
+              Delete User
+            </Typography>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Are you sure you want to delete this user? This action cannot be undone.
+          </Typography>
+          {userToDelete && (
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: 1,
+                bgcolor: 'error.main',
+                color: 'error.contrastText',
+              }}
+            >
+              <Typography variant="subtitle2" fontWeight="600" gutterBottom>
+                {userToDelete.fullName}
+              </Typography>
+              <Typography variant="body2">
+                {userToDelete.email}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2.5, gap: 1 }}>
+          <Button
+            onClick={handleCancelDelete}
+            variant="outlined"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            color="error"
+            startIcon={<DeleteIcon />}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

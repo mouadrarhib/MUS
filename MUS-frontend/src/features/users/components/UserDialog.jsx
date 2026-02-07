@@ -8,7 +8,9 @@ import {
   Box,
   FormControlLabel,
   Checkbox,
-  Typography
+  Typography,
+  Grid,
+  Divider,
 } from '@mui/material';
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
@@ -110,86 +112,123 @@ const UserDialog = ({ open, user, onClose, onSave }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {user ? 'Edit User' : 'Add New User'}
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ pb: 2, pt: 3 }}>
+        <Typography variant="h5" fontWeight="700">
+          {user ? 'Edit User' : 'Add New User'}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          {user ? 'Update user information and permissions' : 'Create a new user account'}
+        </Typography>
       </DialogTitle>
 
-      <DialogContent sx={{ pt: 2 }}>
-        <TextField
-          fullWidth
-          label="Full Name"
-          name="fullName"
-          value={formData.fullName}
-          onChange={handleInputChange}
-          margin="normal"
-          error={!!errors.fullName}
-          helperText={errors.fullName}
-        />
+      <DialogContent sx={{ pt: 3, pb: 2 }}>
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Full Name"
+              name="fullName"
+              value={formData.fullName}
+              onChange={handleInputChange}
+              error={!!errors.fullName}
+              helperText={errors.fullName}
+              required
+            />
+          </Grid>
 
-        <TextField
-          fullWidth
-          label="Email"
-          name="email"
-          type="email"
-          value={formData.email}
-          onChange={handleInputChange}
-          margin="normal"
-          error={!!errors.email}
-          helperText={errors.email}
-        />
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              error={!!errors.email}
+              helperText={errors.email}
+              required
+            />
+          </Grid>
 
-        <Box sx={{ mt: 3, mb: 2 }}>
-          <Typography variant="subtitle2" fontWeight="600" gutterBottom>
-            Roles
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Grid item xs={12}>
+            <Divider sx={{ my: 1 }} />
+            <Typography variant="subtitle1" fontWeight="700" gutterBottom sx={{ mt: 2 }}>
+              User Roles
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
+              Select one or more roles for this user
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={formData.userRoles.includes('student')}
+                    onChange={() => handleRoleChange('student')}
+                  />
+                }
+                label={<Typography variant="body2">Student</Typography>}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={formData.userRoles.includes('teacher')}
+                    onChange={() => handleRoleChange('teacher')}
+                  />
+                }
+                label={<Typography variant="body2">Teacher</Typography>}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={formData.userRoles.includes('admin')}
+                    onChange={() => handleRoleChange('admin')}
+                  />
+                }
+                label={<Typography variant="body2">Admin</Typography>}
+              />
+            </Box>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Divider sx={{ my: 1 }} />
             <FormControlLabel
               control={
                 <Checkbox
-                  checked={formData.userRoles.includes('student')}
-                  onChange={() => handleRoleChange('student')}
+                  checked={formData.isActive}
+                  onChange={handleActiveChange}
                 />
               }
-              label="Student"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.userRoles.includes('teacher')}
-                  onChange={() => handleRoleChange('teacher')}
-                />
+              label={
+                <Box>
+                  <Typography variant="body2" fontWeight="600">Active User</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Inactive users cannot access the platform
+                  </Typography>
+                </Box>
               }
-              label="Teacher"
+              sx={{ mt: 1 }}
             />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.userRoles.includes('admin')}
-                  onChange={() => handleRoleChange('admin')}
-                />
-              }
-              label="Admin"
-            />
-          </Box>
-        </Box>
-
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={formData.isActive}
-              onChange={handleActiveChange}
-            />
-          }
-          label="Active User"
-          sx={{ mt: 1 }}
-        />
+          </Grid>
+        </Grid>
       </DialogContent>
 
-      <DialogActions sx={{ p: 2 }}>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={handleSave} variant="contained">
-          {user ? 'Update' : 'Create'}
+      <DialogActions sx={{ p: 3, gap: 1.5 }}>
+        <Button 
+          onClick={onClose}
+          variant="outlined"
+          size="large"
+          sx={{ px: 3, textTransform: 'none', fontWeight: 600 }}
+        >
+          Cancel
+        </Button>
+        <Button 
+          onClick={handleSave} 
+          variant="contained"
+          size="large"
+          sx={{ px: 3, textTransform: 'none', fontWeight: 600 }}
+        >
+          {user ? 'Update User' : 'Create User'}
         </Button>
       </DialogActions>
     </Dialog>

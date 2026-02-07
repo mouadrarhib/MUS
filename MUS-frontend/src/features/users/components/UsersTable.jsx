@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   Card,
   CardHeader,
@@ -8,15 +9,60 @@ import {
   TableHead,
   TableRow,
   Chip,
-  Button,
   Box,
   Avatar,
-  CircularProgress
+  CircularProgress,
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  TablePagination,
+  Typography,
 } from '@mui/material';
-import { Edit, Delete, Visibility } from '@mui/icons-material';
+import { Edit, Delete, Visibility, MoreVert } from '@mui/icons-material';
 import PropTypes from 'prop-types';
 
 const UsersTable = ({ users, loading, onView, onEdit, onDelete }) => {
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const [selectedUser, setSelectedUser] = React.useState(null);
+  const [page, setPage] = React.useState(0);
+  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+
+  const handleMenuOpen = (event, user) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedUser(user);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedUser(null);
+  };
+
+  const handleView = () => {
+    if (selectedUser) onView(selectedUser);
+    handleMenuClose();
+  };
+
+  const handleEdit = () => {
+    if (selectedUser) onEdit(selectedUser);
+    handleMenuClose();
+  };
+
+  const handleDelete = () => {
+    if (selectedUser) onDelete(selectedUser.id);
+    handleMenuClose();
+  };
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
   const getRoleColor = (roles) => {
     if (!Array.isArray(roles)) return 'default';
 
@@ -30,53 +76,72 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete }) => {
 
   if (loading) {
     return (
-      <Card>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
           <CircularProgress />
         </Box>
       </Card>
     );
   }
 
+  const paginatedUsers = users.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
   return (
-    <Card>
+    <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
       <CardHeader
-        title="All Users"
-        subheader={`Total: ${users.length} users`}
+        title={<Typography variant="h6" fontWeight="700">All Users</Typography>}
+        subheader={<Typography variant="body2" color="text.secondary">{`Total: ${users.length} users`}</Typography>}
+        sx={{ pb: 2 }}
       />
       <TableContainer>
         <Table>
           <TableHead>
-            <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableCell width="5%"></TableCell>
-              <TableCell><strong>Name</strong></TableCell>
-              <TableCell><strong>Email</strong></TableCell>
-              <TableCell><strong>Role</strong></TableCell>
-              <TableCell><strong>Status</strong></TableCell>
-              <TableCell><strong>Join Date</strong></TableCell>
-              <TableCell align="center" width="15%"><strong>Actions</strong></TableCell>
+            <TableRow sx={{ bgcolor: 'grey.50' }}>
+              <TableCell width="60px" sx={{ fontWeight: 700 }}></TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Join Date</TableCell>
+              <TableCell align="center" width="80px" sx={{ fontWeight: 700 }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {users && users.length > 0 ? (
-              users.map((user) => (
-                <TableRow key={user.id} hover>
+            {paginatedUsers && paginatedUsers.length > 0 ? (
+              paginatedUsers.map((user) => (
+                <TableRow 
+                  key={user.id} 
+                  hover
+                  sx={{
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
+                  }}
+                >
                   <TableCell>
                     <Avatar
                       src={user.avatar}
-                      sx={{ width: 32, height: 32 }}
+                      sx={{ width: 40, height: 40, boxShadow: 1 }}
                     >
                       {user.fullName?.charAt(0)}
                     </Avatar>
                   </TableCell>
-                  <TableCell fontWeight="600">{user.fullName}</TableCell>
-                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Typography variant="body2" fontWeight="600">
+                      {user.fullName}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                      {user.email}
+                    </Typography>
+                  </TableCell>
                   <TableCell>
                     <Chip
                       label={user.userRoles?.[0]?.toUpperCase() || 'N/A'}
                       color={getRoleColor(user.userRoles)}
                       size="small"
-                      variant="outlined"
+                      sx={{ fontWeight: 600 }}
                     />
                   </TableCell>
                   <TableCell>
@@ -84,57 +149,89 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete }) => {
                       label={user.isActive ? 'Active' : 'Inactive'}
                       color={user.isActive ? 'success' : 'default'}
                       size="small"
-                      variant={user.isActive ? 'filled' : 'outlined'}
+                      variant="filled"
+                      sx={{ fontWeight: 600 }}
                     />
                   </TableCell>
                   <TableCell>
-                    {new Date(user.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })}
+                    <Typography variant="body2" color="text.secondary">
+                      {new Date(user.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </Typography>
                   </TableCell>
                   <TableCell align="center">
-                    <Button
+                    <IconButton
                       size="small"
-                      startIcon={<Visibility />}
-                      onClick={() => onView(user)}
-                      variant="text"
-                      color="info"
-                      title="View Details"
+                      onClick={(e) => handleMenuOpen(e, user)}
+                      sx={{
+                        '&:hover': {
+                          bgcolor: 'action.selected',
+                        },
+                      }}
                     >
-                      View
-                    </Button>
-                    <Button
-                      size="small"
-                      startIcon={<Edit />}
-                      onClick={() => onEdit(user)}
-                      variant="text"
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      size="small"
-                      color="error"
-                      startIcon={<Delete />}
-                      onClick={() => onDelete(user.id)}
-                      variant="text"
-                    >
-                      Delete
-                    </Button>
+                      <MoreVert />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan="7" align="center" sx={{ py: 4 }}>
-                  No users found
+                <TableCell colSpan="7" align="center" sx={{ py: 8 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    No users found
+                  </Typography>
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </TableContainer>
+      
+      <TablePagination
+        component="div"
+        count={users.length}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        rowsPerPageOptions={[5, 10, 25, 50]}
+      />
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+      >
+        <MenuItem onClick={handleView}>
+          <ListItemIcon>
+            <Visibility fontSize="small" color="info" />
+          </ListItemIcon>
+          <ListItemText>View Details</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleEdit}>
+          <ListItemIcon>
+            <Edit fontSize="small" color="primary" />
+          </ListItemIcon>
+          <ListItemText>Edit User</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleDelete}>
+          <ListItemIcon>
+            <Delete fontSize="small" color="error" />
+          </ListItemIcon>
+          <ListItemText>Delete User</ListItemText>
+        </MenuItem>
+      </Menu>
     </Card>
   );
 };
