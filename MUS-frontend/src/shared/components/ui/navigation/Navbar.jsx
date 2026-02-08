@@ -46,7 +46,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
 
   const handleSettings = () => {
     handleMenuClose();
-    navigate('/dashboard/profile');
+    navigate('/dashboard/settings');
   };
 
   const handleLogout = () => {

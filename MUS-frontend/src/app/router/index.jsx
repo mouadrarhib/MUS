@@ -18,6 +18,7 @@ const UsersPage = lazy(() => import('@/features/users/pages/Users'));
 const ResourcesPage = lazy(() => import('@/features/resources/pages/Resources'));
 const LibraryPage = lazy(() => import('@/features/library/pages/Library'));
 const ProfilePage = lazy(() => import('@/features/profile/pages/Profile'));
+const SettingsPage = lazy(() => import('@/features/settings/pages/Settings'));
 
 const LoadingFallback = () => (
   <Box
@@ -67,6 +68,9 @@ const AppRouter = () => {
 
           {/* Profile Page */}
           <Route path="profile" element={<ProfilePage />} />
+
+          {/* Settings Page */}
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
 
         {/* 4. Catch-all 404 */}

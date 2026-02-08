@@ -5,7 +5,8 @@ import {
   AccountBalanceWallet, 
   AdminPanelSettings,
   Group,
-  Description
+  Description,
+  Settings
 } from '@mui/icons-material';
 
 export const DASHBOARD_NAVIGATION = [
@@ -59,5 +60,14 @@ export const DASHBOARD_NAVIGATION = [
     path: '/dashboard/wallet',
     icon: <AccountBalanceWallet />,
     roles: ['STUDENT', 'TEACHER']
+  },
+
+  // SETTINGS - Available to all
+  { type: 'section', label: 'Preferences' },
+  {
+    label: 'Settings',
+    path: '/dashboard/settings',
+    icon: <Settings />,
+    roles: ['ADMIN', 'TEACHER', 'STUDENT']
   },
 ];
