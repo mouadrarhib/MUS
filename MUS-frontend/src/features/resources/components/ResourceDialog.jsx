@@ -8,18 +8,18 @@ import {
   Box,
   Typography,
   Grid,
-  Divider,
   MenuItem,
   Select,
   FormControl,
   InputLabel,
-  Tabs,
-  Tab,
-  Paper,
   Chip,
   ToggleButtonGroup,
   ToggleButton,
-  Alert,
+  IconButton,
+  Stepper,
+  Step,
+  StepLabel,
+  alpha,
 } from '@mui/material';
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
@@ -27,34 +27,18 @@ import {
   Description as DescriptionIcon,
   School as SchoolIcon,
   Settings as SettingsIcon,
-  Info as InfoIcon,
   Link as LinkIcon,
   CloudUpload as CloudUploadIcon,
+  Close,
+  ArrowBack,
+  ArrowForward,
 } from '@mui/icons-material';
 
-function TabPanel({ children, value, index, ...other }) {
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`resource-tabpanel-${index}`}
-      aria-labelledby={`resource-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
-    </div>
-  );
-}
-
-TabPanel.propTypes = {
-  children: PropTypes.node,
-  index: PropTypes.number.isRequired,
-  value: PropTypes.number.isRequired,
-};
+const steps = ['Basic Information', 'Academic Context', 'Settings'];
 
 const ResourceDialog = ({ open, resource, onClose, onSave }) => {
-  const [activeTab, setActiveTab] = useState(0);
-  const [uploadMethod, setUploadMethod] = useState('url'); // 'url' or 'file'
+  const [activeStep, setActiveStep] = useState(0);
+  const [uploadMethod, setUploadMethod] = useState('url');
   const [selectedFile, setSelectedFile] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -97,10 +81,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
           isExamRelated: resource.academicContext?.isExamRelated || false,
         },
       });
-      // If editing and has URL, set upload method to URL
-      if (resource.url) {
-        setUploadMethod('url');
-      }
+      if (resource.url) setUploadMethod('url');
     } else {
       setFormData({
         title: '',
@@ -124,59 +105,43 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
     setErrors({});
     setSelectedFile(null);
     setUploadMethod('url');
-    setActiveTab(0);
+    setActiveStep(0);
   }, [resource, open]);
 
-  const validateForm = () => {
+  const validateStep = (step) => {
     const newErrors = {};
-
-    if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
+    if (step === 0) {
+      if (!formData.title.trim()) newErrors.title = 'Title is required';
+      if (!formData.description.trim()) newErrors.description = 'Description is required';
+      if (uploadMethod === 'url' && !formData.url.trim()) newErrors.url = 'URL is required';
+      if (uploadMethod === 'file' && !selectedFile && !resource) newErrors.file = 'File is required';
     }
-
-    if (!formData.description.trim()) {
-      newErrors.description = 'Description is required';
-    }
-
-    if (uploadMethod === 'url' && !formData.url.trim()) {
-      newErrors.url = 'URL is required';
-    }
-
-    if (uploadMethod === 'file' && !selectedFile && !resource) {
-      newErrors.file = 'Please select a file to upload';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleNext = () => {
+    if (validateStep(activeStep)) {
+      setActiveStep((prev) => prev + 1);
+    }
+  };
+
+  const handleBack = () => {
+    setActiveStep((prev) => prev - 1);
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const handleAcademicContextChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      academicContext: {
-        ...prev.academicContext,
-        [name]: value
-      }
+      academicContext: { ...prev.academicContext, [name]: value }
     }));
-  };
-
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
   };
 
   const handleUploadMethodChange = (event, newMethod) => {
@@ -190,17 +155,10 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
     const file = event.target.files[0];
     if (file) {
       setSelectedFile(file);
-      // Auto-detect format from file extension
       const extension = file.name.split('.').pop().toLowerCase();
       const formatMap = {
-        'pdf': 'pdf',
-        'mp4': 'video',
-        'avi': 'video',
-        'mov': 'video',
-        'ppt': 'powerpoint',
-        'pptx': 'powerpoint',
-        'doc': 'word',
-        'docx': 'word',
+        'pdf': 'pdf', 'mp4': 'video', 'avi': 'video', 'mov': 'video',
+        'ppt': 'powerpoint', 'pptx': 'powerpoint', 'doc': 'word', 'docx': 'word',
       };
       if (formatMap[extension]) {
         setFormData(prev => ({ ...prev, format: formatMap[extension] }));
@@ -210,36 +168,13 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
   };
 
   const handleSave = () => {
-    if (validateForm()) {
-      const dataToSave = {
-        ...formData,
-        ...(resource && { id: resource.id }),
-        ...(uploadMethod === 'file' && selectedFile && { file: selectedFile }),
-      };
-      onSave(dataToSave);
-      setFormData({
-        title: '',
-        description: '',
-        educationalType: 'notes',
-        format: 'pdf',
-        status: 'draft',
-        url: '',
-        pricePoints: 0,
-        academicContext: {
-          moduleCode: '',
-          moduleTitle: '',
-          semesterName: '',
-          levelName: '',
-          programName: '',
-          difficulty: 'medium',
-          isExamRelated: false,
-        },
-      });
-      setErrors({});
-      setSelectedFile(null);
-      setUploadMethod('url');
-      setActiveTab(0);
-    }
+    const dataToSave = {
+      ...formData,
+      ...(resource && { id: resource.id }),
+      ...(uploadMethod === 'file' && selectedFile && { file: selectedFile }),
+    };
+    onSave(dataToSave);
+    onClose();
   };
 
   const getStatusColor = (status) => {
@@ -247,417 +182,466 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
     return colors[status] || 'default';
   };
 
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle sx={{ pb: 1, pt: 3, borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box>
-            <Typography variant="h5" fontWeight="700" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <DescriptionIcon sx={{ color: 'primary.main' }} />
-              {resource ? 'Edit Resource' : 'Create New Resource'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, ml: 4 }}>
-              {resource ? 'Update resource information and academic details' : 'Add a new educational resource to the platform'}
-            </Typography>
-          </Box>
-          {resource && (
-            <Chip 
-              label={resource.status?.charAt(0).toUpperCase() + resource.status?.slice(1)} 
-              color={getStatusColor(resource.status)}
-              size="small"
-              sx={{ fontWeight: 600 }}
-            />
-          )}
-        </Box>
-      </DialogTitle>
+  const getStepIcon = (step) => {
+    const icons = [
+      <DescriptionIcon sx={{ fontSize: 18 }} />,
+      <SchoolIcon sx={{ fontSize: 18 }} />,
+      <SettingsIcon sx={{ fontSize: 18 }} />,
+    ];
+    return icons[step];
+  };
 
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
-        <Tabs 
-          value={activeTab} 
-          onChange={handleTabChange}
-          sx={{ px: 3 }}
-        >
-          <Tab 
-            icon={<InfoIcon />} 
-            iconPosition="start" 
-            label="Basic Information" 
-            sx={{ textTransform: 'none', fontWeight: 600 }}
-          />
-          <Tab 
-            icon={<SchoolIcon />} 
-            iconPosition="start" 
-            label="Academic Context" 
-            sx={{ textTransform: 'none', fontWeight: 600 }}
-          />
-          <Tab 
-            icon={<SettingsIcon />} 
-            iconPosition="start" 
-            label="Settings" 
-            sx={{ textTransform: 'none', fontWeight: 600 }}
-          />
-        </Tabs>
-      </Box>
-
-      <DialogContent sx={{ pt: 0, pb: 2, minHeight: 400 }}>
-        {/* Tab 1: Basic Information */}
-        <TabPanel value={activeTab} index={0}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Paper 
-                elevation={0} 
-                sx={{ 
-                  p: 2, 
-                  bgcolor: 'primary.50', 
-                  border: '1px solid', 
-                  borderColor: 'primary.100',
-                  borderRadius: 2 
-                }}
-              >
-                <Typography variant="caption" color="primary.main" fontWeight="600" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <InfoIcon sx={{ fontSize: 16 }} />
-                  Required fields are marked with an asterisk (*)
-                </Typography>
-              </Paper>
-            </Grid>
-
+  const renderStepContent = (step) => {
+    switch (step) {
+      case 0:
+        return (
+          <Grid container spacing={2}>
             <Grid item xs={12}>
               <TextField
                 fullWidth
+                size="small"
                 label="Resource Title"
                 name="title"
                 value={formData.title}
                 onChange={handleInputChange}
                 error={!!errors.title}
-                helperText={errors.title || 'Enter a clear, descriptive title for this resource'}
+                helperText={errors.title}
                 required
-                placeholder="e.g., Analyse Mathématique 1 - Examen Corrigé"
+                InputLabelProps={{ shrink: true }}
+                placeholder="Enter resource title"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-
             <Grid item xs={12}>
               <TextField
                 fullWidth
+                size="small"
                 label="Description"
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
                 error={!!errors.description}
-                helperText={errors.description || 'Provide a detailed description of the resource content'}
+                helperText={errors.description}
                 multiline
-                rows={4}
+                rows={3}
                 required
-                placeholder="Describe what this resource contains, its purpose, and any important details..."
+                InputLabelProps={{ shrink: true }}
+                placeholder="Enter resource description"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Educational Type *</InputLabel>
+              <FormControl fullWidth size="small">
+                <InputLabel shrink>Educational Type *</InputLabel>
                 <Select
                   name="educationalType"
                   value={formData.educationalType}
                   onChange={handleInputChange}
                   label="Educational Type *"
+                  displayEmpty
+                  notched
+                  sx={{ borderRadius: 2 }}
                 >
-                  <MenuItem value="exam">📝 Exam</MenuItem>
-                  <MenuItem value="course">📚 Course</MenuItem>
-                  <MenuItem value="notes">📄 Notes</MenuItem>
+                  <MenuItem value="exam">Exam</MenuItem>
+                  <MenuItem value="course">Course</MenuItem>
+                  <MenuItem value="notes">Notes</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
-
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Format *</InputLabel>
+              <FormControl fullWidth size="small">
+                <InputLabel shrink>Format *</InputLabel>
                 <Select
                   name="format"
                   value={formData.format}
                   onChange={handleInputChange}
                   label="Format *"
+                  displayEmpty
+                  notched
+                  sx={{ borderRadius: 2 }}
                 >
-                  <MenuItem value="pdf">📕 PDF Document</MenuItem>
-                  <MenuItem value="video">🎥 Video</MenuItem>
-                  <MenuItem value="powerpoint">📊 PowerPoint</MenuItem>
-                  <MenuItem value="word">📝 Word Document</MenuItem>
+                  <MenuItem value="pdf">PDF</MenuItem>
+                  <MenuItem value="video">Video</MenuItem>
+                  <MenuItem value="powerpoint">PowerPoint</MenuItem>
+                  <MenuItem value="word">Word</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
-
             <Grid item xs={12}>
-              <Typography variant="subtitle2" fontWeight="600" gutterBottom sx={{ mb: 1.5 }}>
-                Resource Upload Method *
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
+                Upload Method
               </Typography>
               <ToggleButtonGroup
                 value={uploadMethod}
                 exclusive
                 onChange={handleUploadMethodChange}
+                size="small"
                 fullWidth
-                sx={{ mb: 2 }}
+                sx={{ mb: 1.5 }}
               >
-                <ToggleButton value="url" sx={{ py: 1.5, textTransform: 'none' }}>
-                  <LinkIcon sx={{ mr: 1 }} />
+                <ToggleButton value="url" sx={{ borderRadius: 2, textTransform: 'none', py: 1 }}>
+                  <LinkIcon sx={{ fontSize: 18, mr: 1 }} />
                   Enter URL
                 </ToggleButton>
-                <ToggleButton value="file" sx={{ py: 1.5, textTransform: 'none' }}>
-                  <CloudUploadIcon sx={{ mr: 1 }} />
+                <ToggleButton value="file" sx={{ borderRadius: 2, textTransform: 'none', py: 1 }}>
+                  <CloudUploadIcon sx={{ fontSize: 18, mr: 1 }} />
                   Upload File
                 </ToggleButton>
               </ToggleButtonGroup>
-
               {uploadMethod === 'url' ? (
                 <TextField
                   fullWidth
+                  size="small"
                   label="Resource URL"
                   name="url"
                   value={formData.url}
                   onChange={handleInputChange}
                   error={!!errors.url}
-                  helperText={errors.url || 'Enter the file path or external URL for this resource'}
+                  helperText={errors.url}
                   required
-                  placeholder="/uploads/resource.pdf or https://example.com/video"
+                  InputLabelProps={{ shrink: true }}
+                  placeholder="https://example.com/resource.pdf"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
               ) : (
-                <Box>
-                  <Button
-                    component="label"
-                    variant="outlined"
-                    fullWidth
-                    startIcon={<CloudUploadIcon />}
-                    sx={{ 
-                      py: 2, 
-                      textTransform: 'none',
-                      borderStyle: 'dashed',
-                      borderWidth: 2,
-                      bgcolor: selectedFile ? 'success.50' : 'background.paper',
-                      borderColor: errors.file ? 'error.main' : (selectedFile ? 'success.main' : 'divider'),
-                      '&:hover': {
-                        borderColor: errors.file ? 'error.dark' : (selectedFile ? 'success.dark' : 'primary.main'),
-                        bgcolor: selectedFile ? 'success.100' : 'action.hover',
-                      }
-                    }}
-                  >
-                    {selectedFile ? `Selected: ${selectedFile.name}` : 'Click to select file'}
-                    <input
-                      type="file"
-                      hidden
-                      onChange={handleFileChange}
-                      accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4,.avi,.mov"
-                    />
-                  </Button>
-                  {selectedFile && (
-                    <Alert severity="success" sx={{ mt: 1.5 }}>
-                      <Typography variant="body2">
-                        <strong>File:</strong> {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                      </Typography>
-                    </Alert>
-                  )}
-                  {errors.file && (
-                    <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
-                      {errors.file}
-                    </Typography>
-                  )}
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    Supported formats: PDF, Word, PowerPoint, Video (MP4, AVI, MOV)
-                  </Typography>
-                </Box>
+                <Button
+                  component="label"
+                  variant="outlined"
+                  fullWidth
+                  startIcon={<CloudUploadIcon />}
+                  sx={{
+                    py: 1.5,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    borderStyle: 'dashed',
+                    borderWidth: 2,
+                    borderColor: errors.file ? 'error.main' : (selectedFile ? 'success.main' : 'divider'),
+                    bgcolor: selectedFile ? (theme) => alpha(theme.palette.success.main, 0.05) : 'transparent',
+                    color: selectedFile ? 'success.main' : 'text.secondary',
+                  }}
+                >
+                  {selectedFile ? `${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(1)} MB)` : 'Click to select file'}
+                  <input type="file" hidden onChange={handleFileChange} accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4,.avi,.mov" />
+                </Button>
+              )}
+              {errors.file && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                  {errors.file}
+                </Typography>
               )}
             </Grid>
           </Grid>
-        </TabPanel>
+        );
 
-        {/* Tab 2: Academic Context */}
-        <TabPanel value={activeTab} index={1}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Provide academic context to help students find this resource
-              </Typography>
-              <Divider sx={{ mt: 1, mb: 2 }} />
-            </Grid>
-
+      case 1:
+        return (
+          <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
+                size="small"
                 label="Module Code"
                 name="moduleCode"
                 value={formData.academicContext.moduleCode}
                 onChange={handleAcademicContextChange}
+                InputLabelProps={{ shrink: true }}
                 placeholder="e.g., MATH101"
-                helperText="Official module/course code"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
+                size="small"
                 label="Module Title"
                 name="moduleTitle"
                 value={formData.academicContext.moduleTitle}
                 onChange={handleAcademicContextChange}
-                placeholder="e.g., Analyse Mathématique 1"
-                helperText="Full name of the module"
+                InputLabelProps={{ shrink: true }}
+                placeholder="e.g., Calculus I"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
+                size="small"
                 label="Semester"
                 name="semesterName"
                 value={formData.academicContext.semesterName}
                 onChange={handleAcademicContextChange}
-                placeholder="e.g., Semestre 1"
-                helperText="Academic semester"
+                InputLabelProps={{ shrink: true }}
+                placeholder="e.g., Semester 1"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
+                size="small"
                 label="Academic Level"
                 name="levelName"
                 value={formData.academicContext.levelName}
                 onChange={handleAcademicContextChange}
-                placeholder="e.g., 1ère Année"
-                helperText="Year or level of study"
+                InputLabelProps={{ shrink: true }}
+                placeholder="e.g., 1st Year"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
+                size="small"
                 label="Program Name"
                 name="programName"
                 value={formData.academicContext.programName}
                 onChange={handleAcademicContextChange}
-                placeholder="e.g., MIP (Math Info Physique)"
-                helperText="Academic program or major"
+                InputLabelProps={{ shrink: true }}
+                placeholder="e.g., Computer Science"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Difficulty Level</InputLabel>
+              <FormControl fullWidth size="small">
+                <InputLabel shrink>Difficulty Level</InputLabel>
                 <Select
                   name="difficulty"
                   value={formData.academicContext.difficulty}
                   onChange={handleAcademicContextChange}
                   label="Difficulty Level"
+                  displayEmpty
+                  notched
+                  sx={{ borderRadius: 2 }}
                 >
-                  <MenuItem value="easy">🟢 Easy - Beginner friendly</MenuItem>
-                  <MenuItem value="medium">🟡 Medium - Intermediate level</MenuItem>
-                  <MenuItem value="hard">🔴 Hard - Advanced level</MenuItem>
+                  <MenuItem value="easy">Easy</MenuItem>
+                  <MenuItem value="medium">Medium</MenuItem>
+                  <MenuItem value="hard">Hard</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
           </Grid>
-        </TabPanel>
+        );
 
-        {/* Tab 3: Settings */}
-        <TabPanel value={activeTab} index={2}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Configure resource availability and pricing
-              </Typography>
-              <Divider sx={{ mt: 1, mb: 2 }} />
-            </Grid>
-
+      case 2:
+        return (
+          <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Publication Status *</InputLabel>
+              <FormControl fullWidth size="small">
+                <InputLabel shrink>Publication Status *</InputLabel>
                 <Select
                   name="status"
                   value={formData.status}
                   onChange={handleInputChange}
                   label="Publication Status *"
+                  displayEmpty
+                  notched
+                  sx={{ borderRadius: 2 }}
                 >
                   <MenuItem value="draft">
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Chip label="Draft" color="warning" size="small" sx={{ fontWeight: 600 }} />
-                      <Typography variant="body2">Not visible to users</Typography>
+                      <Chip label="Draft" color="warning" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
                     </Box>
                   </MenuItem>
                   <MenuItem value="published">
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Chip label="Published" color="success" size="small" sx={{ fontWeight: 600 }} />
-                      <Typography variant="body2">Publicly available</Typography>
+                      <Chip label="Published" color="success" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
                     </Box>
                   </MenuItem>
                   <MenuItem value="archived">
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Chip label="Archived" color="default" size="small" sx={{ fontWeight: 600 }} />
-                      <Typography variant="body2">Hidden from search</Typography>
+                      <Chip label="Archived" color="default" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
                     </Box>
                   </MenuItem>
                 </Select>
               </FormControl>
             </Grid>
-
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
+                size="small"
                 label="Price Points"
                 name="pricePoints"
                 type="number"
                 value={formData.pricePoints}
                 onChange={handleInputChange}
-                inputProps={{ min: 0, step: 10 }}
-                helperText="Set to 0 for free resources"
+                inputProps={{ min: 0 }}
+                InputLabelProps={{ shrink: true }}
+                helperText="Set to 0 for free"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-
             <Grid item xs={12}>
-              <Paper 
-                elevation={0} 
-                sx={{ 
-                  p: 2.5, 
-                  bgcolor: 'info.50', 
-                  border: '1px solid', 
-                  borderColor: 'info.100',
-                  borderRadius: 2 
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  bgcolor: (theme) => alpha(theme.palette.info.main, 0.05),
+                  border: '1px solid',
+                  borderColor: (theme) => alpha(theme.palette.info.main, 0.1),
                 }}
               >
-                <Typography variant="subtitle2" fontWeight="700" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <InfoIcon sx={{ color: 'info.main', fontSize: 20 }} />
-                  Resource Visibility
+                <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                  <strong>Draft:</strong> Only visible to you<br />
+                  <strong>Published:</strong> Visible to all users<br />
+                  <strong>Archived:</strong> Hidden from public view
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  • <strong>Draft:</strong> Only visible to you. Use this while preparing the resource.<br />
-                  • <strong>Published:</strong> Visible to all users. Resource appears in search and listings.<br />
-                  • <strong>Archived:</strong> Hidden from public view but preserved in the system.
-                </Typography>
-              </Paper>
+              </Box>
             </Grid>
           </Grid>
-        </TabPanel>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: { borderRadius: 3, overflow: 'hidden' }
+      }}
+    >
+      {/* Header */}
+      <DialogTitle sx={{ p: 0, position: 'relative' }}>
+        <Box
+          sx={{
+            px: 3,
+            pr: 6,
+            py: 2,
+            background: (theme) => alpha(theme.palette.primary.main, 0.03),
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: (theme) => alpha(theme.palette.primary.main, 0.1),
+              }}
+            >
+              <DescriptionIcon sx={{ fontSize: 22, color: 'primary.main' }} />
+            </Box>
+            <Box flex={1}>
+              <Typography variant="h6" fontWeight="700">
+                {resource ? 'Edit Resource' : 'Create Resource'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Step {activeStep + 1} of {steps.length}
+              </Typography>
+            </Box>
+            {resource && (
+              <Chip
+                label={resource.status?.charAt(0).toUpperCase() + resource.status?.slice(1)}
+                color={getStatusColor(resource.status)}
+                size="small"
+                sx={{ fontWeight: 600, fontSize: '0.7rem', height: 24, mr: 2 }}
+              />
+            )}
+          </Box>
+        </Box>
+        <IconButton
+          onClick={onClose}
+          sx={{ position: 'absolute', right: 12, top: 12, color: 'text.secondary' }}
+        >
+          <Close sx={{ fontSize: 20 }} />
+        </IconButton>
+      </DialogTitle>
+
+      {/* Stepper */}
+      <Box sx={{ px: 3, pt: 2, pb: 1 }}>
+        <Stepper activeStep={activeStep} alternativeLabel>
+          {steps.map((label, index) => (
+            <Step key={label}>
+              <StepLabel
+                StepIconComponent={() => (
+                  <Box
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: index <= activeStep 
+                        ? 'primary.main' 
+                        : (theme) => alpha(theme.palette.grey[500], 0.2),
+                      color: index <= activeStep ? 'white' : 'text.secondary',
+                    }}
+                  >
+                    {getStepIcon(index)}
+                  </Box>
+                )}
+              >
+                <Typography 
+                  variant="caption" 
+                  fontWeight={index === activeStep ? 600 : 400}
+                  color={index === activeStep ? 'primary.main' : 'text.secondary'}
+                >
+                  {label}
+                </Typography>
+              </StepLabel>
+            </Step>
+          ))}
+        </Stepper>
+      </Box>
+
+      {/* Content */}
+      <DialogContent sx={{ px: 3, py: 2 }}>
+        {renderStepContent(activeStep)}
       </DialogContent>
 
-      <DialogActions sx={{ p: 3, gap: 1.5, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.default' }}>
-        <Button 
+      {/* Actions */}
+      <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider', gap: 1 }}>
+        <Button
           onClick={onClose}
           variant="outlined"
-          size="large"
-          sx={{ px: 4, textTransform: 'none', fontWeight: 600 }}
+          size="small"
+          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
         >
           Cancel
         </Button>
-        <Button 
-          onClick={handleSave} 
-          variant="contained"
-          size="large"
-          sx={{ 
-            px: 4, 
-            textTransform: 'none', 
-            fontWeight: 600,
-            boxShadow: 2,
-            '&:hover': {
-              boxShadow: 4,
-            }
-          }}
-        >
-          {resource ? 'Update Resource' : 'Create Resource'}
-        </Button>
+        <Box flex={1} />
+        {activeStep > 0 && (
+          <Button
+            onClick={handleBack}
+            variant="outlined"
+            size="small"
+            startIcon={<ArrowBack sx={{ fontSize: 16 }} />}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+          >
+            Back
+          </Button>
+        )}
+        {activeStep < steps.length - 1 ? (
+          <Button
+            onClick={handleNext}
+            variant="contained"
+            size="small"
+            endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, boxShadow: 'none' }}
+          >
+            Next
+          </Button>
+        ) : (
+          <Button
+            onClick={handleSave}
+            variant="contained"
+            size="small"
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, boxShadow: 'none' }}
+          >
+            {resource ? 'Update' : 'Create'}
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   );

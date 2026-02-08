@@ -1,6 +1,7 @@
-import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+// src/features/users/pages/Users.jsx
+import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, alpha, Chip } from '@mui/material';
 import { useState, useEffect } from 'react';
-import { Add, Delete as DeleteIcon, Warning as WarningIcon } from '@mui/icons-material';
+import { Add, Delete as DeleteIcon, Warning as WarningIcon, People } from '@mui/icons-material';
 import usersService from '@/services/usersService';
 import UsersStatsCards from '../components/UsersStatsCards';
 import UsersTable from '../components/UsersTable';
@@ -62,10 +63,8 @@ const Users = () => {
   const handleSaveUser = async (userData) => {
     try {
       if (editingUser) {
-        // Update existing user
         await usersService.updateUser(editingUser.user_id, userData);
       } else {
-        // Create new user
         await usersService.createUser(userData);
       }
       await loadUsers();
@@ -111,53 +110,49 @@ const Users = () => {
   const teachers = users.filter(u => u.roles?.includes('teacher')).length;
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <Box sx={{ width: '100%' }}>
       {/* Header */}
       <Box 
-        mb={4} 
+        mb={3} 
         display="flex" 
         justifyContent="space-between" 
         alignItems="flex-start"
-        sx={{
-          flexDirection: { xs: 'column', sm: 'row' },
-          gap: 2,
-        }}
+        flexWrap="wrap"
+        gap={2}
       >
         <Box>
           <Typography 
-            variant="h4" 
+            variant="h5" 
             fontWeight="700" 
             gutterBottom
             sx={{
-              background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+              background: (theme) => 
+                `linear-gradient(135deg, ${theme.palette.text.primary} 0%, ${theme.palette.primary.main} 100%)`,
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
             }}
           >
             Users Management
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
-            Manage all platform users, their roles, and status
+          <Typography variant="body2" color="text.secondary">
+            Manage all platform users, roles and permissions
           </Typography>
         </Box>
         <Button
           variant="contained"
           startIcon={<Add />}
           onClick={handleOpenDialog}
-          size="large"
           sx={{
             borderRadius: 2,
-            px: 3,
-            py: 1.5,
+            px: 2.5,
+            py: 1,
             textTransform: 'none',
             fontWeight: 600,
-            boxShadow: 2,
+            fontSize: '0.875rem',
+            boxShadow: 'none',
             '&:hover': {
-              boxShadow: 4,
-              transform: 'translateY(-2px)',
+              boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
             },
-            transition: 'all 0.3s ease',
           }}
         >
           Add User
@@ -165,11 +160,13 @@ const Users = () => {
       </Box>
 
       {/* Stats Cards */}
-      <UsersStatsCards
-        totalUsers={users.length}
-        activeUsers={activeUsers}
-        teachers={teachers}
-      />
+      <Box mb={3}>
+        <UsersStatsCards
+          totalUsers={users.length}
+          activeUsers={activeUsers}
+          teachers={teachers}
+        />
+      </Box>
 
       {/* Users Table */}
       <UsersTable
@@ -200,45 +197,69 @@ const Users = () => {
       <Dialog
         open={openDeleteConfirm}
         onClose={handleCancelDelete}
-        maxWidth="sm"
+        maxWidth="xs"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            overflow: 'hidden',
+          }
+        }}
       >
-        <DialogTitle sx={{ pb: 1 }}>
+        <DialogTitle sx={{ pb: 1, pt: 2.5, px: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <WarningIcon sx={{ color: 'error.main', fontSize: 28 }} />
-            <Typography variant="h6" fontWeight="700">
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: (theme) => alpha(theme.palette.error.main, 0.1),
+              }}
+            >
+              <WarningIcon sx={{ color: 'error.main', fontSize: 22 }} />
+            </Box>
+            <Typography variant="subtitle1" fontWeight="700">
               Delete User
             </Typography>
           </Box>
         </DialogTitle>
 
-        <DialogContent sx={{ pt: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Are you sure you want to delete this user? This action cannot be undone.
+        <DialogContent sx={{ px: 3, py: 2 }}>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            This action cannot be undone. The user will be permanently removed.
           </Typography>
-            {userToDelete && (
-              <Box
-                sx={{
-                  p: 2,
-                  borderRadius: 1,
-                  bgcolor: 'error.main',
-                  color: 'error.contrastText',
-                }}
-              >
-                <Typography variant="subtitle2" fontWeight="600" gutterBottom>
-                  {userToDelete.full_name}
-                </Typography>
-                <Typography variant="body2">
-                  {userToDelete.email}
-                </Typography>
-              </Box>
-            )}
+          {userToDelete && (
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                bgcolor: (theme) => alpha(theme.palette.error.main, 0.05),
+                border: '1px solid',
+                borderColor: (theme) => alpha(theme.palette.error.main, 0.2),
+              }}
+            >
+              <Typography variant="subtitle2" fontWeight="600" color="text.primary">
+                {userToDelete.full_name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {userToDelete.email}
+              </Typography>
+            </Box>
+          )}
         </DialogContent>
 
-        <DialogActions sx={{ p: 2.5, gap: 1 }}>
+        <DialogActions sx={{ p: 2.5, gap: 1, borderTop: '1px solid', borderColor: 'divider' }}>
           <Button
             onClick={handleCancelDelete}
             variant="outlined"
+            sx={{ 
+              borderRadius: 2, 
+              textTransform: 'none',
+              fontWeight: 600,
+            }}
           >
             Cancel
           </Button>
@@ -246,7 +267,13 @@ const Users = () => {
             onClick={handleConfirmDelete}
             variant="contained"
             color="error"
-            startIcon={<DeleteIcon />}
+            startIcon={<DeleteIcon sx={{ fontSize: 18 }} />}
+            sx={{ 
+              borderRadius: 2, 
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: 'none',
+            }}
           >
             Delete
           </Button>

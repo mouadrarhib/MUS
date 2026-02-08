@@ -1,4 +1,5 @@
-import { Box, Card, CardContent, Typography } from '@mui/material';
+// src/features/resources/components/ResourcesStatsCards.jsx
+import { Box, Typography, alpha } from '@mui/material';
 import { Description, CheckCircle, Edit } from '@mui/icons-material';
 import PropTypes from 'prop-types';
 
@@ -8,81 +9,96 @@ const ResourcesStatsCards = ({ totalResources, publishedResources, draftResource
       title: 'Total Resources',
       value: totalResources,
       icon: Description,
-      color: 'primary.main',
-      gradient: 'linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(21, 101, 192, 0.05) 100%)',
-      borderColor: 'primary.light',
+      color: 'primary',
     },
     {
       title: 'Published',
       value: publishedResources,
       icon: CheckCircle,
-      color: 'success.main',
-      gradient: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(56, 142, 60, 0.05) 100%)',
-      borderColor: 'success.light',
+      color: 'success',
     },
     {
       title: 'Draft',
       value: draftResources,
       icon: Edit,
-      color: 'warning.main',
-      gradient: 'linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(245, 124, 0, 0.05) 100%)',
-      borderColor: 'warning.light',
+      color: 'warning',
     },
   ];
 
   return (
-    <Box display="grid" gridTemplateColumns={{ xs: '1fr', md: 'repeat(3, 1fr)' }} gap={3} mb={4}>
+    <Box 
+      display="grid" 
+      gridTemplateColumns={{ xs: '1fr', sm: 'repeat(3, 1fr)' }} 
+      gap={2}
+    >
       {statCards.map((stat, index) => {
         const IconComponent = stat.icon;
         return (
-          <Card
+          <Box
             key={index}
-            elevation={0}
             sx={{
-              background: stat.gradient,
+              p: 2.5,
+              borderRadius: 3,
               border: '1px solid',
-              borderColor: stat.borderColor,
-              borderRadius: 2,
-              transition: 'all 0.3s ease',
+              borderColor: 'divider',
+              background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+              transition: 'all 0.2s ease',
+              position: 'relative',
+              overflow: 'hidden',
               '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: 3,
+                borderColor: `${stat.color}.main`,
+                boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette[stat.color].main, 0.12)}`,
+              },
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '3px',
+                background: (theme) => theme.palette[stat.color].main,
               },
             }}
           >
-            <CardContent sx={{ p: 3 }}>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography 
-                    color="text.secondary" 
-                    gutterBottom 
-                    variant="body2"
-                    fontWeight="600"
-                    sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
-                  >
-                    {stat.title}
-                  </Typography>
-                  <Typography variant="h4" fontWeight="700" sx={{ mt: 1 }}>
-                    {stat.value}
-                  </Typography>
-                </Box>
-                <Box
-                  sx={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: 'background.paper',
-                    boxShadow: 1,
+            <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+              <Box>
+                <Typography 
+                  variant="caption" 
+                  color="text.secondary" 
+                  fontWeight="600"
+                  textTransform="uppercase"
+                  letterSpacing={0.5}
+                  sx={{ fontSize: '0.65rem' }}
+                >
+                  {stat.title}
+                </Typography>
+                <Typography 
+                  variant="h4" 
+                  fontWeight="700" 
+                  mt={0.5}
+                  sx={{ 
+                    fontSize: { xs: '1.5rem', sm: '1.75rem' },
+                    color: 'text.primary',
                   }}
                 >
-                  <IconComponent sx={{ fontSize: 32, color: stat.color }} />
-                </Box>
+                  {stat.value}
+                </Typography>
               </Box>
-            </CardContent>
-          </Card>
+              <Box
+                sx={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: (theme) => alpha(theme.palette[stat.color].main, 0.1),
+                }}
+              >
+                <IconComponent sx={{ fontSize: 22, color: `${stat.color}.main` }} />
+              </Box>
+            </Box>
+          </Box>
         );
       })}
     </Box>

@@ -1,3 +1,4 @@
+// src/features/users/components/UserDetailsDialog.jsx
 import {
   Dialog,
   DialogTitle,
@@ -10,9 +11,9 @@ import {
   Divider,
   Avatar,
   Grid,
-  Paper,
-  LinearProgress,
   Rating,
+  IconButton,
+  alpha,
 } from '@mui/material';
 import {
   School as SchoolIcon,
@@ -20,10 +21,11 @@ import {
   Book as BookIcon,
   Star as StarIcon,
   FavoriteBorder as FavoriteBorderIcon,
-  Assessment as AssessmentIcon,
   Event as EventIcon,
   Email as EmailIcon,
   Business as BusinessIcon,
+  Close,
+  Person,
 } from '@mui/icons-material';
 import PropTypes from 'prop-types';
 
@@ -49,77 +51,149 @@ const UserDetailsDialog = ({ open, user, onClose }) => {
     return roles.split(',').map(r => r.trim());
   };
 
-  const renderInfoCard = (icon, label, value) => (
+  const renderInfoCard = (icon, label, value, color = 'primary') => (
     <Box
       sx={{
         display: 'flex',
         alignItems: 'flex-start',
-        gap: 2,
+        gap: 1.5,
         p: 1.5,
-        borderRadius: 1,
-        bgcolor: 'background.default',
+        borderRadius: 2,
+        bgcolor: (theme) => alpha(theme.palette[color].main, 0.04),
+        border: '1px solid',
+        borderColor: (theme) => alpha(theme.palette[color].main, 0.1),
       }}
     >
-      <Box sx={{ color: 'primary.main', mt: 0.5 }}>
+      <Box 
+        sx={{ 
+          color: `${color}.main`, 
+          mt: 0.25,
+          width: 32,
+          height: 32,
+          borderRadius: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: (theme) => alpha(theme.palette[color].main, 0.1),
+        }}
+      >
         {icon}
       </Box>
-      <Box sx={{ flex: 1 }}>
-        <Typography variant="caption" color="text.secondary" fontWeight="600">
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.65rem' }}>
           {label}
         </Typography>
-        <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 500 }}>
-          {value}
+        <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap>
+          {value || 'N/A'}
         </Typography>
       </Box>
     </Box>
   );
 
-  // Check if user has academic information
   const hasAcademicInfo = user.institution_name || user.program_name || user.domain_name;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ pb: 1 }}>
-        User Profile Details
-      </DialogTitle>
-
-      <DialogContent sx={{ pt: 2 }}>
-        {/* Header Section with Avatar and Basic Info */}
-        <Paper
-          elevation={0}
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="sm" 
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          overflow: 'hidden',
+        }
+      }}
+    >
+      {/* Header */}
+      <DialogTitle 
+        sx={{ 
+          p: 0,
+          position: 'relative',
+        }}
+      >
+        <Box
           sx={{
-            p: 3,
-            mb: 3,
-            background: 'linear-gradient(135deg, rgba(33, 150, 243, 0.05) 0%, rgba(21, 101, 192, 0.05) 100%)',
-            borderRadius: 2,
-            border: '1px solid',
+            px: 3,
+            py: 2,
+            background: (theme) => alpha(theme.palette.primary.main, 0.03),
+            borderBottom: '1px solid',
             borderColor: 'divider',
           }}
         >
-          <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <Box
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: (theme) => alpha(theme.palette.primary.main, 0.1),
+              }}
+            >
+              <Person sx={{ fontSize: 20, color: 'primary.main' }} />
+            </Box>
+            <Box>
+              <Typography variant="subtitle1" fontWeight="600">
+                User Profile
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Detailed information
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+        <IconButton
+          onClick={onClose}
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            color: 'text.secondary',
+          }}
+        >
+          <Close sx={{ fontSize: 20 }} />
+        </IconButton>
+      </DialogTitle>
+
+      <DialogContent sx={{ p: 3 }}>
+        {/* User Header */}
+        <Box
+          sx={{
+            p: 2.5,
+            mb: 3,
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+          }}
+        >
+          <Box display="flex" gap={2} alignItems="center">
             <Avatar
               sx={{
-                width: 100,
-                height: 100,
-                fontSize: 40,
-                boxShadow: 2,
+                width: 64,
+                height: 64,
+                fontSize: '1.5rem',
+                fontWeight: 700,
                 bgcolor: 'primary.main',
               }}
             >
               {user.full_name?.charAt(0)}
             </Avatar>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h5" fontWeight="700" gutterBottom>
+            <Box flex={1} minWidth={0}>
+              <Typography variant="h6" fontWeight="700" noWrap>
                 {user.full_name}
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+              <Box display="flex" gap={0.5} mb={1} flexWrap="wrap">
                 {getRolesArray(user.roles).map((role) => (
                   <Chip
                     key={role}
-                    label={role.charAt(0).toUpperCase() + role.slice(1)}
+                    label={role.toUpperCase()}
                     color={getRoleColor(role)}
                     size="small"
-                    sx={{ fontWeight: 600 }}
+                    sx={{ fontWeight: 600, fontSize: '0.65rem', height: 22 }}
                   />
                 ))}
                 <Chip
@@ -127,88 +201,72 @@ const UserDetailsDialog = ({ open, user, onClose }) => {
                   color={user.is_active ? 'success' : 'default'}
                   variant={user.is_active ? 'filled' : 'outlined'}
                   size="small"
+                  sx={{ fontSize: '0.65rem', height: 22 }}
                 />
               </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <EmailIcon sx={{ fontSize: 16 }} />
+              <Typography variant="caption" color="text.secondary" display="flex" alignItems="center" gap={0.5}>
+                <EmailIcon sx={{ fontSize: 14 }} />
                 {user.email}
               </Typography>
             </Box>
           </Box>
+        </Box>
 
-          {/* Quick Info Row */}
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" color="text.secondary" fontWeight="600">
-                <EventIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'text-bottom' }} />
-                Member Since
-              </Typography>
-              <Typography variant="body2" sx={{ mt: 0.5 }}>
-                {new Date(user.user_created_at).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </Typography>
-            </Grid>
-          </Grid>
-        </Paper>
-
-        {/* Academic Information Section */}
+        {/* Academic Information */}
         {hasAcademicInfo && (
           <>
-            <Typography variant="h6" fontWeight="700" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <SchoolIcon sx={{ color: 'primary.main' }} />
+            <Typography variant="subtitle2" fontWeight="600" mb={1.5} display="flex" alignItems="center" gap={1}>
+              <SchoolIcon sx={{ fontSize: 18, color: 'primary.main' }} />
               Academic Information
             </Typography>
 
-            <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid container spacing={1.5} sx={{ mb: 3 }}>
               {user.institution_name && (
                 <Grid item xs={12}>
                   {renderInfoCard(
-                    <BusinessIcon fontSize="small" />,
+                    <BusinessIcon sx={{ fontSize: 16 }} />,
                     'Institution',
-                    `${user.institution_name}${user.institution_city ? ` - ${user.institution_city}` : ''}${user.institution_type ? ` (${user.institution_type})` : ''}`
+                    `${user.institution_name}${user.institution_city ? ` - ${user.institution_city}` : ''}`
                   )}
                 </Grid>
               )}
-
               {user.domain_name && (
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={6}>
                   {renderInfoCard(
-                    <CodeIcon fontSize="small" />,
+                    <CodeIcon sx={{ fontSize: 16 }} />,
                     'Domain',
-                    user.domain_name
+                    user.domain_name,
+                    'info'
                   )}
                 </Grid>
               )}
-
               {user.program_name && (
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={6}>
                   {renderInfoCard(
-                    <BookIcon fontSize="small" />,
+                    <BookIcon sx={{ fontSize: 16 }} />,
                     'Program',
-                    user.program_name
+                    user.program_name,
+                    'success'
                   )}
                 </Grid>
               )}
-
               {user.current_level_name && (
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={6}>
                   {renderInfoCard(
-                    <AssessmentIcon fontSize="small" />,
+                    <StarIcon sx={{ fontSize: 16 }} />,
                     'Level',
-                    user.current_level_name
+                    user.current_level_name,
+                    'warning'
                   )}
                 </Grid>
               )}
-
               {user.current_semester_name && (
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={6}>
                   {renderInfoCard(
-                    <EventIcon fontSize="small" />,
-                    'Current Semester',
-                    user.current_semester_name
+                    <EventIcon sx={{ fontSize: 16 }} />,
+                    'Semester',
+                    user.current_semester_name,
+                    'secondary'
                   )}
                 </Grid>
               )}
@@ -216,96 +274,91 @@ const UserDetailsDialog = ({ open, user, onClose }) => {
           </>
         )}
 
-        {/* Statistics Section */}
+        {/* Statistics */}
         {(user.total_resources_created || user.total_favorites_received || user.average_rating_received) && (
           <>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="h6" fontWeight="700" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <StarIcon sx={{ color: 'primary.main' }} />
-              Activity & Statistics
+            <Typography variant="subtitle2" fontWeight="600" mb={1.5} display="flex" alignItems="center" gap={1}>
+              <StarIcon sx={{ fontSize: 18, color: 'warning.main' }} />
+              Activity Stats
             </Typography>
 
-            <Grid container spacing={2}>
+            <Grid container spacing={1.5}>
               {user.total_resources_created && (
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={6}>
                   {renderInfoCard(
-                    <CodeIcon fontSize="small" />,
-                    'Resources Created',
-                    user.total_resources_created
+                    <CodeIcon sx={{ fontSize: 16 }} />,
+                    'Resources',
+                    user.total_resources_created,
+                    'primary'
                   )}
                 </Grid>
               )}
-
-              {user.published_resources_count && (
-                <Grid item xs={12} sm={6}>
-                  {renderInfoCard(
-                    <BookIcon fontSize="small" />,
-                    'Published Resources',
-                    user.published_resources_count
-                  )}
-                </Grid>
-              )}
-
               {user.total_favorites_received && (
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={6}>
                   {renderInfoCard(
-                    <FavoriteBorderIcon fontSize="small" />,
-                    'Favorites Received',
-                    user.total_favorites_received
+                    <FavoriteBorderIcon sx={{ fontSize: 16 }} />,
+                    'Favorites',
+                    user.total_favorites_received,
+                    'error'
                   )}
                 </Grid>
               )}
-
               {user.average_rating_received && (
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12}>
                   <Box
                     sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 1,
                       p: 1.5,
-                      borderRadius: 1,
-                      bgcolor: 'background.default',
+                      borderRadius: 2,
+                      bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
+                      border: '1px solid',
+                      borderColor: (theme) => alpha(theme.palette.warning.main, 0.1),
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2,
                     }}
                   >
                     <Typography variant="caption" color="text.secondary" fontWeight="600">
-                      Average Rating
+                      Rating
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Rating
-                        value={parseFloat(user.average_rating_received)}
-                        precision={0.1}
-                        readOnly
-                        size="small"
-                      />
-                      <Typography variant="body2" fontWeight="600">
-                        {user.average_rating_received} / 5.0
-                      </Typography>
-                    </Box>
+                    <Rating
+                      value={parseFloat(user.average_rating_received)}
+                      precision={0.1}
+                      readOnly
+                      size="small"
+                    />
+                    <Typography variant="body2" fontWeight="600" color="warning.main">
+                      {user.average_rating_received}/5
+                    </Typography>
                   </Box>
-                </Grid>
-              )}
-
-              {user.latest_resource_created_at && (
-                <Grid item xs={12}>
-                  {renderInfoCard(
-                    <EventIcon fontSize="small" />,
-                    'Last Resource Created',
-                    `${user.latest_resource_title || 'Unknown'} - ${new Date(user.latest_resource_created_at).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}`
-                  )}
                 </Grid>
               )}
             </Grid>
           </>
         )}
+
+        {/* Member Since */}
+        <Box mt={2} pt={2} borderTop="1px solid" borderColor="divider">
+          <Typography variant="caption" color="text.secondary">
+            Member since {new Date(user.user_created_at).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </Typography>
+        </Box>
       </DialogContent>
 
-      <DialogActions sx={{ p: 2.5 }}>
-        <Button onClick={onClose} variant="contained" size="medium">
+      <DialogActions sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+        <Button 
+          onClick={onClose} 
+          variant="contained"
+          sx={{ 
+            borderRadius: 2, 
+            textTransform: 'none',
+            fontWeight: 600,
+            boxShadow: 'none',
+          }}
+        >
           Close
         </Button>
       </DialogActions>

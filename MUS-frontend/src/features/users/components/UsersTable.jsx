@@ -1,7 +1,7 @@
+// src/features/users/components/UsersTable.jsx
 import React from 'react';
 import {
-  Card,
-  CardHeader,
+  Paper,
   Table,
   TableBody,
   TableCell,
@@ -20,8 +20,11 @@ import {
   TablePagination,
   Typography,
   Switch,
+  alpha,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
-import { Edit, Delete, Visibility, MoreVert } from '@mui/icons-material';
+import { Edit, Delete, Visibility, MoreVert, Search, People } from '@mui/icons-material';
 import PropTypes from 'prop-types';
 
 const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }) => {
@@ -29,6 +32,7 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
   const [selectedUser, setSelectedUser] = React.useState(null);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [searchTerm, setSearchTerm] = React.useState('');
 
   const handleMenuOpen = (event, user) => {
     setAnchorEl(event.currentTarget);
@@ -65,16 +69,13 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
   };
 
   const getRoleColor = (roles) => {
-    // roles is now a comma-separated string like "admin, user"
     if (!roles || typeof roles !== 'string') return 'default';
-    
     const rolesList = roles.split(',').map(r => r.trim().toLowerCase());
     const colors = {
       admin: 'error',
       teacher: 'warning',
       student: 'info',
     };
-    // Return color based on first matching role
     for (const role of rolesList) {
       if (colors[role]) return colors[role];
     }
@@ -86,36 +87,115 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
     return roles.split(',')[0].trim().toUpperCase();
   };
 
+  // Filter users by search
+  const filteredUsers = users.filter(user => 
+    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const paginatedUsers = filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
   if (loading) {
     return (
-      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: 3,
+          border: '1px solid',
+          borderColor: 'divider',
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+        }}
+      >
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+          <CircularProgress size={32} />
         </Box>
-      </Card>
+      </Paper>
     );
   }
 
-  const paginatedUsers = users.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
   return (
-    <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-      <CardHeader
-        title={<Typography variant="h6" fontWeight="700">All Users</Typography>}
-        subheader={<Typography variant="body2" color="text.secondary">{`Total: ${users.length} users`}</Typography>}
-        sx={{ pb: 2 }}
-      />
+    <Paper
+      elevation={0}
+      sx={{
+        borderRadius: 3,
+        border: '1px solid',
+        borderColor: 'divider',
+        background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Header */}
+      <Box
+        sx={{
+          px: 3,
+          py: 2,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 2,
+          background: (theme) => alpha(theme.palette.primary.main, 0.02),
+        }}
+      >
+        <Box display="flex" alignItems="center" gap={1.5}>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: (theme) => alpha(theme.palette.primary.main, 0.1),
+            }}
+          >
+            <People sx={{ fontSize: 20, color: 'primary.main' }} />
+          </Box>
+          <Box>
+            <Typography variant="subtitle1" fontWeight="600">
+              All Users
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {filteredUsers.length} users found
+            </Typography>
+          </Box>
+        </Box>
+        <TextField
+          size="small"
+          placeholder="Search users..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search sx={{ fontSize: 18, color: 'text.secondary' }} />
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            minWidth: 200,
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              fontSize: '0.875rem',
+            },
+          }}
+        />
+      </Box>
+
+      {/* Table */}
       <TableContainer>
-        <Table>
+        <Table size="small">
           <TableHead>
-            <TableRow sx={{ bgcolor: 'grey.50' }}>
-              <TableCell width="60px" sx={{ fontWeight: 700 }}></TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Join Date</TableCell>
-              <TableCell align="center" width="80px" sx={{ fontWeight: 700 }}>Actions</TableCell>
+            <TableRow sx={{ bgcolor: (theme) => alpha(theme.palette.grey[500], 0.05) }}>
+              <TableCell width="50px" sx={{ fontWeight: 600, fontSize: '0.75rem' }}></TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Name</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Email</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Role</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Status</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Joined</TableCell>
+              <TableCell align="center" width="60px" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -126,24 +206,30 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
                   hover
                   sx={{
                     '&:hover': {
-                      bgcolor: 'action.hover',
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
                     },
                   }}
                 >
                   <TableCell>
                     <Avatar
-                      sx={{ width: 40, height: 40, boxShadow: 1, bgcolor: 'primary.main' }}
+                      sx={{ 
+                        width: 36, 
+                        height: 36, 
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        bgcolor: 'primary.main',
+                      }}
                     >
                       {user.full_name?.charAt(0)}
                     </Avatar>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" fontWeight="600">
+                    <Typography variant="body2" fontWeight="600" noWrap>
                       {user.full_name}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" noWrap>
                       {user.email}
                     </Typography>
                   </TableCell>
@@ -152,7 +238,11 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
                       label={getFirstRole(user.roles)}
                       color={getRoleColor(user.roles)}
                       size="small"
-                      sx={{ fontWeight: 600 }}
+                      sx={{ 
+                        fontWeight: 600, 
+                        fontSize: '0.65rem',
+                        height: 22,
+                      }}
                     />
                   </TableCell>
                   <TableCell>
@@ -164,11 +254,11 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
                     />
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary">
                       {new Date(user.user_created_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
                         month: 'short',
-                        day: 'numeric'
+                        day: 'numeric',
+                        year: '2-digit'
                       })}
                     </Typography>
                   </TableCell>
@@ -178,19 +268,19 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
                       onClick={(e) => handleMenuOpen(e, user)}
                       sx={{
                         '&:hover': {
-                          bgcolor: 'action.selected',
+                          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
                         },
                       }}
                     >
-                      <MoreVert />
+                      <MoreVert sx={{ fontSize: 18 }} />
                     </IconButton>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan="7" align="center" sx={{ py: 8 }}>
-                  <Typography variant="body1" color="text.secondary">
+                <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                  <Typography variant="body2" color="text.secondary">
                     No users found
                   </Typography>
                 </TableCell>
@@ -202,47 +292,55 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
       
       <TablePagination
         component="div"
-        count={users.length}
+        count={filteredUsers.length}
         page={page}
         onPageChange={handleChangePage}
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={handleChangeRowsPerPage}
-        rowsPerPageOptions={[5, 10, 25, 50]}
+        rowsPerPageOptions={[5, 10, 25]}
+        sx={{
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+            fontSize: '0.75rem',
+          },
+        }}
       />
 
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            minWidth: 150,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          }
         }}
       >
-        <MenuItem onClick={handleView}>
+        <MenuItem onClick={handleView} sx={{ fontSize: '0.875rem' }}>
           <ListItemIcon>
-            <Visibility fontSize="small" color="info" />
+            <Visibility sx={{ fontSize: 18, color: 'info.main' }} />
           </ListItemIcon>
-          <ListItemText>View Details</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>View</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleEdit}>
+        <MenuItem onClick={handleEdit} sx={{ fontSize: '0.875rem' }}>
           <ListItemIcon>
-            <Edit fontSize="small" color="primary" />
+            <Edit sx={{ fontSize: 18, color: 'primary.main' }} />
           </ListItemIcon>
-          <ListItemText>Edit User</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>Edit</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleDelete}>
+        <MenuItem onClick={handleDelete} sx={{ fontSize: '0.875rem' }}>
           <ListItemIcon>
-            <Delete fontSize="small" color="error" />
+            <Delete sx={{ fontSize: 18, color: 'error.main' }} />
           </ListItemIcon>
-          <ListItemText>Delete User</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>Delete</ListItemText>
         </MenuItem>
       </Menu>
-    </Card>
+    </Paper>
   );
 };
 

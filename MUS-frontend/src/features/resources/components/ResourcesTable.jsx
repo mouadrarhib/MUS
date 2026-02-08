@@ -1,7 +1,7 @@
+// src/features/resources/components/ResourcesTable.jsx
 import React from 'react';
 import {
-  Card,
-  CardHeader,
+  Paper,
   Table,
   TableBody,
   TableCell,
@@ -18,9 +18,11 @@ import {
   ListItemText,
   TablePagination,
   Typography,
-  Rating,
+  TextField,
+  InputAdornment,
+  alpha,
 } from '@mui/material';
-import { Edit, Delete, Visibility, MoreVert, Download } from '@mui/icons-material';
+import { Edit, Delete, Visibility, MoreVert, Search, Article } from '@mui/icons-material';
 import PropTypes from 'prop-types';
 
 const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
@@ -28,6 +30,7 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
   const [selectedResource, setSelectedResource] = React.useState(null);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [searchTerm, setSearchTerm] = React.useState('');
 
   const handleMenuOpen = (event, resource) => {
     setAnchorEl(event.currentTarget);
@@ -81,38 +84,114 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
     return colors[type] || 'default';
   };
 
+  // Filter resources by search
+  const filteredResources = resources.filter(resource =>
+    resource.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    resource.author?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const paginatedResources = filteredResources.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
   if (loading) {
     return (
-      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: 3,
+          border: '1px solid',
+          borderColor: 'divider',
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+        }}
+      >
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+          <CircularProgress size={32} />
         </Box>
-      </Card>
+      </Paper>
     );
   }
 
-  const paginatedResources = resources.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
   return (
-    <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-      <CardHeader
-        title={<Typography variant="h6" fontWeight="700">All Resources</Typography>}
-        subheader={<Typography variant="body2" color="text.secondary">{`Total: ${resources.length} resources`}</Typography>}
-        sx={{ pb: 2 }}
-      />
-      <TableContainer>
-        <Table>
+    <Paper
+      elevation={0}
+      sx={{
+        borderRadius: 3,
+        border: '1px solid',
+        borderColor: 'divider',
+        background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Header */}
+      <Box
+        sx={{
+          px: 3,
+          py: 2,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 2,
+          background: (theme) => alpha(theme.palette.primary.main, 0.02),
+        }}
+      >
+        <Box display="flex" alignItems="center" gap={1.5}>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: (theme) => alpha(theme.palette.primary.main, 0.1),
+            }}
+          >
+            <Article sx={{ fontSize: 20, color: 'primary.main' }} />
+          </Box>
+          <Box>
+            <Typography variant="subtitle1" fontWeight="600">
+              All Resources
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {filteredResources.length} resources found
+            </Typography>
+          </Box>
+        </Box>
+        <TextField
+          size="small"
+          placeholder="Search resources..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search sx={{ fontSize: 18, color: 'text.secondary' }} />
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            minWidth: 200,
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              fontSize: '0.875rem',
+            },
+          }}
+        />
+      </Box>
+
+      {/* Table */}
+      <TableContainer sx={{ overflowX: 'hidden' }}>
+        <Table size="small" sx={{ tableLayout: 'fixed' }}>
           <TableHead>
-            <TableRow sx={{ bgcolor: 'grey.50' }}>
-              <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Format</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Rating</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Downloads</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Author</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Created</TableCell>
-              <TableCell align="center" width="80px" sx={{ fontWeight: 700 }}>Actions</TableCell>
+            <TableRow sx={{ bgcolor: (theme) => alpha(theme.palette.grey[500], 0.05) }}>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', width: '35%' }}>Title</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', width: '12%' }}>Type</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', width: '12%' }}>Status</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', width: '18%' }}>Author</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', width: '13%' }}>Created</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 600, fontSize: '0.75rem', width: '10%' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -123,70 +202,50 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
                   hover
                   sx={{
                     '&:hover': {
-                      bgcolor: 'action.hover',
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
                     },
                   }}
                 >
                   <TableCell>
-                    <Typography variant="body2" fontWeight="600">
-                      {resource.title}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {resource.academicContext?.moduleCode}
-                    </Typography>
+                    <Box sx={{ overflow: 'hidden' }}>
+                      <Typography variant="body2" fontWeight="600" noWrap>
+                        {resource.title}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" noWrap>
+                        {resource.academicContext?.moduleCode}
+                      </Typography>
+                    </Box>
                   </TableCell>
                   <TableCell>
                     <Chip
                       label={resource.educationalType?.toUpperCase() || 'N/A'}
                       color={getTypeColor(resource.educationalType)}
                       size="small"
-                      sx={{ fontWeight: 600 }}
+                      sx={{ fontWeight: 600, fontSize: '0.65rem', height: 22 }}
                     />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {resource.format?.toUpperCase()}
-                    </Typography>
                   </TableCell>
                   <TableCell>
                     <Chip
                       label={resource.status?.charAt(0).toUpperCase() + resource.status?.slice(1) || 'N/A'}
                       color={getStatusColor(resource.status)}
                       size="small"
-                      variant="filled"
-                      sx={{ fontWeight: 600 }}
+                      sx={{ fontWeight: 600, fontSize: '0.65rem', height: 22 }}
                     />
                   </TableCell>
                   <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Rating value={resource.stats?.avgRating || 0} precision={0.1} size="small" readOnly />
-                      <Typography variant="caption" color="text.secondary">
-                        ({resource.stats?.totalRatings || 0})
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Download sx={{ fontSize: 16, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {resource.stats?.downloads || 0}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="600">
+                    <Typography variant="caption" fontWeight="600" noWrap display="block">
                       {resource.author?.name}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: '0.65rem' }}>
                       {resource.author?.role}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary">
                       {new Date(resource.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
                         month: 'short',
-                        day: 'numeric'
+                        day: 'numeric',
+                        year: '2-digit'
                       })}
                     </Typography>
                   </TableCell>
@@ -196,19 +255,19 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
                       onClick={(e) => handleMenuOpen(e, resource)}
                       sx={{
                         '&:hover': {
-                          bgcolor: 'action.selected',
+                          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
                         },
                       }}
                     >
-                      <MoreVert />
+                      <MoreVert sx={{ fontSize: 18 }} />
                     </IconButton>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan="9" align="center" sx={{ py: 8 }}>
-                  <Typography variant="body1" color="text.secondary">
+                <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                  <Typography variant="body2" color="text.secondary">
                     No resources found
                   </Typography>
                 </TableCell>
@@ -220,47 +279,55 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
       
       <TablePagination
         component="div"
-        count={resources.length}
+        count={filteredResources.length}
         page={page}
         onPageChange={handleChangePage}
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={handleChangeRowsPerPage}
-        rowsPerPageOptions={[5, 10, 25, 50]}
+        rowsPerPageOptions={[5, 10, 25]}
+        sx={{
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+            fontSize: '0.75rem',
+          },
+        }}
       />
 
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            minWidth: 150,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          }
         }}
       >
-        <MenuItem onClick={handleView}>
+        <MenuItem onClick={handleView} sx={{ fontSize: '0.875rem' }}>
           <ListItemIcon>
-            <Visibility fontSize="small" color="info" />
+            <Visibility sx={{ fontSize: 18, color: 'info.main' }} />
           </ListItemIcon>
-          <ListItemText>View Details</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>View</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleEdit}>
+        <MenuItem onClick={handleEdit} sx={{ fontSize: '0.875rem' }}>
           <ListItemIcon>
-            <Edit fontSize="small" color="primary" />
+            <Edit sx={{ fontSize: 18, color: 'primary.main' }} />
           </ListItemIcon>
-          <ListItemText>Edit Resource</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>Edit</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleDelete}>
+        <MenuItem onClick={handleDelete} sx={{ fontSize: '0.875rem' }}>
           <ListItemIcon>
-            <Delete fontSize="small" color="error" />
+            <Delete sx={{ fontSize: 18, color: 'error.main' }} />
           </ListItemIcon>
-          <ListItemText>Delete Resource</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>Delete</ListItemText>
         </MenuItem>
       </Menu>
-    </Card>
+    </Paper>
   );
 };
 
