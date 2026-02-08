@@ -1,29 +1,39 @@
 {
-  "studentsOverview": {
-    "totalStudents": 1500,
-    "activeStudents": 1250,
-    "inactiveStudents": 250,
-    "profileCompletionPercentage": 78.5,
-    "studentsWithProfile": 1177,
-    "studentsWithoutProfile": 323
-  },
-  "resourceMetrics": {
-    "totalResourcesByStudents": 3500,
-    "publishedResources": 3100,
-    "draftResources": 300,
-    "archivedResources": 100,
-    "resourcesLast7Days": 120,
-    "resourcesLast30Days": 540
-  },
-  "engagementMetrics": {
-    "avgResourcesPerStudent": 2.33,
-    "avgFavoritesPerStudent": 15.5,
-    "avgRatingGivenByStudents": 4.2,
-    "totalDownloads": 45000
-  },
-  "topPerformers": {
-    "mostActiveStudentId": "u_student_01",
-    "mostActiveStudentName": "Yassine Etudiant",
-    "mostActiveStudentResources": 12
+  "success": true,
+  "message": "Dashboard data retrieved successfully",
+  "data": {
+    "students": {
+      "total_students": "2",
+      "active_students": "2",
+      "inactive_students": "0",
+      "students_with_profile": "3",
+      "students_without_profile": "-1",
+      "profile_completion_percentage": "150.00",
+      "total_resources_by_students": "3",
+      "published_resources": "1",
+      "draft_resources": "1",
+      "archived_resources": "1",
+      "avg_resources_per_student": "1.50",
+      "avg_favorites_per_student": "0.50",
+      "avg_ratings_per_student": "1.00",
+      "most_active_student_id": "19e41633-eb33-45c2-9750-73c88b850b9b",
+      "most_active_student_name": "Mouad rhb",
+      "most_active_student_resources": "3",
+      "resources_last_7_days": "1",
+      "new_students_last_7_days": "1",
+      "resources_last_30_days": "3",
+      "new_students_last_30_days": "1",
+      "total_favorites_by_students": "1",
+      "total_ratings_by_students": "2",
+      "avg_rating_given_by_students": "3.50",
+      "calculated_at": "2026-02-08T01:04:52.874Z"
+    },
+    "global": {
+      "total_users": "6",
+      "total_resources": "4",
+      "total_favorites": "3",
+      "total_ratings": "4"
+    },
+    "timestamp": "2026-02-08T01:03:19.736Z"
   }
 }

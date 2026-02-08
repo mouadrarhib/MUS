@@ -1,179 +1,386 @@
 // src/features/dashboard/pages/Overview.jsx
-import { Box, Typography, Grid } from '@mui/material';
+import { Box, Typography, alpha, Chip, Paper, Avatar, Grid } from '@mui/material';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { 
   People, 
   Article, 
-  ThumbUp, 
-  Download,
-  CheckCircle,
-  PersonAdd,
+  Favorite,
+  Star,
   TrendingUp,
-  Star
+  EmojiEvents,
+  CalendarToday,
+  Public,
+  PersonAdd,
+  NewReleases
 } from '@mui/icons-material';
 
-import StatCard from '../components/StatCard';
-import ProgressCard from '../components/ProgressCard';
-import MetricGrid from '../components/MetricGrid';
-import TopPerformerCard from '../components/TopPerformerCard';
-import ResourceBreakdown from '../components/ResourceBreakdown'; // NEW IMPORT
+import StatsOverview from '../components/StatsOverview';
+import QuickActions from '../components/QuickActions';
+import { ResourceDonut, EngagementBars } from '../components/MiniChart';
 
 import statsData from '@/data/stats.json';
 
 const Overview = () => {
   const { user } = useAuth();
-  const {
-    studentsOverview,
-    resourceMetrics,
-    engagementMetrics,
-    topPerformers
-  } = statsData;
+  
+  // Extract data from the new structure
+  const { students, global: globalStats } = statsData.data;
+
+  // Parse values (they come as strings from API)
+  const stats = {
+    totalStudents: parseInt(students.total_students) || 0,
+    activeStudents: parseInt(students.active_students) || 0,
+    inactiveStudents: parseInt(students.inactive_students) || 0,
+    totalResources: parseInt(students.total_resources_by_students) || 0,
+    publishedResources: parseInt(students.published_resources) || 0,
+    draftResources: parseInt(students.draft_resources) || 0,
+    archivedResources: parseInt(students.archived_resources) || 0,
+    avgResourcesPerStudent: parseFloat(students.avg_resources_per_student) || 0,
+    totalFavorites: parseInt(students.total_favorites_by_students) || 0,
+    totalRatings: parseInt(students.total_ratings_by_students) || 0,
+    avgRating: parseFloat(students.avg_rating_given_by_students) || 0,
+    resourcesLast7Days: parseInt(students.resources_last_7_days) || 0,
+    resourcesLast30Days: parseInt(students.resources_last_30_days) || 0,
+    newStudentsLast7Days: parseInt(students.new_students_last_7_days) || 0,
+    newStudentsLast30Days: parseInt(students.new_students_last_30_days) || 0,
+    topContributor: {
+      id: students.most_active_student_id,
+      name: students.most_active_student_name,
+      resources: parseInt(students.most_active_student_resources) || 0,
+    },
+    global: {
+      totalUsers: parseInt(globalStats.total_users) || 0,
+      totalResources: parseInt(globalStats.total_resources) || 0,
+      totalFavorites: parseInt(globalStats.total_favorites) || 0,
+      totalRatings: parseInt(globalStats.total_ratings) || 0,
+    },
+  };
+
+  // Format date
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString('en-US', { 
+    weekday: 'short', 
+    month: 'short', 
+    day: 'numeric' 
+  });
 
   return (
-    <Box 
-      sx={{ 
-        maxWidth: '1400px',
-        mx: 'auto',
-        width: '100%'
-      }}
-    >
-      {/* Welcome Header */}
-      <Box mb={4}>
-        <Typography variant="h4" fontWeight="700" gutterBottom>
-          Welcome back, {user?.full_name}! 👋
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Here's what's happening with your platform today
-        </Typography>
-      </Box>
-
-      {/* Students Overview Section */}
-      <MetricGrid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Total Students"
-            value={studentsOverview.totalStudents.toLocaleString()}
-            icon={People}
-            color="primary"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Active Students"
-            value={studentsOverview.activeStudents.toLocaleString()}
-            icon={CheckCircle}
-            color="success"
-            subtitle={`${studentsOverview.inactiveStudents} inactive`}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Total Resources"
-            value={resourceMetrics.totalResourcesByStudents.toLocaleString()}
-            icon={Article}
-            color="info"
-            trend="up"
-            trendValue={`+${resourceMetrics.resourcesLast7Days} this week`}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Total Downloads"
-            value={engagementMetrics.totalDownloads.toLocaleString()}
-            icon={Download}
-            color="warning"
-          />
-        </Grid>
-      </MetricGrid>
-
-      {/* Profile Completion & Resource Status */}
-      <MetricGrid>
-        <Grid item xs={12} md={6} mt={3}>
-          <ProgressCard
-            title="Profile Completion Rate"
-            value={studentsOverview.studentsWithProfile}
-            total={studentsOverview.totalStudents}
-            percentage={studentsOverview.profileCompletionPercentage}
-            icon={PersonAdd}
-            color="success"
-          />
-        </Grid>
-        <Grid item xs={12} md={6} mt={3}>
-          <ProgressCard
-            title="Published Resources"
-            value={resourceMetrics.publishedResources}
-            total={resourceMetrics.totalResourcesByStudents}
-            percentage={Math.round((resourceMetrics.publishedResources / resourceMetrics.totalResourcesByStudents) * 100)}
-            icon={CheckCircle}
-            color="primary"
-          />
-        </Grid>
-      </MetricGrid>
-
-      {/* Resource Breakdown - NEW COMPONENT */}
-      <Box mt={4}>
-        <ResourceBreakdown
-          published={resourceMetrics.publishedResources}
-          draft={resourceMetrics.draftResources}
-          archived={resourceMetrics.archivedResources}
-          total={resourceMetrics.totalResourcesByStudents}
+    <Box sx={{ width: '100%' }}>
+      {/* Header Row */}
+      <Box 
+        display="flex" 
+        justifyContent="space-between" 
+        alignItems="flex-start"
+        flexWrap="wrap"
+        gap={2}
+        mb={3}
+      >
+        <Box>
+          <Typography 
+            variant="h5" 
+            fontWeight="700" 
+            sx={{
+              background: (theme) => 
+                `linear-gradient(135deg, ${theme.palette.text.primary} 0%, ${theme.palette.primary.main} 100%)`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            Welcome back, {user?.full_name || 'Admin'}!
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Platform overview and quick stats
+          </Typography>
+        </Box>
+        <Chip
+          icon={<CalendarToday sx={{ fontSize: 14 }} />}
+          label={formattedDate}
+          size="small"
+          sx={{
+            px: 1,
+            borderRadius: 2,
+            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+            color: 'primary.main',
+            fontWeight: 500,
+          }}
         />
       </Box>
 
-      {/* Engagement Metrics */}
-      <Box mt={4}>
-        <Typography variant="h5" fontWeight="600" mb={2}>
-          Engagement Metrics
-        </Typography>
-        <MetricGrid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="Avg Resources/Student"
-              value={engagementMetrics.avgResourcesPerStudent}
-              icon={Article}
-              color="secondary"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="Avg Favorites/Student"
-              value={engagementMetrics.avgFavoritesPerStudent}
-              icon={Star}
-              color="warning"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="Avg Student Rating"
-              value={engagementMetrics.avgRatingGivenByStudents}
-              icon={ThumbUp}
-              color="success"
-              subtitle="Out of 5.0"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="Resources (30 days)"
-              value={resourceMetrics.resourcesLast30Days}
-              icon={TrendingUp}
-              color="info"
-              trend="up"
-              trendValue={`${resourceMetrics.resourcesLast7Days} last week`}
-            />
-          </Grid>
-        </MetricGrid>
+      {/* Quick Actions */}
+      <Box mb={3}>
+        <QuickActions />
       </Box>
 
-      {/* Top Performer */}
-      <Box mt={4}>
-        <Typography variant="h5" fontWeight="600" mb={2}>
-          Top Contributor
-        </Typography>
-        <TopPerformerCard
-          name={topPerformers.mostActiveStudentName}
-          resourceCount={topPerformers.mostActiveStudentResources}
-          id={topPerformers.mostActiveStudentId}
+      {/* Main Stats Grid */}
+      <Box 
+        sx={{ 
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: 'repeat(2, 1fr)',
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(4, 1fr)',
+          },
+          gap: 2,
+          mb: 3,
+        }}
+      >
+        <StatsOverview
+          label="Total Students"
+          value={stats.totalStudents}
+          change={stats.newStudentsLast7Days}
+          changeLabel={`+${stats.newStudentsLast7Days} this week`}
+          icon={People}
+          color="primary"
         />
+        <StatsOverview
+          label="Active Students"
+          value={stats.activeStudents}
+          changeLabel={`${stats.inactiveStudents} inactive`}
+          icon={PersonAdd}
+          color="success"
+        />
+        <StatsOverview
+          label="Total Resources"
+          value={stats.totalResources}
+          change={stats.resourcesLast7Days}
+          changeLabel={`+${stats.resourcesLast7Days} this week`}
+          icon={Article}
+          color="info"
+        />
+        <StatsOverview
+          label="Avg Rating"
+          value={stats.avgRating.toFixed(1)}
+          changeLabel={`${stats.totalRatings} ratings`}
+          icon={Star}
+          color="warning"
+        />
+      </Box>
+
+      {/* Charts & Top Contributor Row */}
+      <Box 
+        sx={{ 
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            md: 'repeat(3, 1fr)',
+          },
+          gap: 2,
+          mb: 3,
+        }}
+      >
+        {/* Resource Distribution */}
+        <ResourceDonut
+          published={stats.publishedResources}
+          draft={stats.draftResources}
+          archived={stats.archivedResources}
+          total={stats.totalResources}
+        />
+
+        {/* Engagement */}
+        <EngagementBars
+          favorites={stats.totalFavorites}
+          ratings={stats.totalRatings}
+          avgRating={stats.avgRating}
+        />
+
+        {/* Top Contributor */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <Box display="flex" alignItems="center" gap={1} mb={2}>
+            <EmojiEvents sx={{ fontSize: 18, color: '#FFD700' }} />
+            <Typography variant="subtitle2" fontWeight="600">
+              Top Contributor
+            </Typography>
+          </Box>
+          <Box display="flex" alignItems="center" gap={2} flex={1}>
+            <Avatar
+              sx={{
+                width: 56,
+                height: 56,
+                bgcolor: 'white',
+                color: 'primary.main',
+                fontWeight: 'bold',
+                fontSize: '1.25rem',
+                border: '2px solid #FFD700',
+              }}
+            >
+              {stats.topContributor.name?.charAt(0) || '?'}
+            </Avatar>
+            <Box>
+              <Typography variant="subtitle1" fontWeight="700">
+                {stats.topContributor.name || 'No data'}
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.85 }}>
+                {stats.topContributor.resources} resources shared
+              </Typography>
+            </Box>
+          </Box>
+          <Box 
+            display="flex" 
+            justifyContent="space-around" 
+            mt={2}
+            pt={2}
+            sx={{ borderTop: '1px solid rgba(255,255,255,0.2)' }}
+          >
+            <Box textAlign="center">
+              <Typography variant="h6" fontWeight="700">{stats.topContributor.resources}</Typography>
+              <Typography variant="caption" sx={{ opacity: 0.7 }}>Uploads</Typography>
+            </Box>
+            <Box textAlign="center">
+              <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
+                <TrendingUp sx={{ fontSize: 14, color: '#4caf50' }} />
+                <Typography variant="h6" fontWeight="700">#1</Typography>
+              </Box>
+              <Typography variant="caption" sx={{ opacity: 0.7 }}>Rank</Typography>
+            </Box>
+          </Box>
+        </Paper>
+      </Box>
+
+      {/* Global Stats & Activity Row */}
+      <Box 
+        sx={{ 
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            md: '1fr 1fr',
+          },
+          gap: 2,
+        }}
+      >
+        {/* Global Platform Stats */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+          }}
+        >
+          <Box display="flex" alignItems="center" gap={1} mb={2}>
+            <Public sx={{ fontSize: 18, color: 'primary.main' }} />
+            <Typography variant="subtitle2" fontWeight="600">
+              Global Platform Stats
+            </Typography>
+          </Box>
+          <Box 
+            display="grid" 
+            gridTemplateColumns="repeat(2, 1fr)" 
+            gap={2}
+          >
+            {[
+              { label: 'Total Users', value: stats.global.totalUsers, color: 'primary' },
+              { label: 'Total Resources', value: stats.global.totalResources, color: 'info' },
+              { label: 'Total Favorites', value: stats.global.totalFavorites, color: 'error' },
+              { label: 'Total Ratings', value: stats.global.totalRatings, color: 'warning' },
+            ].map((item, i) => (
+              <Box 
+                key={i}
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: (theme) => alpha(theme.palette[item.color].main, 0.05),
+                  border: '1px solid',
+                  borderColor: (theme) => alpha(theme.palette[item.color].main, 0.1),
+                }}
+              >
+                <Typography variant="h5" fontWeight="700" color={`${item.color}.main`}>
+                  {item.value}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {item.label}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Paper>
+
+        {/* Recent Activity Summary */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+          }}
+        >
+          <Box display="flex" alignItems="center" gap={1} mb={2}>
+            <NewReleases sx={{ fontSize: 18, color: 'success.main' }} />
+            <Typography variant="subtitle2" fontWeight="600">
+              Activity Summary
+            </Typography>
+          </Box>
+          <Box display="flex" flexDirection="column" gap={1.5}>
+            {[
+              { 
+                label: 'Resources (Last 7 days)', 
+                value: stats.resourcesLast7Days, 
+                total: stats.totalResources,
+                color: 'primary' 
+              },
+              { 
+                label: 'Resources (Last 30 days)', 
+                value: stats.resourcesLast30Days, 
+                total: stats.totalResources,
+                color: 'info' 
+              },
+              { 
+                label: 'New Students (Last 7 days)', 
+                value: stats.newStudentsLast7Days, 
+                total: stats.totalStudents,
+                color: 'success' 
+              },
+              { 
+                label: 'New Students (Last 30 days)', 
+                value: stats.newStudentsLast30Days, 
+                total: stats.totalStudents,
+                color: 'warning' 
+              },
+            ].map((item, i) => (
+              <Box 
+                key={i}
+                display="flex" 
+                justifyContent="space-between" 
+                alignItems="center"
+                sx={{
+                  p: 1,
+                  borderRadius: 1.5,
+                  bgcolor: (theme) => alpha(theme.palette[item.color].main, 0.04),
+                }}
+              >
+                <Typography variant="caption" color="text.secondary">
+                  {item.label}
+                </Typography>
+                <Chip
+                  label={`+${item.value}`}
+                  size="small"
+                  sx={{
+                    height: 22,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    bgcolor: (theme) => alpha(theme.palette[item.color].main, 0.1),
+                    color: `${item.color}.main`,
+                  }}
+                />
+              </Box>
+            ))}
+          </Box>
+        </Paper>
       </Box>
     </Box>
   );

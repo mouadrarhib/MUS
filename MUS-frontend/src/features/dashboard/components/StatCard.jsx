@@ -24,8 +24,8 @@ const StatCard = ({
         position: 'relative',
         overflow: 'hidden',
         '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: '0 12px 24px rgba(0,0,0,0.1)',
+          transform: 'translateY(-2px)',
+          boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
           borderColor: `${color}.main`,
         },
         '&::before': {
@@ -34,31 +34,38 @@ const StatCard = ({
           top: 0,
           left: 0,
           right: 0,
-          height: '4px',
+          height: '3px',
           background: (theme) => 
             `linear-gradient(90deg, ${theme.palette[color].main}, ${theme.palette[color].light})`,
         }
       }}
     >
-      <CardContent sx={{ p: 3 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-          <Box flex={1}>
+      <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
+        <Box display="flex" justifyContent="space-between" alignItems="flex-start" gap={1}>
+          <Box flex={1} minWidth={0}>
             <Typography 
               color="text.secondary" 
-              variant="body2" 
-              fontWeight={500}
+              variant="caption" 
+              fontWeight={600}
               textTransform="uppercase"
               letterSpacing={0.5}
-              mb={1.5}
+              sx={{ 
+                display: 'block',
+                mb: 1,
+                fontSize: { xs: '0.65rem', sm: '0.7rem' },
+              }}
+              noWrap
             >
               {title}
             </Typography>
             
             <Typography 
-              variant="h3" 
+              variant="h4" 
               fontWeight="700" 
-              mb={1}
               sx={{ 
+                fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' },
+                lineHeight: 1.2,
+                mb: 0.5,
                 background: (theme) => 
                   `linear-gradient(135deg, ${theme.palette.text.primary} 0%, ${theme.palette.text.secondary} 100%)`,
                 WebkitBackgroundClip: 'text',
@@ -70,9 +77,9 @@ const StatCard = ({
             
             {subtitle && (
               <Typography 
-                variant="body2" 
+                variant="caption" 
                 color="text.secondary"
-                sx={{ opacity: 0.8 }}
+                sx={{ opacity: 0.8, fontSize: '0.7rem' }}
               >
                 {subtitle}
               </Typography>
@@ -82,11 +89,11 @@ const StatCard = ({
               <Box 
                 display="flex" 
                 alignItems="center" 
-                mt={1.5}
+                mt={1}
                 sx={{
-                  px: 1.5,
-                  py: 0.5,
-                  borderRadius: 2,
+                  px: 1,
+                  py: 0.25,
+                  borderRadius: 1.5,
                   bgcolor: trend === 'up' 
                     ? alpha('#4caf50', 0.1) 
                     : alpha('#f44336', 0.1),
@@ -94,15 +101,17 @@ const StatCard = ({
                 }}
               >
                 {trend === 'up' ? (
-                  <TrendingUp sx={{ fontSize: 18, color: 'success.main' }} />
+                  <TrendingUp sx={{ fontSize: 14, color: 'success.main' }} />
                 ) : (
-                  <TrendingDown sx={{ fontSize: 18, color: 'error.main' }} />
+                  <TrendingDown sx={{ fontSize: 14, color: 'error.main' }} />
                 )}
                 <Typography
-                  variant="body2"
+                  variant="caption"
                   fontWeight={600}
                   color={trend === 'up' ? 'success.main' : 'error.main'}
                   ml={0.5}
+                  sx={{ fontSize: '0.65rem' }}
+                  noWrap
                 >
                   {trendValue}
                 </Typography>
@@ -112,15 +121,16 @@ const StatCard = ({
           
           <Avatar
             sx={{
-              width: 64,
-              height: 64,
+              width: { xs: 44, sm: 52 },
+              height: { xs: 44, sm: 52 },
+              flexShrink: 0,
               background: (theme) => 
-                `linear-gradient(135deg, ${alpha(theme.palette[color].main, 0.2)} 0%, ${alpha(theme.palette[color].light, 0.3)} 100%)`,
+                `linear-gradient(135deg, ${alpha(theme.palette[color].main, 0.15)} 0%, ${alpha(theme.palette[color].light, 0.25)} 100%)`,
               color: `${color}.main`,
-              boxShadow: (theme) => `0 8px 16px ${alpha(theme.palette[color].main, 0.2)}`,
+              boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette[color].main, 0.15)}`,
             }}
           >
-            <Icon sx={{ fontSize: 32 }} />
+            <Icon sx={{ fontSize: { xs: 22, sm: 26 } }} />
           </Avatar>
         </Box>
       </CardContent>
