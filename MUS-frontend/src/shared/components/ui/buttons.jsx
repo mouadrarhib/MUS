@@ -21,11 +21,7 @@ PrimaryButton.propTypes = {
   startIcon: PropTypes.node,
 };
 
-export const SecondaryButton = ({ children, ...props }) => (
-  <Button variant="contained" color="secondary" {...props}>
-    {children}
-  </Button>
-);
+
 
 export const OutlinedButton = ({ children, ...props }) => (
   <Button variant="outlined" {...props}>
@@ -33,11 +29,7 @@ export const OutlinedButton = ({ children, ...props }) => (
   </Button>
 );
 
-export const TextButton = ({ children, ...props }) => (
-  <Button variant="text" {...props}>
-    {children}
-  </Button>
-);
+
 
 export const IconButton = ({ children, tooltip, ...props }) => {
   const button = (

@@ -10,24 +10,19 @@ import { Box, Typography } from '@mui/material';
 import {
   // Buttons
   PrimaryButton,
-  SecondaryButton,
   OutlinedButton,
-  TextButton,
   IconButton,
   // Inputs
   TextField,
   Select,
   Checkbox,
-  Radio,
   Switch,
-  TextArea,
   // Navigation
   Navbar,
   Sidebar,
   // Modals
   Modal,
-  ConfirmModal,
-  AlertModal,
+  Modal,
   // Notifications
   useNotification,
   // Data Display
@@ -36,7 +31,6 @@ import {
   Avatar,
   // Feedback
   Loading,
-  Skeleton,
   Alert,
 } from '@/components/ui';
 import {
@@ -107,13 +101,7 @@ export function FormExample() {
         sx={{ mb: 2 }}
       />
 
-      <TextArea
-        label="Description"
-        value={formData.description}
-        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-        rows={4}
-        sx={{ mb: 2 }}
-      />
+
 
       <Checkbox
         label="I agree to the terms"
@@ -150,9 +138,7 @@ export function ModalExample() {
   return (
     <Box sx={{ p: 3 }}>
       <PrimaryButton onClick={() => setOpen(true)}>Open Modal</PrimaryButton>
-      <PrimaryButton onClick={() => setConfirmOpen(true)} sx={{ ml: 2 }}>
-        Open Confirm Dialog
-      </PrimaryButton>
+
 
       <Modal
         open={open}
@@ -175,18 +161,6 @@ export function ModalExample() {
         <TextField label="Name" fullWidth />
       </Modal>
 
-      <ConfirmModal
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={() => {
-          setConfirmOpen(false);
-          showSuccess('Item deleted!');
-        }}
-        title="Delete Item"
-        message="Are you sure you want to delete this item? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
-      />
     </Box>
   );
 }
@@ -263,7 +237,7 @@ export function CardExample() {
         imageAlt="Placeholder"
         actions={
           <>
-            <TextButton>Cancel</TextButton>
+
             <PrimaryButton size="small">Save</PrimaryButton>
           </>
         }
@@ -286,15 +260,7 @@ export function NotificationExample() {
       <PrimaryButton onClick={() => showSuccess('Operation successful!')}>
         Show Success
       </PrimaryButton>
-      <SecondaryButton onClick={() => showError('Something went wrong!')}>
-        Show Error
-      </SecondaryButton>
-      <OutlinedButton onClick={() => showWarning('Please be careful!')}>
-        Show Warning
-      </OutlinedButton>
-      <TextButton onClick={() => showInfo('Here is some information')}>
-        Show Info
-      </TextButton>
+
     </Box>
   );
 }
@@ -317,18 +283,7 @@ export function LoadingExample() {
       </PrimaryButton>
 
       <Box sx={{ mt: 4 }}>
-        <Typography variant="h6" gutterBottom>
-          Skeleton Loading
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Skeleton variant="rectangular" width={200} height={100} />
-          <Skeleton variant="circular" width={40} height={40} />
-          <Box sx={{ flex: 1 }}>
-            <Skeleton variant="text" width="100%" height={20} />
-            <Skeleton variant="text" width="80%" height={20} />
-            <Skeleton variant="text" width="60%" height={20} />
-          </Box>
-        </Box>
+
       </Box>
     </Box>
   );
