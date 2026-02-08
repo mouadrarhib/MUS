@@ -16,6 +16,8 @@ const DashboardLayout = lazy(() => import('@/layouts/DashboardLayout'));
 const DashboardOverview = lazy(() => import('@/features/dashboard/pages/Overview'));
 const UsersPage = lazy(() => import('@/features/users/pages/Users'));
 const ResourcesPage = lazy(() => import('@/features/resources/pages/Resources'));
+const LibraryPage = lazy(() => import('@/features/library/pages/Library'));
+const ProfilePage = lazy(() => import('@/features/profile/pages/Profile'));
 
 const LoadingFallback = () => (
   <Box
@@ -60,8 +62,11 @@ const AppRouter = () => {
           {/* Resources Management Page */}
           <Route path="resources" element={<ResourcesPage />} />
 
-          {/* Add future pages here, e.g.: */}
-          {/* <Route path="library" element={<LibraryPage />} /> */}
+          {/* Library / Favorites Page */}
+          <Route path="library" element={<LibraryPage />} />
+
+          {/* Profile Page */}
+          <Route path="profile" element={<ProfilePage />} />
         </Route>
 
         {/* 4. Catch-all 404 */}

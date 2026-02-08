@@ -1,4 +1,4 @@
-// src/features/resources/components/ResourcesTable.jsx
+// src/features/library/components/FavoritesTable.jsx
 import React from 'react';
 import {
   Paper,
@@ -22,38 +22,40 @@ import {
   InputAdornment,
   alpha,
 } from '@mui/material';
-import { Edit, Delete, Visibility, MoreVert, Search, Article } from '@mui/icons-material';
+import { 
+  Visibility, 
+  MoreVert, 
+  Search, 
+  Favorite,
+  Delete,
+  Download,
+} from '@mui/icons-material';
 import PropTypes from 'prop-types';
 
-const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
+const FavoritesTable = ({ favorites, loading, onView, onRemove }) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
-  const [selectedResource, setSelectedResource] = React.useState(null);
+  const [selectedFavorite, setSelectedFavorite] = React.useState(null);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [searchTerm, setSearchTerm] = React.useState('');
 
-  const handleMenuOpen = (event, resource) => {
+  const handleMenuOpen = (event, favorite) => {
     setAnchorEl(event.currentTarget);
-    setSelectedResource(resource);
+    setSelectedFavorite(favorite);
   };
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    setSelectedResource(null);
+    setSelectedFavorite(null);
   };
 
   const handleView = () => {
-    if (selectedResource) onView(selectedResource);
+    if (selectedFavorite) onView(selectedFavorite);
     handleMenuClose();
   };
 
-  const handleEdit = () => {
-    if (selectedResource) onEdit(selectedResource);
-    handleMenuClose();
-  };
-
-  const handleDelete = () => {
-    if (selectedResource) onDelete(selectedResource.id);
+  const handleRemove = () => {
+    if (selectedFavorite) onRemove(selectedFavorite.resource_id);
     handleMenuClose();
   };
 
@@ -84,13 +86,23 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
     return colors[type] || 'default';
   };
 
-  // Filter resources by search
-  const filteredResources = resources.filter(resource =>
-    resource.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resource.author?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  const getFormatColor = (format) => {
+    const colors = {
+      pdf: 'error',
+      video: 'info',
+      powerpoint: 'warning',
+      word: 'primary',
+    };
+    return colors[format] || 'default';
+  };
+
+  // Filter favorites by search
+  const filteredFavorites = favorites.filter(favorite =>
+    favorite.resource_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    favorite.resource_description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const paginatedResources = filteredResources.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const paginatedFavorites = filteredFavorites.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   if (loading) {
     return (
@@ -137,7 +149,7 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: 2,
-          background: (theme) => alpha(theme.palette.primary.main, 0.02),
+          background: (theme) => alpha(theme.palette.error.main, 0.02),
         }}
       >
         <Box display="flex" alignItems="center" gap={1.5}>
@@ -149,23 +161,23 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: (theme) => alpha(theme.palette.primary.main, 0.1),
+              background: (theme) => alpha(theme.palette.error.main, 0.1),
             }}
           >
-            <Article sx={{ fontSize: 20, color: 'primary.main' }} />
+            <Favorite sx={{ fontSize: 20, color: 'error.main' }} />
           </Box>
           <Box>
             <Typography variant="subtitle1" fontWeight="600">
-              All Resources
+              My Favorites
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {filteredResources.length} resources found
+              {filteredFavorites.length} resources saved
             </Typography>
           </Box>
         </Box>
         <TextField
           size="small"
-          placeholder="Search resources..."
+          placeholder="Search favorites..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           InputProps={{
@@ -192,17 +204,17 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
             <TableRow sx={{ bgcolor: (theme) => alpha(theme.palette.grey[500], 0.05) }}>
               <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', width: '35%' }}>Title</TableCell>
               <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', width: '12%' }}>Type</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', width: '12%' }}>Format</TableCell>
               <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', width: '12%' }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', width: '18%' }}>Author</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', width: '13%' }}>Created</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', width: '19%' }}>Favorited</TableCell>
               <TableCell align="center" sx={{ fontWeight: 600, fontSize: '0.75rem', width: '10%' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {paginatedResources && paginatedResources.length > 0 ? (
-              paginatedResources.map((resource) => (
+            {paginatedFavorites && paginatedFavorites.length > 0 ? (
+              paginatedFavorites.map((favorite) => (
                 <TableRow 
-                  key={resource.id} 
+                  key={favorite.resource_id} 
                   hover
                   sx={{
                     '&:hover': {
@@ -213,50 +225,51 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
                   <TableCell>
                     <Box sx={{ overflow: 'hidden' }}>
                       <Typography variant="body2" fontWeight="600" noWrap>
-                        {resource.title}
+                        {favorite.resource_title}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" noWrap>
-                        {resource.academicContext?.moduleCode}
+                        {favorite.resource_description?.substring(0, 50)}...
                       </Typography>
                     </Box>
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={resource.educationalType?.toUpperCase() || 'N/A'}
-                      color={getTypeColor(resource.educationalType)}
+                      label={favorite.resource_educational_type?.toUpperCase() || 'N/A'}
+                      color={getTypeColor(favorite.resource_educational_type)}
                       size="small"
                       sx={{ fontWeight: 600, fontSize: '0.65rem', height: 22 }}
                     />
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={resource.status?.charAt(0).toUpperCase() + resource.status?.slice(1) || 'N/A'}
-                      color={getStatusColor(resource.status)}
+                      label={favorite.resource_format?.toUpperCase() || 'N/A'}
+                      color={getFormatColor(favorite.resource_format)}
+                      size="small"
+                      variant="outlined"
+                      sx={{ fontWeight: 600, fontSize: '0.65rem', height: 22 }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={favorite.resource_status?.charAt(0).toUpperCase() + favorite.resource_status?.slice(1) || 'N/A'}
+                      color={getStatusColor(favorite.resource_status)}
                       size="small"
                       sx={{ fontWeight: 600, fontSize: '0.65rem', height: 22 }}
                     />
                   </TableCell>
                   <TableCell>
-                    <Typography variant="caption" fontWeight="600" noWrap display="block">
-                      {resource.author?.name}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: '0.65rem' }}>
-                      {resource.author?.role}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
                     <Typography variant="caption" color="text.secondary">
-                      {new Date(resource.createdAt).toLocaleDateString('en-US', {
+                      {new Date(favorite.favorited_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
-                        year: '2-digit'
+                        year: 'numeric'
                       })}
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
                     <IconButton
                       size="small"
-                      onClick={(e) => handleMenuOpen(e, resource)}
+                      onClick={(e) => handleMenuOpen(e, favorite)}
                       sx={{
                         '&:hover': {
                           bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
@@ -271,9 +284,15 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
             ) : (
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    No resources found
-                  </Typography>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Favorite sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      No favorites found
+                    </Typography>
+                    <Typography variant="caption" color="text.disabled">
+                      Resources you favorite will appear here
+                    </Typography>
+                  </Box>
                 </TableCell>
               </TableRow>
             )}
@@ -283,7 +302,7 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
       
       <TablePagination
         component="div"
-        count={filteredResources.length}
+        count={filteredFavorites.length}
         page={page}
         onPageChange={handleChangePage}
         rowsPerPage={rowsPerPage}
@@ -318,33 +337,26 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
           </ListItemIcon>
           <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>View</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleEdit} sx={{ fontSize: '0.875rem' }}>
-          <ListItemIcon>
-            <Edit sx={{ fontSize: 18, color: 'primary.main' }} />
-          </ListItemIcon>
-          <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>Edit</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleDelete} sx={{ fontSize: '0.875rem' }}>
+        <MenuItem onClick={handleRemove} sx={{ fontSize: '0.875rem' }}>
           <ListItemIcon>
             <Delete sx={{ fontSize: 18, color: 'error.main' }} />
           </ListItemIcon>
-          <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>Delete</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>Remove</ListItemText>
         </MenuItem>
       </Menu>
     </Paper>
   );
 };
 
-ResourcesTable.propTypes = {
-  resources: PropTypes.array.isRequired,
+FavoritesTable.propTypes = {
+  favorites: PropTypes.array.isRequired,
   loading: PropTypes.bool,
   onView: PropTypes.func.isRequired,
-  onEdit: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
 };
 
-ResourcesTable.defaultProps = {
+FavoritesTable.defaultProps = {
   loading: false,
 };
 
-export default ResourcesTable;
+export default FavoritesTable;

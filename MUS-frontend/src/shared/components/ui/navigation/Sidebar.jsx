@@ -79,14 +79,16 @@ export const Sidebar = ({
                   px: 2,
                   transition: 'all 0.2s',
                   color: isActive ? 'primary.main' : 'text.primary',
-                  bgcolor: isActive ? alpha('#667eea', 0.1) : 'transparent',
+                  bgcolor: isActive ? (theme) => alpha(theme.palette.primary.main, 0.1) : 'transparent',
                   '&:hover': {
-                    bgcolor: isActive ? alpha('#667eea', 0.15) : 'action.hover',
+                    bgcolor: (theme) => isActive 
+                      ? alpha(theme.palette.primary.main, 0.15) 
+                      : 'action.hover',
                   },
                   '&.Mui-selected': {
-                    bgcolor: alpha('#667eea', 0.1),
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
                     '&:hover': {
-                      bgcolor: alpha('#667eea', 0.15),
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.15),
                     },
                   },
                 }}

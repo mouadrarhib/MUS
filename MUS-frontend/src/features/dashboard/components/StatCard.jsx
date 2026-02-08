@@ -19,13 +19,17 @@ const StatCard = ({
         borderRadius: 3,
         border: '1px solid',
         borderColor: 'divider',
-        background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+        background: (theme) => theme.palette.mode === 'dark' 
+          ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
+          : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative',
         overflow: 'hidden',
         '&:hover': {
           transform: 'translateY(-2px)',
-          boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
+          boxShadow: (theme) => theme.palette.mode === 'dark'
+            ? '0 8px 20px rgba(0,0,0,0.3)'
+            : '0 8px 20px rgba(0,0,0,0.08)',
           borderColor: `${color}.main`,
         },
         '&::before': {

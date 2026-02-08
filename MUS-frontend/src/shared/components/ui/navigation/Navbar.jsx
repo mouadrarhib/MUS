@@ -1,5 +1,6 @@
 // src/shared/components/ui/navigation/Navbar.jsx
 import PropTypes from 'prop-types';
+import { useNavigate } from 'react-router-dom';
 import {
   AppBar,
   Toolbar,
@@ -17,9 +18,12 @@ import {
   Menu as MenuIcon,
   Logout,
   Settings,
-  Person
+  Person,
+  DarkMode,
+  LightMode
 } from '@mui/icons-material';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { useThemeMode } from '@/app/providers/ThemeContext';
 import { useState } from 'react';
 import logo from '@/assets/images/logo.png';
 
@@ -27,11 +31,23 @@ const NAVBAR_HEIGHT = 64;
 
 export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
   const { user, logout } = useAuth();
+  const { mode, toggleTheme } = useThemeMode();
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
   const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
+
+  const handleProfile = () => {
+    handleMenuClose();
+    navigate('/dashboard/profile');
+  };
+
+  const handleSettings = () => {
+    handleMenuClose();
+    navigate('/dashboard/profile');
+  };
 
   const handleLogout = () => {
     handleMenuClose();
@@ -83,6 +99,30 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
 
         {/* Spacer */}
         <Box sx={{ flexGrow: 1 }} />
+
+        {/* Theme Toggle Button */}
+        <IconButton
+          onClick={toggleTheme}
+          sx={{
+            mr: 1,
+            color: 'text.primary',
+            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+            border: '1px solid',
+            borderColor: 'divider',
+            transition: 'all 0.2s ease-in-out',
+            '&:hover': {
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.15),
+              borderColor: 'primary.main',
+              transform: 'rotate(12deg)',
+            },
+          }}
+        >
+          {mode === 'light' ? (
+            <DarkMode sx={{ fontSize: 20 }} />
+          ) : (
+            <LightMode sx={{ fontSize: 20, color: 'warning.main' }} />
+          )}
+        </IconButton>
 
         {/* User Profile Section */}
         <Box display="flex" alignItems="center" gap={2}>
@@ -202,14 +242,14 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
             <Divider />
 
             {/* Menu Items */}
-            <MenuItem sx={{ py: 1.5, px: 2 }}>
+            <MenuItem onClick={handleProfile} sx={{ py: 1.5, px: 2 }}>
               <ListItemIcon>
                 <Person fontSize="small" />
               </ListItemIcon>
               Profile
             </MenuItem>
 
-            <MenuItem sx={{ py: 1.5, px: 2 }}>
+            <MenuItem onClick={handleSettings} sx={{ py: 1.5, px: 2 }}>
               <ListItemIcon>
                 <Settings fontSize="small" />
               </ListItemIcon>

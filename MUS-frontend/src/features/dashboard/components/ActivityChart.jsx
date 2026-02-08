@@ -70,7 +70,9 @@ const ActivityChart = ({ data, title = "Platform Activity" }) => {
         borderRadius: 3,
         border: '1px solid',
         borderColor: 'divider',
-        background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+        background: (theme) => theme.palette.mode === 'dark' 
+          ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
+          : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
         overflow: 'hidden',
       }}
     >

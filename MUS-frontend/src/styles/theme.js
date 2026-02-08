@@ -214,15 +214,36 @@ export const darkTheme = createTheme({
       light: '#f3e5f5',
       dark: '#ab47bc',
     },
+    success: {
+      main: '#66bb6a',
+      light: '#81c784',
+      dark: '#388e3c',
+    },
+    warning: {
+      main: '#ffa726',
+      light: '#ffb74d',
+      dark: '#f57c00',
+    },
+    error: {
+      main: '#f44336',
+      light: '#e57373',
+      dark: '#d32f2f',
+    },
+    info: {
+      main: '#29b6f6',
+      light: '#4fc3f7',
+      dark: '#0288d1',
+    },
     background: {
-      default: '#121212',
-      paper: '#1e1e1e',
+      default: '#0a0a0a',
+      paper: '#141414',
     },
     text: {
       primary: '#ffffff',
       secondary: 'rgba(255, 255, 255, 0.7)',
       disabled: 'rgba(255, 255, 255, 0.5)',
     },
+    divider: 'rgba(255, 255, 255, 0.12)',
   },
   typography,
   spacing,
@@ -244,7 +265,29 @@ export const darkTheme = createTheme({
         root: {
           borderRadius: 12,
           backgroundImage: 'none',
-          backgroundColor: '#1e1e1e',
+          backgroundColor: '#1a1a1a',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+        },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          borderColor: 'rgba(255, 255, 255, 0.08)',
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          backgroundImage: 'none',
         },
       },
     },
@@ -252,3 +295,17 @@ export const darkTheme = createTheme({
 });
 
 export const theme = lightTheme;
+
+// Helper function to get card background based on theme mode
+export const getCardBackground = (mode) => {
+  return mode === 'dark' 
+    ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
+    : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)';
+};
+
+// Helper function for theme-aware card sx prop
+export const cardBackgroundSx = (theme) => ({
+  background: theme.palette.mode === 'dark' 
+    ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
+    : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+});
