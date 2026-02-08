@@ -1,5 +1,10 @@
 import usersData from '@/data/users.json';
 
+// Helper to get users array from the new API structure
+const getUsersArray = () => {
+  return usersData?.data?.users || [];
+};
+
 export const usersService = {
   /**
    * Get all users
@@ -8,7 +13,7 @@ export const usersService = {
     // Simulate API delay
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve(usersData);
+        resolve(getUsersArray());
       }, 500);
     });
   },
@@ -19,7 +24,8 @@ export const usersService = {
   getUserById: async (userId) => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        const user = usersData.find(u => u.id === userId);
+        const users = getUsersArray();
+        const user = users.find(u => u.user_id === userId);
         resolve(user || null);
       }, 300);
     });
@@ -31,10 +37,11 @@ export const usersService = {
   updateUser: async (userId, updatedData) => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        const userIndex = usersData.findIndex(u => u.id === userId);
+        const users = getUsersArray();
+        const userIndex = users.findIndex(u => u.user_id === userId);
         if (userIndex !== -1) {
-          usersData[userIndex] = { ...usersData[userIndex], ...updatedData };
-          resolve(usersData[userIndex]);
+          users[userIndex] = { ...users[userIndex], ...updatedData };
+          resolve(users[userIndex]);
         } else {
           resolve(null);
         }
@@ -48,9 +55,10 @@ export const usersService = {
   deleteUser: async (userId) => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        const userIndex = usersData.findIndex(u => u.id === userId);
+        const users = getUsersArray();
+        const userIndex = users.findIndex(u => u.user_id === userId);
         if (userIndex !== -1) {
-          const deletedUser = usersData.splice(userIndex, 1);
+          const deletedUser = users.splice(userIndex, 1);
           resolve(deletedUser[0]);
         } else {
           resolve(null);
@@ -65,13 +73,32 @@ export const usersService = {
   createUser: async (userData) => {
     return new Promise((resolve) => {
       setTimeout(() => {
+        const users = getUsersArray();
         const newUser = {
-          id: `u_${Date.now()}`,
+          user_id: `u_${Date.now()}`,
           ...userData,
-          createdAt: new Date().toISOString()
+          user_created_at: new Date().toISOString()
         };
-        usersData.push(newUser);
+        users.push(newUser);
         resolve(newUser);
+      }, 300);
+    });
+  },
+
+  /**
+   * Toggle user status
+   */
+  toggleUserStatus: async (userId, isActive) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const users = getUsersArray();
+        const userIndex = users.findIndex(u => u.user_id === userId);
+        if (userIndex !== -1) {
+          users[userIndex].is_active = isActive;
+          resolve(users[userIndex]);
+        } else {
+          resolve(null);
+        }
       }, 300);
     });
   },
@@ -82,10 +109,11 @@ export const usersService = {
   getUserCountByRole: async () => {
     return new Promise((resolve) => {
       setTimeout(() => {
+        const users = getUsersArray();
         const counts = {
-          admin: usersData.filter(u => u.userRoles?.includes('admin')).length,
-          teacher: usersData.filter(u => u.userRoles?.includes('teacher')).length,
-          student: usersData.filter(u => u.userRoles?.includes('student')).length,
+          admin: users.filter(u => u.roles?.includes('admin')).length,
+          teacher: users.filter(u => u.roles?.includes('teacher')).length,
+          student: users.filter(u => u.roles?.includes('student')).length,
         };
         resolve(counts);
       }, 300);
@@ -98,9 +126,10 @@ export const usersService = {
   getUserCountByStatus: async () => {
     return new Promise((resolve) => {
       setTimeout(() => {
+        const users = getUsersArray();
         const counts = {
-          active: usersData.filter(u => u.isActive).length,
-          inactive: usersData.filter(u => !u.isActive).length,
+          active: users.filter(u => u.is_active).length,
+          inactive: users.filter(u => !u.is_active).length,
         };
         resolve(counts);
       }, 300);
@@ -113,8 +142,9 @@ export const usersService = {
   searchUsers: async (query) => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        const results = usersData.filter(user =>
-          user.fullName?.toLowerCase().includes(query.toLowerCase()) ||
+        const users = getUsersArray();
+        const results = users.filter(user =>
+          user.full_name?.toLowerCase().includes(query.toLowerCase()) ||
           user.email?.toLowerCase().includes(query.toLowerCase())
         );
         resolve(results);
@@ -124,3 +154,4 @@ export const usersService = {
 };
 
 export default usersService;
+

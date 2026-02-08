@@ -2,11 +2,30 @@ import { sequelize } from "../models/index.js";
 import { SQL } from "../snippets/index.js";
 import AppError from "../helpers/appError.js";
 
+
+/**
+ * ============================================================================
+ * USER OVERVIEW MANAGEMENT
+ * ============================================================================
+ */
+
+
+/**
+ * Récupérer tous les utilisateurs avec vue d'ensemble complète
+ * (informations personnelles, profil étudiant, statistiques des ressources)
+ */
+export const getAllUsersOverview = async () => {
+  const [results] = await sequelize.query(SQL.ADMIN.GET_ALL_USERS_OVERVIEW);
+  return results;
+};
+
+
 /**
  * ============================================================================
  * STUDENTS MANAGEMENT (Utilisation des VUES)
  * ============================================================================
  */
+
 
 /**
  * Récupérer tous les students
@@ -15,6 +34,7 @@ export const getAllStudents = async () => {
   const [results] = await sequelize.query(SQL.ADMIN.GET_ALL_STUDENTS);
   return results;
 };
+
 
 /**
  * Récupérer les détails complets d'un student
@@ -31,6 +51,7 @@ export const getStudentDetails = async (userId) => {
   return results[0];
 };
 
+
 /**
  * Récupérer les statistiques globales
  */
@@ -38,6 +59,7 @@ export const getStudentsStatistics = async () => {
   const [results] = await sequelize.query(SQL.ADMIN.GET_STUDENTS_STATISTICS);
   return results[0] || {};
 };
+
 
 /**
  * Filtrer les students par statut actif
@@ -49,6 +71,7 @@ export const filterStudentsByStatus = async (isActive) => {
   return results;
 };
 
+
 /**
  * Filtrer les students par profil complété
  */
@@ -58,6 +81,7 @@ export const filterStudentsByProfile = async (hasProfile) => {
   });
   return results;
 };
+
 
 /**
  * Filtrer les students par institution
@@ -69,6 +93,7 @@ export const filterStudentsByInstitution = async (institutionId) => {
   return results;
 };
 
+
 /**
  * Filtrer les students par programme
  */
@@ -79,6 +104,7 @@ export const filterStudentsByProgram = async (programId) => {
   return results;
 };
 
+
 /**
  * Rechercher des students par nom ou email
  */
@@ -88,6 +114,7 @@ export const searchStudents = async (searchTerm) => {
   });
   return results;
 };
+
 
 /**
  * Activer/Désactiver un utilisateur
@@ -104,6 +131,7 @@ export const toggleUserStatus = async (userId, isActive) => {
     is_active: isActive,
   };
 };
+
 
 /**
  * Dashboard admin complet
@@ -127,11 +155,13 @@ export const getAdminDashboard = async () => {
   };
 };
 
+
 /**
  * ============================================================================
  * RESOURCES MANAGEMENT - ARCHITECTURE MULTI-ROLES
  * ============================================================================
  */
+
 
 /**
  * Récupérer TOUTES les resources (tous rôles)
@@ -140,6 +170,7 @@ export const getAllUserResources = async () => {
   const [results] = await sequelize.query(SQL.ADMIN.GET_ALL_USER_RESOURCES);
   return results;
 };
+
 
 /**
  * Récupérer les resources d'un créateur spécifique
@@ -152,6 +183,7 @@ export const getUserResourcesByCreator = async (creatorId) => {
   return results;
 };
 
+
 /**
  * Récupérer toutes les resources des students
  */
@@ -160,6 +192,7 @@ export const getAllStudentResources = async () => {
   return results;
 };
 
+
 /**
  * Récupérer toutes les resources des teachers (pour le futur)
  */
@@ -167,6 +200,7 @@ export const getAllTeacherResources = async () => {
   const [results] = await sequelize.query(SQL.ADMIN.GET_ALL_TEACHER_RESOURCES);
   return results;
 };
+
 
 /**
  * Filtrer resources par rôle
@@ -179,6 +213,7 @@ export const filterResourcesByRole = async (role) => {
   return results;
 };
 
+
 /**
  * Filtrer resources par statut
  * @param {string} status - 'draft', 'published', 'archived'
@@ -189,6 +224,7 @@ export const filterResourcesByStatus = async (status) => {
   });
   return results;
 };
+
 
 /**
  * Filtrer resources par module
@@ -201,6 +237,7 @@ export const filterResourcesByModule = async (moduleId) => {
   return results;
 };
 
+
 /**
  * Filtrer resources par programme
  * @param {number} programId - ID du programme
@@ -211,6 +248,7 @@ export const filterResourcesByProgram = async (programId) => {
   });
   return results;
 };
+
 
 /**
  * Filtrer resources par domaine
@@ -223,6 +261,7 @@ export const filterResourcesByDomain = async (domainId) => {
   return results;
 };
 
+
 /**
  * Statistiques des resources par rôle
  */
@@ -230,6 +269,7 @@ export const getResourcesStatsByRole = async () => {
   const [results] = await sequelize.query(SQL.ADMIN.GET_RESOURCES_STATS_BY_ROLE);
   return results;
 };
+
 
 /**
  * Statistiques des resources par statut
@@ -239,6 +279,7 @@ export const getResourcesStatsByStatus = async () => {
   return results;
 };
 
+
 /**
  * Statistiques des resources par module
  */
@@ -246,6 +287,7 @@ export const getResourcesStatsByModule = async () => {
   const [results] = await sequelize.query(SQL.ADMIN.GET_RESOURCES_STATS_BY_MODULE);
   return results;
 };
+
 
 /**
  * Rechercher des resources par titre, description ou créateur
@@ -257,6 +299,7 @@ export const searchResources = async (searchTerm) => {
   });
   return results;
 };
+
 
 /**
  * Rechercher des resources d'un créateur spécifique
@@ -273,11 +316,13 @@ export const searchResourcesByCreator = async (searchTerm, creatorId) => {
   return results;
 };
 
+
 /**
  * ============================================================================
  * COMPATIBILITÉ - ANCIENNES FONCTIONS
  * ============================================================================
  */
+
 
 /**
  * @deprecated Utiliser getUserResourcesByCreator() à la place

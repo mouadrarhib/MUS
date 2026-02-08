@@ -4,6 +4,9 @@ import validateRequest from "./validateRequest.js";
 import authMiddleware from "../middleware/auth.js";
 import { requireRole } from "../middleware/authorization.js";
 import {
+  // User Overview Management
+  getAllUsersOverviewHandler,
+  
   // Students Management
   getAllStudentsHandler,
   getStudentDetailsHandler,
@@ -26,11 +29,14 @@ import {
   getStudentResourcesHandler,
 } from "../controllers/adminController.js";
 
+
 const router = express.Router();
+
 
 // ===== MIDDLEWARE: Toutes les routes nécessitent authentification + rôle admin =====
 router.use(authMiddleware);
 router.use(requireRole("admin"));
+
 
 /**
  * ============================================================================
@@ -38,8 +44,21 @@ router.use(requireRole("admin"));
  * ============================================================================
  */
 
+
 // GET /admin/dashboard - Dashboard admin complet
 router.get("/dashboard", getAdminDashboardHandler);
+
+
+/**
+ * ============================================================================
+ * USER OVERVIEW MANAGEMENT
+ * ============================================================================
+ */
+
+
+// GET /admin/users/overview - Vue d'ensemble de tous les utilisateurs
+router.get("/users/overview", getAllUsersOverviewHandler);
+
 
 /**
  * ============================================================================
@@ -47,8 +66,10 @@ router.get("/dashboard", getAdminDashboardHandler);
  * ============================================================================
  */
 
+
 // GET /admin/students/statistics - Statistiques des étudiants
 router.get("/students/statistics", getStudentsStatisticsHandler);
+
 
 // GET /admin/students/search - Rechercher des étudiants
 router.get(
@@ -58,6 +79,7 @@ router.get(
   searchStudentsHandler
 );
 
+
 // GET /admin/students/filter/status - Filtrer par statut
 router.get(
   "/students/filter/status",
@@ -65,6 +87,7 @@ router.get(
   validateRequest,
   filterStudentsByStatusHandler
 );
+
 
 // GET /admin/students/filter/profile - Filtrer par profil
 router.get(
@@ -74,6 +97,7 @@ router.get(
   filterStudentsByProfileHandler
 );
 
+
 // GET /admin/students/filter/institution/:institutionId - Filtrer par institution
 router.get(
   "/students/filter/institution/:institutionId",
@@ -81,6 +105,7 @@ router.get(
   validateRequest,
   filterStudentsByInstitutionHandler
 );
+
 
 // GET /admin/students/filter/program/:programId - Filtrer par programme
 router.get(
@@ -90,6 +115,7 @@ router.get(
   filterStudentsByProgramHandler
 );
 
+
 // GET /admin/students/:userId - Détails d'un étudiant
 router.get(
   "/students/:userId",
@@ -98,8 +124,10 @@ router.get(
   getStudentDetailsHandler
 );
 
+
 // GET /admin/students - Liste de tous les étudiants
 router.get("/students", getAllStudentsHandler);
+
 
 // PATCH /admin/users/:userId/toggle-status - Activer/Désactiver un utilisateur
 router.patch(
@@ -112,11 +140,13 @@ router.patch(
   toggleUserStatusHandler
 );
 
+
 /**
  * ============================================================================
  * RESOURCES MANAGEMENT - MULTI-ROLES
  * ============================================================================
  */
+
 
 // GET /admin/resources/statistics - Statistiques des resources
 router.get(
@@ -131,11 +161,14 @@ router.get(
   getResourcesStatisticsHandler
 );
 
+
 // GET /admin/resources/students - Toutes les resources des étudiants
 router.get("/resources/students", getAllStudentResourcesHandler);
 
+
 // GET /admin/resources/teachers - Toutes les resources des enseignants
 router.get("/resources/teachers", getAllTeacherResourcesHandler);
+
 
 // GET /admin/resources - Toutes les resources avec filtres
 router.get(
@@ -174,11 +207,13 @@ router.get(
   getAllResourcesHandler
 );
 
+
 /**
  * ============================================================================
  * COMPATIBILITÉ - ANCIENNES ROUTES (à conserver)
  * ============================================================================
  */
+
 
 // GET /admin/students/:userId/resources - Resources d'un étudiant (legacy)
 // ⚠️ Cette route est conservée pour compatibilité avec le code existant
@@ -188,5 +223,6 @@ router.get(
   validateRequest,
   getStudentResourcesHandler
 );
+
 
 export default router;

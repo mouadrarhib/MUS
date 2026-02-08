@@ -19,11 +19,12 @@ import {
   ListItemText,
   TablePagination,
   Typography,
+  Switch,
 } from '@mui/material';
 import { Edit, Delete, Visibility, MoreVert } from '@mui/icons-material';
 import PropTypes from 'prop-types';
 
-const UsersTable = ({ users, loading, onView, onEdit, onDelete }) => {
+const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const [selectedUser, setSelectedUser] = React.useState(null);
   const [page, setPage] = React.useState(0);
@@ -50,7 +51,7 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete }) => {
   };
 
   const handleDelete = () => {
-    if (selectedUser) onDelete(selectedUser.id);
+    if (selectedUser) onDelete(selectedUser.user_id);
     handleMenuClose();
   };
 
@@ -64,14 +65,25 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete }) => {
   };
 
   const getRoleColor = (roles) => {
-    if (!Array.isArray(roles)) return 'default';
-
+    // roles is now a comma-separated string like "admin, user"
+    if (!roles || typeof roles !== 'string') return 'default';
+    
+    const rolesList = roles.split(',').map(r => r.trim().toLowerCase());
     const colors = {
       admin: 'error',
       teacher: 'warning',
       student: 'info',
     };
-    return colors[roles[0]] || 'default';
+    // Return color based on first matching role
+    for (const role of rolesList) {
+      if (colors[role]) return colors[role];
+    }
+    return 'default';
+  };
+
+  const getFirstRole = (roles) => {
+    if (!roles || typeof roles !== 'string') return 'N/A';
+    return roles.split(',')[0].trim().toUpperCase();
   };
 
   if (loading) {
@@ -110,7 +122,7 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete }) => {
             {paginatedUsers && paginatedUsers.length > 0 ? (
               paginatedUsers.map((user) => (
                 <TableRow 
-                  key={user.id} 
+                  key={user.user_id} 
                   hover
                   sx={{
                     '&:hover': {
@@ -120,15 +132,14 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete }) => {
                 >
                   <TableCell>
                     <Avatar
-                      src={user.avatar}
-                      sx={{ width: 40, height: 40, boxShadow: 1 }}
+                      sx={{ width: 40, height: 40, boxShadow: 1, bgcolor: 'primary.main' }}
                     >
-                      {user.fullName?.charAt(0)}
+                      {user.full_name?.charAt(0)}
                     </Avatar>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" fontWeight="600">
-                      {user.fullName}
+                      {user.full_name}
                     </Typography>
                   </TableCell>
                   <TableCell>
@@ -138,24 +149,23 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete }) => {
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={user.userRoles?.[0]?.toUpperCase() || 'N/A'}
-                      color={getRoleColor(user.userRoles)}
+                      label={getFirstRole(user.roles)}
+                      color={getRoleColor(user.roles)}
                       size="small"
                       sx={{ fontWeight: 600 }}
                     />
                   </TableCell>
                   <TableCell>
-                    <Chip
-                      label={user.isActive ? 'Active' : 'Inactive'}
-                      color={user.isActive ? 'success' : 'default'}
+                    <Switch
+                      checked={user.is_active}
+                      onChange={() => onToggleStatus && onToggleStatus(user.user_id, !user.is_active)}
+                      color="success"
                       size="small"
-                      variant="filled"
-                      sx={{ fontWeight: 600 }}
                     />
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
-                      {new Date(user.createdAt).toLocaleDateString('en-US', {
+                      {new Date(user.user_created_at).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric'
@@ -242,6 +252,7 @@ UsersTable.propTypes = {
   onView: PropTypes.func.isRequired,
   onEdit: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
+  onToggleStatus: PropTypes.func,
 };
 
 UsersTable.defaultProps = {

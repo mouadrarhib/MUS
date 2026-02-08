@@ -111,18 +111,23 @@ const UserDialog = ({ open, user, onClose, onSave }) => {
 
   useEffect(() => {
     if (user) {
+      // Parse roles from comma-separated string to array
+      const rolesArray = user.roles 
+        ? user.roles.split(',').map(r => r.trim().toLowerCase())
+        : ['student'];
+      
       setFormData({
-        fullName: user.fullName || "",
+        fullName: user.full_name || "",
         email: user.email || "",
-        userRoles: user.userRoles || ["student"],
-        isActive: user.isActive !== undefined ? user.isActive : true,
-        institutionName: user.profile?.institutionName || "",
-        institutionCity: user.profile?.institutionCity || "",
-        institutionType: user.profile?.institutionType || "",
-        programName: user.profile?.programName || "",
-        domainName: user.profile?.domainName || "",
-        currentSemesterName: user.profile?.currentSemesterName || "",
-        levelName: user.profile?.levelName || "",
+        userRoles: rolesArray,
+        isActive: user.is_active !== undefined ? user.is_active : true,
+        institutionName: user.institution_name || "",
+        institutionCity: user.institution_city || "",
+        institutionType: user.institution_type || "",
+        programName: user.program_name || "",
+        domainName: user.domain_name || "",
+        currentSemesterName: user.current_semester_name || "",
+        levelName: user.current_level_name || "",
       });
     } else {
       setFormData({
@@ -206,22 +211,26 @@ const UserDialog = ({ open, user, onClose, onSave }) => {
         domainName,
         currentSemesterName,
         levelName,
-        ...userData
+        fullName,
+        email,
+        userRoles,
+        isActive,
       } = formData;
 
+      // Convert to API format with snake_case
       onSave({
-        ...userData,
-        ...(user && { id: user.id }),
-        profile: {
-          hasProfile: !!(institutionName || programName),
-          institutionName,
-          institutionCity,
-          institutionType,
-          programName,
-          domainName,
-          currentSemesterName,
-          levelName,
-        },
+        full_name: fullName,
+        email: email,
+        roles: userRoles.join(', '),
+        is_active: isActive,
+        institution_name: institutionName,
+        institution_city: institutionCity,
+        institution_type: institutionType,
+        program_name: programName,
+        domain_name: domainName,
+        current_semester_name: currentSemesterName,
+        current_level_name: levelName,
+        ...(user && { user_id: user.user_id }),
       });
     }
   };

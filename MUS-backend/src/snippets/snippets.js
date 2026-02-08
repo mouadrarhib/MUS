@@ -2,6 +2,16 @@ import { UserRole } from "../models/index.js";
 
 export const SQL = {
   ADMIN: {
+    
+  // ===========================================================================
+  // USER OVERVIEW MANAGEMENT
+  // ===========================================================================
+  
+  GET_ALL_USERS_OVERVIEW: `
+    SELECT * FROM public.vw_admin_user_overview 
+    ORDER BY user_created_at DESC
+  `,
+
     // ===========================================================================
     // STUDENTS MANAGEMENT
     // ===========================================================================
@@ -186,7 +196,6 @@ export const SQL = {
       ORDER BY resource_created_at DESC
     `,
   },
-
 
   USER: {
     REGISTER: `SELECT * FROM public.sp_user_register(:full_name, :email, :password)`,

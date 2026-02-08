@@ -63,7 +63,7 @@ const Users = () => {
     try {
       if (editingUser) {
         // Update existing user
-        await usersService.updateUser(editingUser.id, userData);
+        await usersService.updateUser(editingUser.user_id, userData);
       } else {
         // Create new user
         await usersService.createUser(userData);
@@ -76,7 +76,7 @@ const Users = () => {
   };
 
   const handleDeleteUser = async (userId) => {
-    const userToDeleteObj = users.find(u => u.id === userId);
+    const userToDeleteObj = users.find(u => u.user_id === userId);
     setUserToDelete(userToDeleteObj);
     setOpenDeleteConfirm(true);
   };
@@ -84,7 +84,7 @@ const Users = () => {
   const handleConfirmDelete = async () => {
     if (!userToDelete) return;
     try {
-      await usersService.deleteUser(userToDelete.id);
+      await usersService.deleteUser(userToDelete.user_id);
       await loadUsers();
       setOpenDeleteConfirm(false);
       setUserToDelete(null);
@@ -93,13 +93,22 @@ const Users = () => {
     }
   };
 
+  const handleToggleStatus = async (userId, newStatus) => {
+    try {
+      await usersService.toggleUserStatus(userId, newStatus);
+      await loadUsers();
+    } catch (error) {
+      console.error('Error toggling user status:', error);
+    }
+  };
+
   const handleCancelDelete = () => {
     setOpenDeleteConfirm(false);
     setUserToDelete(null);
   };
 
-  const activeUsers = users.filter(u => u.isActive).length;
-  const teachers = users.filter(u => u.userRoles?.includes('teacher')).length;
+  const activeUsers = users.filter(u => u.is_active).length;
+  const teachers = users.filter(u => u.roles?.includes('teacher')).length;
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
@@ -169,6 +178,7 @@ const Users = () => {
         onView={handleViewUser}
         onEdit={handleEditUser}
         onDelete={handleDeleteUser}
+        onToggleStatus={handleToggleStatus}
       />
 
       {/* User Dialog */}
@@ -206,23 +216,23 @@ const Users = () => {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Are you sure you want to delete this user? This action cannot be undone.
           </Typography>
-          {userToDelete && (
-            <Box
-              sx={{
-                p: 2,
-                borderRadius: 1,
-                bgcolor: 'error.main',
-                color: 'error.contrastText',
-              }}
-            >
-              <Typography variant="subtitle2" fontWeight="600" gutterBottom>
-                {userToDelete.fullName}
-              </Typography>
-              <Typography variant="body2">
-                {userToDelete.email}
-              </Typography>
-            </Box>
-          )}
+            {userToDelete && (
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 1,
+                  bgcolor: 'error.main',
+                  color: 'error.contrastText',
+                }}
+              >
+                <Typography variant="subtitle2" fontWeight="600" gutterBottom>
+                  {userToDelete.full_name}
+                </Typography>
+                <Typography variant="body2">
+                  {userToDelete.email}
+                </Typography>
+              </Box>
+            )}
         </DialogContent>
 
         <DialogActions sx={{ p: 2.5, gap: 1 }}>

@@ -1,6 +1,9 @@
 import asyncHandler from "../helpers/asyncHandler.js";
 import { successResponse } from "../helpers/response.js";
 import {
+  // User Overview Management
+  getAllUsersOverview,
+  
   // Students Management
   getAllStudents,
   getStudentDetails,
@@ -33,11 +36,43 @@ import {
   getStudentResources,
 } from "../services/adminService.js";
 
+
+/**
+ * ============================================================================
+ * USER OVERVIEW MANAGEMENT
+ * ============================================================================
+ */
+
+
+/**
+ * @swagger
+ * /admin/users/overview:
+ *   get:
+ *     summary: Get all users overview
+ *     description: Récupère la vue d'ensemble complète de tous les utilisateurs (infos personnelles, profil académique, statistiques ressources)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Users overview retrieved successfully
+ */
+export const getAllUsersOverviewHandler = asyncHandler(async (req, res) => {
+  const users = await getAllUsersOverview();
+  
+  return successResponse(res, "Users overview retrieved successfully", {
+    total: users.length,
+    users,
+  });
+});
+
+
 /**
  * ============================================================================
  * STUDENTS MANAGEMENT
  * ============================================================================
  */
+
 
 /**
  * @swagger
@@ -60,6 +95,7 @@ export const getAllStudentsHandler = asyncHandler(async (req, res) => {
     students,
   });
 });
+
 
 /**
  * @swagger
@@ -91,6 +127,7 @@ export const getStudentDetailsHandler = asyncHandler(async (req, res) => {
   return successResponse(res, "Student details retrieved successfully", student);
 });
 
+
 /**
  * @swagger
  * /admin/students/statistics:
@@ -109,6 +146,7 @@ export const getStudentsStatisticsHandler = asyncHandler(async (req, res) => {
   
   return successResponse(res, "Statistics retrieved successfully", stats);
 });
+
 
 /**
  * @swagger
@@ -143,6 +181,7 @@ export const filterStudentsByStatusHandler = asyncHandler(async (req, res) => {
   });
 });
 
+
 /**
  * @swagger
  * /admin/students/filter/profile:
@@ -176,6 +215,7 @@ export const filterStudentsByProfileHandler = asyncHandler(async (req, res) => {
   });
 });
 
+
 /**
  * @swagger
  * /admin/students/filter/institution/{institutionId}:
@@ -206,6 +246,7 @@ export const filterStudentsByInstitutionHandler = asyncHandler(async (req, res) 
     students,
   });
 });
+
 
 /**
  * @swagger
@@ -238,6 +279,7 @@ export const filterStudentsByProgramHandler = asyncHandler(async (req, res) => {
   });
 });
 
+
 /**
  * @swagger
  * /admin/students/search:
@@ -268,6 +310,7 @@ export const searchStudentsHandler = asyncHandler(async (req, res) => {
     students,
   });
 });
+
 
 /**
  * @swagger
@@ -308,6 +351,7 @@ export const toggleUserStatusHandler = asyncHandler(async (req, res) => {
   return successResponse(res, result.message, result);
 });
 
+
 /**
  * @swagger
  * /admin/dashboard:
@@ -327,11 +371,13 @@ export const getAdminDashboardHandler = asyncHandler(async (req, res) => {
   return successResponse(res, "Dashboard data retrieved successfully", dashboard);
 });
 
+
 /**
  * ============================================================================
  * RESOURCES MANAGEMENT - MULTI-ROLES
  * ============================================================================
  */
+
 
 /**
  * @swagger
@@ -430,6 +476,7 @@ export const getAllResourcesHandler = asyncHandler(async (req, res) => {
   });
 });
 
+
 /**
  * @swagger
  * /admin/resources/students:
@@ -452,6 +499,7 @@ export const getAllStudentResourcesHandler = asyncHandler(async (req, res) => {
   });
 });
 
+
 /**
  * @swagger
  * /admin/resources/teachers:
@@ -473,6 +521,7 @@ export const getAllTeacherResourcesHandler = asyncHandler(async (req, res) => {
     resources,
   });
 });
+
 
 /**
  * @swagger
@@ -518,11 +567,13 @@ export const getResourcesStatisticsHandler = asyncHandler(async (req, res) => {
   });
 });
 
+
 /**
  * ============================================================================
  * COMPATIBILITÉ - ANCIENNES ROUTES
  * ============================================================================
  */
+
 
 /**
  * @swagger
