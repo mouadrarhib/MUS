@@ -20,12 +20,8 @@ const DashboardLayout = () => {
     setSidebarOpen(!isMobile);
   }, [isMobile]);
 
-  // Filter navigation based on user role
-  const userRole = user?.role || 'STUDENT';
-  const filteredNavigation = DASHBOARD_NAVIGATION.filter(item => {
-    if (!item.roles) return true;
-    return item.roles.includes(userRole);
-  });
+  // RBAC disabled for now: show all navigation items
+  const filteredNavigation = DASHBOARD_NAVIGATION;
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>

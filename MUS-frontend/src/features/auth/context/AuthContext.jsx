@@ -5,11 +5,22 @@ const AuthContext = createContext();
 
 const normalizeRoles = (rawRoles) => {
   if (!Array.isArray(rawRoles)) return [];
+
+  const mapRole = (role) => {
+    const normalized = String(role || '').trim().toUpperCase().replace(/^ROLE_/, '');
+
+    if (normalized.includes('ADMIN')) return 'ADMIN';
+    if (normalized.includes('TEACHER')) return 'TEACHER';
+    if (normalized.includes('STUDENT') || normalized === 'USER') return 'STUDENT';
+
+    return normalized;
+  };
+
   return rawRoles
     .filter((r) => r != null)
     .map((r) => String(r).trim())
     .filter(Boolean)
-    .map((r) => r.toUpperCase());
+    .map(mapRole);
 };
 
 export const AuthProvider = ({ children }) => {

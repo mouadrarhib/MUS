@@ -17,8 +17,10 @@ const DashboardOverview = lazy(() => import('@/features/dashboard/pages/Overview
 const UsersPage = lazy(() => import('@/features/users/pages/Users'));
 const ResourcesPage = lazy(() => import('@/features/resources/pages/Resources'));
 const LibraryPage = lazy(() => import('@/features/library/pages/Library'));
+const MyUploadsPage = lazy(() => import('@/features/uploads/pages/MyUploads'));
 const ProfilePage = lazy(() => import('@/features/profile/pages/Profile'));
 const SettingsPage = lazy(() => import('@/features/settings/pages/Settings'));
+const VerifyResourcesPage = lazy(() => import('@/features/verify/pages/VerifyResources'));
 
 const LoadingFallback = () => (
   <Box
@@ -66,11 +68,17 @@ const AppRouter = () => {
           {/* Library / Favorites Page */}
           <Route path="library" element={<LibraryPage />} />
 
+          {/* My Uploads Page */}
+          <Route path="uploads" element={<MyUploadsPage />} />
+
           {/* Profile Page */}
           <Route path="profile" element={<ProfilePage />} />
 
           {/* Settings Page */}
           <Route path="settings" element={<SettingsPage />} />
+
+          {/* Verify Content Page - Admin Only */}
+          <Route path="verify" element={<VerifyResourcesPage />} />
         </Route>
 
         {/* 4. Catch-all 404 */}

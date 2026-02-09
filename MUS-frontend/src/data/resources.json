@@ -94,5 +94,165 @@
       "role": "student",
       "institution": "Université Hassan II"
     }
+  },
+  {
+    "id": "res_104",
+    "title": "Algèbre Linéaire - Exercices Corrigés",
+    "description": "50 exercices corrigés sur les espaces vectoriels et les applications linéaires. Idéal pour la préparation aux examens.",
+    "status": "pending",
+    "educationalType": "exam",
+    "format": "pdf",
+    "url": "/uploads/algebre_exercices.pdf",
+    "pricePoints": 25,
+    "createdAt": "2024-02-08T14:30:00Z",
+    "stats": {
+      "totalFavorites": 0,
+      "totalRatings": 0,
+      "avgRating": 0,
+      "downloads": 0
+    },
+    "academicContext": {
+      "moduleCode": "MATH201",
+      "moduleTitle": "Algèbre Linéaire",
+      "semesterName": "Semestre 2",
+      "levelName": "1ère Année",
+      "programName": "MIP (Math Info Physique)",
+      "isExamRelated": true,
+      "difficulty": "hard"
+    },
+    "author": {
+      "id": "u_student_02",
+      "name": "Fatima Zahra",
+      "role": "student",
+      "institution": "Université Mohammed V"
+    }
+  },
+  {
+    "id": "res_105",
+    "title": "Programmation Python - Cours Complet",
+    "description": "Introduction à la programmation avec Python. Couvre les bases, les structures de données, et la programmation orientée objet.",
+    "status": "pending",
+    "educationalType": "course",
+    "format": "video",
+    "url": "https://youtube.com/playlist?list=abc123",
+    "pricePoints": 75,
+    "createdAt": "2024-02-07T11:00:00Z",
+    "stats": {
+      "totalFavorites": 0,
+      "totalRatings": 0,
+      "avgRating": 0,
+      "downloads": 0
+    },
+    "academicContext": {
+      "moduleCode": "INFO101",
+      "moduleTitle": "Algorithmique et Programmation",
+      "semesterName": "Semestre 1",
+      "levelName": "1ère Année",
+      "programName": "SMI (Sciences Mathématiques Informatique)",
+      "isExamRelated": false,
+      "difficulty": "medium"
+    },
+    "author": {
+      "id": "u_teacher_02",
+      "name": "Dr. Karim Bennani",
+      "role": "teacher",
+      "institution": "Université Hassan II"
+    }
+  },
+  {
+    "id": "res_106",
+    "title": "Physique Quantique - Notes de Cours",
+    "description": "Notes détaillées sur les principes fondamentaux de la mécanique quantique avec exemples et illustrations.",
+    "status": "pending",
+    "educationalType": "notes",
+    "format": "pdf",
+    "url": "/uploads/physique_quantique_notes.pdf",
+    "pricePoints": 30,
+    "createdAt": "2024-02-06T16:45:00Z",
+    "stats": {
+      "totalFavorites": 0,
+      "totalRatings": 0,
+      "avgRating": 0,
+      "downloads": 0
+    },
+    "academicContext": {
+      "moduleCode": "PHYS401",
+      "moduleTitle": "Mécanique Quantique",
+      "semesterName": "Semestre 7",
+      "levelName": "4ème Année",
+      "programName": "Physique Fondamentale",
+      "isExamRelated": false,
+      "difficulty": "hard"
+    },
+    "author": {
+      "id": "u_student_03",
+      "name": "Ahmed Mansouri",
+      "role": "student",
+      "institution": "Université Cadi Ayyad"
+    }
+  },
+  {
+    "id": "res_107",
+    "title": "Examen de Thermodynamique 2023",
+    "description": "Examen final de thermodynamique avec solution complète et barème détaillé.",
+    "status": "pending",
+    "educationalType": "exam",
+    "format": "pdf",
+    "url": "/uploads/thermo_exam_2023.pdf",
+    "pricePoints": 15,
+    "createdAt": "2024-02-05T09:20:00Z",
+    "stats": {
+      "totalFavorites": 0,
+      "totalRatings": 0,
+      "avgRating": 0,
+      "downloads": 0
+    },
+    "academicContext": {
+      "moduleCode": "PHYS201",
+      "moduleTitle": "Thermodynamique",
+      "semesterName": "Semestre 3",
+      "levelName": "2ème Année",
+      "programName": "SMP (Sciences de la Matière Physique)",
+      "isExamRelated": true,
+      "difficulty": "medium"
+    },
+    "author": {
+      "id": "u_teacher_03",
+      "name": "Prof. Laila Chraibi",
+      "role": "teacher",
+      "institution": "Université Mohammed V"
+    }
+  },
+  {
+    "id": "res_108",
+    "title": "Base de Données SQL - TP Corrigés",
+    "description": "Travaux pratiques corrigés sur SQL avec requêtes avancées, jointures et sous-requêtes.",
+    "status": "pending",
+    "educationalType": "notes",
+    "format": "powerpoint",
+    "url": "/uploads/sql_tp_corriges.pptx",
+    "pricePoints": 20,
+    "createdAt": "2024-02-04T13:15:00Z",
+    "stats": {
+      "totalFavorites": 0,
+      "totalRatings": 0,
+      "avgRating": 0,
+      "downloads": 0
+    },
+    "academicContext": {
+      "moduleCode": "INFO302",
+      "moduleTitle": "Bases de Données",
+      "semesterName": "Semestre 5",
+      "levelName": "3ème Année",
+      "programName": "Génie Informatique",
+      "isExamRelated": false,
+      "difficulty": "easy"
+    },
+    "author": {
+      "id": "u_student_04",
+      "name": "Omar Benjelloun",
+      "role": "student",
+      "institution": "ENSIAS"
+    }
   }
 ]

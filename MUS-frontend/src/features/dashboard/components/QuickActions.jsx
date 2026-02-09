@@ -1,12 +1,13 @@
 // src/features/dashboard/components/QuickActions.jsx
 import { Box, Typography, Paper, alpha, IconButton, Tooltip } from '@mui/material';
-import { 
+import {
   Add,
   People,
   Article,
   BarChart,
   Settings,
-  Refresh
+  Refresh,
+  AdminPanelSettings
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -18,19 +19,19 @@ const QuickActions = () => {
       label: 'Add Resource',
       icon: Add,
       color: 'primary',
-      onClick: () => navigate('/resources/new'),
+      onClick: () => navigate('/dashboard/resources'),
     },
     {
       label: 'View Students',
       icon: People,
       color: 'success',
-      onClick: () => navigate('/users'),
+      onClick: () => navigate('/dashboard/users'),
     },
     {
       label: 'All Resources',
       icon: Article,
       color: 'info',
-      onClick: () => navigate('/resources'),
+      onClick: () => navigate('/dashboard/resources'),
     },
     {
       label: 'Analytics',
@@ -42,9 +43,16 @@ const QuickActions = () => {
       label: 'Settings',
       icon: Settings,
       color: 'secondary',
-      onClick: () => navigate('/settings'),
+      onClick: () => navigate('/dashboard/settings'),
     },
   ];
+
+  actions.splice(3, 0, {
+    label: 'Verify Content',
+    icon: AdminPanelSettings,
+    color: 'warning',
+    onClick: () => navigate('/dashboard/verify'),
+  });
 
   return (
     <Paper
