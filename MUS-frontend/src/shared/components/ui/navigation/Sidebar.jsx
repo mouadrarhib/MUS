@@ -11,7 +11,6 @@ import {
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import logo from '@/assets/images/logo.png';
 
 export const Sidebar = ({
   items = [],
@@ -19,6 +18,7 @@ export const Sidebar = ({
   open = true,
   onClose,
   variant = 'permanent',
+  navbarHeight = 0,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -44,13 +44,21 @@ export const Sidebar = ({
       }}
     >
       {/* Navigation Items */}
-      <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', p: 2 }}>
+      <Box
+        sx={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          px: { xs: 1.5, sm: 2 },
+          py: 2,
+        }}
+      >
         <List sx={{ p: 0 }}>
           {items.map((item, index) => {
             // Render section headers
             if (item.type === 'section') {
               return (
-                <Box key={index} sx={{ mt: index > 0 ? 3 : 1, mb: 1 }}>
+                <Box key={index} sx={{ mt: index > 0 ? 2.5 : 0.5, mb: 1 }}>
                   <Typography
                     variant="caption"
                     color="text.secondary"
@@ -75,8 +83,9 @@ export const Sidebar = ({
                 sx={{
                   mb: 0.5,
                   borderRadius: 2,
-                  py: 1.5,
-                  px: 2,
+                  py: { xs: 1.2, sm: 1.35 },
+                  px: { xs: 1.25, sm: 1.5 },
+                  minHeight: 46,
                   transition: 'all 0.2s',
                   color: isActive ? 'primary.main' : 'text.primary',
                   bgcolor: isActive ? (theme) => alpha(theme.palette.primary.main, 0.1) : 'transparent',
@@ -95,7 +104,7 @@ export const Sidebar = ({
               >
                 <ListItemIcon
                   sx={{
-                    minWidth: 40,
+                    minWidth: { xs: 34, sm: 38 },
                     color: isActive ? 'primary.main' : 'text.secondary',
                   }}
                 >
@@ -105,7 +114,7 @@ export const Sidebar = ({
                   primary={item.label}
                   primaryTypographyProps={{
                     fontWeight: isActive ? 600 : 500,
-                    fontSize: '0.95rem',
+                    fontSize: { xs: '0.9rem', sm: '0.95rem' },
                   }}
                 />
               </ListItemButton>
@@ -117,7 +126,9 @@ export const Sidebar = ({
       {/* Footer Section (Optional) */}
       <Box
         sx={{
-          p: 2,
+          px: { xs: 1.5, sm: 2 },
+          py: 2,
+          pb: 'calc(16px + env(safe-area-inset-bottom))',
           borderTop: '1px solid',
           borderColor: 'divider',
         }}
@@ -143,10 +154,24 @@ export const Sidebar = ({
           border: variant === 'permanent' ? 'none' : undefined,
           borderRight: variant === 'permanent' ? '1px solid' : undefined,
           borderColor: variant === 'permanent' ? 'divider' : undefined,
+          ...(variant === 'temporary' && {
+            top: navbarHeight,
+            height: `calc(100% - ${navbarHeight}px)`,
+            borderTopRightRadius: 16,
+            borderBottomRightRadius: 16,
+            boxShadow: '0 12px 30px rgba(0,0,0,0.18)',
+          }),
         },
       }}
       ModalProps={{
         keepMounted: true, // Better mobile performance
+      }}
+      BackdropProps={{
+        sx: {
+          top: variant === 'temporary' ? `${navbarHeight}px` : 0,
+          bgcolor: (theme) => alpha(theme.palette.common.black, 0.32),
+          backdropFilter: 'blur(1.5px)',
+        },
       }}
     >
       {drawerContent}
@@ -156,8 +181,9 @@ export const Sidebar = ({
 
 Sidebar.propTypes = {
   items: PropTypes.array,
-  width: PropTypes.number,
+  width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   open: PropTypes.bool,
   onClose: PropTypes.func,
   variant: PropTypes.oneOf(['permanent', 'temporary']),
+  navbarHeight: PropTypes.number,
 };

@@ -4,17 +4,16 @@ import { Outlet } from 'react-router-dom';
 import { Box, useMediaQuery, useTheme, Container } from '@mui/material';
 import { Sidebar } from '@/shared/components/ui/navigation/Sidebar';
 import { Navbar, NAVBAR_HEIGHT } from '@/shared/components/ui/navigation/Navbar';
-import { useAuth } from '@/features/auth/context/AuthContext';
 import { DASHBOARD_NAVIGATION } from '@/config/dashboardNavigation';
 
-const SIDEBAR_WIDTH = 280;
+const DESKTOP_SIDEBAR_WIDTH = 280;
+const MOBILE_SIDEBAR_WIDTH = 'min(88vw, 340px)';
 
 const DashboardLayout = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const sidebarWidth = isMobile ? MOBILE_SIDEBAR_WIDTH : DESKTOP_SIDEBAR_WIDTH;
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
-  const { user } = useAuth();
-
   // Close sidebar on mobile by default
   useEffect(() => {
     setSidebarOpen(!isMobile);
@@ -29,14 +28,14 @@ const DashboardLayout = () => {
       <Navbar
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}
         sidebarOpen={sidebarOpen}
-        sidebarWidth={SIDEBAR_WIDTH}
+        sidebarWidth={DESKTOP_SIDEBAR_WIDTH}
       />
 
       {/* Sidebar - Desktop (Persistent) */}
       {!isMobile && (
         <Box
           sx={{
-            width: sidebarOpen ? SIDEBAR_WIDTH : 0,
+            width: sidebarOpen ? DESKTOP_SIDEBAR_WIDTH : 0,
             flexShrink: 0,
             transition: theme.transitions.create('width', {
               easing: theme.transitions.easing.sharp,
@@ -50,12 +49,12 @@ const DashboardLayout = () => {
               position: 'fixed',
               top: NAVBAR_HEIGHT,
               left: 0,
-              width: SIDEBAR_WIDTH,
+              width: DESKTOP_SIDEBAR_WIDTH,
               height: `calc(100vh - ${NAVBAR_HEIGHT}px)`,
               borderRight: '1px solid',
               borderColor: 'divider',
               bgcolor: 'background.paper',
-              transform: sidebarOpen ? 'translateX(0)' : `translateX(-${SIDEBAR_WIDTH}px)`,
+              transform: sidebarOpen ? 'translateX(0)' : `translateX(-${DESKTOP_SIDEBAR_WIDTH}px)`,
               transition: theme.transitions.create('transform', {
                 easing: theme.transitions.easing.sharp,
                 duration: theme.transitions.duration.enteringScreen,
@@ -66,7 +65,7 @@ const DashboardLayout = () => {
             <Sidebar
               open={true}
               items={filteredNavigation}
-              width={SIDEBAR_WIDTH}
+              width={DESKTOP_SIDEBAR_WIDTH}
               variant="permanent"
             />
           </Box>
@@ -79,8 +78,9 @@ const DashboardLayout = () => {
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           items={filteredNavigation}
-          width={SIDEBAR_WIDTH}
+          width={sidebarWidth}
           variant="temporary"
+          navbarHeight={NAVBAR_HEIGHT}
         />
       )}
 
@@ -91,7 +91,7 @@ const DashboardLayout = () => {
           flexGrow: 1,
           width: {
             xs: '100%',
-            md: sidebarOpen ? `calc(100% - ${SIDEBAR_WIDTH}px)` : '100%',
+            md: sidebarOpen ? `calc(100% - ${DESKTOP_SIDEBAR_WIDTH}px)` : '100%',
           },
           minHeight: '100vh',
           bgcolor: 'background.default',
