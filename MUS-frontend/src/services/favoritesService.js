@@ -1,90 +1,99 @@
-import favoritesData from '@/data/myFavorites.json';
+import { del, get, post } from "@/services/http";
 
-// Store favorites in memory for modifications
-let favorites = [...favoritesData.data];
+const FAVORITES = "/favorites";
+
+const toArray = (response) => {
+  if (Array.isArray(response?.data)) return response.data;
+  if (Array.isArray(response?.data?.favorites)) return response.data.favorites;
+  return [];
+};
 
 export const favoritesService = {
-  /**
-   * Get all favorites
-   */
-  getAllFavorites: async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(favorites);
-      }, 500);
-    });
-  },
-
-  /**
-   * Get favorite by resource ID
-   */
-  getFavoriteById: async (resourceId) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const favorite = favorites.find(f => f.resource_id === resourceId);
-        resolve(favorite || null);
-      }, 300);
-    });
-  },
-
-  /**
-   * Remove from favorites
-   */
+  toggleFavorite: (resourceId) => post(`${FAVORITES}/toggle`, { resource_id: resourceId }),
+  addFavorite: (resourceId) => post(FAVORITES, { resource_id: resourceId }),
   removeFavorite: async (resourceId) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const index = favorites.findIndex(f => f.resource_id === resourceId);
-        if (index !== -1) {
-          const removed = favorites.splice(index, 1);
-          resolve(removed[0]);
-        } else {
-          resolve(null);
-        }
-      }, 300);
-    });
+    await del(`${FAVORITES}/${resourceId}`);
+    return { resource_id: resourceId };
   },
 
-  /**
-   * Get favorites count
-   */
+  checkFavorite: async (resourceId) => {
+    const response = await get(`${FAVORITES}/check/${resourceId}`);
+    return response?.data || { is_favorited: false };
+  },
+
+  getAllFavorites: async () => {
+    const response = await get(`${FAVORITES}/my-favorites`);
+    return toArray(response);
+  },
+
+  getFavoriteById: async (resourceId) => {
+    const all = await favoritesService.getAllFavorites();
+    return all.find((item) => Number(item.resource_id) === Number(resourceId)) || null;
+  },
+
+  getFavoritesByStatus: async (status) => {
+    const response = await get(`${FAVORITES}/by-status/${status}`);
+    return toArray(response);
+  },
+
+  getFavoritesByEducationalType: async (educationalType) => {
+    const response = await get(`${FAVORITES}/by-educational-type/${educationalType}`);
+    return toArray(response);
+  },
+
+  getFavoritesByFormat: async (format) => {
+    const response = await get(`${FAVORITES}/by-format/${format}`);
+    return toArray(response);
+  },
+
   getFavoritesCount: async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(favorites.length);
-      }, 200);
-    });
+    const response = await get(`${FAVORITES}/my-favorites/count`);
+    return response?.data?.count || 0;
   },
 
-  /**
-   * Get favorites by type
-   */
-  getFavoritesByType: async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const counts = {
-          exam: favorites.filter(f => f.resource_educational_type === 'exam').length,
-          course: favorites.filter(f => f.resource_educational_type === 'course').length,
-          notes: favorites.filter(f => f.resource_educational_type === 'notes').length,
-        };
-        resolve(counts);
-      }, 300);
-    });
+  countResourceFavorites: async (resourceId) => {
+    const response = await get(`${FAVORITES}/resource/${resourceId}/count`);
+    return response?.data?.count || 0;
   },
 
-  /**
-   * Search favorites
-   */
+  getMostPopularFavorites: async (limit = 10) => {
+    const response = await get(`${FAVORITES}/most-popular`, { params: { limit } });
+    return toArray(response);
+  },
+
+  getRecentFavorites: async (limit = 10) => {
+    const response = await get(`${FAVORITES}/my-favorites/recent`, { params: { limit } });
+    return toArray(response);
+  },
+
+  removeAllFavorites: async () => {
+    const response = await del(`${FAVORITES}/my-favorites/all`);
+    return response?.data || { deleted_count: 0 };
+  },
+
+  getUserStatistics: async () => {
+    const response = await get(`${FAVORITES}/my-statistics`);
+    return response?.data || {};
+  },
+
   searchFavorites: async (query) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const results = favorites.filter(favorite =>
-          favorite.resource_title?.toLowerCase().includes(query.toLowerCase()) ||
-          favorite.resource_description?.toLowerCase().includes(query.toLowerCase())
-        );
-        resolve(results);
-      }, 300);
-    });
-  }
+    const response = await get(`${FAVORITES}/search`, { params: { q: query } });
+    return toArray(response);
+  },
+
+  listUsersWhoFavorited: async (resourceId) => {
+    const response = await get(`${FAVORITES}/resource/${resourceId}/users`);
+    return toArray(response);
+  },
+
+  getFavoritesByType: async () => {
+    const all = await favoritesService.getAllFavorites();
+    return {
+      exam: all.filter((item) => item.resource_educational_type === "exam").length,
+      course: all.filter((item) => item.resource_educational_type === "course").length,
+      notes: all.filter((item) => item.resource_educational_type === "notes").length,
+    };
+  },
 };
 
 export default favoritesService;

@@ -1,119 +1,77 @@
-import apiClient from '@/services/api';
+import { del, get, patch, post } from "@/services/http";
 
-const AUTH_ENDPOINTS = {
-  REGISTER: 'api/auth/register',
-  LOGIN: 'api/auth/login',
-  ME: 'api/auth/me',
-  LOGOUT: 'api/auth/logout',
-  UPDATE_EMAIL: 'api/auth/email',
-  UPDATE_PASSWORD: 'api/auth/password',
-  RESET_PASSWORD: 'api/auth/password/reset',
-  FORGOT_PASSWORD: 'api/auth/password/forgot',
-  CHECK_EMAIL: 'api/auth/email/check',
-  UPDATE_PROFILE: 'api/auth/profile',
-  TOGGLE_ACTIVE: 'api/auth/active',
-  DELETE_USER: 'api/auth/me',
-  GET_USER_BY_ID: 'api/auth/user',
-  UPDATE_USER_BY_ID: 'api/auth/user',
+const AUTH = {
+  REGISTER: "/auth/register",
+  LOGIN: "/auth/login",
+  ME: "/auth/me",
+  LOGOUT: "/auth/logout",
+  UPDATE_EMAIL: "/auth/email",
+  UPDATE_PASSWORD: "/auth/password",
+  RESET_PASSWORD: "/auth/password/reset",
+  FORGOT_PASSWORD: "/auth/password/forgot",
+  CHECK_EMAIL: "/auth/email/check",
+  UPDATE_PROFILE: "/auth/profile",
+  TOGGLE_ACTIVE: "/auth/active",
+  DELETE_USER: "/auth/me",
+  USER_BY_ID: "/auth/user",
 };
 
 export const authService = {
-  register: async (email, password, fullName) => {
-    const response = await apiClient.post(AUTH_ENDPOINTS.REGISTER, {
+  register: (email, password, fullName) =>
+    post(AUTH.REGISTER, {
       email,
       password,
       full_name: fullName,
-    });
-    return response.data;
-  },
+    }),
 
-  login: async (email, password, skipAuthRedirect = false) => {
-    const config = skipAuthRedirect ? { skipAuthRedirect: true } : {};
-    const response = await apiClient.post(AUTH_ENDPOINTS.LOGIN, {
-      email,
-      password,
-    }, config);
-    return response.data;
-  },
+  login: (email, password, skipAuthRedirect = false) =>
+    post(
+      AUTH.LOGIN,
+      { email, password },
+      skipAuthRedirect ? { skipAuthRedirect: true } : undefined
+    ),
 
-  getProfile: async () => {
-    const response = await apiClient.get(AUTH_ENDPOINTS.ME);
-    return response.data;
-  },
+  getProfile: () => get(AUTH.ME),
+  logout: () => post(AUTH.LOGOUT),
 
-  logout: async () => {
-    const response = await apiClient.post(AUTH_ENDPOINTS.LOGOUT);
-    return response.data;
-  },
-
-  updateEmail: async (newEmail) => {
-    const response = await apiClient.patch(AUTH_ENDPOINTS.UPDATE_EMAIL, {
+  updateEmail: (newEmail) =>
+    patch(AUTH.UPDATE_EMAIL, {
       new_email: newEmail,
-    });
-    return response.data;
-  },
+    }),
 
-  updatePassword: async (oldPassword, newPassword) => {
-    const response = await apiClient.patch(AUTH_ENDPOINTS.UPDATE_PASSWORD, {
+  updatePassword: (oldPassword, newPassword) =>
+    patch(AUTH.UPDATE_PASSWORD, {
       old_password: oldPassword,
       new_password: newPassword,
-    });
-    return response.data;
-  },
+    }),
 
-  resetPassword: async (newPassword) => {
-    const response = await apiClient.post(AUTH_ENDPOINTS.RESET_PASSWORD, {
+  resetPassword: (newPassword) =>
+    post(AUTH.RESET_PASSWORD, {
       new_password: newPassword,
-    });
-    return response.data;
-  },
+    }),
 
-  checkEmailExists: async (email) => {
-    const response = await apiClient.post(AUTH_ENDPOINTS.CHECK_EMAIL, {
-      email,
-    });
-    return response.data;
-  },
+  checkEmailExists: (email) => post(AUTH.CHECK_EMAIL, { email }),
 
-  forgotPassword: async (email, newPassword) => {
-    const response = await apiClient.post(AUTH_ENDPOINTS.FORGOT_PASSWORD, {
+  forgotPassword: (email, newPassword) =>
+    post(AUTH.FORGOT_PASSWORD, {
       email,
       new_password: newPassword,
-    });
-    return response.data;
-  },
+    }),
 
-  updateProfile: async (fullName) => {
-    const response = await apiClient.patch(AUTH_ENDPOINTS.UPDATE_PROFILE, {
+  updateProfile: (fullName) =>
+    patch(AUTH.UPDATE_PROFILE, {
       full_name: fullName,
-    });
-    return response.data;
-  },
+    }),
 
-  toggleActive: async (isActive) => {
-    const response = await apiClient.patch(AUTH_ENDPOINTS.TOGGLE_ACTIVE, {
+  toggleActive: (isActive) =>
+    patch(AUTH.TOGGLE_ACTIVE, {
       is_active: isActive,
-    });
-    return response.data;
-  },
+    }),
 
-  deleteUser: async () => {
-    const response = await apiClient.delete(AUTH_ENDPOINTS.DELETE_USER);
-    return response.data;
-  },
-
-  getUserById: async (userId) => {
-    const response = await apiClient.get(`${AUTH_ENDPOINTS.GET_USER_BY_ID}/${userId}`);
-    return response.data;
-  },
-
-  updateUserById: async (userId, data) => {
-    const response = await apiClient.patch(
-      `${AUTH_ENDPOINTS.UPDATE_USER_BY_ID}/${userId}`,
-      data
-    );
-    return response.data;
-  },
+  deleteUser: () => del(AUTH.DELETE_USER),
+  getUserById: (userId) => get(`${AUTH.USER_BY_ID}/${userId}`),
+  updateUserById: (userId, data) => patch(`${AUTH.USER_BY_ID}/${userId}`, data),
+  removeUserById: (userId) => del(`${AUTH.USER_BY_ID}/${userId}`),
 };
 
 export default authService;

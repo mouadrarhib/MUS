@@ -1,133 +1,204 @@
-import resourcesData from '@/data/resources.json';
+import { del, get, patch, post } from "@/services/http";
+
+const RESOURCE = {
+  ROOT: "/resources",
+  ADMIN: "/admin/resources",
+};
+
+const normalizeResource = (item) => {
+  if (!item) return item;
+
+  const id = item.id || item.resource_id;
+  const status = item.status || item.resource_status;
+  const educationalType = item.educational_type || item.resource_educational_type || item.educationalType;
+  const createdAt = item.created_at || item.resource_created_at || item.createdAt;
+
+  return {
+    ...item,
+    id,
+    status,
+    educationalType,
+    format: item.format || item.resource_format,
+    title: item.title || item.resource_title,
+    description: item.description || item.resource_description,
+    createdAt,
+    author: {
+      id: item.created_by || item.creator_id || item.author?.id,
+      name: item.creator_name || item.created_by_name || item.author?.name,
+      role: item.primary_role || item.creator_primary_role || item.author?.role,
+      institution: item.institution_name || item.author?.institution,
+    },
+    academicContext: {
+      moduleCode: item.module_code,
+      moduleTitle: item.module_title,
+      difficulty: item.difficulty,
+      chapter: item.chapter,
+      examRelated: item.exam_related,
+    },
+  };
+};
+
+const normalizeArray = (items) => (Array.isArray(items) ? items.map(normalizeResource) : []);
+
+const extractDataArray = (response, key) => {
+  if (Array.isArray(response?.data?.[key])) return response.data[key];
+  if (Array.isArray(response?.data)) return response.data;
+  return [];
+};
 
 export const resourcesService = {
-    /**
-     * Get all resources
-     */
-    getAllResources: async () => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve(resourcesData);
-            }, 500);
-        });
-    },
+  createResource: async (resourceData) => {
+    const response = await post(RESOURCE.ROOT, resourceData);
+    return normalizeResource(response?.data);
+  },
 
-    /**
-     * Get resource by ID
-     */
-    getResourceById: async (resourceId) => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const resource = resourcesData.find(r => r.id === resourceId);
-                resolve(resource || null);
-            }, 300);
-        });
-    },
-
-    /**
-     * Update resource
-     */
-    updateResource: async (resourceId, updatedData) => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const resourceIndex = resourcesData.findIndex(r => r.id === resourceId);
-                if (resourceIndex !== -1) {
-                    resourcesData[resourceIndex] = { ...resourcesData[resourceIndex], ...updatedData };
-                    resolve(resourcesData[resourceIndex]);
-                } else {
-                    resolve(null);
-                }
-            }, 300);
-        });
-    },
-
-    /**
-     * Delete resource
-     */
-    deleteResource: async (resourceId) => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const resourceIndex = resourcesData.findIndex(r => r.id === resourceId);
-                if (resourceIndex !== -1) {
-                    const deletedResource = resourcesData.splice(resourceIndex, 1);
-                    resolve(deletedResource[0]);
-                } else {
-                    resolve(null);
-                }
-            }, 300);
-        });
-    },
-
-    /**
-     * Create new resource
-     */
-    createResource: async (resourceData) => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const newResource = {
-                    id: `res_${Date.now()}`,
-                    ...resourceData,
-                    createdAt: new Date().toISOString(),
-                    stats: {
-                        totalFavorites: 0,
-                        totalRatings: 0,
-                        avgRating: 0,
-                        downloads: 0
-                    }
-                };
-                resourcesData.push(newResource);
-                resolve(newResource);
-            }, 300);
-        });
-    },
-
-    /**
-     * Get resources count by status
-     */
-    getResourceCountByStatus: async () => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const counts = {
-                    published: resourcesData.filter(r => r.status === 'published').length,
-                    draft: resourcesData.filter(r => r.status === 'draft').length,
-                    archived: resourcesData.filter(r => r.status === 'archived').length,
-                };
-                resolve(counts);
-            }, 300);
-        });
-    },
-
-    /**
-     * Get resources count by type
-     */
-    getResourceCountByType: async () => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const counts = {
-                    exam: resourcesData.filter(r => r.educationalType === 'exam').length,
-                    course: resourcesData.filter(r => r.educationalType === 'course').length,
-                    notes: resourcesData.filter(r => r.educationalType === 'notes').length,
-                };
-                resolve(counts);
-            }, 300);
-        });
-    },
-
-    /**
-     * Search resources
-     */
-    searchResources: async (query) => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const results = resourcesData.filter(resource =>
-                    resource.title?.toLowerCase().includes(query.toLowerCase()) ||
-                    resource.description?.toLowerCase().includes(query.toLowerCase()) ||
-                    resource.academicContext?.moduleTitle?.toLowerCase().includes(query.toLowerCase())
-                );
-                resolve(results);
-            }, 300);
-        });
+  getAllResources: async (params = {}) => {
+    try {
+      const response = await get(RESOURCE.ADMIN, { params });
+      return normalizeArray(extractDataArray(response, "resources"));
+    } catch (_error) {
+      const response = await get(RESOURCE.ROOT, { params });
+      return normalizeArray(extractDataArray(response));
     }
+  },
+
+  getMyResources: async () => {
+    const response = await get(`${RESOURCE.ROOT}/my-resources`);
+    return normalizeArray(extractDataArray(response));
+  },
+
+  getResourceById: async (resourceId) => {
+    const response = await get(`${RESOURCE.ROOT}/${resourceId}`);
+    return normalizeResource(response?.data);
+  },
+
+  updateResource: async (resourceId, updatedData) => {
+    const response = await patch(`${RESOURCE.ROOT}/${resourceId}`, updatedData);
+    return normalizeResource(response?.data);
+  },
+
+  deleteResource: async (resourceId) => {
+    await del(`${RESOURCE.ROOT}/${resourceId}`);
+    return { id: resourceId };
+  },
+
+  listPublishedResources: async () => {
+    const response = await get(`${RESOURCE.ROOT}/published`);
+    return normalizeArray(extractDataArray(response));
+  },
+
+  listResourcesByStatus: async (status) => {
+    const response = await get(`${RESOURCE.ROOT}/status/${status}`);
+    return normalizeArray(extractDataArray(response));
+  },
+
+  listResourcesByEducationalType: async (educationalType) => {
+    const response = await get(`${RESOURCE.ROOT}/educational-type/${educationalType}`);
+    return normalizeArray(extractDataArray(response));
+  },
+
+  listResourcesByFormat: async (format) => {
+    const response = await get(`${RESOURCE.ROOT}/format/${format}`);
+    return normalizeArray(extractDataArray(response));
+  },
+
+  listResourcesByResourceType: async (resourceTypeId) => {
+    const response = await get(`${RESOURCE.ROOT}/resource-type/${resourceTypeId}`);
+    return normalizeArray(extractDataArray(response));
+  },
+
+  listResourcesByCreator: async (creatorId) => {
+    const response = await get(`${RESOURCE.ROOT}/creator/${creatorId}`);
+    return normalizeArray(extractDataArray(response));
+  },
+
+  listResourcesByLanguage: async (language) => {
+    const response = await get(`${RESOURCE.ROOT}/language/${language}`);
+    return normalizeArray(extractDataArray(response));
+  },
+
+  updateResourceMetadata: async (resourceId, metadata) => {
+    const response = await patch(`${RESOURCE.ROOT}/${resourceId}/metadata`, { metadata });
+    return normalizeResource(response?.data);
+  },
+
+  updateResourceStatus: async (resourceId, status) => {
+    const response = await patch(`${RESOURCE.ROOT}/${resourceId}/status`, { status });
+    return normalizeResource(response?.data);
+  },
+
+  publishResource: async (resourceId) => {
+    const response = await post(`${RESOURCE.ROOT}/${resourceId}/publish`);
+    return normalizeResource(response?.data);
+  },
+
+  archiveResource: async (resourceId) => {
+    const response = await post(`${RESOURCE.ROOT}/${resourceId}/archive`);
+    return normalizeResource(response?.data);
+  },
+
+  searchResources: async (searchTerm) => {
+    const response = await get(`${RESOURCE.ROOT}/search/${searchTerm}`);
+    return normalizeArray(extractDataArray(response));
+  },
+
+  advancedSearchResources: async (filters) => {
+    const response = await post(`${RESOURCE.ROOT}/advanced-search`, filters);
+    return normalizeArray(extractDataArray(response));
+  },
+
+  searchResourcesByMetadata: async (metadataKey, metadataValue) => {
+    const response = await post(`${RESOURCE.ROOT}/search-metadata`, {
+      metadata_key: metadataKey,
+      metadata_value: metadataValue,
+    });
+    return normalizeArray(extractDataArray(response));
+  },
+
+  countResourcesByStatus: async (status) => {
+    const response = await get(`${RESOURCE.ROOT}/status/${status}/count`);
+    return response?.data || { count: 0 };
+  },
+
+  countResourcesByEducationalType: async (educationalType) => {
+    const response = await get(`${RESOURCE.ROOT}/educational-type/${educationalType}/count`);
+    return response?.data || { count: 0 };
+  },
+
+  countResourcesByFormat: async (format) => {
+    const response = await get(`${RESOURCE.ROOT}/format/${format}/count`);
+    return response?.data || { count: 0 };
+  },
+
+  countResourcesByCreator: async (creatorId) => {
+    const response = await get(`${RESOURCE.ROOT}/creator/${creatorId}/count`);
+    return response?.data || { count: 0 };
+  },
+
+  listResourcesWithRatings: async () => {
+    const response = await get(`${RESOURCE.ROOT}/with-ratings`);
+    return normalizeArray(extractDataArray(response));
+  },
+
+  getResourceStatistics: async (resourceId) => {
+    const response = await get(`${RESOURCE.ROOT}/${resourceId}/statistics`);
+    return response?.data || {};
+  },
+
+  getResourceStatuses: async () => {
+    const response = await get(`${RESOURCE.ROOT}/statuses`);
+    return extractDataArray(response);
+  },
+
+  getResourceEducationalTypes: async () => {
+    const response = await get(`${RESOURCE.ROOT}/educational-types`);
+    return extractDataArray(response);
+  },
+
+  getResourceFormats: async () => {
+    const response = await get(`${RESOURCE.ROOT}/formats`);
+    return extractDataArray(response);
+  },
 };
 
 export default resourcesService;
