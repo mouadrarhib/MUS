@@ -1,6 +1,7 @@
 import { del, get, post } from "@/services/http";
 
 const FAVORITES = "/favorites";
+let favoritesInFlight = null;
 
 const toArray = (response) => {
   if (Array.isArray(response?.data)) return response.data;
@@ -21,9 +22,20 @@ export const favoritesService = {
     return response?.data || { is_favorited: false };
   },
 
-  getAllFavorites: async () => {
-    const response = await get(`${FAVORITES}/my-favorites`);
-    return toArray(response);
+  getAllFavorites: async (options = {}) => {
+    const { force = false } = options;
+
+    if (!force && favoritesInFlight) {
+      return favoritesInFlight;
+    }
+
+    favoritesInFlight = get(`${FAVORITES}/my-favorites`)
+      .then((response) => toArray(response))
+      .finally(() => {
+        favoritesInFlight = null;
+      });
+
+    return favoritesInFlight;
   },
 
   getFavoriteById: async (resourceId) => {

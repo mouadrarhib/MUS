@@ -2,8 +2,24 @@ import { get, patch } from "@/services/http";
 
 const ADMIN = "/admin";
 
+let dashboardInFlight = null;
+
+const getDashboard = (options = {}) => {
+  const { force = false } = options;
+
+  if (!force && dashboardInFlight) {
+    return dashboardInFlight;
+  }
+
+  dashboardInFlight = get(`${ADMIN}/dashboard`).finally(() => {
+    dashboardInFlight = null;
+  });
+
+  return dashboardInFlight;
+};
+
 export const adminService = {
-  getDashboard: () => get(`${ADMIN}/dashboard`),
+  getDashboard,
   getUsersOverview: () => get(`${ADMIN}/users/overview`),
 
   getAllStudents: () => get(`${ADMIN}/students`),

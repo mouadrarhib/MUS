@@ -6,6 +6,33 @@ const RESOURCE = {
 };
 
 let myResourcesInFlight = null;
+const RESOURCE_CACHE_TTL_MS = 5000;
+const resourceListInFlight = new Map();
+const resourceListCache = new Map();
+
+const makeCacheKey = (prefix, payload) => `${prefix}:${JSON.stringify(payload || {})}`;
+
+const getCached = (key) => {
+  const cached = resourceListCache.get(key);
+  if (!cached) return null;
+  if (Date.now() - cached.ts > RESOURCE_CACHE_TTL_MS) {
+    resourceListCache.delete(key);
+    return null;
+  }
+  return cached.data;
+};
+
+const setCached = (key, data) => {
+  resourceListCache.set(key, {
+    ts: Date.now(),
+    data,
+  });
+};
+
+const clearResourceListCaches = () => {
+  resourceListInFlight.clear();
+  resourceListCache.clear();
+};
 
 const normalizeResource = (item) => {
   if (!item) return item;
@@ -51,12 +78,32 @@ const extractDataArray = (response, key) => {
 export const resourcesService = {
   createResource: async (resourceData) => {
     const response = await post(RESOURCE.ROOT, resourceData);
+    clearResourceListCaches();
     return normalizeResource(response?.data);
   },
 
-  getAllResources: async (params = {}) => {
-    const response = await get(RESOURCE.ROOT, { params });
-    return normalizeArray(extractDataArray(response));
+  getAllResources: async (params = {}, options = {}) => {
+    const { force = false } = options;
+    const key = makeCacheKey("all", params);
+
+    if (!force) {
+      const cached = getCached(key);
+      if (cached) return cached;
+      if (resourceListInFlight.has(key)) return resourceListInFlight.get(key);
+    }
+
+    const request = get(RESOURCE.ROOT, { params })
+      .then((response) => {
+        const data = normalizeArray(extractDataArray(response));
+        setCached(key, data);
+        return data;
+      })
+      .finally(() => {
+        resourceListInFlight.delete(key);
+      });
+
+    resourceListInFlight.set(key, request);
+    return request;
   },
 
   getAdminResources: async (params = {}) => {
@@ -83,11 +130,13 @@ export const resourcesService = {
 
   updateResource: async (resourceId, updatedData) => {
     const response = await patch(`${RESOURCE.ROOT}/${resourceId}`, updatedData);
+    clearResourceListCaches();
     return normalizeResource(response?.data);
   },
 
   deleteResource: async (resourceId) => {
     await del(`${RESOURCE.ROOT}/${resourceId}`);
+    clearResourceListCaches();
     return { id: resourceId };
   },
 
@@ -96,9 +145,28 @@ export const resourcesService = {
     return normalizeArray(extractDataArray(response));
   },
 
-  listResourcesByStatus: async (status) => {
-    const response = await get(`${RESOURCE.ROOT}/status/${status}`);
-    return normalizeArray(extractDataArray(response));
+  listResourcesByStatus: async (status, options = {}) => {
+    const { force = false } = options;
+    const key = makeCacheKey("status", { status });
+
+    if (!force) {
+      const cached = getCached(key);
+      if (cached) return cached;
+      if (resourceListInFlight.has(key)) return resourceListInFlight.get(key);
+    }
+
+    const request = get(`${RESOURCE.ROOT}/status/${status}`)
+      .then((response) => {
+        const data = normalizeArray(extractDataArray(response));
+        setCached(key, data);
+        return data;
+      })
+      .finally(() => {
+        resourceListInFlight.delete(key);
+      });
+
+    resourceListInFlight.set(key, request);
+    return request;
   },
 
   listResourcesByEducationalType: async (educationalType) => {
@@ -128,21 +196,25 @@ export const resourcesService = {
 
   updateResourceMetadata: async (resourceId, metadata) => {
     const response = await patch(`${RESOURCE.ROOT}/${resourceId}/metadata`, { metadata });
+    clearResourceListCaches();
     return normalizeResource(response?.data);
   },
 
   updateResourceStatus: async (resourceId, status) => {
     const response = await patch(`${RESOURCE.ROOT}/${resourceId}/status`, { status });
+    clearResourceListCaches();
     return normalizeResource(response?.data);
   },
 
   publishResource: async (resourceId) => {
     const response = await post(`${RESOURCE.ROOT}/${resourceId}/publish`);
+    clearResourceListCaches();
     return normalizeResource(response?.data);
   },
 
   archiveResource: async (resourceId) => {
     const response = await post(`${RESOURCE.ROOT}/${resourceId}/archive`);
+    clearResourceListCaches();
     return normalizeResource(response?.data);
   },
 

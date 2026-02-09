@@ -7,6 +7,17 @@ const ADMIN = {
   TOGGLE_STATUS: "/admin/users",
 };
 
+const USERS_CACHE_TTL_MS = 5000;
+let usersOverviewInFlight = null;
+let usersOverviewCache = {
+  ts: 0,
+  data: null,
+};
+
+const clearUsersOverviewCache = () => {
+  usersOverviewCache = { ts: 0, data: null };
+};
+
 const normalizeUser = (item) => {
   if (!item) return item;
 
@@ -33,9 +44,29 @@ const toUsersArray = (payload) => {
 };
 
 export const usersService = {
-  getAllUsers: async () => {
-    const response = await get(ADMIN.USERS_OVERVIEW);
-    return toUsersArray(response);
+  getAllUsers: async (options = {}) => {
+    const { force = false } = options;
+    const now = Date.now();
+
+    if (!force && usersOverviewCache.data && now - usersOverviewCache.ts < USERS_CACHE_TTL_MS) {
+      return usersOverviewCache.data;
+    }
+
+    if (!force && usersOverviewInFlight) {
+      return usersOverviewInFlight;
+    }
+
+    usersOverviewInFlight = get(ADMIN.USERS_OVERVIEW)
+      .then((response) => {
+        const data = toUsersArray(response);
+        usersOverviewCache = { ts: Date.now(), data };
+        return data;
+      })
+      .finally(() => {
+        usersOverviewInFlight = null;
+      });
+
+    return usersOverviewInFlight;
   },
 
   getUserById: async (userId) => {
@@ -45,12 +76,14 @@ export const usersService = {
 
   updateUser: async (userId, updatedData) => {
     const response = await authService.updateUserById(userId, updatedData);
+    clearUsersOverviewCache();
     return normalizeUser(response?.data?.user || response?.data || null);
   },
 
   deleteUser: async (userId) => {
     const existing = await usersService.getUserById(userId).catch(() => null);
     await authService.removeUserById(userId);
+    clearUsersOverviewCache();
     return existing;
   },
 
@@ -58,6 +91,7 @@ export const usersService = {
     const fullName = userData.full_name || userData.fullName || "New User";
     const password = userData.password || "TempPass123!";
     const response = await authService.register(userData.email, password, fullName);
+    clearUsersOverviewCache();
     return normalizeUser(response?.data?.user || response?.data || null);
   },
 
@@ -65,6 +99,7 @@ export const usersService = {
     const response = await patch(`${ADMIN.TOGGLE_STATUS}/${userId}/toggle-status`, {
       is_active: isActive,
     });
+    clearUsersOverviewCache();
     return response?.data || null;
   },
 
