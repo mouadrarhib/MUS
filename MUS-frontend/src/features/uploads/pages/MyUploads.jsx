@@ -35,23 +35,13 @@ const MyUploads = () => {
 
   useEffect(() => {
     loadMyResources();
-  }, [currentUser.id, currentUser.name]);
-
-  const isOwnedByCurrentUser = (resource) => {
-    const authorId = normalize(resource?.author?.id);
-    const authorName = normalize(resource?.author?.name);
-
-    if (currentUser.id && authorId && currentUser.id === authorId) return true;
-    if (currentUser.name && authorName && currentUser.name === authorName) return true;
-    return false;
-  };
+  }, []);
 
   const loadMyResources = async () => {
     setLoading(true);
     try {
-      const data = await resourcesService.getAllResources();
-      const myResources = data.filter(isOwnedByCurrentUser);
-      setResources(myResources);
+      const data = await resourcesService.getMyResources();
+      setResources(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error loading my resources:', error);
     } finally {

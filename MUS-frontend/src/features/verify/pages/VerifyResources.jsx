@@ -26,10 +26,8 @@ const VerifyResources = () => {
   const loadPendingResources = async () => {
     setLoading(true);
     try {
-      const data = await resourcesService.getAllResources();
-      // Filter only pending resources for verification
-      const pendingResources = data.filter(r => r.status === 'pending');
-      setResources(pendingResources);
+      const data = await resourcesService.listResourcesByStatus('draft');
+      setResources(data);
     } catch (error) {
       console.error('Error loading pending resources:', error);
       showSnackbar('Failed to load resources', 'error');
@@ -71,8 +69,7 @@ const VerifyResources = () => {
 
   const handleApproveResource = async (resourceId) => {
     try {
-      // Update resource status to published
-      await resourcesService.updateResource(resourceId, { status: 'published' });
+      await resourcesService.publishResource(resourceId);
       
       // Remove from pending list
       setResources(prev => prev.filter(r => r.id !== resourceId));
@@ -88,11 +85,7 @@ const VerifyResources = () => {
 
   const handleRejectResource = async (resourceId, reason) => {
     try {
-      // Update resource status to rejected with reason
-      await resourcesService.updateResource(resourceId, { 
-        status: 'rejected',
-        rejectionReason: reason 
-      });
+      await resourcesService.archiveResource(resourceId);
       
       // Remove from pending list
       setResources(prev => prev.filter(r => r.id !== resourceId));

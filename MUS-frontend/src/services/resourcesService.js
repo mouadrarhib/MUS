@@ -5,6 +5,8 @@ const RESOURCE = {
   ADMIN: "/admin/resources",
 };
 
+let myResourcesInFlight = null;
+
 const normalizeResource = (item) => {
   if (!item) return item;
 
@@ -53,18 +55,25 @@ export const resourcesService = {
   },
 
   getAllResources: async (params = {}) => {
-    try {
-      const response = await get(RESOURCE.ADMIN, { params });
-      return normalizeArray(extractDataArray(response, "resources"));
-    } catch (_error) {
-      const response = await get(RESOURCE.ROOT, { params });
-      return normalizeArray(extractDataArray(response));
-    }
+    const response = await get(RESOURCE.ROOT, { params });
+    return normalizeArray(extractDataArray(response));
+  },
+
+  getAdminResources: async (params = {}) => {
+    const response = await get(RESOURCE.ADMIN, { params });
+    return normalizeArray(extractDataArray(response, "resources"));
   },
 
   getMyResources: async () => {
-    const response = await get(`${RESOURCE.ROOT}/my-resources`);
-    return normalizeArray(extractDataArray(response));
+    if (!myResourcesInFlight) {
+      myResourcesInFlight = get(`${RESOURCE.ROOT}/my-resources`)
+        .then((response) => normalizeArray(extractDataArray(response)))
+        .finally(() => {
+          myResourcesInFlight = null;
+        });
+    }
+
+    return myResourcesInFlight;
   },
 
   getResourceById: async (resourceId) => {

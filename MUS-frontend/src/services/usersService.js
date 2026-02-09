@@ -7,10 +7,28 @@ const ADMIN = {
   TOGGLE_STATUS: "/admin/users",
 };
 
+const normalizeUser = (item) => {
+  if (!item) return item;
+
+  const rolesValue = Array.isArray(item.roles)
+    ? item.roles.join(",")
+    : Array.isArray(item.user_roles)
+      ? item.user_roles.join(",")
+      : item.roles || item.user_roles || "";
+
+  return {
+    ...item,
+    user_id: item.user_id || item.id,
+    full_name: item.full_name || item.name,
+    user_created_at: item.user_created_at || item.created_at || item.createdAt,
+    roles: rolesValue,
+  };
+};
+
 const toUsersArray = (payload) => {
   const users = payload?.data?.users;
-  if (Array.isArray(users)) return users;
-  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(users)) return users.map(normalizeUser);
+  if (Array.isArray(payload?.data)) return payload.data.map(normalizeUser);
   return [];
 };
 
@@ -22,12 +40,12 @@ export const usersService = {
 
   getUserById: async (userId) => {
     const response = await authService.getUserById(userId);
-    return response?.data?.user || response?.data || null;
+    return normalizeUser(response?.data?.user || response?.data || null);
   },
 
   updateUser: async (userId, updatedData) => {
     const response = await authService.updateUserById(userId, updatedData);
-    return response?.data?.user || response?.data || null;
+    return normalizeUser(response?.data?.user || response?.data || null);
   },
 
   deleteUser: async (userId) => {
@@ -40,7 +58,7 @@ export const usersService = {
     const fullName = userData.full_name || userData.fullName || "New User";
     const password = userData.password || "TempPass123!";
     const response = await authService.register(userData.email, password, fullName);
-    return response?.data?.user || response?.data || null;
+    return normalizeUser(response?.data?.user || response?.data || null);
   },
 
   toggleUserStatus: async (userId, isActive) => {

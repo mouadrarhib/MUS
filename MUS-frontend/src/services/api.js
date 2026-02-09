@@ -5,7 +5,9 @@ const rawBaseURL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const normalizeBaseURL = (url) => {
   const clean = String(url || "").trim().replace(/\/+$/, "");
   if (!clean) return "http://localhost:5000/api";
-  return clean.endsWith("/api") ? clean : `${clean}/api`;
+
+  const withProtocol = /^https?:\/\//i.test(clean) ? clean : `http://${clean}`;
+  return withProtocol.endsWith("/api") ? withProtocol : `${withProtocol}/api`;
 };
 
 const baseURL = normalizeBaseURL(rawBaseURL);

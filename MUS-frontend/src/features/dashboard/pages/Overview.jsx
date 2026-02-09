@@ -1,5 +1,6 @@
 // src/features/dashboard/pages/Overview.jsx
 import { Box, Typography, alpha, Chip, Paper, Avatar, Grid } from '@mui/material';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { 
   People, 
@@ -18,13 +19,36 @@ import StatsOverview from '../components/StatsOverview';
 import QuickActions from '../components/QuickActions';
 import { ResourceDonut, EngagementBars } from '../components/MiniChart';
 
-import statsData from '@/data/stats.json';
+import adminService from '@/services/adminService';
 
 const Overview = () => {
   const { user } = useAuth();
-  
-  // Extract data from the new structure
-  const { students, global: globalStats } = statsData.data;
+  const [statsData, setStatsData] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadDashboard = async () => {
+      try {
+        const response = await adminService.getDashboard();
+        if (mounted) {
+          setStatsData(response);
+        }
+      } catch (_error) {
+        if (mounted) {
+          setStatsData(null);
+        }
+      }
+    };
+
+    loadDashboard();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const students = statsData?.data?.students || {};
+  const globalStats = statsData?.data?.global || {};
 
   // Parse values (they come as strings from API)
   const stats = {
