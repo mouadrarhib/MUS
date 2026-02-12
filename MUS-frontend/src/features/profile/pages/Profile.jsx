@@ -38,6 +38,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import authService from '@/services/authService';
+import { PageHeader } from '@/shared/components/ui';
 
 const Profile = () => {
   const { user, login } = useAuth();
@@ -228,6 +229,47 @@ const Profile = () => {
 
   return (
     <Box sx={{ width: '100%', minHeight: '100%' }}>
+      <PageHeader
+        title="Profile"
+        subtitle="View your account details and academic information"
+        icon={Person}
+        breadcrumbs={[
+          { label: 'Dashboard', to: '/dashboard' },
+          { label: 'Profile' },
+        ]}
+        actions={
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+            <Button
+              variant="contained"
+              startIcon={<Edit sx={{ fontSize: 18 }} />}
+              onClick={handleOpenEditDialog}
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 600,
+                px: 3,
+                boxShadow: 'none',
+                '&:hover': { boxShadow: 'none' },
+              }}
+            >
+              Edit Profile
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<Security sx={{ fontSize: 18 }} />}
+              onClick={handleOpenPasswordDialog}
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 600,
+                px: 3,
+              }}
+            >
+              Change Password
+            </Button>
+          </Stack>
+        }
+      />
       {/* Success Message */}
       {success && (
         <Paper
@@ -324,36 +366,6 @@ const Profile = () => {
               </Stack>
             </Box>
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ width: { xs: '100%', sm: 'auto' }, mt: { xs: 1, md: 0 } }}>
-              <Button
-                variant="contained"
-                startIcon={<Edit sx={{ fontSize: 18 }} />}
-                onClick={handleOpenEditDialog}
-                sx={{
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  px: 3,
-                  boxShadow: 'none',
-                  '&:hover': { boxShadow: 'none' },
-                }}
-              >
-                Edit Profile
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Security sx={{ fontSize: 18 }} />}
-                onClick={handleOpenPasswordDialog}
-                sx={{
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  px: 3,
-                }}
-              >
-                Change Password
-              </Button>
-            </Stack>
           </Box>
         </Box>
       </Paper>

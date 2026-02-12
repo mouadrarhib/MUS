@@ -1,11 +1,12 @@
 // src/features/verify/pages/VerifyResources.jsx
-import { Box, Typography, alpha, Snackbar, Alert } from '@mui/material';
+import { Box, Typography, alpha, Snackbar, Alert, Chip } from '@mui/material';
 import { useState, useEffect } from 'react';
 import { AdminPanelSettings } from '@mui/icons-material';
 import resourcesService from '@/services/resourcesService';
 import VerifyStatsCards from '../components/VerifyStatsCards';
 import VerifyResourcesTable from '../components/VerifyResourcesTable';
 import VerifyResourceDialog from '../components/VerifyResourceDialog';
+import { PageHeader } from '@/shared/components/ui';
 
 const VerifyResources = () => {
   const [resources, setResources] = useState([]);
@@ -102,47 +103,23 @@ const VerifyResources = () => {
   return (
     <Box sx={{ width: '100%' }}>
       {/* Header */}
-      <Box 
-        mb={3} 
-        display="flex" 
-        justifyContent="space-between" 
-        alignItems="flex-start"
-        flexWrap="wrap"
-        gap={2}
-      >
-        <Box>
-          <Box display="flex" alignItems="center" gap={1.5} mb={0.5}>
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: (theme) => alpha(theme.palette.warning.main, 0.1),
-              }}
-            >
-              <AdminPanelSettings sx={{ fontSize: 22, color: 'warning.main' }} />
-            </Box>
-            <Typography 
-              variant="h5" 
-              fontWeight="700" 
-              sx={{
-                background: (theme) => 
-                  `linear-gradient(135deg, ${theme.palette.text.primary} 0%, ${theme.palette.warning.main} 100%)`,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              Content Verification
-            </Typography>
-          </Box>
-          <Typography variant="body2" color="text.secondary" sx={{ ml: 7 }}>
-            Review and approve resources submitted by students and teachers
-          </Typography>
-        </Box>
-      </Box>
+      <PageHeader
+        title="Content Verification"
+        subtitle="Review and approve resources submitted by students and teachers"
+        icon={AdminPanelSettings}
+        breadcrumbs={[
+          { label: 'Dashboard', to: '/dashboard' },
+          { label: 'Verify Resources' },
+        ]}
+        actions={
+          <Chip
+            label={`${resources.length} Pending`}
+            color="warning"
+            size="small"
+            sx={{ fontWeight: 600 }}
+          />
+        }
+      />
 
       {/* Stats Cards */}
       <Box mb={3}>

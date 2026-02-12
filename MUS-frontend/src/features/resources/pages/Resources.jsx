@@ -7,7 +7,7 @@ import ResourcesStatsCards from '../components/ResourcesStatsCards';
 import ResourcesTable from '../components/ResourcesTable';
 import ResourceDialog from '../components/ResourceDialog';
 import ResourceDetailsDialog from '../components/ResourceDetailsDialog';
-import { EmptyState } from '@/shared/components/ui';
+import { EmptyState, PageHeader } from '@/shared/components/ui';
 
 const Resources = () => {
   const [resources, setResources] = useState([]);
@@ -106,52 +106,36 @@ const Resources = () => {
   return (
     <Box sx={{ width: '100%' }}>
       {/* Header */}
-      <Box 
-        mb={3} 
-        display="flex" 
-        justifyContent="space-between" 
-        alignItems="flex-start"
-        flexWrap="wrap"
-        gap={2}
-      >
-        <Box>
-          <Typography 
-            variant="h5" 
-            fontWeight="700" 
-            gutterBottom
+      <PageHeader
+        title="Resources"
+        subtitle="Manage educational resources, exams, courses and notes"
+        icon={Article}
+        breadcrumbs={[
+          { label: 'Dashboard', to: '/dashboard' },
+          { label: 'Resources' },
+        ]}
+        actions={
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleOpenDialog}
             sx={{
-              background: (theme) => 
-                `linear-gradient(135deg, ${theme.palette.text.primary} 0%, ${theme.palette.primary.main} 100%)`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              borderRadius: 2,
+              px: 2.5,
+              py: 1,
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              boxShadow: 'none',
+              '&:hover': {
+                boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+              },
             }}
           >
-            Resources Management
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Manage educational resources, exams, courses and notes
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleOpenDialog}
-          sx={{
-            borderRadius: 2,
-            px: 2.5,
-            py: 1,
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: '0.875rem',
-            boxShadow: 'none',
-            '&:hover': {
-              boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
-            },
-          }}
-        >
-          Add Resource
-        </Button>
-      </Box>
+            Add Resource
+          </Button>
+        }
+      />
 
       {/* Stats Cards */}
       <Box mb={3}>

@@ -7,6 +7,7 @@ import UsersStatsCards from '../components/UsersStatsCards';
 import UsersTable from '../components/UsersTable';
 import UserDialog from '../components/UserDialog';
 import UserDetailsDialog from '../components/UserDetailsDialog';
+import { PageHeader } from '@/shared/components/ui';
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -112,52 +113,36 @@ const Users = () => {
   return (
     <Box sx={{ width: '100%' }}>
       {/* Header */}
-      <Box 
-        mb={3} 
-        display="flex" 
-        justifyContent="space-between" 
-        alignItems="flex-start"
-        flexWrap="wrap"
-        gap={2}
-      >
-        <Box>
-          <Typography 
-            variant="h5" 
-            fontWeight="700" 
-            gutterBottom
+      <PageHeader
+        title="Users"
+        subtitle="Manage all platform users, roles and permissions"
+        icon={People}
+        breadcrumbs={[
+          { label: 'Dashboard', to: '/dashboard' },
+          { label: 'Users' },
+        ]}
+        actions={
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleOpenDialog}
             sx={{
-              background: (theme) => 
-                `linear-gradient(135deg, ${theme.palette.text.primary} 0%, ${theme.palette.primary.main} 100%)`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              borderRadius: 2,
+              px: 2.5,
+              py: 1,
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              boxShadow: 'none',
+              '&:hover': {
+                boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+              },
             }}
           >
-            Users Management
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Manage all platform users, roles and permissions
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleOpenDialog}
-          sx={{
-            borderRadius: 2,
-            px: 2.5,
-            py: 1,
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: '0.875rem',
-            boxShadow: 'none',
-            '&:hover': {
-              boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
-            },
-          }}
-        >
-          Add User
-        </Button>
-      </Box>
+            Add User
+          </Button>
+        }
+      />
 
       {/* Stats Cards */}
       <Box mb={3}>

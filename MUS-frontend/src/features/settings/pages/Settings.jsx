@@ -49,6 +49,7 @@ import {
 } from '@mui/icons-material';
 import { useThemeMode } from '@/app/providers/ThemeContext';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { PageHeader } from '@/shared/components/ui';
 
 const Settings = () => {
   const { mode, toggleTheme } = useThemeMode();
@@ -197,50 +198,15 @@ const Settings = () => {
 
   return (
     <Box sx={{ width: '100%', minHeight: '100%' }}>
-      {/* Header */}
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: 3,
-          border: '1px solid',
-          borderColor: 'divider',
-          overflow: 'hidden',
-          mb: 3,
-        }}
-      >
-        <Box
-          sx={{
-            px: 4,
-            py: 3,
-            background: (theme) =>
-              `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box
-              sx={{
-                width: 56,
-                height: 56,
-                borderRadius: 3,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'rgba(255,255,255,0.2)',
-              }}
-            >
-              <SettingsIcon sx={{ fontSize: 32, color: 'white' }} />
-            </Box>
-            <Box>
-              <Typography variant="h4" fontWeight={700} color="white">
-                Settings
-              </Typography>
-              <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                Manage your preferences and account settings
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-      </Paper>
+      <PageHeader
+        title="Settings"
+        subtitle="Manage your preferences and account settings"
+        icon={SettingsIcon}
+        breadcrumbs={[
+          { label: 'Dashboard', to: '/dashboard' },
+          { label: 'Settings' },
+        ]}
+      />
 
       {/* Theme & Appearance */}
       <SettingSection

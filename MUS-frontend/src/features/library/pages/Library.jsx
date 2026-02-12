@@ -7,7 +7,7 @@ import favoritesService from '@/services/favoritesService';
 import LibraryStatsCards from '../components/LibraryStatsCards';
 import FavoritesTable from '../components/FavoritesTable';
 import FavoriteDetailsDialog from '../components/FavoriteDetailsDialog';
-import { EmptyState } from '@/shared/components/ui';
+import { EmptyState, PageHeader } from '@/shared/components/ui';
 
 const Library = () => {
   const navigate = useNavigate();
@@ -78,49 +78,33 @@ const Library = () => {
   return (
     <Box sx={{ width: '100%' }}>
       {/* Header */}
-      <Box 
-        mb={3} 
-        display="flex" 
-        justifyContent="space-between" 
-        alignItems="flex-start"
-        flexWrap="wrap"
-        gap={2}
-      >
-        <Box>
-          <Typography 
-            variant="h5" 
-            fontWeight="700" 
-            gutterBottom
+      <PageHeader
+        title="My Library"
+        subtitle="View and manage your favorite resources"
+        icon={LibraryBooks}
+        breadcrumbs={[
+          { label: 'Dashboard', to: '/dashboard' },
+          { label: 'Library' },
+        ]}
+        actions={
+          <Box
             sx={{
-              background: (theme) => 
-                `linear-gradient(135deg, ${theme.palette.text.primary} 0%, ${theme.palette.error.main} 100%)`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 2,
+              py: 1,
+              borderRadius: 2,
+              bgcolor: (theme) => alpha(theme.palette.error.main, 0.1),
             }}
           >
-            My Library
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            View and manage your favorite resources
-          </Typography>
-        </Box>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            px: 2,
-            py: 1,
-            borderRadius: 2,
-            bgcolor: (theme) => alpha(theme.palette.error.main, 0.1),
-          }}
-        >
-          <Favorite sx={{ fontSize: 20, color: 'error.main' }} />
-          <Typography variant="body2" fontWeight="600" color="error.main">
-            {favorites.length} Saved
-          </Typography>
-        </Box>
-      </Box>
+            <Favorite sx={{ fontSize: 20, color: 'error.main' }} />
+            <Typography variant="body2" fontWeight="600" color="error.main">
+              {favorites.length} Saved
+            </Typography>
+          </Box>
+        }
+      />
 
       {/* Stats Cards */}
       <Box mb={3}>

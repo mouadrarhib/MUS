@@ -7,7 +7,7 @@ import ResourcesStatsCards from '@/features/resources/components/ResourcesStatsC
 import ResourcesTable from '@/features/resources/components/ResourcesTable';
 import ResourceDialog from '@/features/resources/components/ResourceDialog';
 import ResourceDetailsDialog from '@/features/resources/components/ResourceDetailsDialog';
-import { EmptyState } from '@/shared/components/ui';
+import { EmptyState, PageHeader } from '@/shared/components/ui';
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
 
@@ -131,60 +131,36 @@ const MyUploads = () => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Box mb={3} display="flex" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={2}>
-        <Box>
-          <Box display="flex" alignItems="center" gap={1.5} mb={0.5}>
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: (theme) => alpha(theme.palette.info.main, 0.1),
-              }}
-            >
-              <UploadFile sx={{ fontSize: 22, color: 'info.main' }} />
-            </Box>
-            <Typography
-              variant="h5"
-              fontWeight="700"
-              sx={{
-                background: (theme) =>
-                  `linear-gradient(135deg, ${theme.palette.text.primary} 0%, ${theme.palette.info.main} 100%)`,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              My Uploads
-            </Typography>
-          </Box>
-          <Typography variant="body2" color="text.secondary" sx={{ ml: 7 }}>
-            View and manage the resources you uploaded
-          </Typography>
-        </Box>
-
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleOpenDialog}
-          sx={{
-            borderRadius: 2,
-            px: 2.5,
-            py: 1,
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: '0.875rem',
-            boxShadow: 'none',
-            '&:hover': {
-              boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
-            },
-          }}
-        >
-          Upload Resource
-        </Button>
-      </Box>
+      <PageHeader
+        title="My Uploads"
+        subtitle="View and manage the resources you uploaded"
+        icon={UploadFile}
+        breadcrumbs={[
+          { label: 'Dashboard', to: '/dashboard' },
+          { label: 'My Uploads' },
+        ]}
+        actions={
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleOpenDialog}
+            sx={{
+              borderRadius: 2,
+              px: 2.5,
+              py: 1,
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              boxShadow: 'none',
+              '&:hover': {
+                boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+              },
+            }}
+          >
+            Upload Resource
+          </Button>
+        }
+      />
 
       <Box mb={3}>
         <ResourcesStatsCards
