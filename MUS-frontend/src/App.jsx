@@ -6,7 +6,7 @@ import AppRouter from "./app/router";
 function App() {
   useEffect(() => {
     // Initialisation de l'app
-    document.title = 'Moroccan University Students Platform';
+    document.title = 'MUS | Moroccan University Students Platform';
   }, []);
 
   return (
