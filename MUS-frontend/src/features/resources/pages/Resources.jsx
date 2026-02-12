@@ -1,12 +1,13 @@
 // src/features/resources/pages/Resources.jsx
 import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, alpha } from '@mui/material';
 import { useState, useEffect } from 'react';
-import { Add, Delete as DeleteIcon, Warning as WarningIcon, Article } from '@mui/icons-material';
+import { Add, Delete as DeleteIcon, Warning as WarningIcon, Article, ErrorOutline } from '@mui/icons-material';
 import resourcesService from '@/services/resourcesService';
 import ResourcesStatsCards from '../components/ResourcesStatsCards';
 import ResourcesTable from '../components/ResourcesTable';
 import ResourceDialog from '../components/ResourceDialog';
 import ResourceDetailsDialog from '../components/ResourceDetailsDialog';
+import { EmptyState } from '@/shared/components/ui';
 
 const Resources = () => {
   const [resources, setResources] = useState([]);
@@ -17,6 +18,7 @@ const Resources = () => {
   const [viewingResource, setViewingResource] = useState(null);
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [resourceToDelete, setResourceToDelete] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     loadResources();
@@ -24,11 +26,13 @@ const Resources = () => {
 
   const loadResources = async () => {
     setLoading(true);
+    setError('');
     try {
       const data = await resourcesService.getAllResources();
       setResources(data);
     } catch (error) {
       console.error('Error loading resources:', error);
+      setError('We could not load resources right now. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -159,13 +163,31 @@ const Resources = () => {
       </Box>
 
       {/* Resources Table */}
-      <ResourcesTable
-        resources={resources}
-        loading={loading}
-        onView={handleViewResource}
-        onEdit={handleEditResource}
-        onDelete={handleDeleteResource}
-      />
+      {error && !loading ? (
+        <EmptyState
+          icon={ErrorOutline}
+          title="Resources unavailable"
+          description={error}
+          actionLabel="Retry"
+          onAction={loadResources}
+        />
+      ) : resources.length === 0 && !loading ? (
+        <EmptyState
+          icon={Article}
+          title="No resources yet"
+          description="Start by adding exams, courses, or notes to build your library."
+          actionLabel="Add resource"
+          onAction={handleOpenDialog}
+        />
+      ) : (
+        <ResourcesTable
+          resources={resources}
+          loading={loading}
+          onView={handleViewResource}
+          onEdit={handleEditResource}
+          onDelete={handleDeleteResource}
+        />
+      )}
 
       {/* Resource Dialog */}
       <ResourceDialog

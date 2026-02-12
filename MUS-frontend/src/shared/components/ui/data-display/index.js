@@ -10,4 +10,5 @@ export { TableHead } from './TableHead';
 export { TableRow } from './TableRow';
 export { Paper } from './Paper';
 export { StatCard } from './StatCard';
+export { EmptyState } from './EmptyState';
 // StatCard is in common folder if needed

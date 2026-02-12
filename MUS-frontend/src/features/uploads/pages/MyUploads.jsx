@@ -1,12 +1,13 @@
 import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, alpha } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
-import { Add, Delete as DeleteIcon, Warning as WarningIcon, UploadFile } from '@mui/icons-material';
+import { Add, Delete as DeleteIcon, Warning as WarningIcon, UploadFile, ErrorOutline, CloudUpload } from '@mui/icons-material';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import resourcesService from '@/services/resourcesService';
 import ResourcesStatsCards from '@/features/resources/components/ResourcesStatsCards';
 import ResourcesTable from '@/features/resources/components/ResourcesTable';
 import ResourceDialog from '@/features/resources/components/ResourceDialog';
 import ResourceDetailsDialog from '@/features/resources/components/ResourceDetailsDialog';
+import { EmptyState } from '@/shared/components/ui';
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
 
@@ -20,6 +21,7 @@ const MyUploads = () => {
   const [viewingResource, setViewingResource] = useState(null);
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [resourceToDelete, setResourceToDelete] = useState(null);
+  const [error, setError] = useState('');
 
   const currentUser = useMemo(() => {
     const id = user?.id || user?.user_id || user?.uuid || null;
@@ -39,11 +41,13 @@ const MyUploads = () => {
 
   const loadMyResources = async () => {
     setLoading(true);
+    setError('');
     try {
       const data = await resourcesService.getMyResources();
       setResources(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error loading my resources:', error);
+      setError('We could not load your uploads right now. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -190,13 +194,31 @@ const MyUploads = () => {
         />
       </Box>
 
-      <ResourcesTable
-        resources={resources}
-        loading={loading}
-        onView={handleViewResource}
-        onEdit={handleEditResource}
-        onDelete={handleDeleteResource}
-      />
+      {error && !loading ? (
+        <EmptyState
+          icon={ErrorOutline}
+          title="Uploads unavailable"
+          description={error}
+          actionLabel="Retry"
+          onAction={loadMyResources}
+        />
+      ) : resources.length === 0 && !loading ? (
+        <EmptyState
+          icon={CloudUpload}
+          title="No uploads yet"
+          description="Upload your first resource to share knowledge with your peers."
+          actionLabel="Upload resource"
+          onAction={handleOpenDialog}
+        />
+      ) : (
+        <ResourcesTable
+          resources={resources}
+          loading={loading}
+          onView={handleViewResource}
+          onEdit={handleEditResource}
+          onDelete={handleDeleteResource}
+        />
+      )}
 
       <ResourceDialog
         open={openDialog}

@@ -1,19 +1,23 @@
 // src/features/library/pages/Library.jsx
 import { Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, alpha } from '@mui/material';
 import { useState, useEffect } from 'react';
-import { Delete as DeleteIcon, Warning as WarningIcon, Favorite } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { Delete as DeleteIcon, Warning as WarningIcon, Favorite, ErrorOutline, LibraryBooks } from '@mui/icons-material';
 import favoritesService from '@/services/favoritesService';
 import LibraryStatsCards from '../components/LibraryStatsCards';
 import FavoritesTable from '../components/FavoritesTable';
 import FavoriteDetailsDialog from '../components/FavoriteDetailsDialog';
+import { EmptyState } from '@/shared/components/ui';
 
 const Library = () => {
+  const navigate = useNavigate();
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
   const [viewingFavorite, setViewingFavorite] = useState(null);
   const [openRemoveConfirm, setOpenRemoveConfirm] = useState(false);
   const [favoriteToRemove, setFavoriteToRemove] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     loadFavorites();
@@ -21,11 +25,13 @@ const Library = () => {
 
   const loadFavorites = async () => {
     setLoading(true);
+    setError('');
     try {
       const data = await favoritesService.getAllFavorites();
       setFavorites(data);
     } catch (error) {
       console.error('Error loading favorites:', error);
+      setError('We could not load your library right now. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -127,12 +133,30 @@ const Library = () => {
       </Box>
 
       {/* Favorites Table */}
-      <FavoritesTable
-        favorites={favorites}
-        loading={loading}
-        onView={handleViewFavorite}
-        onRemove={handleRemoveFavorite}
-      />
+      {error && !loading ? (
+        <EmptyState
+          icon={ErrorOutline}
+          title="Library unavailable"
+          description={error}
+          actionLabel="Retry"
+          onAction={loadFavorites}
+        />
+      ) : favorites.length === 0 && !loading ? (
+        <EmptyState
+          icon={LibraryBooks}
+          title="No favorites yet"
+          description="Save resources to keep your most useful materials in one place."
+          actionLabel="Browse resources"
+          onAction={() => navigate('/dashboard/resources')}
+        />
+      ) : (
+        <FavoritesTable
+          favorites={favorites}
+          loading={loading}
+          onView={handleViewFavorite}
+          onRemove={handleRemoveFavorite}
+        />
+      )}
 
       {/* Favorite Details Dialog */}
       <FavoriteDetailsDialog
