@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, Typography, Box, alpha, useTheme } from '@mui/material';
 import { TrendingUp, TrendingDown } from '@mui/icons-material';
 import PropTypes from 'prop-types';
+import { cardEnterSx } from '@/styles/motion';
 
 export function StatCard({ title, value, icon, trend, trendValue, color = 'primary', subtitle }) {
   const theme = useTheme();
@@ -50,6 +51,7 @@ export function StatCard({ title, value, icon, trend, trendValue, color = 'prima
           opacity: 0.7,
           transition: 'opacity 0.3s ease',
         },
+        ...cardEnterSx(theme),
       }}
     >
       <CardContent sx={{ p: 3 }}>

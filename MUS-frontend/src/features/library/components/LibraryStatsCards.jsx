@@ -7,6 +7,7 @@ import {
   Quiz,
 } from '@mui/icons-material';
 import PropTypes from 'prop-types';
+import { staggerContainerSx } from '@/styles/motion';
 
 const LibraryStatsCards = ({ totalFavorites, examCount, courseCount, notesCount }) => {
   const stats = [
@@ -38,21 +39,23 @@ const LibraryStatsCards = ({ totalFavorites, examCount, courseCount, notesCount 
 
   return (
     <Box
-      sx={{
+      sx={(theme) => ({
         display: 'grid',
         gridTemplateColumns: {
           xs: 'repeat(2, 1fr)',
           sm: 'repeat(4, 1fr)',
         },
         gap: 2,
-      }}
+        ...staggerContainerSx(theme),
+      })}
     >
-      {stats.map((stat) => (
+      {stats.map((stat, index) => (
         <Paper
           key={stat.label}
           elevation={0}
           sx={{
             p: 2,
+            '--stagger-index': index,
             borderRadius: 3,
             border: '1px solid',
             borderColor: 'divider',

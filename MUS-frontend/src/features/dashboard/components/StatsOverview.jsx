@@ -5,18 +5,19 @@ import {
   TrendingDown,
   Remove
 } from '@mui/icons-material';
+import { cardEnterSx } from '@/styles/motion';
 
 const StatsOverview = ({ label, value, change, changeLabel, icon: Icon, color = 'primary' }) => {
   const trend = change > 0 ? 'up' : change < 0 ? 'down' : 'neutral';
   
   return (
     <Box
-      sx={{
+      sx={(theme) => ({
         p: 2.5,
         borderRadius: 3,
         border: '1px solid',
         borderColor: 'divider',
-        background: (theme) => theme.palette.mode === 'dark' 
+        background: theme.palette.mode === 'dark'
           ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
           : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
         transition: 'all 0.2s ease',
@@ -24,7 +25,7 @@ const StatsOverview = ({ label, value, change, changeLabel, icon: Icon, color = 
         overflow: 'hidden',
         '&:hover': {
           borderColor: `${color}.main`,
-          boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette[color].main, 0.12)}`,
+          boxShadow: `0 4px 12px ${alpha(theme.palette[color].main, 0.12)}`,
         },
         '&::before': {
           content: '""',
@@ -33,9 +34,10 @@ const StatsOverview = ({ label, value, change, changeLabel, icon: Icon, color = 
           left: 0,
           right: 0,
           height: '3px',
-          background: (theme) => theme.palette[color].main,
+          background: theme.palette[color].main,
         },
-      }}
+        ...cardEnterSx(theme),
+      })}
     >
       <Box display="flex" justifyContent="space-between" alignItems="flex-start">
         <Box flex={1}>

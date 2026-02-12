@@ -2,6 +2,7 @@
 import { Box, Typography, alpha } from '@mui/material';
 import { Description, CheckCircle, Edit } from '@mui/icons-material';
 import PropTypes from 'prop-types';
+import { staggerContainerSx } from '@/styles/motion';
 
 const ResourcesStatsCards = ({ totalResources, publishedResources, draftResources }) => {
   const statCards = [
@@ -26,10 +27,11 @@ const ResourcesStatsCards = ({ totalResources, publishedResources, draftResource
   ];
 
   return (
-    <Box 
-      display="grid" 
-      gridTemplateColumns={{ xs: '1fr', sm: 'repeat(3, 1fr)' }} 
+    <Box
+      display="grid"
+      gridTemplateColumns={{ xs: '1fr', sm: 'repeat(3, 1fr)' }}
       gap={2}
+      sx={(theme) => staggerContainerSx(theme)}
     >
       {statCards.map((stat, index) => {
         const IconComponent = stat.icon;
@@ -38,6 +40,7 @@ const ResourcesStatsCards = ({ totalResources, publishedResources, draftResource
             key={index}
             sx={{
               p: 2.5,
+              '--stagger-index': index,
               borderRadius: 3,
               border: '1px solid',
               borderColor: 'divider',

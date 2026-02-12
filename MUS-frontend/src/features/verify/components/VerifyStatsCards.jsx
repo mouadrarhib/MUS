@@ -7,6 +7,7 @@ import {
   AccessTime 
 } from '@mui/icons-material';
 import PropTypes from 'prop-types';
+import { staggerContainerSx } from '@/styles/motion';
 
 const VerifyStatsCards = ({ 
   pendingResources, 
@@ -46,10 +47,11 @@ const VerifyStatsCards = ({
   ];
 
   return (
-    <Box 
-      display="grid" 
-      gridTemplateColumns={{ xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }} 
+    <Box
+      display="grid"
+      gridTemplateColumns={{ xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }}
       gap={2}
+      sx={(theme) => staggerContainerSx(theme)}
     >
       {statCards.map((stat, index) => {
         const IconComponent = stat.icon;
@@ -58,6 +60,7 @@ const VerifyStatsCards = ({
             key={index}
             sx={{
               p: 2.5,
+              '--stagger-index': index,
               borderRadius: 3,
               border: '1px solid',
               borderColor: 'divider',

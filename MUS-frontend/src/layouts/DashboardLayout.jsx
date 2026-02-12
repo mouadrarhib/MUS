@@ -1,10 +1,11 @@
 // src/layouts/DashboardLayout.jsx
 import { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Box, useMediaQuery, useTheme, Container } from '@mui/material';
 import { Sidebar } from '@/shared/components/ui/navigation/Sidebar';
 import { Navbar, NAVBAR_HEIGHT } from '@/shared/components/ui/navigation/Navbar';
 import { DASHBOARD_NAVIGATION } from '@/config/dashboardNavigation';
+import { pageTransitionSx } from '@/styles/motion';
 
 const DESKTOP_SIDEBAR_WIDTH = 280;
 const MOBILE_SIDEBAR_WIDTH = 'min(88vw, 340px)';
@@ -12,6 +13,7 @@ const MOBILE_SIDEBAR_WIDTH = 'min(88vw, 340px)';
 const DashboardLayout = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const location = useLocation();
   const sidebarWidth = isMobile ? MOBILE_SIDEBAR_WIDTH : DESKTOP_SIDEBAR_WIDTH;
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   // Close sidebar on mobile by default
@@ -115,7 +117,9 @@ const DashboardLayout = () => {
               px: { xs: 2, sm: 3, md: 4 },
             }}
           >
-            <Outlet />
+            <Box key={location.pathname} sx={(theme) => pageTransitionSx(theme)}>
+              <Outlet />
+            </Box>
           </Container>
         </Box>
       </Box>

@@ -28,6 +28,7 @@ import { useLogin } from '@/features/auth/hooks/useAuthHooks';
 import logo from '@/assets/images/logo.png';
 import { useNotification } from '../../../shared/components/ui/notifications';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
+import { pageTransitionSx } from '@/styles/motion';
 
 export const LoginForm = () => {
   const navigate = useNavigate();
@@ -144,6 +145,7 @@ export const LoginForm = () => {
         px: { xs: 2, sm: 3 },
         py: { xs: 4, sm: 6 },
         backgroundColor: theme.palette.background.default,
+        ...pageTransitionSx(theme),
       })}
     >
       <Container maxWidth="md">

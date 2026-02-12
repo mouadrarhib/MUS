@@ -27,6 +27,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import logo from '@/assets/images/logo.png';
 import { useRegister } from '../hooks/useAuthHooks';
+import { pageTransitionSx } from '@/styles/motion';
 
 export const RegisterForm = () => {
   const navigate = useNavigate();
@@ -134,6 +135,7 @@ export const RegisterForm = () => {
         px: { xs: 2, sm: 3 },
         py: { xs: 4, sm: 6 },
         backgroundColor: theme.palette.background.default,
+        ...pageTransitionSx(theme),
       })}
     >
       <Container maxWidth="md">
