@@ -72,11 +72,17 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
         <IconButton
           edge="start"
           onClick={onMenuClick}
+          aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
           sx={{
             mr: 2,
             color: 'text.primary',
             '&:hover': {
               bgcolor: 'action.hover',
+            },
+            '&:focus-visible': {
+              outline: '2px solid',
+              outlineColor: 'primary.main',
+              outlineOffset: 2,
             },
           }}
         >
@@ -103,6 +109,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
         {/* Theme Toggle Button */}
         <IconButton
           onClick={toggleTheme}
+          aria-label={mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
           sx={{
             mr: 1,
             color: 'text.primary',
@@ -114,6 +121,11 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
               bgcolor: (theme) => alpha(theme.palette.primary.main, 0.15),
               borderColor: 'primary.main',
               transform: 'rotate(12deg)',
+            },
+            '&:focus-visible': {
+              outline: '2px solid',
+              outlineColor: 'primary.main',
+              outlineOffset: 2,
             },
           }}
         >
@@ -144,8 +156,22 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
                 borderColor: 'primary.main',
                 boxShadow: (theme) => `0 2px 8px ${alpha(theme.palette.primary.main, 0.15)}`,
               },
+              '&:focus-visible': {
+                outline: '2px solid',
+                outlineColor: 'primary.main',
+                outlineOffset: 2,
+              },
             }}
             onClick={handleMenuOpen}
+            role="button"
+            tabIndex={0}
+            aria-label="Open user menu"
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                handleMenuOpen(event);
+              }
+            }}
           >
             {/* User Name and Role - Hidden on mobile */}
             <Box sx={{ display: { xs: 'none', md: 'block' }, textAlign: 'right' }}>
@@ -201,6 +227,10 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
             onClick={handleMenuClose}
             transformOrigin={{ horizontal: 'right', vertical: 'top' }}
             anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            MenuListProps={{
+              'aria-label': 'User menu',
+              autoFocusItem: open,
+            }}
             PaperProps={{
               elevation: 0,
               sx: {

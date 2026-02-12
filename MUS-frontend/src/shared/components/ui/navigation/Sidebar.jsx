@@ -80,6 +80,7 @@ export const Sidebar = ({
                 key={index}
                 onClick={() => handleItemClick(item.path)}
                 selected={isActive}
+                aria-current={isActive ? 'page' : undefined}
                 sx={{
                   mb: 0.5,
                   borderRadius: 2,
@@ -93,6 +94,11 @@ export const Sidebar = ({
                     bgcolor: (theme) => isActive 
                       ? alpha(theme.palette.primary.main, 0.15) 
                       : 'action.hover',
+                  },
+                  '&:focus-visible': {
+                    outline: '2px solid',
+                    outlineColor: 'primary.main',
+                    outlineOffset: 2,
                   },
                   '&.Mui-selected': {
                     bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
