@@ -30,12 +30,13 @@
   --border-radius-lg: 12px;
   
   /* Espacements */
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-xxl: 48px;
+  --spacing-unit: 8px;
+  --spacing-xs: calc(var(--spacing-unit) * 0.5);
+  --spacing-sm: var(--spacing-unit);
+  --spacing-md: calc(var(--spacing-unit) * 2);
+  --spacing-lg: calc(var(--spacing-unit) * 3);
+  --spacing-xl: calc(var(--spacing-unit) * 4);
+  --spacing-xxl: calc(var(--spacing-unit) * 6);
   
   /* Ombres */
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
