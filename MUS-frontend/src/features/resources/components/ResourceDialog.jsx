@@ -34,7 +34,7 @@ import {
   ArrowForward,
 } from '@mui/icons-material';
 
-const steps = ['Basic Information', 'Academic Context', 'Settings'];
+  const steps = ['Basic Information', 'Academic Context', 'Settings'];
 
 const ResourceDialog = ({ open, resource, onClose, onSave }) => {
   const [activeStep, setActiveStep] = useState(0);
@@ -191,296 +191,353 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
     return icons[step];
   };
 
+  const sectionCardSx = {
+    p: 2,
+    borderRadius: 3,
+    border: '1px solid',
+    borderColor: 'divider',
+    background: (theme) =>
+      theme.palette.mode === 'dark'
+        ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
+        : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+  };
+
   const renderStepContent = (step) => {
     switch (step) {
       case 0:
         return (
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Resource Title"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                error={!!errors.title}
-                helperText={errors.title}
-                required
-                InputLabelProps={{ shrink: true }}
-                placeholder="Enter resource title"
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                error={!!errors.description}
-                helperText={errors.description}
-                multiline
-                rows={3}
-                required
-                InputLabelProps={{ shrink: true }}
-                placeholder="Enter resource description"
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel shrink>Educational Type *</InputLabel>
-                <Select
-                  name="educationalType"
-                  value={formData.educationalType}
-                  onChange={handleInputChange}
-                  label="Educational Type *"
-                  displayEmpty
-                  notched
-                  sx={{ borderRadius: 2 }}
-                >
-                  <MenuItem value="exam">Exam</MenuItem>
-                  <MenuItem value="course">Course</MenuItem>
-                  <MenuItem value="notes">Notes</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel shrink>Format *</InputLabel>
-                <Select
-                  name="format"
-                  value={formData.format}
-                  onChange={handleInputChange}
-                  label="Format *"
-                  displayEmpty
-                  notched
-                  sx={{ borderRadius: 2 }}
-                >
-                  <MenuItem value="pdf">PDF</MenuItem>
-                  <MenuItem value="video">Video</MenuItem>
-                  <MenuItem value="powerpoint">PowerPoint</MenuItem>
-                  <MenuItem value="word">Word</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ mb: 1, display: 'block' }}>
-                Upload Method
-              </Typography>
-              <ToggleButtonGroup
-                value={uploadMethod}
-                exclusive
-                onChange={handleUploadMethodChange}
-                size="small"
-                fullWidth
-                sx={{ mb: 1.5 }}
-              >
-                <ToggleButton value="url" sx={{ borderRadius: 2, textTransform: 'none', py: 1 }}>
-                  <LinkIcon sx={{ fontSize: 18, mr: 1 }} />
-                  Enter URL
-                </ToggleButton>
-                <ToggleButton value="file" sx={{ borderRadius: 2, textTransform: 'none', py: 1 }}>
-                  <CloudUploadIcon sx={{ fontSize: 18, mr: 1 }} />
-                  Upload File
-                </ToggleButton>
-              </ToggleButtonGroup>
-              {uploadMethod === 'url' ? (
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Resource URL"
-                  name="url"
-                  value={formData.url}
-                  onChange={handleInputChange}
-                  error={!!errors.url}
-                  helperText={errors.url}
-                  required
-                  InputLabelProps={{ shrink: true }}
-                  placeholder="https://example.com/resource.pdf"
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                />
-              ) : (
-                <Button
-                  component="label"
-                  variant="outlined"
-                  fullWidth
-                  startIcon={<CloudUploadIcon />}
-                  sx={{
-                    py: 1.5,
-                    borderRadius: 2,
-                    textTransform: 'none',
-                    borderStyle: 'dashed',
-                    borderWidth: 2,
-                    borderColor: errors.file ? 'error.main' : (selectedFile ? 'success.main' : 'divider'),
-                    bgcolor: selectedFile ? (theme) => alpha(theme.palette.success.main, 0.05) : 'transparent',
-                    color: selectedFile ? 'success.main' : 'text.secondary',
-                  }}
-                >
-                  {selectedFile ? `${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(1)} MB)` : 'Click to select file'}
-                  <input type="file" hidden onChange={handleFileChange} accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4,.avi,.mov" />
-                </Button>
-              )}
-              {errors.file && (
-                <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
-                  {errors.file}
+          <Grid container spacing={1.5}>
+            <Grid item xs={12} md={7}>
+              <Box sx={sectionCardSx}>
+                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>
+                  Resource Details
                 </Typography>
-              )}
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Resource Title"
+                      name="title"
+                      value={formData.title}
+                      onChange={handleInputChange}
+                      error={!!errors.title}
+                      helperText={errors.title}
+                      required
+                      InputLabelProps={{ shrink: true }}
+                      placeholder="Enter resource title"
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Description"
+                      name="description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      error={!!errors.description}
+                      helperText={errors.description}
+                      multiline
+                      rows={4}
+                      required
+                      InputLabelProps={{ shrink: true }}
+                      placeholder="Enter resource description"
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel shrink>Educational Type *</InputLabel>
+                      <Select
+                        name="educationalType"
+                        value={formData.educationalType}
+                        onChange={handleInputChange}
+                        label="Educational Type *"
+                        displayEmpty
+                        notched
+                        sx={{ borderRadius: 2 }}
+                      >
+                        <MenuItem value="exam">Exam</MenuItem>
+                        <MenuItem value="course">Course</MenuItem>
+                        <MenuItem value="notes">Notes</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel shrink>Format *</InputLabel>
+                      <Select
+                        name="format"
+                        value={formData.format}
+                        onChange={handleInputChange}
+                        label="Format *"
+                        displayEmpty
+                        notched
+                        sx={{ borderRadius: 2 }}
+                      >
+                        <MenuItem value="pdf">PDF</MenuItem>
+                        <MenuItem value="video">Video</MenuItem>
+                        <MenuItem value="powerpoint">PowerPoint</MenuItem>
+                        <MenuItem value="word">Word</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                </Grid>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={5}>
+              <Box sx={sectionCardSx}>
+                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
+                  Upload Source
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                  Choose a link or upload a file to attach the resource.
+                </Typography>
+                <ToggleButtonGroup
+                  value={uploadMethod}
+                  exclusive
+                  onChange={handleUploadMethodChange}
+                  size="small"
+                  fullWidth
+                  sx={{ mb: 2 }}
+                >
+                  <ToggleButton value="url" sx={{ borderRadius: 2, textTransform: 'none', py: 1 }}>
+                    <LinkIcon sx={{ fontSize: 18, mr: 1 }} />
+                    Enter URL
+                  </ToggleButton>
+                  <ToggleButton value="file" sx={{ borderRadius: 2, textTransform: 'none', py: 1 }}>
+                    <CloudUploadIcon sx={{ fontSize: 18, mr: 1 }} />
+                    Upload File
+                  </ToggleButton>
+                </ToggleButtonGroup>
+                {uploadMethod === 'url' ? (
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Resource URL"
+                    name="url"
+                    value={formData.url}
+                    onChange={handleInputChange}
+                    error={!!errors.url}
+                    helperText={errors.url || 'Paste a direct link to the resource file.'}
+                    required
+                    InputLabelProps={{ shrink: true }}
+                    placeholder="https://example.com/resource.pdf"
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                ) : (
+                  <Box>
+                    <Button
+                      component="label"
+                      variant="outlined"
+                      fullWidth
+                      sx={{
+                        py: 2,
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        borderStyle: 'dashed',
+                        borderWidth: 2,
+                        borderColor: errors.file ? 'error.main' : (selectedFile ? 'success.main' : 'divider'),
+                        bgcolor: selectedFile ? (theme) => alpha(theme.palette.success.main, 0.05) : 'transparent',
+                        color: selectedFile ? 'success.main' : 'text.secondary',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 0.5,
+                      }}
+                    >
+                      <CloudUploadIcon sx={{ fontSize: 26 }} />
+                      <Typography variant="body2" fontWeight={600}>
+                        {selectedFile ? 'File ready' : 'Drop or browse'}
+                      </Typography>
+                      <Typography variant="caption">
+                        {selectedFile
+                          ? `${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(1)} MB)`
+                          : 'PDF, Word, PowerPoint, or Video'}
+                      </Typography>
+                      <input
+                        type="file"
+                        hidden
+                        onChange={handleFileChange}
+                        accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4,.avi,.mov"
+                      />
+                    </Button>
+                    {errors.file && (
+                      <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                        {errors.file}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
+              </Box>
             </Grid>
           </Grid>
         );
 
       case 1:
         return (
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Module Code"
-                name="moduleCode"
-                value={formData.academicContext.moduleCode}
-                onChange={handleAcademicContextChange}
-                InputLabelProps={{ shrink: true }}
-                placeholder="e.g., MATH101"
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Module Title"
-                name="moduleTitle"
-                value={formData.academicContext.moduleTitle}
-                onChange={handleAcademicContextChange}
-                InputLabelProps={{ shrink: true }}
-                placeholder="e.g., Calculus I"
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Semester"
-                name="semesterName"
-                value={formData.academicContext.semesterName}
-                onChange={handleAcademicContextChange}
-                InputLabelProps={{ shrink: true }}
-                placeholder="e.g., Semester 1"
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Academic Level"
-                name="levelName"
-                value={formData.academicContext.levelName}
-                onChange={handleAcademicContextChange}
-                InputLabelProps={{ shrink: true }}
-                placeholder="e.g., 1st Year"
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Program Name"
-                name="programName"
-                value={formData.academicContext.programName}
-                onChange={handleAcademicContextChange}
-                InputLabelProps={{ shrink: true }}
-                placeholder="e.g., Computer Science"
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel shrink>Difficulty Level</InputLabel>
-                <Select
-                  name="difficulty"
-                  value={formData.academicContext.difficulty}
+          <Box sx={sectionCardSx}>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>
+              Academic Context
+            </Typography>
+            <Grid container spacing={1.5}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Module Code"
+                  name="moduleCode"
+                  value={formData.academicContext.moduleCode}
                   onChange={handleAcademicContextChange}
-                  label="Difficulty Level"
-                  displayEmpty
-                  notched
-                  sx={{ borderRadius: 2 }}
-                >
-                  <MenuItem value="easy">Easy</MenuItem>
-                  <MenuItem value="medium">Medium</MenuItem>
-                  <MenuItem value="hard">Hard</MenuItem>
-                </Select>
-              </FormControl>
+                  InputLabelProps={{ shrink: true }}
+                  placeholder="e.g., MATH101"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Module Title"
+                  name="moduleTitle"
+                  value={formData.academicContext.moduleTitle}
+                  onChange={handleAcademicContextChange}
+                  InputLabelProps={{ shrink: true }}
+                  placeholder="e.g., Calculus I"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Semester"
+                  name="semesterName"
+                  value={formData.academicContext.semesterName}
+                  onChange={handleAcademicContextChange}
+                  InputLabelProps={{ shrink: true }}
+                  placeholder="e.g., Semester 1"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Academic Level"
+                  name="levelName"
+                  value={formData.academicContext.levelName}
+                  onChange={handleAcademicContextChange}
+                  InputLabelProps={{ shrink: true }}
+                  placeholder="e.g., 1st Year"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Program Name"
+                  name="programName"
+                  value={formData.academicContext.programName}
+                  onChange={handleAcademicContextChange}
+                  InputLabelProps={{ shrink: true }}
+                  placeholder="e.g., Computer Science"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel shrink>Difficulty Level</InputLabel>
+                  <Select
+                    name="difficulty"
+                    value={formData.academicContext.difficulty}
+                    onChange={handleAcademicContextChange}
+                    label="Difficulty Level"
+                    displayEmpty
+                    notched
+                    sx={{ borderRadius: 2 }}
+                  >
+                    <MenuItem value="easy">Easy</MenuItem>
+                    <MenuItem value="medium">Medium</MenuItem>
+                    <MenuItem value="hard">Hard</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
             </Grid>
-          </Grid>
+          </Box>
         );
 
       case 2:
         return (
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel shrink>Publication Status *</InputLabel>
-                <Select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  label="Publication Status *"
-                  displayEmpty
-                  notched
-                  sx={{ borderRadius: 2 }}
-                >
-                  <MenuItem value="draft">
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Chip label="Draft" color="warning" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                    </Box>
-                  </MenuItem>
-                  <MenuItem value="published">
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Chip label="Published" color="success" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                    </Box>
-                  </MenuItem>
-                  <MenuItem value="archived">
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Chip label="Archived" color="default" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                    </Box>
-                  </MenuItem>
-                </Select>
-              </FormControl>
+          <Grid container spacing={1.5}>
+            <Grid item xs={12} md={7}>
+              <Box sx={sectionCardSx}>
+                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>
+                  Publication
+                </Typography>
+                <Grid container spacing={1.5}>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel shrink>Publication Status *</InputLabel>
+                      <Select
+                        name="status"
+                        value={formData.status}
+                        onChange={handleInputChange}
+                        label="Publication Status *"
+                        displayEmpty
+                        notched
+                        sx={{ borderRadius: 2 }}
+                      >
+                        <MenuItem value="draft">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Chip label="Draft" color="warning" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                          </Box>
+                        </MenuItem>
+                        <MenuItem value="published">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Chip label="Published" color="success" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                          </Box>
+                        </MenuItem>
+                        <MenuItem value="archived">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Chip label="Archived" color="default" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                          </Box>
+                        </MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Price Points"
+                      name="pricePoints"
+                      type="number"
+                      value={formData.pricePoints}
+                      onChange={handleInputChange}
+                      inputProps={{ min: 0 }}
+                      InputLabelProps={{ shrink: true }}
+                      helperText="Set to 0 for free"
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Price Points"
-                name="pricePoints"
-                type="number"
-                value={formData.pricePoints}
-                onChange={handleInputChange}
-                inputProps={{ min: 0 }}
-                InputLabelProps={{ shrink: true }}
-                helperText="Set to 0 for free"
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
-            </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={5}>
               <Box
                 sx={{
-                  p: 2,
-                  borderRadius: 2,
+                  ...sectionCardSx,
                   bgcolor: (theme) => alpha(theme.palette.info.main, 0.05),
-                  border: '1px solid',
-                  borderColor: (theme) => alpha(theme.palette.info.main, 0.1),
+                  borderColor: (theme) => alpha(theme.palette.info.main, 0.2),
                 }}
               >
-                <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
+                  Visibility Guide
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.7 }}>
                   <strong>Draft:</strong> Only visible to you<br />
                   <strong>Published:</strong> Visible to all users<br />
                   <strong>Archived:</strong> Hidden from public view
@@ -499,20 +556,31 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="md"
+      maxWidth="lg"
       fullWidth
       PaperProps={{
-        sx: { borderRadius: 3, overflow: 'hidden' }
+        sx: {
+          borderRadius: 4,
+          overflow: 'hidden',
+          background: (theme) =>
+            theme.palette.mode === 'dark'
+              ? 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)'
+              : 'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%)',
+        }
       }}
     >
       {/* Header */}
       <DialogTitle sx={{ p: 0, position: 'relative' }}>
         <Box
           sx={{
-            px: 3,
+            px: 2.5,
             pr: 6,
             py: 2,
-            background: (theme) => alpha(theme.palette.primary.main, 0.03),
+            background: (theme) =>
+              `linear-gradient(120deg, ${alpha(theme.palette.primary.main, 0.12)} 0%, ${alpha(
+                theme.palette.primary.main,
+                0.02
+              )} 60%)`,
             borderBottom: '1px solid',
             borderColor: 'divider',
           }}
@@ -520,9 +588,9 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
           <Box display="flex" alignItems="center" gap={1.5}>
             <Box
               sx={{
-                width: 40,
-                height: 40,
-                borderRadius: 2,
+                width: 44,
+                height: 44,
+                borderRadius: 2.5,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -535,9 +603,22 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
               <Typography variant="h6" fontWeight="700">
                 {resource ? 'Edit Resource' : 'Create Resource'}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Step {activeStep + 1} of {steps.length}
+              <Typography variant="body2" color="text.secondary">
+                Add a resource that looks great and is easy to discover.
               </Typography>
+            </Box>
+            <Box display="flex" alignItems="center" gap={1} sx={{ mr: 2 }}>
+              <Chip
+                label={formData.educationalType}
+                size="small"
+                sx={{ textTransform: 'capitalize', fontWeight: 600, fontSize: '0.7rem', height: 24 }}
+              />
+              <Chip
+                label={formData.format}
+                size="small"
+                variant="outlined"
+                sx={{ textTransform: 'uppercase', fontWeight: 600, fontSize: '0.7rem', height: 24 }}
+              />
             </Box>
             {resource && (
               <Chip
@@ -558,7 +639,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
       </DialogTitle>
 
       {/* Stepper */}
-      <Box sx={{ px: 3, pt: 2, pb: 1 }}>
+      <Box sx={{ px: 2.5, pt: 1.5, pb: 1 }}>
         <Stepper activeStep={activeStep} alternativeLabel>
           {steps.map((label, index) => (
             <Step key={label}>
@@ -572,8 +653,8 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      bgcolor: index <= activeStep 
-                        ? 'primary.main' 
+                      bgcolor: index <= activeStep
+                        ? 'primary.main'
                         : (theme) => alpha(theme.palette.grey[500], 0.2),
                       color: index <= activeStep ? 'white' : 'text.secondary',
                     }}
@@ -596,12 +677,21 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
       </Box>
 
       {/* Content */}
-      <DialogContent sx={{ px: 3, py: 2 }}>
+      <DialogContent sx={{ px: 2.5, py: 2 }}>
         {renderStepContent(activeStep)}
       </DialogContent>
 
       {/* Actions */}
-      <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider', gap: 1 }}>
+      <DialogActions
+        sx={{
+          px: 2.5,
+          py: 2,
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          gap: 1,
+          background: (theme) => alpha(theme.palette.primary.main, 0.02),
+        }}
+      >
         <Button
           onClick={onClose}
           variant="outlined"
@@ -628,7 +718,13 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
             variant="contained"
             size="small"
             endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
-            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, boxShadow: 'none' }}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: 'none',
+              px: 2.5,
+            }}
           >
             Next
           </Button>
@@ -637,7 +733,13 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
             onClick={handleSave}
             variant="contained"
             size="small"
-            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, boxShadow: 'none' }}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: 'none',
+              px: 2.5,
+            }}
           >
             {resource ? 'Update' : 'Create'}
           </Button>
