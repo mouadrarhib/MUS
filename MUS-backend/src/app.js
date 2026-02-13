@@ -9,6 +9,8 @@ import { swaggerSpec } from "./config/swagger.js";
 
 const app = express();
 
+//test
+
 app.use(
   cors({
     origin: process.env.CLIENT_ORIGIN || true, // reflect request origin by default
