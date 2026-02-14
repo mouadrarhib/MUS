@@ -7,12 +7,17 @@ import {
   updateInstitution,
   deleteInstitution,
 } from "../controllers/institutionController.js";
+import { listProgramsByInstitution } from "../controllers/institutionProgramController.js";
 import validateRequest from "./validateRequest.js";
+import authMiddleware from "../middleware/auth.js";
+import { requireRole } from "../middleware/authorization.js";
 
 const router = Router();
 
 router.post(
   "/",
+  authMiddleware,
+  requireRole("admin"),
   [
     body("name").isString().withMessage("Name is required"),
     body("institution_type_id")
@@ -28,6 +33,13 @@ router.post(
 router.get("/", listInstitutions);
 
 router.get(
+  "/:id/programs",
+  [param("id").isInt().withMessage("Valid institution ID is required")],
+  validateRequest,
+  listProgramsByInstitution
+);
+
+router.get(
   "/:id",
   [param("id").isInt().withMessage("Valid institution ID is required")],
   validateRequest,
@@ -36,6 +48,8 @@ router.get(
 
 router.patch(
   "/:id",
+  authMiddleware,
+  requireRole("admin"),
   [
     param("id").isInt().withMessage("Valid institution ID is required"),
     body("name").optional().isString(),
@@ -52,6 +66,8 @@ router.patch(
 
 router.delete(
   "/:id",
+  authMiddleware,
+  requireRole("admin"),
   [param("id").isInt().withMessage("Valid institution ID is required")],
   validateRequest,
   deleteInstitution

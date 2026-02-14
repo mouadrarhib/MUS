@@ -14,11 +14,15 @@ import {
     countDomainProgramsHandler,
 } from "../controllers/domainController.js";
 import validateRequest from "./validateRequest.js";
+import authMiddleware from "../middleware/auth.js";
+import { requireRole } from "../middleware/authorization.js";
 
 const router = Router();
 
 router.post(
     "/",
+    authMiddleware,
+    requireRole("admin"),
     [body("name").isString().withMessage("Name is required")],
     validateRequest,
     addDomain
@@ -51,6 +55,8 @@ router.get(
 
 router.patch(
     "/:id",
+    authMiddleware,
+    requireRole("admin"),
     [
         param("id").isInt().withMessage("Valid domain ID is required"),
         body("name").optional().isString(),
@@ -61,6 +67,8 @@ router.patch(
 
 router.delete(
     "/:id",
+    authMiddleware,
+    requireRole("admin"),
     [param("id").isInt().withMessage("Valid domain ID is required")],
     validateRequest,
     deleteExistingDomain

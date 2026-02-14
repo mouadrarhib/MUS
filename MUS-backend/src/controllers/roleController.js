@@ -26,8 +26,7 @@ import {
  *       type: object
  *       properties:
  *         id:
- *           type: string
- *           format: uuid
+ *           type: integer
  *         name:
  *           type: string
  *         description:
@@ -50,8 +49,7 @@ import {
  *              type: string
  *              format: uuid
  *          roleId:
- *              type: string
- *              format: uuid
+ *              type: integer
  */
 
 /**
@@ -121,8 +119,7 @@ export const listRoles = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: Role data
@@ -151,8 +148,7 @@ export const getRole = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     requestBody:
  *       required: true
  *       content:
@@ -188,8 +184,7 @@ export const updateRole = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: Role deleted

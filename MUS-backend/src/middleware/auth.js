@@ -16,13 +16,15 @@ const authMiddleware = (req, res, next) => {
       return next(new AppError("Invalid token payload", 401));
     }
 
-    storage.run({ user: decoded }, () => {
-      req.user = {
-        id: decoded.sub,
-        roles: decoded.roles || [],
-        iat: decoded.iat,
-        exp: decoded.exp,
-      };
+    const normalizedUser = {
+      id: decoded.sub,
+      roles: decoded.roles || [],
+      iat: decoded.iat,
+      exp: decoded.exp,
+    };
+
+    storage.run({ user: normalizedUser }, () => {
+      req.user = normalizedUser;
       return next();
     });
   } catch (error) {
@@ -38,6 +40,35 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
+export const optionalAuthMiddleware = (req, _res, next) => {
+  const token = req.cookies?.auth_token;
+
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const decoded = verifyToken(token);
+    if (!decoded.sub) {
+      return next();
+    }
+
+    const normalizedUser = {
+      id: decoded.sub,
+      roles: decoded.roles || [],
+      iat: decoded.iat,
+      exp: decoded.exp,
+    };
+
+    storage.run({ user: normalizedUser }, () => {
+      req.user = normalizedUser;
+      return next();
+    });
+  } catch (_error) {
+    return next();
+  }
+};
+
 export const getCurrentUser = () => {
   const store = storage.getStore();
   return store?.user;
@@ -45,7 +76,7 @@ export const getCurrentUser = () => {
 
 export const getCurrentUserId = () => {
   const user = getCurrentUser();
-  return user?.sub;
+  return user?.id || user?.sub;
 };
 
 export const getCurrentUserRoles = () => {

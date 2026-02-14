@@ -163,7 +163,8 @@ export const addResource = asyncHandler(async (req, res) => {
     educational_type,
     format,
     resource_type_id,
-    metadata
+    metadata,
+    req.user
   );
   return successResponse(res, "Resource created successfully", result, 201);
 });
@@ -188,7 +189,7 @@ export const addResource = asyncHandler(async (req, res) => {
  *                 $ref: '#/components/schemas/Resource'
  */
 export const listResources = asyncHandler(async (req, res) => {
-  const result = await getAllResources();
+  const result = await getAllResources(req.user || null);
   return successResponse(res, "Resources retrieved successfully", result);
 });
 
@@ -213,7 +214,7 @@ export const listResources = asyncHandler(async (req, res) => {
  */
 export const listMyResources = asyncHandler(async (req, res) => {
   const userId = req.user.id;
-  const result = await getResourcesByCreator(userId);
+  const result = await getResourcesByCreator(userId, req.user || null);
   return successResponse(res, "Your resources retrieved successfully", result);
 });
 
@@ -322,7 +323,8 @@ export const updateExistingResource = asyncHandler(async (req, res) => {
     educational_type,
     format,
     resource_type_id,
-    metadata
+    metadata,
+    req.user
   );
   return successResponse(res, "Resource updated successfully", result);
 });
@@ -348,7 +350,7 @@ export const updateExistingResource = asyncHandler(async (req, res) => {
  */
 export const deleteExistingResource = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  await deleteResource(id);
+  await deleteResource(id, req.user);
   return successResponse(res, "Resource deleted successfully");
 });
 
@@ -379,7 +381,7 @@ export const deleteExistingResource = asyncHandler(async (req, res) => {
  */
 export const listResourcesByStatus = asyncHandler(async (req, res) => {
   const { status } = req.params;
-  const result = await getResourcesByStatus(status);
+  const result = await getResourcesByStatus(status, req.user || null);
   return successResponse(res, "Resources retrieved successfully", result);
 });
 
@@ -410,7 +412,7 @@ export const listResourcesByStatus = asyncHandler(async (req, res) => {
  */
 export const listResourcesByEducationalType = asyncHandler(async (req, res) => {
   const { educationalType } = req.params;
-  const result = await getResourcesByEducationalType(educationalType);
+  const result = await getResourcesByEducationalType(educationalType, req.user || null);
   return successResponse(res, "Resources retrieved successfully", result);
 });
 
@@ -441,7 +443,7 @@ export const listResourcesByEducationalType = asyncHandler(async (req, res) => {
  */
 export const listResourcesByFormat = asyncHandler(async (req, res) => {
   const { format } = req.params;
-  const result = await getResourcesByFormat(format);
+  const result = await getResourcesByFormat(format, req.user || null);
   return successResponse(res, "Resources retrieved successfully", result);
 });
 
@@ -472,7 +474,7 @@ export const listResourcesByFormat = asyncHandler(async (req, res) => {
  */
 export const listResourcesByResourceType = asyncHandler(async (req, res) => {
   const { resourceTypeId } = req.params;
-  const result = await getResourcesByResourceType(resourceTypeId);
+  const result = await getResourcesByResourceType(resourceTypeId, req.user || null);
   return successResponse(res, "Resources retrieved successfully", result);
 });
 
@@ -504,7 +506,7 @@ export const listResourcesByResourceType = asyncHandler(async (req, res) => {
  */
 export const listResourcesByCreator = asyncHandler(async (req, res) => {
   const { creatorId } = req.params;
-  const result = await getResourcesByCreator(creatorId);
+  const result = await getResourcesByCreator(creatorId, req.user || null);
   return successResponse(res, "Resources retrieved successfully", result);
 });
 
@@ -535,7 +537,7 @@ export const listResourcesByCreator = asyncHandler(async (req, res) => {
  */
 export const listResourcesByLanguage = asyncHandler(async (req, res) => {
   const { language } = req.params;
-  const result = await getResourcesByLanguage(language);
+  const result = await getResourcesByLanguage(language, req.user || null);
   return successResponse(res, "Resources retrieved successfully", result);
 });
 
@@ -607,7 +609,7 @@ export const updateResourceMetadataHandler = asyncHandler(async (req, res) => {
 export const updateResourceStatusHandler = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
-  const result = await updateResourceStatus(id, status);
+  const result = await updateResourceStatus(id, status, req.user);
   return successResponse(res, "Resource status updated successfully", result);
 });
 
@@ -632,7 +634,7 @@ export const updateResourceStatusHandler = asyncHandler(async (req, res) => {
  */
 export const publishResourceHandler = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const result = await publishResource(id);
+  const result = await publishResource(id, req.user);
   return successResponse(res, "Resource published successfully", result);
 });
 
@@ -657,7 +659,7 @@ export const publishResourceHandler = asyncHandler(async (req, res) => {
  */
 export const archiveResourceHandler = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const result = await archiveResource(id);
+  const result = await archiveResource(id, req.user);
   return successResponse(res, "Resource archived successfully", result);
 });
 
@@ -688,7 +690,7 @@ export const archiveResourceHandler = asyncHandler(async (req, res) => {
  */
 export const searchResourcesHandler = asyncHandler(async (req, res) => {
   const { searchTerm } = req.params;
-  const result = await searchResources(searchTerm);
+  const result = await searchResources(searchTerm, req.user || null);
   return successResponse(res, "Resources retrieved successfully", result);
 });
 
@@ -738,7 +740,8 @@ export const advancedSearchResourcesHandler = asyncHandler(async (req, res) => {
     educational_type, 
     format, 
     language, 
-    resource_type_id
+    resource_type_id,
+    req.user || null
   );
   return successResponse(res, "Resources retrieved successfully", result);
 });
@@ -776,7 +779,7 @@ export const advancedSearchResourcesHandler = asyncHandler(async (req, res) => {
  */
 export const searchResourcesByMetadataHandler = asyncHandler(async (req, res) => {
   const { metadata_key, metadata_value } = req.body;
-  const result = await searchResourcesByMetadata(metadata_key, metadata_value);
+  const result = await searchResourcesByMetadata(metadata_key, metadata_value, req.user || null);
   return successResponse(res, "Resources retrieved successfully", result);
 });
 
@@ -832,8 +835,8 @@ export const listPublishedResources = asyncHandler(async (req, res) => {
  */
 export const countResourcesByStatusHandler = asyncHandler(async (req, res) => {
   const { status } = req.params;
-  const result = await countResourcesByStatus(status);
-  return successResponse(res, "Resource count retrieved successfully", result);
+  const result = await countResourcesByStatus(status, req.user || null);
+  return successResponse(res, "Resource count retrieved successfully", { count: result });
 });
 
 /**
@@ -864,8 +867,8 @@ export const countResourcesByStatusHandler = asyncHandler(async (req, res) => {
  */
 export const countResourcesByEducationalTypeHandler = asyncHandler(async (req, res) => {
   const { educationalType } = req.params;
-  const result = await countResourcesByEducationalType(educationalType);
-  return successResponse(res, "Resource count retrieved successfully", result);
+  const result = await countResourcesByEducationalType(educationalType, req.user || null);
+  return successResponse(res, "Resource count retrieved successfully", { count: result });
 });
 
 /**
@@ -896,8 +899,8 @@ export const countResourcesByEducationalTypeHandler = asyncHandler(async (req, r
  */
 export const countResourcesByFormatHandler = asyncHandler(async (req, res) => {
   const { format } = req.params;
-  const result = await countResourcesByFormat(format);
-  return successResponse(res, "Resource count retrieved successfully", result);
+  const result = await countResourcesByFormat(format, req.user || null);
+  return successResponse(res, "Resource count retrieved successfully", { count: result });
 });
 
 /**
@@ -929,8 +932,8 @@ export const countResourcesByFormatHandler = asyncHandler(async (req, res) => {
  */
 export const countResourcesByCreatorHandler = asyncHandler(async (req, res) => {
   const { creatorId } = req.params;
-  const result = await countResourcesByCreator(creatorId);
-  return successResponse(res, "Resource count retrieved successfully", result);
+  const result = await countResourcesByCreator(creatorId, req.user || null);
+  return successResponse(res, "Resource count retrieved successfully", { count: result });
 });
 
 /**
@@ -947,7 +950,7 @@ export const countResourcesByCreatorHandler = asyncHandler(async (req, res) => {
  *         description: A list of resources with ratings
  */
 export const listResourcesWithRatings = asyncHandler(async (req, res) => {
-  const result = await getResourcesWithRatings();
+  const result = await getResourcesWithRatings(req.user || null);
   return successResponse(res, "Resources with ratings retrieved successfully", result);
 });
 

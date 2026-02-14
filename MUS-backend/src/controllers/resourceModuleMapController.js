@@ -4,7 +4,7 @@ import {
   addResourceToModule,
   removeResourceFromModule,
   getModulesByResource,
-  getResourcesByModule,
+  getVisibleResourcesByModule,
   updateResourceModuleMap,
   getAvailableModulesForStudent,
   removeAllModulesFromResource,
@@ -169,8 +169,8 @@ export const getModulesByResourceHandler = asyncHandler(async (req, res) => {
  */
 export const getResourcesByModuleHandler = asyncHandler(async (req, res) => {
   const { moduleId } = req.params;
-  
-  const resources = await getResourcesByModule(parseInt(moduleId));
+
+  const resources = await getVisibleResourcesByModule(parseInt(moduleId), req.user || null);
   
   return successResponse(res, "Resources retrieved successfully", {
     total: resources.length,
@@ -246,8 +246,8 @@ export const updateResourceModuleMapHandler = asyncHandler(async (req, res) => {
  *         description: Available modules retrieved successfully
  */
 export const getAvailableModulesHandler = asyncHandler(async (req, res) => {
-  const userId = getCurrentUserId();
-  
+  const userId = req.user?.id || getCurrentUserId();
+
   const modules = await getAvailableModulesForStudent(userId);
   
   return successResponse(res, "Available modules retrieved successfully", {

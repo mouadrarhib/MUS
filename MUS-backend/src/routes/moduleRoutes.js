@@ -23,7 +23,8 @@ import {
   checkModuleExists,
 } from "../controllers/moduleController.js";
 import validateRequest from "./validateRequest.js";
-// import authMiddleware from "../middleware/auth.js";
+import authMiddleware, { optionalAuthMiddleware } from "../middleware/auth.js";
+import { requireRole } from "../middleware/authorization.js";
 
 const router = Router();
 
@@ -44,6 +45,8 @@ const router = Router();
 // ============================================================================
 router.post(
   "/",
+  authMiddleware,
+  requireRole("admin"),
   [
     body("semester_id").isInt().withMessage("Valid semester ID is required"),
     body("code").isString().withMessage("Module code is required"),
@@ -173,6 +176,8 @@ router.get(
 // ============================================================================
 router.patch(
   "/:id",
+  authMiddleware,
+  requireRole("admin"),
   [
     param("id").isInt().withMessage("Valid module ID is required"),
     body("code").optional().isString(),
@@ -189,6 +194,8 @@ router.patch(
 // ============================================================================
 router.delete(
   "/:id",
+  authMiddleware,
+  requireRole("admin"),
   [param("id").isInt().withMessage("Valid module ID is required")],
   validateRequest,
   deleteExistingModule
@@ -199,6 +206,7 @@ router.delete(
 // ============================================================================
 router.get(
   "/:id/resources",
+  optionalAuthMiddleware,
   [param("id").isInt().withMessage("Valid module ID is required")],
   validateRequest,
   getModuleResourcesHandler
@@ -206,6 +214,7 @@ router.get(
 
 router.get(
   "/:id/resources/count",
+  optionalAuthMiddleware,
   [param("id").isInt().withMessage("Valid module ID is required")],
   validateRequest,
   countModuleResourcesHandler

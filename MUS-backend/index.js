@@ -1,8 +1,6 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import app from "./src/app.js";
 import { sequelize } from "./src/models/index.js";
-
-dotenv.config();
 
 const startServer = async () => {
   try {

@@ -3,6 +3,7 @@ import { User, Role, UserRole, sequelize } from "../models/index.js";
 import { hashPassword, comparePassword } from "../utils/password.js";
 import { generateToken } from "../utils/jwt.js";
 import { SQL } from "../snippets/index.js";
+import crypto from "crypto";
 
 const DEFAULT_ROLE = "student";
 
@@ -309,28 +310,91 @@ export const checkEmailExists = async (email) => {
   return { exists: !!user, email };
 };
 
-/**
- * Reset password by email (public endpoint for forgot password)
- */
-export const resetPasswordByEmail = async (email, newPassword) => {
+const hashResetToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
+
+export const requestPasswordReset = async (email, context = {}) => {
   if (!email) {
     throw new AppError("Email is required", 400);
   }
+
+  const user = await getUserByEmail(email);
+  if (!user || user.is_active === false) {
+    return { requested: true };
+  }
+
+  const token = crypto.randomUUID();
+  const tokenHash = hashResetToken(token);
+
+  await sequelize.query(
+    `
+    INSERT INTO public.password_reset_tokens (user_id, token_hash, expires_at, created_ip)
+    VALUES (:user_id, :token_hash, NOW() + INTERVAL '1 hour', :created_ip)
+    `,
+    {
+      replacements: {
+        user_id: user.id,
+        token_hash: tokenHash,
+        created_ip: context.ip || null,
+      },
+    }
+  );
+
+  const payload = {
+    requested: true,
+    expires_in_minutes: 60,
+  };
+
+  if (process.env.NODE_ENV !== "production") {
+    payload.reset_token = token;
+  }
+
+  return payload;
+};
+
+export const resetPasswordWithToken = async (token, newPassword) => {
+  if (!token) {
+    throw new AppError("Reset token is required", 400);
+  }
+
   if (!newPassword || newPassword.length < 8) {
     throw new AppError("New password must be at least 8 characters", 400);
   }
 
-  const user = await getUserByEmail(email);
-  if (!user) {
-    throw new AppError("User not found", 404);
+  const tokenHash = hashResetToken(token);
+  const [rows] = await sequelize.query(
+    `
+    SELECT id, user_id
+    FROM public.password_reset_tokens
+    WHERE token_hash = :token_hash
+      AND used_at IS NULL
+      AND expires_at > NOW()
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    {
+      replacements: { token_hash: tokenHash },
+    }
+  );
+
+  if (!rows?.length) {
+    throw new AppError("Invalid or expired reset token", 400);
   }
 
-  if (user.is_active === false) {
-    throw new AppError("Account is disabled", 403);
-  }
+  const resetToken = rows[0];
+  await resetPassword(resetToken.user_id, newPassword);
 
-  // Use the existing resetPassword function
-  return await resetPassword(user.id, newPassword);
+  await sequelize.query(
+    `
+    UPDATE public.password_reset_tokens
+    SET used_at = NOW()
+    WHERE id = :id OR (user_id = :user_id AND used_at IS NULL)
+    `,
+    {
+      replacements: { id: resetToken.id, user_id: resetToken.user_id },
+    }
+  );
+
+  return { message: "Password reset" };
 };
 
 export const updateProfile = async (userId, full_name) => {

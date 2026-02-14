@@ -1,10 +1,44 @@
 import { sequelize } from "../models/index.js";
 import { SQL } from "../snippets/index.js";
+import AppError from "../helpers/appError.js";
+
+const pickScalar = (row, preferredKey = null) => {
+  if (!row || typeof row !== "object") return null;
+  if (preferredKey && Object.prototype.hasOwnProperty.call(row, preferredKey)) {
+    return row[preferredKey];
+  }
+
+  const values = Object.values(row);
+  return values.length ? values[0] : null;
+};
+
+const canAccessResourceForFavorite = async (resourceId, actor = null) => {
+  const [resources] = await sequelize.query(
+    `SELECT id, status::text AS status, created_by FROM public.resources WHERE id = :resource_id LIMIT 1`,
+    { replacements: { resource_id: resourceId } }
+  );
+
+  if (!resources.length) {
+    throw new AppError("Resource not found", 404);
+  }
+
+  const resource = resources[0];
+  const roles = actor?.roles || [];
+  const isAdmin = roles.includes("admin");
+  const isOwner = actor?.id && resource.created_by === actor.id;
+  const isPublished = String(resource.status || "").toLowerCase() === "published";
+
+  if (!isAdmin && !isOwner && !isPublished) {
+    throw new AppError("Resource not found", 404);
+  }
+};
 
 /**
  * Add a resource to user's favorites
  */
-export const addFavorite = async (userId, resourceId) => {
+export const addFavorite = async (userId, resourceId, actor = null) => {
+  await canAccessResourceForFavorite(resourceId, actor);
+
   const [results] = await sequelize.query(SQL.FAVORITE.ADD, {
     replacements: {
       user_id: userId,
@@ -24,7 +58,7 @@ export const removeFavorite = async (userId, resourceId) => {
       resource_id: resourceId,
     },
   });
-  return results[0];
+  return Boolean(pickScalar(results[0], "sp_favorite_remove"));
 };
 
 /**
@@ -37,7 +71,7 @@ export const checkFavoriteExists = async (userId, resourceId) => {
       resource_id: resourceId,
     },
   });
-  return results[0];
+  return Boolean(pickScalar(results[0], "sp_favorite_exists"));
 };
 
 /**
@@ -100,19 +134,21 @@ export const countUserFavorites = async (userId) => {
       user_id: userId,
     },
   });
-  return results[0];
+  return Number(pickScalar(results[0], "sp_favorite_count_by_user") || 0);
 };
 
 /**
  * Count how many users favorited a resource
  */
-export const countResourceFavorites = async (resourceId) => {
+export const countResourceFavorites = async (resourceId, actor = null) => {
+  await canAccessResourceForFavorite(resourceId, actor);
+
   const [results] = await sequelize.query(SQL.FAVORITE.COUNT_BY_RESOURCE, {
     replacements: {
       resource_id: resourceId,
     },
   });
-  return results[0];
+  return Number(pickScalar(results[0], "sp_favorite_count_by_resource") || 0);
 };
 
 /**
@@ -149,7 +185,7 @@ export const removeAllUserFavorites = async (userId) => {
       user_id: userId,
     },
   });
-  return results[0];
+  return Number(pickScalar(results[0], "sp_favorite_remove_all_by_user") || 0);
 };
 
 /**
@@ -180,7 +216,9 @@ export const searchUserFavorites = async (userId, searchTerm) => {
 /**
  * Toggle favorite (add or remove)
  */
-export const toggleFavorite = async (userId, resourceId) => {
+export const toggleFavorite = async (userId, resourceId, actor = null) => {
+  await canAccessResourceForFavorite(resourceId, actor);
+
   const [results] = await sequelize.query(SQL.FAVORITE.TOGGLE, {
     replacements: {
       user_id: userId,

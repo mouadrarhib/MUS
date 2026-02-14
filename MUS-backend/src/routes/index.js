@@ -22,9 +22,7 @@ import resourceModuleMapRoutes from "./resourceModuleMapRoutes.js";
 const router = Router();
 
 router.use("/auth", authRoutes);
-router.use(authMiddleware);
-router.use("/roles", roleRoutes);
-router.use("/user-roles", userRoleRoutes);
+
 router.use("/institution-types", institutionTypeRoutes);
 router.use("/institutions", institutionRoutes);
 router.use("/domains", domainRoutes);
@@ -32,11 +30,15 @@ router.use("/programs", programRoutes);
 router.use("/institution-programs", institutionProgramRoutes);
 router.use("/levels", levelRoutes);
 router.use("/semesters", semesterRoutes);
-router.use("/student-profiles", studentProfileRoutes);
-router.use("/resources", resourceRoutes);
-router.use("/ressouces-module-map", resourceModuleMapRoutes);
 router.use("/modules", moduleRoutes);
 router.use("/ratings", ratingRoutes);
+router.use("/resources", resourceRoutes);
+router.use("", resourceModuleMapRoutes);
+
+router.use(authMiddleware);
+router.use("/roles", roleRoutes);
+router.use("/user-roles", userRoleRoutes);
+router.use("/student-profiles", studentProfileRoutes);
 router.use("/favorites", favoriteRoutes);
 router.use("/admin", adminRoutes);
 

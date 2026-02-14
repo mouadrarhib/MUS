@@ -19,11 +19,15 @@ import {
   getStudentProfileFullDetailsHandler,
 } from "../controllers/studentProfileController.js";
 import validateRequest from "./validateRequest.js";
+import authMiddleware from "../middleware/auth.js";
+import { requireRole, requireSelfOrAdmin } from "../middleware/authorization.js";
 
 const router = Router();
+router.use(authMiddleware);
 
 router.post(
   "/",
+  requireSelfOrAdmin("user_id"),
   [
     body("user_id").isUUID().withMessage("Valid user UUID is required"),
     body("institution_id").isInt().withMessage("Valid institution ID is required"),
@@ -34,10 +38,11 @@ router.post(
   addStudentProfile
 );
 
-router.get("/", listStudentProfiles);
+router.get("/", requireRole("admin"), listStudentProfiles);
 
 router.get(
   "/institution/:institutionId",
+  requireRole("admin"),
   [param("institutionId").isInt().withMessage("Valid institution ID is required")],
   validateRequest,
   listStudentProfilesByInstitution
@@ -45,6 +50,7 @@ router.get(
 
 router.get(
   "/institution/:institutionId/count",
+  requireRole("admin"),
   [param("institutionId").isInt().withMessage("Valid institution ID is required")],
   validateRequest,
   countStudentProfilesByInstitutionHandler
@@ -52,6 +58,7 @@ router.get(
 
 router.get(
   "/program/:programId",
+  requireRole("admin"),
   [param("programId").isInt().withMessage("Valid program ID is required")],
   validateRequest,
   listStudentProfilesByProgram
@@ -59,6 +66,7 @@ router.get(
 
 router.get(
   "/program/:programId/count",
+  requireRole("admin"),
   [param("programId").isInt().withMessage("Valid program ID is required")],
   validateRequest,
   countStudentProfilesByProgramHandler
@@ -66,6 +74,7 @@ router.get(
 
 router.get(
   "/semester/:semesterId",
+  requireRole("admin"),
   [param("semesterId").isInt().withMessage("Valid semester ID is required")],
   validateRequest,
   listStudentProfilesBySemester
@@ -73,6 +82,7 @@ router.get(
 
 router.get(
   "/semester/:semesterId/count",
+  requireRole("admin"),
   [param("semesterId").isInt().withMessage("Valid semester ID is required")],
   validateRequest,
   countStudentProfilesBySemesterHandler
@@ -80,6 +90,7 @@ router.get(
 
 router.get(
   "/:userId",
+  requireSelfOrAdmin("userId"),
   [param("userId").isUUID().withMessage("Valid user UUID is required")],
   validateRequest,
   getStudentProfile
@@ -87,6 +98,7 @@ router.get(
 
 router.patch(
   "/:userId",
+  requireSelfOrAdmin("userId"),
   [
     param("userId").isUUID().withMessage("Valid user UUID is required"),
     body("institution_id").optional().isInt(),
@@ -99,6 +111,7 @@ router.patch(
 
 router.delete(
   "/:userId",
+  requireRole("admin"),
   [param("userId").isUUID().withMessage("Valid user UUID is required")],
   validateRequest,
   deleteExistingStudentProfile
@@ -106,6 +119,7 @@ router.delete(
 
 router.get(
   "/:userId/exists",
+  requireSelfOrAdmin("userId"),
   [param("userId").isUUID().withMessage("Valid user UUID is required")],
   validateRequest,
   studentProfileExistsHandler
@@ -113,6 +127,7 @@ router.get(
 
 router.get(
   "/:userId/full-details",
+  requireSelfOrAdmin("userId"),
   [param("userId").isUUID().withMessage("Valid user UUID is required")],
   validateRequest,
   getStudentProfileFullDetailsHandler
@@ -120,6 +135,7 @@ router.get(
 
 router.patch(
   "/:userId/institution",
+  requireSelfOrAdmin("userId"),
   [
     param("userId").isUUID().withMessage("Valid user UUID is required"),
     body("institution_id").isInt().withMessage("Valid institution ID is required"),
@@ -130,6 +146,7 @@ router.patch(
 
 router.patch(
   "/:userId/program",
+  requireSelfOrAdmin("userId"),
   [
     param("userId").isUUID().withMessage("Valid user UUID is required"),
     body("program_id").isInt().withMessage("Valid program ID is required"),
@@ -140,6 +157,7 @@ router.patch(
 
 router.patch(
   "/:userId/semester",
+  requireSelfOrAdmin("userId"),
   [
     param("userId").isUUID().withMessage("Valid user UUID is required"),
     body("current_semester_id").isInt().withMessage("Valid current semester ID is required"),

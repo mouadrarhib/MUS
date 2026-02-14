@@ -7,12 +7,17 @@ import {
   updateProgram,
   deleteProgram,
 } from "../controllers/programController.js";
+import { listInstitutionsByProgram } from "../controllers/institutionProgramController.js";
 import validateRequest from "./validateRequest.js";
+import authMiddleware from "../middleware/auth.js";
+import { requireRole } from "../middleware/authorization.js";
 
 const router = Router();
 
 router.post(
   "/",
+  authMiddleware,
+  requireRole("admin"),
   [
     body("name").isString().withMessage("Name is required"),
     body("domain_id").isInt().withMessage("Valid domain ID is required"),
@@ -24,6 +29,13 @@ router.post(
 router.get("/", listPrograms);
 
 router.get(
+  "/:id/institutions",
+  [param("id").isInt().withMessage("Valid program ID is required")],
+  validateRequest,
+  listInstitutionsByProgram
+);
+
+router.get(
   "/:id",
   [param("id").isInt().withMessage("Valid program ID is required")],
   validateRequest,
@@ -32,6 +44,8 @@ router.get(
 
 router.patch(
   "/:id",
+  authMiddleware,
+  requireRole("admin"),
   [
     param("id").isInt().withMessage("Valid program ID is required"),
     body("name").optional().isString(),
@@ -46,6 +60,8 @@ router.patch(
 
 router.delete(
   "/:id",
+  authMiddleware,
+  requireRole("admin"),
   [param("id").isInt().withMessage("Valid program ID is required")],
   validateRequest,
   deleteProgram

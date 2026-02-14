@@ -19,6 +19,7 @@ import {
   toggleFavorite,
   getUsersByResourceFavorite,
 } from "../services/favoriteService.js";
+import { logAudit } from "../services/auditService.js";
 
 
 /**
@@ -66,7 +67,7 @@ export const addFavoriteHandler = asyncHandler(async (req, res) => {
   const userId = getCurrentUserId();
   const { resource_id } = req.body;
 
-  const favorite = await addFavorite(userId, resource_id);
+  const favorite = await addFavorite(userId, resource_id, req.user || null);
   
   if (!favorite) {
     return successResponse(res, "Resource already in favorites", null, 200);
@@ -99,7 +100,7 @@ export const toggleFavoriteHandler = asyncHandler(async (req, res) => {
   const userId = getCurrentUserId();
   const { resource_id } = req.body;
 
-  const result = await toggleFavorite(userId, resource_id);
+  const result = await toggleFavorite(userId, resource_id, req.user || null);
   const message = `Resource ${result.action} ${result.is_favorited ? "to" : "from"} favorites`;
   
   return successResponse(res, message, result);
@@ -206,7 +207,7 @@ export const listMyFavoritesHandler = asyncHandler(async (req, res) => {
  *         required: true
  *         schema:
  *           type: string
- *           enum: [draft, published, archived]
+ *           enum: [draft, pending, published, rejected, archived]
  *     responses:
  *       200:
  *         description: Filtered favorites
@@ -320,7 +321,7 @@ export const countMyFavoritesHandler = asyncHandler(async (req, res) => {
  */
 export const countResourceFavoritesHandler = asyncHandler(async (req, res) => {
   const { resourceId } = req.params;
-  const count = await countResourceFavorites(parseInt(resourceId));
+  const count = await countResourceFavorites(parseInt(resourceId), req.user || null);
   
   return successResponse(res, "Count retrieved successfully", { count });
 });
@@ -483,7 +484,18 @@ export const searchFavoritesHandler = asyncHandler(async (req, res) => {
  */
 export const listUsersWhoFavoritedHandler = asyncHandler(async (req, res) => {
   const { resourceId } = req.params;
+  const { reason = null } = req.query;
   const users = await getUsersByResourceFavorite(parseInt(resourceId));
-  
+
+  await logAudit({
+    userId: req.user?.id || null,
+    action: "FAVORITES_LIST_USERS_BY_RESOURCE",
+    resourceType: "resource",
+    resourceId: parseInt(resourceId),
+    newValue: { result_count: users.length, reason },
+    ip: req.ip,
+    userAgent: req.get("user-agent") || null,
+  });
+
   return successResponse(res, "Users retrieved successfully", users);
 });

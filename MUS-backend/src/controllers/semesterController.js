@@ -34,8 +34,7 @@ import {
  *       type: object
  *       properties:
  *         id:
- *           type: string
- *           format: uuid
+ *           type: integer
  *         level_id:
  *           type: integer
  *         name:
@@ -124,8 +123,7 @@ export const listSemesters = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: Semester data
@@ -154,8 +152,7 @@ export const getSemester = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     requestBody:
  *       required: true
  *       content:
@@ -191,8 +188,7 @@ export const updateExistingSemester = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: Semester deleted
@@ -288,11 +284,9 @@ export const searchSemestersHandler = asyncHandler(async (req, res) => {
  *                 type: object
  *                 properties:
  *                   id:
- *                     type: string
- *                     format: uuid
+ *                     type: integer
  *                   level_id:
- *                     type: string
- *                     format: uuid
+ *                     type: integer
  *                   name:
  *                     type: string
  *                   sort_order:
@@ -319,8 +313,7 @@ export const listSemestersWithModuleCount = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: A list of modules for the semester
@@ -351,8 +344,7 @@ export const listSemesterModules = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     requestBody:
  *       required: true
  *       content:
@@ -392,11 +384,9 @@ export const updateSemesterSortOrderHandler = asyncHandler(async (req, res) => {
  *             required: [semester_id_1, semester_id_2]
  *             properties:
  *               semester_id_1:
- *                 type: string
- *                 format: uuid
+ *                 type: integer
  *               semester_id_2:
- *                 type: string
- *                 format: uuid
+ *                 type: integer
  *     responses:
  *       200:
  *         description: Semesters reordered successfully
@@ -446,8 +436,7 @@ export const getNextSortOrderHandler = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: The number of modules for the semester
@@ -479,8 +468,7 @@ export const countSemesterModulesHandler = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: Full semester hierarchy
@@ -505,8 +493,7 @@ export const getSemesterFullHierarchyHandler = asyncHandler(async (req, res) => 
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: Full semester details

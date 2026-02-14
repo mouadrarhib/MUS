@@ -7,11 +7,13 @@ import {
   updateUserRoleController,
 } from "../controllers/userRoleController.js";
 import validateRequest from "./validateRequest.js";
+import { requireRole, requireSelfOrAdmin } from "../middleware/authorization.js";
 
 const router = Router();
 
 router.post(
   "/assign",
+  requireRole("admin"),
   [
     body("userId").isUUID().withMessage("Valid user ID is required"),
     body("roleId").isInt().withMessage("Valid role ID is required"),
@@ -22,6 +24,7 @@ router.post(
 
 router.post(
   "/remove",
+  requireRole("admin"),
   [
     body("userId").isUUID().withMessage("Valid user ID is required"),
     body("roleId").isInt().withMessage("Valid role ID is required"),
@@ -32,6 +35,7 @@ router.post(
 
 router.get(
   "/:userId",
+  requireSelfOrAdmin("userId"),
   [param("userId").isUUID().withMessage("Valid user ID is required")],
   validateRequest,
   listUserRoles
@@ -39,6 +43,7 @@ router.get(
 
 router.patch(
   "/:userId",
+  requireRole("admin"),
   [
     param("userId").isUUID().withMessage("Valid user ID is required"),
     body("oldRoleId").isInt().withMessage("Valid old role ID is required"),

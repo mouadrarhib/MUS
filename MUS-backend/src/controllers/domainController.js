@@ -29,8 +29,7 @@ import {
  *       type: object
  *       properties:
  *         id:
- *           type: string
- *           format: uuid
+ *           type: integer
  *         name:
  *           type: string
  *     DomainRequest:
@@ -109,8 +108,7 @@ export const listDomains = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: Domain data
@@ -139,8 +137,7 @@ export const getDomain = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     requestBody:
  *       required: true
  *       content:
@@ -176,8 +173,7 @@ export const updateExistingDomain = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: Domain deleted
@@ -268,8 +264,7 @@ export const searchDomainsHandler = asyncHandler(async (req, res) => {
  *                 type: object
  *                 properties:
  *                   id:
- *                     type: string
- *                     format: uuid
+ *                     type: integer
  *                   name:
  *                     type: string
  *                   program_count:
@@ -294,8 +289,7 @@ export const listDomainsWithProgramCount = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: Domain data with a list of programs
@@ -331,8 +325,7 @@ export const getDomainWithPrograms = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: A list of programs for the domain
@@ -363,8 +356,7 @@ export const listDomainPrograms = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: The number of programs for the domain

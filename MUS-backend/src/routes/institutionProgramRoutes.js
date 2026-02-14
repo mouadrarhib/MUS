@@ -7,11 +7,15 @@ import {
   listInstitutionsByProgram,
 } from "../controllers/institutionProgramController.js";
 import validateRequest from "./validateRequest.js";
+import authMiddleware from "../middleware/auth.js";
+import { requireRole } from "../middleware/authorization.js";
 
 const router = Router();
 
 router.post(
   "/add",
+  authMiddleware,
+  requireRole("admin"),
   [
     body("institution_id")
       .isInt()
@@ -24,6 +28,8 @@ router.post(
 
 router.post(
   "/remove",
+  authMiddleware,
+  requireRole("admin"),
   [
     body("institution_id")
       .isInt()

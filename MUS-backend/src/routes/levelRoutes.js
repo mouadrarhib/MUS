@@ -18,13 +18,17 @@ import {
   listLevelsByProgram,
 } from "../controllers/levelController.js";
 import validateRequest from "./validateRequest.js";
+import authMiddleware from "../middleware/auth.js";
+import { requireRole } from "../middleware/authorization.js";
 
 const router = Router();
 
 router.post(
   "/",
+  authMiddleware,
+  requireRole("admin"),
   [
-    body("program_id").isUUID().withMessage("Valid program ID is required"),
+    body("program_id").isInt({ min: 1 }).withMessage("Valid program ID is required"),
     body("name").isString().withMessage("Name is required"),
     body("sort_order").isInt().withMessage("Sort order is required"),
   ],
@@ -33,14 +37,15 @@ router.post(
 );
 
 router.get("/", listLevels);
-
 router.get("/with-semester-count", listLevelsWithSemesterCount);
 
 router.post(
   "/reorder",
+  authMiddleware,
+  requireRole("admin"),
   [
-    body("level_id_1").isUUID().withMessage("Valid level ID 1 is required"),
-    body("level_id_2").isUUID().withMessage("Valid level ID 2 is required"),
+    body("level_id_1").isInt({ min: 1 }).withMessage("Valid level ID 1 is required"),
+    body("level_id_2").isInt({ min: 1 }).withMessage("Valid level ID 2 is required"),
   ],
   validateRequest,
   reorderLevelsHandler
@@ -55,14 +60,14 @@ router.get(
 
 router.get(
   "/program/:programId",
-  [param("programId").isUUID().withMessage("Valid program ID is required")],
+  [param("programId").isInt({ min: 1 }).withMessage("Valid program ID is required")],
   validateRequest,
   listLevelsByProgram
 );
 
 router.get(
   "/program/:programId/next-sort-order",
-  [param("programId").isUUID().withMessage("Valid program ID is required")],
+  [param("programId").isInt({ min: 1 }).withMessage("Valid program ID is required")],
   validateRequest,
   getNextSortOrderHandler
 );
@@ -70,7 +75,7 @@ router.get(
 router.get(
   "/program/:programId/name/:name",
   [
-    param("programId").isUUID().withMessage("Valid program ID is required"),
+    param("programId").isInt({ min: 1 }).withMessage("Valid program ID is required"),
     param("name").isString().withMessage("Name is required"),
   ],
   validateRequest,
@@ -79,17 +84,19 @@ router.get(
 
 router.get(
   "/:id",
-  [param("id").isUUID().withMessage("Valid level ID is required")],
+  [param("id").isInt({ min: 1 }).withMessage("Valid level ID is required")],
   validateRequest,
   getLevel
 );
 
 router.patch(
   "/:id",
+  authMiddleware,
+  requireRole("admin"),
   [
-    param("id").isUUID().withMessage("Valid level ID is required"),
+    param("id").isInt({ min: 1 }).withMessage("Valid level ID is required"),
     body("name").optional().isString(),
-    body("program_id").optional().isUUID(),
+    body("program_id").optional().isInt({ min: 1 }),
     body("sort_order").optional().isInt(),
   ],
   validateRequest,
@@ -98,22 +105,26 @@ router.patch(
 
 router.delete(
   "/:id",
-  [param("id").isUUID().withMessage("Valid level ID is required")],
+  authMiddleware,
+  requireRole("admin"),
+  [param("id").isInt({ min: 1 }).withMessage("Valid level ID is required")],
   validateRequest,
   deleteExistingLevel
 );
 
 router.get(
   "/:id/semesters",
-  [param("id").isUUID().withMessage("Valid level ID is required")],
+  [param("id").isInt({ min: 1 }).withMessage("Valid level ID is required")],
   validateRequest,
   listLevelSemesters
 );
 
 router.patch(
   "/:id/sort-order",
+  authMiddleware,
+  requireRole("admin"),
   [
-    param("id").isUUID().withMessage("Valid level ID is required"),
+    param("id").isInt({ min: 1 }).withMessage("Valid level ID is required"),
     body("sort_order").isInt().withMessage("Sort order is required"),
   ],
   validateRequest,
@@ -122,14 +133,14 @@ router.patch(
 
 router.get(
   "/:id/semesters/count",
-  [param("id").isUUID().withMessage("Valid level ID is required")],
+  [param("id").isInt({ min: 1 }).withMessage("Valid level ID is required")],
   validateRequest,
   countLevelSemestersHandler
 );
 
 router.get(
   "/:id/full-details",
-  [param("id").isUUID().withMessage("Valid level ID is required")],
+  [param("id").isInt({ min: 1 }).withMessage("Valid level ID is required")],
   validateRequest,
   getLevelFullDetailsHandler
 );

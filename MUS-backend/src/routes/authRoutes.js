@@ -1,6 +1,8 @@
 import { Router } from "express";
-import { body } from "express-validator";
+import { body, param } from "express-validator";
 import authMiddleware from "../middleware/auth.js";
+import { requireRole } from "../middleware/authorization.js";
+import { authRateLimit, forgotPasswordRateLimit, registerRateLimit } from "../middleware/rateLimit.js";
 import {
   login,
   me,
@@ -24,6 +26,7 @@ const router = Router();
 
 router.post(
   "/register",
+  registerRateLimit,
   [
     body("email").isEmail().withMessage("Valid email is required"),
     body("password")
@@ -37,6 +40,7 @@ router.post(
 
 router.post(
   "/login",
+  authRateLimit,
   [
     body("email").isEmail(),
     body("password").notEmpty().withMessage("Password is required"),
@@ -45,26 +49,40 @@ router.post(
   login
 );
 
-// Public endpoints for forgot password
 router.post(
   "/email/check",
-  [
-    body("email").isEmail().withMessage("Valid email is required"),
-  ],
+  [body("email").isEmail().withMessage("Valid email is required")],
   validateRequest,
   checkEmail
 );
 
 router.post(
   "/password/forgot",
+  forgotPasswordRateLimit,
+  [body("email").isEmail().withMessage("Valid email is required")],
+  validateRequest,
+  forgotPassword
+);
+
+router.post(
+  "/forgot-password",
+  forgotPasswordRateLimit,
+  [body("email").isEmail().withMessage("Valid email is required")],
+  validateRequest,
+  forgotPassword
+);
+
+router.post(
+  "/reset-password",
+  authRateLimit,
   [
-    body("email").isEmail().withMessage("Valid email is required"),
+    body("token").isString().notEmpty().withMessage("Reset token is required"),
     body("new_password")
       .isLength({ min: 8 })
       .withMessage("New password must be at least 8 characters"),
   ],
   validateRequest,
-  forgotPassword
+  resetUserPassword
 );
 
 router.get("/me", authMiddleware, me);
@@ -121,12 +139,21 @@ router.patch(
 
 router.delete("/me", authMiddleware, removeUser);
 
-router.get("/user/:id", authMiddleware, getUserById);
+router.get(
+  "/user/:id",
+  authMiddleware,
+  requireRole("admin"),
+  [param("id").isUUID().withMessage("Valid user ID is required")],
+  validateRequest,
+  getUserById
+);
 
 router.patch(
   "/user/:id",
   authMiddleware,
+  requireRole("admin"),
   [
+    param("id").isUUID().withMessage("Valid user ID is required"),
     body("email").optional().isEmail(),
     body("full_name").optional().isString(),
     body("is_active").optional().isBoolean(),
@@ -135,6 +162,13 @@ router.patch(
   updateUser
 );
 
-router.delete("/user/:id", authMiddleware, removeUserById);
+router.delete(
+  "/user/:id",
+  authMiddleware,
+  requireRole("admin"),
+  [param("id").isUUID().withMessage("Valid user ID is required")],
+  validateRequest,
+  removeUserById
+);
 
 export default router;

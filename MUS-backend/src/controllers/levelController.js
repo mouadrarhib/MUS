@@ -33,11 +33,9 @@ import {
  *       type: object
  *       properties:
  *         id:
- *           type: string
- *           format: uuid
+ *           type: integer
  *         program_id:
- *           type: string
- *           format: uuid
+ *           type: integer
  *         name:
  *           type: string
  *         sort_order:
@@ -47,9 +45,8 @@ import {
  *       required: [program_id, name, sort_order]
  *       properties:
  *         program_id:
- *           type: string
- *           format: uuid
- *           example: "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6"
+ *           type: integer
+ *           example: 1
  *         name:
  *           type: string
  *           example: "Year 1"
@@ -125,8 +122,7 @@ export const listLevels = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: Level data
@@ -155,8 +151,7 @@ export const getLevel = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     requestBody:
  *       required: true
  *       content:
@@ -192,8 +187,7 @@ export const updateExistingLevel = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: Level deleted
@@ -218,8 +212,7 @@ export const deleteExistingLevel = asyncHandler(async (req, res) => {
  *         name: programId
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *       - in: path
  *         name: name
  *         required: true
@@ -290,11 +283,9 @@ export const searchLevelsHandler = asyncHandler(async (req, res) => {
  *                 type: object
  *                 properties:
  *                   id:
- *                     type: string
- *                     format: uuid
+ *                     type: integer
  *                   program_id:
- *                     type: string
- *                     format: uuid
+ *                     type: integer
  *                   name:
  *                     type: string
  *                   sort_order:
@@ -321,8 +312,7 @@ export const listLevelsWithSemesterCount = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: A list of semesters for the level
@@ -353,8 +343,7 @@ export const listLevelSemesters = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     requestBody:
  *       required: true
  *       content:
@@ -394,11 +383,9 @@ export const updateLevelSortOrderHandler = asyncHandler(async (req, res) => {
  *             required: [level_id_1, level_id_2]
  *             properties:
  *               level_id_1:
- *                 type: string
- *                 format: uuid
+ *                 type: integer
  *               level_id_2:
- *                 type: string
- *                 format: uuid
+ *                 type: integer
  *     responses:
  *       200:
  *         description: Levels reordered successfully
@@ -423,8 +410,7 @@ export const reorderLevelsHandler = asyncHandler(async (req, res) => {
  *         name: programId
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: Next sort order value
@@ -449,8 +435,7 @@ export const getNextSortOrderHandler = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: The number of semesters for the level
@@ -482,8 +467,7 @@ export const countLevelSemestersHandler = asyncHandler(async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: Full level details
@@ -508,8 +492,7 @@ export const getLevelFullDetailsHandler = asyncHandler(async (req, res) => {
  *         name: programId
  *         required: true
  *         schema:
- *           type: string
- *           format: uuid
+ *           type: integer
  *     responses:
  *       200:
  *         description: A list of levels for the program

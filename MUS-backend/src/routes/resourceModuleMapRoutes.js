@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { param, body } from "express-validator";
 import validateRequest from "./validateRequest.js";
-import authMiddleware from "../middleware/auth.js";
-import { requireStudent } from "../middleware/authorization.js";
+import authMiddleware, { optionalAuthMiddleware } from "../middleware/auth.js";
+import { requireOwnerOrAdmin, requirePublishedOrOwnerOrAdmin } from "../middleware/authorization.js";
+import { getResourceById } from "../services/resourceService.js";
 import {
   addModuleToResourceHandler,
   removeModuleFromResourceHandler,
@@ -13,91 +14,97 @@ import {
   removeAllModulesHandler,
 } from "../controllers/resourceModuleMapController.js";
 
-
 const router = Router();
 
-// Protection: toutes les routes nécessitent authentification
-router.use(authMiddleware);
-router.use(requireStudent);
+const getResourceOwnerId = async (req) => {
+  const resourceId = Number.parseInt(req.params.resourceId, 10);
+  if (!Number.isInteger(resourceId) || resourceId < 1) {
+    return null;
+  }
 
-// ===== RESOURCE → MODULE =====
+  const resource = await getResourceById(resourceId);
+  return resource?.created_by || null;
+};
 
-// Associer resource à module
+const getResourceForVisibility = async (req) => {
+  const resourceId = Number.parseInt(req.params.resourceId, 10);
+  if (!Number.isInteger(resourceId) || resourceId < 1) {
+    return null;
+  }
+
+  return getResourceById(resourceId);
+};
+
+router.get("/students/me/available-modules", authMiddleware, getAvailableModulesHandler);
+
+router.get(
+  "/resources/:resourceId/modules",
+  optionalAuthMiddleware,
+  requirePublishedOrOwnerOrAdmin(getResourceForVisibility),
+  [param("resourceId").isInt({ min: 1 }).withMessage("Valid resource ID is required")],
+  validateRequest,
+  getModulesByResourceHandler
+);
+
 router.post(
   "/resources/:resourceId/modules",
+  authMiddleware,
+  requireOwnerOrAdmin(getResourceOwnerId),
   [
-    param("resourceId").isInt().withMessage("resourceId must be an integer"),
-    body("module_id").isInt().withMessage("module_id is required and must be an integer"),
-    body("chapter").optional().isString().trim(),
-    body("difficulty")
-      .optional()
-      .isIn(["easy", "medium", "hard"])
-      .withMessage("difficulty must be: easy, medium, or hard"),
+    param("resourceId").isInt({ min: 1 }).withMessage("Valid resource ID is required"),
+    body("module_id")
+      .isInt({ min: 1 })
+      .withMessage("Module ID is required and must be a positive integer"),
+    body("chapter").optional().isString().trim().isLength({ max: 255 }),
+    body("difficulty").optional().isIn(["easy", "medium", "hard"]),
     body("exam_related").optional().isBoolean(),
   ],
   validateRequest,
   addModuleToResourceHandler
 );
 
-// Récupérer les modules d'une resource
-router.get(
-  "/resources/:resourceId/modules",
-  [param("resourceId").isInt()],
-  validateRequest,
-  getModulesByResourceHandler
-);
-
-// Retirer un module d'une resource
-router.delete(
-  "/resources/:resourceId/modules/:moduleId",
-  [
-    param("resourceId").isInt(),
-    param("moduleId").isInt(),
-  ],
-  validateRequest,
-  removeModuleFromResourceHandler
-);
-
-// Retirer tous les modules d'une resource
-router.delete(
-  "/resources/:resourceId/modules",
-  [param("resourceId").isInt()],
-  validateRequest,
-  removeAllModulesHandler
-);
-
-// Mettre à jour l'association
 router.patch(
   "/resources/:resourceId/modules/:moduleId",
+  authMiddleware,
+  requireOwnerOrAdmin(getResourceOwnerId),
   [
-    param("resourceId").isInt(),
-    param("moduleId").isInt(),
-    body("chapter").optional().isString().trim(),
-    body("difficulty")
-      .optional()
-      .isIn(["easy", "medium", "hard"]),
+    param("resourceId").isInt({ min: 1 }).withMessage("Valid resource ID is required"),
+    param("moduleId").isInt({ min: 1 }).withMessage("Valid module ID is required"),
+    body("chapter").optional().isString().trim().isLength({ max: 255 }),
+    body("difficulty").optional().isIn(["easy", "medium", "hard"]),
     body("exam_related").optional().isBoolean(),
   ],
   validateRequest,
   updateResourceModuleMapHandler
 );
 
-// ===== MODULE → RESOURCES =====
-
-// Récupérer les resources d'un module
-router.get(
-  "/modules/:moduleId/resources",
-  [param("moduleId").isInt()],
+router.delete(
+  "/resources/:resourceId/modules/:moduleId",
+  authMiddleware,
+  requireOwnerOrAdmin(getResourceOwnerId),
+  [
+    param("resourceId").isInt({ min: 1 }).withMessage("Valid resource ID is required"),
+    param("moduleId").isInt({ min: 1 }).withMessage("Valid module ID is required"),
+  ],
   validateRequest,
-  getResourcesByModuleHandler
+  removeModuleFromResourceHandler
 );
 
-// ===== STUDENT UTILITIES =====
+router.delete(
+  "/resources/:resourceId/modules",
+  authMiddleware,
+  requireOwnerOrAdmin(getResourceOwnerId),
+  [param("resourceId").isInt({ min: 1 }).withMessage("Valid resource ID is required")],
+  validateRequest,
+  removeAllModulesHandler
+);
 
-// Récupérer les modules disponibles pour moi
 router.get(
-  "/students/me/available-modules",
-  getAvailableModulesHandler
+  "/modules/:moduleId/resources",
+  optionalAuthMiddleware,
+  [param("moduleId").isInt({ min: 1 }).withMessage("Valid module ID is required")],
+  validateRequest,
+  getResourcesByModuleHandler
 );
 
 export default router;

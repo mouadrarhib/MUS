@@ -180,8 +180,8 @@ router.get(
       .withMessage("role must be one of: student, teacher, admin"),
     query("status")
       .optional()
-      .isIn(["draft", "published", "archived"])
-      .withMessage("status must be one of: draft, published, archived"),
+      .isIn(["draft", "pending", "published", "rejected", "archived"])
+      .withMessage("status must be one of: draft, pending, published, rejected, archived"),
     query("creator_id")
       .optional()
       .isUUID()

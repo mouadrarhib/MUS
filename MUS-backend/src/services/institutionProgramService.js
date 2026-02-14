@@ -25,6 +25,23 @@ export const addProgramToInstitution = async ({
     });
     return rows[0];
   } catch (error) {
+    if (error.original?.code === "42702") {
+      const [rows] = await sequelize.query(
+        `
+        INSERT INTO public.institution_programs (institution_id, program_id)
+        VALUES (:institution_id, :program_id)
+        ON CONFLICT ON CONSTRAINT institution_programs_pkey
+        DO UPDATE SET created_at = institution_programs.created_at
+        RETURNING institution_id, program_id, created_at
+        `,
+        {
+          replacements: { institution_id, program_id },
+        }
+      );
+
+      return rows[0];
+    }
+
     if (error.original?.code === "23505") {
       throw new AppError("Program already associated with institution", 409);
     }

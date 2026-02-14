@@ -110,21 +110,53 @@ export const getModulesWithResourceCount = async () => {
 // ============================================================================
 // GET MODULE RESOURCES
 // ============================================================================
-export const getModuleResources = async (moduleId) => {
-  const [results] = await sequelize.query(SQL.MODULE.GET_RESOURCES, {
-    replacements: { module_id: moduleId },
-  });
+export const getModuleResources = async (moduleId, actor = null) => {
+  const isAdmin = (actor?.roles || []).includes("admin");
+  const [results] = await sequelize.query(
+    `
+    SELECT
+      r.id AS resource_id,
+      r.title AS resource_title,
+      r.description AS resource_description,
+      r.status::text AS resource_status,
+      r.url AS resource_url,
+      r.format::text AS resource_format,
+      r.resource_type_id,
+      rmm.chapter,
+      rmm.difficulty::text AS difficulty,
+      rmm.exam_related,
+      rmm.created_at
+    FROM public.resource_module_map rmm
+    INNER JOIN public.resources r ON rmm.resource_id = r.id
+    WHERE rmm.module_id = :module_id
+      ${isAdmin ? "" : "AND r.status = 'published'::resource_status"}
+    ORDER BY rmm.chapter, r.title
+    `,
+    {
+      replacements: { module_id: moduleId },
+    }
+  );
   return results;
 };
 
 // ============================================================================
 // COUNT MODULE RESOURCES
 // ============================================================================
-export const countModuleResources = async (moduleId) => {
-  const [results] = await sequelize.query(SQL.MODULE.COUNT_RESOURCES, {
-    replacements: { module_id: moduleId },
-  });
-  return results.length > 0 ? results[0].sp_module_count_resources : 0;
+export const countModuleResources = async (moduleId, actor = null) => {
+  const isAdmin = (actor?.roles || []).includes("admin");
+  const [results] = await sequelize.query(
+    `
+    SELECT COUNT(*)::bigint AS count
+    FROM public.resource_module_map rmm
+    INNER JOIN public.resources r ON rmm.resource_id = r.id
+    WHERE rmm.module_id = :module_id
+      ${isAdmin ? "" : "AND r.status = 'published'::resource_status"}
+    `,
+    {
+      replacements: { module_id: moduleId },
+    }
+  );
+  return results.length > 0 ? Number(results[0].count) : 0;
 };
 
 // ============================================================================

@@ -11,7 +11,8 @@ import {
   loginUser,
   registerUser,
   resetPassword,
-  resetPasswordByEmail,
+  requestPasswordReset,
+  resetPasswordWithToken,
   checkEmailExists,
   setActive,
   updateProfile,
@@ -224,10 +225,10 @@ export const login = asyncHandler(async (req, res) => {
  *               $ref: '#/components/schemas/AuthResponse'
  */
 export const me = asyncHandler(async (req, res) => {
-  if (!req.user?.sub) {
+  if (!req.user?.id) {
     throw new AppError("Unauthorized", 401);
   }
-  const result = await getProfile(req.user.sub);
+  const result = await getProfile(req.user.id);
   return successResponse(res, "Authenticated user", result);
 });
 
@@ -252,7 +253,7 @@ export const me = asyncHandler(async (req, res) => {
  */
 export const updateEmail = asyncHandler(async (req, res) => {
   const { new_email } = req.body;
-  const result = await changeEmail(req.user.sub, new_email);
+  const result = await changeEmail(req.user.id, new_email);
   return successResponse(res, "Email updated", result);
 });
 
@@ -277,7 +278,7 @@ export const updateEmail = asyncHandler(async (req, res) => {
  */
 export const updatePassword = asyncHandler(async (req, res) => {
   const { old_password, new_password } = req.body;
-  const result = await changePassword(req.user.sub, old_password, new_password);
+  const result = await changePassword(req.user.id, old_password, new_password);
   return successResponse(res, "Password updated", result);
 });
 
@@ -301,8 +302,14 @@ export const updatePassword = asyncHandler(async (req, res) => {
  *         description: Password reset
  */
 export const resetUserPassword = asyncHandler(async (req, res) => {
+  if (!req.user?.id) {
+    const { token, new_password } = req.body;
+    const result = await resetPasswordWithToken(token, new_password);
+    return successResponse(res, "Password reset", result);
+  }
+
   const { new_password } = req.body;
-  const result = await resetPassword(req.user.sub, new_password);
+  const result = await resetPassword(req.user.id, new_password);
   return successResponse(res, "Password reset", result);
 });
 
@@ -327,7 +334,7 @@ export const resetUserPassword = asyncHandler(async (req, res) => {
  */
 export const updateUserProfile = asyncHandler(async (req, res) => {
   const { full_name } = req.body;
-  const result = await updateProfile(req.user.sub, full_name);
+  const result = await updateProfile(req.user.id, full_name);
   return successResponse(res, "Profile updated", result);
 });
 
@@ -352,7 +359,7 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
  */
 export const toggleActive = asyncHandler(async (req, res) => {
   const { is_active } = req.body;
-  const result = await setActive(req.user.sub, is_active);
+  const result = await setActive(req.user.id, is_active);
   return successResponse(res, "User status updated", result);
 });
 
@@ -370,7 +377,7 @@ export const toggleActive = asyncHandler(async (req, res) => {
  *         description: User deleted
  */
 export const removeUser = asyncHandler(async (req, res) => {
-  await deleteUser(req.user.sub);
+  await deleteUser(req.user.id);
   res.clearCookie("auth_token");
   return successResponse(res, "User deleted", {}, 200);
 });
@@ -534,7 +541,7 @@ export const checkEmail = asyncHandler(async (req, res) => {
  * @swagger
  * /auth/password/forgot:
  *   post:
- *     summary: Reset password by email (public endpoint for forgot password)
+ *     summary: Request password reset token
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -542,21 +549,18 @@ export const checkEmail = asyncHandler(async (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
- *             required: [email, new_password]
+ *             required: [email]
  *             properties:
  *               email:
  *                 type: string
  *                 format: email
  *                 example: user@example.com
- *               new_password:
- *                 type: string
- *                 example: NewPass456!
  *     responses:
  *       200:
- *         description: Password reset successfully
+ *         description: Reset token request accepted
  */
 export const forgotPassword = asyncHandler(async (req, res) => {
-  const { email, new_password } = req.body;
-  const result = await resetPasswordByEmail(email, new_password);
-  return successResponse(res, "Password reset successfully", result);
+  const { email } = req.body;
+  const result = await requestPasswordReset(email, { ip: req.ip });
+  return successResponse(res, "If the email exists, a reset token has been generated", result);
 });

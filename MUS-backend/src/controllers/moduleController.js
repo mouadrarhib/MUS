@@ -431,7 +431,7 @@ export const listModulesWithResourceCount = asyncHandler(async (req, res) => {
  */
 export const getModuleResourcesHandler = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const result = await getModuleResources(id);
+  const result = await getModuleResources(id, req.user || null);
   return successResponse(res, "Module resources retrieved successfully", result);
 });
 
@@ -456,7 +456,7 @@ export const getModuleResourcesHandler = asyncHandler(async (req, res) => {
  */
 export const countModuleResourcesHandler = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const result = await countModuleResources(id);
+  const result = await countModuleResources(id, req.user || null);
   return successResponse(res, "Resource count retrieved successfully", { count: result });
 });
 
