@@ -11,6 +11,7 @@ import authMiddleware from "../middleware/auth.js";
 import levelRoutes from "./levelRoutes.js";
 import semesterRoutes from "./semesterRoutes.js";
 import studentProfileRoutes from "./studentProfileRoutes.js";
+import userSettingsRoutes from "./userSettingsRoutes.js";
 import resourceRoutes from "./resourceRoutes.js";
 import moduleRoutes from "./moduleRoutes.js";
 import ratingRoutes from "./ratingRoutes.js";
@@ -39,6 +40,7 @@ router.use(authMiddleware);
 router.use("/roles", roleRoutes);
 router.use("/user-roles", userRoleRoutes);
 router.use("/student-profiles", studentProfileRoutes);
+router.use("/user-settings", userSettingsRoutes);
 router.use("/favorites", favoriteRoutes);
 router.use("/admin", adminRoutes);
 

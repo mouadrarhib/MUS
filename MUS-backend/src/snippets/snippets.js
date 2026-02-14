@@ -452,6 +452,26 @@ export const SQL = {
     GET_FULL_DETAILS: `SELECT * FROM public.sp_student_profile_get_full_details(:user_id)`,
   },
 
+  USER_SETTINGS: {
+    CREATE: `SELECT * FROM public.sp_user_settings_create(:user_id, :theme_mode, :font_size, :language, :timezone, :date_format, :email_notifications, :push_notifications, :resource_alerts, :weekly_digest, :show_activity_status, :show_profile, :two_factor_enabled)`,
+
+    GET_BY_USER_ID: `SELECT * FROM public.sp_user_settings_get_by_user_id(:user_id)`,
+
+    UPDATE: `SELECT * FROM public.sp_user_settings_update(:user_id, :theme_mode, :font_size, :language, :timezone, :date_format, :email_notifications, :push_notifications, :resource_alerts, :weekly_digest, :show_activity_status, :show_profile, :two_factor_enabled)`,
+
+    UPDATE_APPEARANCE: `SELECT * FROM public.sp_user_settings_update_appearance(:user_id, :theme_mode, :font_size)`,
+
+    UPDATE_NOTIFICATIONS: `SELECT * FROM public.sp_user_settings_update_notifications(:user_id, :email_notifications, :push_notifications, :resource_alerts, :weekly_digest)`,
+
+    UPDATE_PRIVACY: `SELECT * FROM public.sp_user_settings_update_privacy(:user_id, :show_activity_status, :show_profile, :two_factor_enabled)`,
+
+    UPDATE_LOCALE: `SELECT * FROM public.sp_user_settings_update_locale(:user_id, :language, :timezone, :date_format)`,
+
+    DELETE: `SELECT public.sp_user_settings_delete(:user_id)`,
+
+    EXISTS: `SELECT public.sp_user_settings_exists(:user_id)`,
+  },
+
   RESOURCE: {
     CREATE: `SELECT * FROM public.sp_resource_create(:title, :description, :status, :url, :language, :license, :created_by, :educational_type, :format, :resource_type_id, :metadata)`,
 
