@@ -304,3 +304,37 @@ CREATE TABLE public.resource_module_map (
 	CONSTRAINT resource_module_map_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.modules(id) ON DELETE CASCADE,
 	CONSTRAINT resource_module_map_resource_id_fkey FOREIGN KEY (resource_id) REFERENCES public.resources(id) ON DELETE CASCADE
 );
+
+
+-- public.user_settings definition
+
+-- Drop table
+
+-- DROP TABLE public.user_settings;
+
+CREATE TABLE public.user_settings (
+	user_id uuid NOT NULL,
+	theme_mode text DEFAULT 'light'::text NOT NULL,
+	font_size text DEFAULT 'medium'::text NOT NULL,
+	language text DEFAULT 'en'::text NOT NULL,
+	timezone text DEFAULT 'Africa/Casablanca'::text NOT NULL,
+	date_format text DEFAULT 'DD/MM/YYYY'::text NOT NULL,
+	email_notifications bool DEFAULT true NOT NULL,
+	push_notifications bool DEFAULT true NOT NULL,
+	resource_alerts bool DEFAULT true NOT NULL,
+	weekly_digest bool DEFAULT false NOT NULL,
+	show_activity_status bool DEFAULT true NOT NULL,
+	show_profile bool DEFAULT true NOT NULL,
+	two_factor_enabled bool DEFAULT false NOT NULL,
+	created_at timestamptz DEFAULT now() NULL,
+	updated_at timestamptz DEFAULT now() NULL,
+	CONSTRAINT user_settings_pkey PRIMARY KEY (user_id),
+	CONSTRAINT user_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+
+-- Table Triggers
+
+create trigger trg_user_settings_set_updated_at before
+update
+    on
+    public.user_settings for each row execute function sp_user_settings_set_updated_at();
