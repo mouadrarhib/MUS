@@ -11,52 +11,32 @@ import { publicRateLimit } from "./middleware/rateLimit.js";
 
 const app = express();
 
-const normalizeOrigin = (origin = "") => {
-  try {
-    const parsed = new URL(origin);
-    return `${parsed.protocol}//${parsed.host}`.toLowerCase();
-  } catch (_error) {
-    return null;
-  }
-};
+const rawOrigins = process.env.CLIENT_ORIGIN || "";
+const allowedOrigins = rawOrigins
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
-const parseCorsOrigins = () => {
-  const envOrigins = process.env.CLIENT_ORIGIN;
-  if (!envOrigins) {
-    return new Set();
-  }
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
 
-  const configured = envOrigins
-    .split(",")
-    .map((origin) => origin.trim())
-    .map((origin) => normalizeOrigin(origin))
-    .filter(Boolean);
+      if (allowedOrigins.length === 0) {
+        return callback(null, true);
+      }
 
-  return new Set(configured);
-};
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
 
-const allowedOrigins = parseCorsOrigins();
-
-const corsOptionsDelegate = (req, callback) => {
-  const requestOrigin = normalizeOrigin(req.headers.origin || "");
-
-  if (!requestOrigin) {
-    return callback(null, { credentials: true, origin: true });
-  }
-
-  const serverOrigin = normalizeOrigin(`${req.protocol}://${req.get("host")}`);
-  const isSameOrigin = serverOrigin && requestOrigin === serverOrigin;
-  const isAllowed = allowedOrigins.has(requestOrigin);
-
-  if (isSameOrigin || isAllowed) {
-    return callback(null, { credentials: true, origin: true });
-  }
-
-  return callback(new AppError("CORS origin not allowed", 403));
-};
-
-app.use(helmet());
-app.use(cors(corsOptionsDelegate));
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true, // allow cookies/authorization headers
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 app.use(publicRateLimit);
