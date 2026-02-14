@@ -24,6 +24,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useThemeMode } from '@/app/providers/ThemeContext';
+import userSettingsService from '@/services/userSettingsService';
 import { useState } from 'react';
 import logo from '@/assets/images/logo.png';
 
@@ -52,6 +53,23 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
   const handleLogout = () => {
     handleMenuClose();
     logout();
+  };
+
+  const handleThemeToggle = async () => {
+    const nextMode = mode === 'light' ? 'dark' : 'light';
+    toggleTheme();
+
+    if (!user?.id) return;
+
+    try {
+      const fontSize = localStorage.getItem('fontSize') || 'medium';
+      await userSettingsService.updateAppearance(user.id, {
+        theme_mode: nextMode,
+        font_size: fontSize,
+      });
+    } catch (error) {
+      console.error('Failed to persist theme from navbar:', error);
+    }
   };
 
   return (
@@ -108,7 +126,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
 
         {/* Theme Toggle Button */}
         <IconButton
-          onClick={toggleTheme}
+          onClick={handleThemeToggle}
           aria-label={mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
           sx={{
             mr: 1,

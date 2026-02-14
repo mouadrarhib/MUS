@@ -1,5 +1,5 @@
 // src/features/settings/pages/Settings.jsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -49,6 +49,7 @@ import {
 } from '@mui/icons-material';
 import { useThemeMode } from '@/app/providers/ThemeContext';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import userSettingsService from '@/services/userSettingsService';
 import { PageHeader } from '@/shared/components/ui';
 
 const Settings = () => {
@@ -79,13 +80,207 @@ const Settings = () => {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
 
-  const handleFontSizeChange = (event, newSize) => {
+  const applyFontSize = (size) => {
+    localStorage.setItem('fontSize', size);
+    document.documentElement.style.fontSize =
+      size === 'small' ? '14px' : size === 'large' ? '18px' : '16px';
+  };
+
+  const applyServerSettings = (settings) => {
+    if (!settings) return;
+
+    if (settings.theme_mode && settings.theme_mode !== mode) {
+      toggleTheme();
+    }
+
+    if (settings.font_size) {
+      setFontSize(settings.font_size);
+      applyFontSize(settings.font_size);
+    }
+
+    setEmailNotifications(Boolean(settings.email_notifications));
+    setPushNotifications(Boolean(settings.push_notifications));
+    setResourceAlerts(Boolean(settings.resource_alerts));
+    setWeeklyDigest(Boolean(settings.weekly_digest));
+    setTwoFactorEnabled(Boolean(settings.two_factor_enabled));
+    setShowActivityStatus(Boolean(settings.show_activity_status));
+    setShowProfile(Boolean(settings.show_profile));
+    setLanguage(settings.language || 'en');
+    setTimezone(settings.timezone || 'Africa/Casablanca');
+    setDateFormat(settings.date_format || 'DD/MM/YYYY');
+  };
+
+  useEffect(() => {
+    const syncSettings = async () => {
+      if (!user?.id) return;
+
+      try {
+        const existsResponse = await userSettingsService.exists(user.id);
+        if (!existsResponse?.data) {
+          const created = await userSettingsService.create({ user_id: user.id });
+          applyServerSettings(created?.data);
+          return;
+        }
+
+        const loaded = await userSettingsService.getByUserId(user.id);
+        applyServerSettings(loaded?.data);
+      } catch (error) {
+        console.error('Failed to sync user settings:', error);
+      }
+    };
+
+    syncSettings();
+  }, [user?.id]);
+
+  const persistNotifications = async (nextValues) => {
+    if (!user?.id) return;
+    try {
+      await userSettingsService.updateNotifications(user.id, nextValues);
+    } catch (error) {
+      console.error('Failed to update notifications settings:', error);
+    }
+  };
+
+  const persistPrivacy = async (nextValues) => {
+    if (!user?.id) return;
+    try {
+      await userSettingsService.updatePrivacy(user.id, nextValues);
+    } catch (error) {
+      console.error('Failed to update privacy settings:', error);
+    }
+  };
+
+  const persistLocale = async (nextValues) => {
+    if (!user?.id) return;
+    try {
+      await userSettingsService.updateLocale(user.id, nextValues);
+    } catch (error) {
+      console.error('Failed to update locale settings:', error);
+    }
+  };
+
+  const persistAppearance = async (nextValues) => {
+    if (!user?.id) return;
+    try {
+      await userSettingsService.updateAppearance(user.id, nextValues);
+    } catch (error) {
+      console.error('Failed to update appearance settings:', error);
+    }
+  };
+
+  const handleThemeChange = async () => {
+    const nextTheme = mode === 'dark' ? 'light' : 'dark';
+    toggleTheme();
+    await persistAppearance({
+      theme_mode: nextTheme,
+      font_size: fontSize,
+    });
+  };
+
+  const handleFontSizeChange = async (_event, newSize) => {
     if (newSize) {
       setFontSize(newSize);
-      localStorage.setItem('fontSize', newSize);
-      document.documentElement.style.fontSize = 
-        newSize === 'small' ? '14px' : newSize === 'large' ? '18px' : '16px';
+      applyFontSize(newSize);
+      await persistAppearance({
+        theme_mode: mode,
+        font_size: newSize,
+      });
     }
+  };
+
+  const handleEmailNotificationsChange = async (value) => {
+    setEmailNotifications(value);
+    await persistNotifications({
+      email_notifications: value,
+      push_notifications: pushNotifications,
+      resource_alerts: resourceAlerts,
+      weekly_digest: weeklyDigest,
+    });
+  };
+
+  const handlePushNotificationsChange = async (value) => {
+    setPushNotifications(value);
+    await persistNotifications({
+      email_notifications: emailNotifications,
+      push_notifications: value,
+      resource_alerts: resourceAlerts,
+      weekly_digest: weeklyDigest,
+    });
+  };
+
+  const handleResourceAlertsChange = async (value) => {
+    setResourceAlerts(value);
+    await persistNotifications({
+      email_notifications: emailNotifications,
+      push_notifications: pushNotifications,
+      resource_alerts: value,
+      weekly_digest: weeklyDigest,
+    });
+  };
+
+  const handleWeeklyDigestChange = async (value) => {
+    setWeeklyDigest(value);
+    await persistNotifications({
+      email_notifications: emailNotifications,
+      push_notifications: pushNotifications,
+      resource_alerts: resourceAlerts,
+      weekly_digest: value,
+    });
+  };
+
+  const handleTwoFactorChange = async () => {
+    const next = !twoFactorEnabled;
+    setTwoFactorEnabled(next);
+    await persistPrivacy({
+      show_activity_status: showActivityStatus,
+      show_profile: showProfile,
+      two_factor_enabled: next,
+    });
+  };
+
+  const handleShowActivityStatusChange = async (value) => {
+    setShowActivityStatus(value);
+    await persistPrivacy({
+      show_activity_status: value,
+      show_profile: showProfile,
+      two_factor_enabled: twoFactorEnabled,
+    });
+  };
+
+  const handleShowProfileChange = async (value) => {
+    setShowProfile(value);
+    await persistPrivacy({
+      show_activity_status: showActivityStatus,
+      show_profile: value,
+      two_factor_enabled: twoFactorEnabled,
+    });
+  };
+
+  const handleLanguageChange = async (value) => {
+    setLanguage(value);
+    await persistLocale({
+      language: value,
+      timezone: timezone,
+      date_format: dateFormat,
+    });
+  };
+
+  const handleTimezoneChange = async (value) => {
+    setTimezone(value);
+    await persistLocale({
+      language: language,
+      timezone: value,
+      date_format: dateFormat,
+    });
+  };
+
+  const handleDateFormatChange = async (value) => {
+    setDateFormat(value);
+    await persistLocale({
+      language: language,
+      timezone: timezone,
+      date_format: value,
+    });
   };
 
   const handleExportData = async () => {
@@ -222,7 +417,7 @@ const Settings = () => {
           action={
             <Switch
               checked={mode === 'dark'}
-              onChange={toggleTheme}
+              onChange={handleThemeChange}
               color="primary"
             />
           }
@@ -268,7 +463,7 @@ const Settings = () => {
           action={
             <Switch
               checked={emailNotifications}
-              onChange={(e) => setEmailNotifications(e.target.checked)}
+              onChange={(e) => handleEmailNotificationsChange(e.target.checked)}
               color="info"
             />
           }
@@ -280,7 +475,7 @@ const Settings = () => {
           action={
             <Switch
               checked={pushNotifications}
-              onChange={(e) => setPushNotifications(e.target.checked)}
+              onChange={(e) => handlePushNotificationsChange(e.target.checked)}
               color="info"
             />
           }
@@ -292,7 +487,7 @@ const Settings = () => {
           action={
             <Switch
               checked={resourceAlerts}
-              onChange={(e) => setResourceAlerts(e.target.checked)}
+              onChange={(e) => handleResourceAlertsChange(e.target.checked)}
               color="info"
             />
           }
@@ -305,7 +500,7 @@ const Settings = () => {
           action={
             <Switch
               checked={weeklyDigest}
-              onChange={(e) => setWeeklyDigest(e.target.checked)}
+              onChange={(e) => handleWeeklyDigestChange(e.target.checked)}
               color="info"
             />
           }
@@ -332,7 +527,7 @@ const Settings = () => {
                 variant={twoFactorEnabled ? "outlined" : "contained"}
                 size="small"
                 color="warning"
-                onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
+                onClick={handleTwoFactorChange}
                 sx={{ textTransform: 'none', fontWeight: 600 }}
               >
                 {twoFactorEnabled ? 'Disable' : 'Enable'}
@@ -361,7 +556,7 @@ const Settings = () => {
           action={
             <Switch
               checked={showActivityStatus}
-              onChange={(e) => setShowActivityStatus(e.target.checked)}
+              onChange={(e) => handleShowActivityStatusChange(e.target.checked)}
               color="warning"
             />
           }
@@ -374,7 +569,7 @@ const Settings = () => {
           action={
             <Switch
               checked={showProfile}
-              onChange={(e) => setShowProfile(e.target.checked)}
+              onChange={(e) => handleShowProfileChange(e.target.checked)}
               color="warning"
             />
           }
@@ -396,7 +591,7 @@ const Settings = () => {
             <FormControl size="small" sx={{ minWidth: 150 }}>
               <Select
                 value={language}
-                onChange={(e) => setLanguage(e.target.value)}
+                onChange={(e) => handleLanguageChange(e.target.value)}
                 sx={{ borderRadius: 2, fontWeight: 500 }}
               >
                 <MenuItem value="en">English</MenuItem>
@@ -414,7 +609,7 @@ const Settings = () => {
             <FormControl size="small" sx={{ minWidth: 180 }}>
               <Select
                 value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
+                onChange={(e) => handleTimezoneChange(e.target.value)}
                 sx={{ borderRadius: 2, fontWeight: 500 }}
               >
                 <MenuItem value="Africa/Casablanca">Casablanca (GMT+1)</MenuItem>
@@ -434,7 +629,7 @@ const Settings = () => {
             <FormControl size="small" sx={{ minWidth: 150 }}>
               <Select
                 value={dateFormat}
-                onChange={(e) => setDateFormat(e.target.value)}
+                onChange={(e) => handleDateFormatChange(e.target.value)}
                 sx={{ borderRadius: 2, fontWeight: 500 }}
               >
                 <MenuItem value="DD/MM/YYYY">DD/MM/YYYY</MenuItem>
