@@ -4,6 +4,8 @@
 
 -- DROP TABLE public.domains;
 
+-- ddl db
+
 CREATE TABLE public.domains (
 	id bigserial NOT NULL,
 	"name" text NOT NULL,
@@ -93,7 +95,6 @@ CREATE TABLE public.institutions (
 -- Drop table
 
 -- DROP TABLE public.programs;
-
 CREATE TABLE public.programs (
 	id bigserial NOT NULL,
 	"name" text NOT NULL,
