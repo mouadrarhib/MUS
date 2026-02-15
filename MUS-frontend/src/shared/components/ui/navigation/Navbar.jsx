@@ -31,7 +31,7 @@ import logo from '@/assets/images/logo.png';
 const NAVBAR_HEIGHT = 64;
 
 export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
-  const { user, logout } = useAuth();
+  const { user, roles, logout } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
@@ -71,6 +71,29 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
       console.error('Failed to persist theme from navbar:', error);
     }
   };
+
+  const getPrimaryRole = () => {
+    const roleCandidates =
+      Array.isArray(roles) && roles.length > 0
+        ? roles
+        : Array.isArray(user?.roles)
+          ? user.roles
+          : user?.role
+            ? [user.role]
+            : [];
+
+    if (!roleCandidates.length) return "STUDENT";
+
+    const normalizedRoles = roleCandidates
+      .map((role) => String(role || "").trim().toUpperCase().replace(/^ROLE_/, ""))
+      .filter(Boolean);
+
+    const priority = ["ADMIN", "TEACHER", "MODERATOR", "STUDENT", "USER"];
+    const prioritized = priority.find((role) => normalizedRoles.includes(role));
+    return prioritized || normalizedRoles[0];
+  };
+
+  const primaryRole = getPrimaryRole();
 
   return (
     <AppBar
@@ -201,8 +224,8 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
               >
                 {user?.full_name || 'User'}
               </Typography>
-              <Box
-                component="span"
+                <Box
+                  component="span"
                 sx={{
                   display: 'inline-block',
                   px: 1,
@@ -215,10 +238,10 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
                 }}
-              >
-                {user?.role || 'Student'}
+                >
+                  {primaryRole}
+                </Box>
               </Box>
-            </Box>
 
             {/* Avatar */}
             <Avatar
