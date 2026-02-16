@@ -6,7 +6,8 @@ import {
   AdminPanelSettings,
   Group,
   Description,
-  Settings
+  Settings,
+  AccountTree
 } from '@mui/icons-material';
 
 export const DASHBOARD_NAVIGATION = [
@@ -52,6 +53,12 @@ export const DASHBOARD_NAVIGATION = [
     label: 'Resources',
     path: '/dashboard/resources',
     icon: <Description />
+  },
+  {
+    label: 'Academic Catalog',
+    path: '/dashboard/catalog',
+    icon: <AccountTree />,
+    roles: ['ADMIN']
   },
 
   // SHARED

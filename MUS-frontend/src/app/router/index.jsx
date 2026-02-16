@@ -21,6 +21,7 @@ const MyUploadsPage = lazy(() => import('@/features/uploads/pages/MyUploads'));
 const ProfilePage = lazy(() => import('@/features/profile/pages/Profile'));
 const SettingsPage = lazy(() => import('@/features/settings/pages/Settings'));
 const VerifyResourcesPage = lazy(() => import('@/features/verify/pages/VerifyResources'));
+const CatalogManagementPage = lazy(() => import('@/features/catalog/pages/CatalogManagement'));
 
 const LoadingFallback = () => (
   <Box
@@ -79,6 +80,9 @@ const AppRouter = () => {
 
           {/* Verify Content Page - Admin Only */}
           <Route path="verify" element={<VerifyResourcesPage />} />
+
+          {/* Academic Catalog - Admin Only */}
+          <Route path="catalog" element={<CatalogManagementPage />} />
         </Route>
 
         {/* 4. Catch-all 404 */}

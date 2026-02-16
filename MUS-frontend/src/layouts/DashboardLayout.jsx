@@ -21,7 +21,6 @@ const DashboardLayout = () => {
     setSidebarOpen(!isMobile);
   }, [isMobile]);
 
-  // RBAC disabled for now: show all navigation items
   const filteredNavigation = DASHBOARD_NAVIGATION;
 
   return (
