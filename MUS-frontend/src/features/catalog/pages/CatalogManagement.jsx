@@ -44,6 +44,7 @@ import programService from "@/services/programService";
 import institutionService from "@/services/institutionService";
 import institutionProgramService from "@/services/institutionProgramService";
 import { PageHeader } from "@/shared/components/ui";
+import { useLanguage } from "@/app/providers/LanguageContext";
 
 const TAB_KEYS = {
   INSTITUTION_TYPES: "institutionTypes",
@@ -67,6 +68,7 @@ const extractOne = (response) => {
 };
 
 const CatalogManagement = () => {
+  const { t } = useLanguage();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -756,19 +758,19 @@ const CatalogManagement = () => {
   const getHeaderAction = () => {
     const actionMap = {
       [TAB_KEYS.INSTITUTION_TYPES]: {
-        label: "Add Institution Type",
+        label: t('pages.catalog.addInstitutionType'),
         onClick: () => openCreateDialog(TAB_KEYS.INSTITUTION_TYPES),
       },
       [TAB_KEYS.DOMAINS]: {
-        label: "Add Domain",
+        label: t('pages.catalog.addDomain'),
         onClick: () => openCreateDialog(TAB_KEYS.DOMAINS),
       },
       [TAB_KEYS.PROGRAMS]: {
-        label: "Add Program",
+        label: t('pages.catalog.addProgram'),
         onClick: () => openCreateDialog(TAB_KEYS.PROGRAMS),
       },
       [TAB_KEYS.INSTITUTIONS]: {
-        label: "Add Institution",
+        label: t('pages.catalog.addInstitution'),
         onClick: () => openCreateDialog(TAB_KEYS.INSTITUTIONS),
       },
     };
@@ -802,10 +804,10 @@ const CatalogManagement = () => {
   return (
     <Box sx={{ width: "100%" }}>
       <PageHeader
-        title="Academic Catalog"
-        subtitle="Manage institution types, domains, programs, institutions, and their mappings"
+        title={t('pages.catalog.title')}
+        subtitle={t('pages.catalog.subtitle')}
         icon={AccountTree}
-        breadcrumbs={[{ label: "Dashboard", to: "/dashboard" }, { label: "Academic Catalog" }]}
+        breadcrumbs={[{ label: t('common.dashboard'), to: "/dashboard" }, { label: t('pages.catalog.title') }]}
         actions={getHeaderAction()}
       />
 
@@ -822,15 +824,15 @@ const CatalogManagement = () => {
           variant="scrollable"
           scrollButtons="auto"
         >
-          <Tab value={TAB_KEYS.INSTITUTION_TYPES} icon={<Category />} iconPosition="start" label="Institution Types" />
-          <Tab value={TAB_KEYS.DOMAINS} icon={<AccountTree />} iconPosition="start" label="Domains" />
-          <Tab value={TAB_KEYS.PROGRAMS} icon={<School />} iconPosition="start" label="Programs" />
-          <Tab value={TAB_KEYS.INSTITUTIONS} icon={<Apartment />} iconPosition="start" label="Institutions" />
-          <Tab value={TAB_KEYS.MAPPING} icon={<Link />} iconPosition="start" label="Institution ↔ Program" />
+          <Tab value={TAB_KEYS.INSTITUTION_TYPES} icon={<Category />} iconPosition="start" label={t('pages.catalog.tabs.institutionTypes')} />
+          <Tab value={TAB_KEYS.DOMAINS} icon={<AccountTree />} iconPosition="start" label={t('pages.catalog.tabs.domains')} />
+          <Tab value={TAB_KEYS.PROGRAMS} icon={<School />} iconPosition="start" label={t('pages.catalog.tabs.programs')} />
+          <Tab value={TAB_KEYS.INSTITUTIONS} icon={<Apartment />} iconPosition="start" label={t('pages.catalog.tabs.institutions')} />
+          <Tab value={TAB_KEYS.MAPPING} icon={<Link />} iconPosition="start" label={t('pages.catalog.tabs.mapping')} />
         </Tabs>
       </Paper>
 
-      {loading ? <Typography>Loading catalog data...</Typography> : renderTabContent()}
+      {loading ? <Typography>{t('common.loading')}</Typography> : renderTabContent()}
 
       <Dialog
         open={dialogOpen}

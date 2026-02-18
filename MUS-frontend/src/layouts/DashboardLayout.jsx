@@ -6,12 +6,15 @@ import { Sidebar } from '@/shared/components/ui/navigation/Sidebar';
 import { Navbar, NAVBAR_HEIGHT } from '@/shared/components/ui/navigation/Navbar';
 import { DASHBOARD_NAVIGATION } from '@/config/dashboardNavigation';
 import { pageTransitionSx } from '@/styles/motion';
+import { useLanguage } from '@/app/providers/LanguageContext';
 
 const DESKTOP_SIDEBAR_WIDTH = 280;
 const MOBILE_SIDEBAR_WIDTH = 'min(88vw, 340px)';
 
 const DashboardLayout = () => {
   const theme = useTheme();
+  const { language } = useLanguage();
+  const isArabic = language === 'ar';
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
   const sidebarWidth = isMobile ? MOBILE_SIDEBAR_WIDTH : DESKTOP_SIDEBAR_WIDTH;
@@ -24,7 +27,7 @@ const DashboardLayout = () => {
   const filteredNavigation = DASHBOARD_NAVIGATION;
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default', direction: 'ltr' }}>
       {/* Fixed Navbar */}
       <Navbar
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}
@@ -100,6 +103,7 @@ const DashboardLayout = () => {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,
           }),
+          direction: isArabic ? 'rtl' : 'ltr',
         }}
       >
         {/* Content Container with Top Spacing */}

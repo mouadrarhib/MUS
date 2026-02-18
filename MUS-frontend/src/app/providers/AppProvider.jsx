@@ -5,6 +5,7 @@ import { GlobalStyles } from '@mui/material';
 import { lightTheme, darkTheme } from '@/styles/theme';
 import { AuthProvider } from '@/features/auth/context/AuthContext';
 import { ThemeContext } from './ThemeContext';
+import { LanguageProvider } from './LanguageContext';
 import PropTypes from 'prop-types';
 
 const ThemeProviderComponent = ({ children }) => {
@@ -98,9 +99,11 @@ ThemeProviderComponent.propTypes = {
 
 export const AppProviders = ({ children }) => {
   return (
-    <ThemeProviderComponent>
-      <AuthProvider>{children}</AuthProvider>
-    </ThemeProviderComponent>
+    <LanguageProvider>
+      <ThemeProviderComponent>
+        <AuthProvider>{children}</AuthProvider>
+      </ThemeProviderComponent>
+    </LanguageProvider>
   );
 };
 

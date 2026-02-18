@@ -8,8 +8,10 @@ import LibraryStatsCards from '../components/LibraryStatsCards';
 import FavoritesTable from '../components/FavoritesTable';
 import FavoriteDetailsDialog from '../components/FavoriteDetailsDialog';
 import { EmptyState, PageHeader } from '@/shared/components/ui';
+import { useLanguage } from '@/app/providers/LanguageContext';
 
 const Library = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,12 +81,12 @@ const Library = () => {
     <Box sx={{ width: '100%' }}>
       {/* Header */}
       <PageHeader
-        title="My Library"
-        subtitle="View and manage your favorite resources"
+        title={t('pages.library.title')}
+        subtitle={t('pages.library.subtitle')}
         icon={LibraryBooks}
         breadcrumbs={[
-          { label: 'Dashboard', to: '/dashboard' },
-          { label: 'Library' },
+          { label: t('common.dashboard'), to: '/dashboard' },
+          { label: t('pages.library.title') },
         ]}
         actions={
           <Box
@@ -100,7 +102,7 @@ const Library = () => {
           >
             <Favorite sx={{ fontSize: 20, color: 'error.main' }} />
             <Typography variant="body2" fontWeight="600" color="error.main">
-              {favorites.length} Saved
+              {favorites.length} {t('pages.library.label')}
             </Typography>
           </Box>
         }

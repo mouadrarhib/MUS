@@ -8,8 +8,10 @@ import UsersTable from '../components/UsersTable';
 import UserDialog from '../components/UserDialog';
 import UserDetailsDialog from '../components/UserDetailsDialog';
 import { PageHeader } from '@/shared/components/ui';
+import { useLanguage } from '@/app/providers/LanguageContext';
 
 const Users = () => {
+  const { t } = useLanguage();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
@@ -114,12 +116,12 @@ const Users = () => {
     <Box sx={{ width: '100%' }}>
       {/* Header */}
       <PageHeader
-        title="Users"
-        subtitle="Manage all platform users, roles and permissions"
+        title={t('pages.users.title')}
+        subtitle={t('pages.users.subtitle')}
         icon={People}
         breadcrumbs={[
-          { label: 'Dashboard', to: '/dashboard' },
-          { label: 'Users' },
+          { label: t('common.dashboard'), to: '/dashboard' },
+          { label: t('pages.users.title') },
         ]}
         actions={
           <Button
@@ -139,7 +141,7 @@ const Users = () => {
               },
             }}
           >
-            Add User
+            {t('pages.users.add')}
           </Button>
         }
       />

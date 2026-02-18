@@ -8,8 +8,10 @@ import ResourcesTable from '../components/ResourcesTable';
 import ResourceDialog from '../components/ResourceDialog';
 import ResourceDetailsDialog from '../components/ResourceDetailsDialog';
 import { EmptyState, PageHeader } from '@/shared/components/ui';
+import { useLanguage } from '@/app/providers/LanguageContext';
 
 const Resources = () => {
+  const { t } = useLanguage();
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
@@ -107,12 +109,12 @@ const Resources = () => {
     <Box sx={{ width: '100%' }}>
       {/* Header */}
       <PageHeader
-        title="Resources"
-        subtitle="Manage educational resources, exams, courses and notes"
+        title={t('pages.resources.title')}
+        subtitle={t('pages.resources.subtitle')}
         icon={Article}
         breadcrumbs={[
-          { label: 'Dashboard', to: '/dashboard' },
-          { label: 'Resources' },
+          { label: t('common.dashboard'), to: '/dashboard' },
+          { label: t('pages.resources.title') },
         ]}
         actions={
           <Button
@@ -132,7 +134,7 @@ const Resources = () => {
               },
             }}
           >
-            Add Resource
+            {t('pages.resources.add')}
           </Button>
         }
       />

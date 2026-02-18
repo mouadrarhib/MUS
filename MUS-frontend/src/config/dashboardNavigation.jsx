@@ -13,7 +13,7 @@ import {
 export const DASHBOARD_NAVIGATION = [
   // COMMON
   {
-    label: 'Overview',
+    labelKey: 'nav.overview',
     path: '/dashboard',
     icon: <Dashboard />,
     roles: ['ADMIN', 'TEACHER', 'STUDENT'] 
@@ -21,41 +21,41 @@ export const DASHBOARD_NAVIGATION = [
 
   // STUDENT
   {
-    label: 'My Library',
+    labelKey: 'nav.myLibrary',
     path: '/dashboard/library',
     icon: <School />,
     roles: ['STUDENT']
   },
 
   // TEACHER
-  { type: 'section', label: 'Teaching', roles: ['TEACHER'] },
+  { type: 'section', labelKey: 'nav.teaching', roles: ['TEACHER'] },
   {
-    label: 'My Uploads',
+    labelKey: 'nav.myUploads',
     path: '/dashboard/uploads',
     icon: <UploadFile />,
     roles: ['TEACHER']
   },
 
   // ADMIN
-  { type: 'section', label: 'Admin', roles: ['ADMIN'] },
+  { type: 'section', labelKey: 'nav.admin', roles: ['ADMIN'] },
   {
-    label: 'Verify Content',
+    labelKey: 'nav.verifyContent',
     path: '/dashboard/verify',
     icon: <AdminPanelSettings />,
     roles: ['ADMIN']
   },
   {
-    label: 'Users',
+    labelKey: 'nav.users',
     path: '/dashboard/users',
     icon: <Group />
   },
   {
-    label: 'Resources',
+    labelKey: 'nav.resources',
     path: '/dashboard/resources',
     icon: <Description />
   },
   {
-    label: 'Academic Catalog',
+    labelKey: 'nav.academicCatalog',
     path: '/dashboard/catalog',
     icon: <AccountTree />,
     roles: ['ADMIN']
@@ -63,16 +63,16 @@ export const DASHBOARD_NAVIGATION = [
 
   // SHARED
   {
-    label: 'Wallet',
+    labelKey: 'nav.wallet',
     path: '/dashboard/wallet',
     icon: <AccountBalanceWallet />,
     roles: ['STUDENT', 'TEACHER']
   },
 
   // SETTINGS - Available to all
-  { type: 'section', label: 'Preferences' },
+  { type: 'section', labelKey: 'nav.preferences' },
   {
-    label: 'Settings',
+    labelKey: 'nav.settings',
     path: '/dashboard/settings',
     icon: <Settings />,
     roles: ['ADMIN', 'TEACHER', 'STUDENT']

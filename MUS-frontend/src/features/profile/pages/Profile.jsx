@@ -39,8 +39,10 @@ import {
 import { useAuth } from '@/features/auth/context/AuthContext';
 import authService from '@/services/authService';
 import { PageHeader } from '@/shared/components/ui';
+import { useLanguage } from '@/app/providers/LanguageContext';
 
 const Profile = () => {
+  const { t } = useLanguage();
   const { user, login } = useAuth();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
@@ -230,12 +232,12 @@ const Profile = () => {
   return (
     <Box sx={{ width: '100%', minHeight: '100%' }}>
       <PageHeader
-        title="Profile"
-        subtitle="View your account details and academic information"
+        title={t('pages.profile.title')}
+        subtitle={t('pages.profile.subtitle')}
         icon={Person}
         breadcrumbs={[
-          { label: 'Dashboard', to: '/dashboard' },
-          { label: 'Profile' },
+          { label: t('common.dashboard'), to: '/dashboard' },
+          { label: t('pages.profile.title') },
         ]}
         actions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>

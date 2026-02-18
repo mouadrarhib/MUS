@@ -49,12 +49,14 @@ import {
 } from '@mui/icons-material';
 import { useThemeMode } from '@/app/providers/ThemeContext';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { useLanguage } from '@/app/providers/LanguageContext';
 import userSettingsService from '@/services/userSettingsService';
 import { PageHeader } from '@/shared/components/ui';
 
 const Settings = () => {
   const { mode, toggleTheme } = useThemeMode();
   const { user } = useAuth();
+  const { language, setLanguage: setAppLanguage, t } = useLanguage();
   
   // Theme & Appearance
   const [fontSize, setFontSize] = useState(() => localStorage.getItem('fontSize') || 'medium');
@@ -71,7 +73,6 @@ const Settings = () => {
   const [showProfile, setShowProfile] = useState(true);
   
   // Language & Region
-  const [language, setLanguage] = useState('en');
   const [timezone, setTimezone] = useState('Africa/Casablanca');
   const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
   
@@ -105,7 +106,8 @@ const Settings = () => {
     setTwoFactorEnabled(Boolean(settings.two_factor_enabled));
     setShowActivityStatus(Boolean(settings.show_activity_status));
     setShowProfile(Boolean(settings.show_profile));
-    setLanguage(settings.language || 'en');
+    const resolvedLanguage = settings.language || 'en';
+    setAppLanguage(resolvedLanguage);
     setTimezone(settings.timezone || 'Africa/Casablanca');
     setDateFormat(settings.date_format || 'DD/MM/YYYY');
   };
@@ -257,7 +259,7 @@ const Settings = () => {
   };
 
   const handleLanguageChange = async (value) => {
-    setLanguage(value);
+    setAppLanguage(value);
     await persistLocale({
       language: value,
       timezone: timezone,
@@ -394,12 +396,12 @@ const Settings = () => {
   return (
     <Box sx={{ width: '100%', minHeight: '100%' }}>
       <PageHeader
-        title="Settings"
-        subtitle="Manage your preferences and account settings"
+        title={t('pages.settings.title')}
+        subtitle={t('pages.settings.subtitle')}
         icon={SettingsIcon}
         breadcrumbs={[
-          { label: 'Dashboard', to: '/dashboard' },
-          { label: 'Settings' },
+          { label: t('common.dashboard'), to: '/dashboard' },
+          { label: t('common.settings') },
         ]}
       />
 
@@ -579,14 +581,14 @@ const Settings = () => {
       {/* Language & Region */}
       <SettingSection
         icon={<Language sx={{ fontSize: 24, color: 'white' }} />}
-        title="Language & Region"
-        subtitle="Set your language and regional preferences"
+        title={t('settings.languageRegion.title', 'Language & Region')}
+        subtitle={t('settings.languageRegion.subtitle', 'Set your language and regional preferences')}
         color="success"
       >
         <SettingRow
           icon={<Language sx={{ fontSize: 20 }} />}
-          title="Language"
-          description="Select your preferred language"
+          title={t('settings.languageRegion.language', 'Language')}
+          description={t('settings.languageRegion.languageDesc', 'Select your preferred language')}
           action={
             <FormControl size="small" sx={{ minWidth: 150 }}>
               <Select
@@ -595,16 +597,16 @@ const Settings = () => {
                 sx={{ borderRadius: 2, fontWeight: 500 }}
               >
                 <MenuItem value="en">English</MenuItem>
-                <MenuItem value="fr">Fran??ais</MenuItem>
-                <MenuItem value="ar">??????????????</MenuItem>
+                <MenuItem value="fr">Francais</MenuItem>
+                <MenuItem value="ar">العربية</MenuItem>
               </Select>
             </FormControl>
           }
         />
         <SettingRow
           icon={<AccessTime sx={{ fontSize: 20 }} />}
-          title="Timezone"
-          description="Set your local timezone"
+          title={t('settings.languageRegion.timezone', 'Timezone')}
+          description={t('settings.languageRegion.timezoneDesc', 'Set your local timezone')}
           action={
             <FormControl size="small" sx={{ minWidth: 180 }}>
               <Select
@@ -622,8 +624,8 @@ const Settings = () => {
         />
         <SettingRow
           icon={<CalendarToday sx={{ fontSize: 20 }} />}
-          title="Date Format"
-          description="Choose how dates are displayed"
+          title={t('settings.languageRegion.dateFormat', 'Date Format')}
+          description={t('settings.languageRegion.dateFormatDesc', 'Choose how dates are displayed')}
           noBorder
           action={
             <FormControl size="small" sx={{ minWidth: 150 }}>

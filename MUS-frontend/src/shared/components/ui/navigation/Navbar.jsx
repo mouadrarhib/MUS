@@ -27,12 +27,15 @@ import { useThemeMode } from '@/app/providers/ThemeContext';
 import userSettingsService from '@/services/userSettingsService';
 import { useState } from 'react';
 import logo from '@/assets/images/logo.png';
+import { useLanguage } from '@/app/providers/LanguageContext';
 
 const NAVBAR_HEIGHT = 64;
 
 export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
   const { user, roles, logout } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
+  const { t, language } = useLanguage();
+  const isArabic = language === 'ar';
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
@@ -108,14 +111,15 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
         height: NAVBAR_HEIGHT,
       }}
     >
-      <Toolbar sx={{ height: NAVBAR_HEIGHT, px: { xs: 2, sm: 3 } }}>
+      <Toolbar sx={{ height: NAVBAR_HEIGHT, px: { xs: 2, sm: 3 }, flexDirection: isArabic ? 'row-reverse' : 'row' }}>
         {/* Menu Toggle Button */}
         <IconButton
           edge="start"
           onClick={onMenuClick}
           aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
           sx={{
-            mr: 2,
+            mr: isArabic ? 0 : 2,
+            ml: isArabic ? 2 : 0,
             color: 'text.primary',
             '&:hover': {
               bgcolor: 'action.hover',
@@ -266,8 +270,8 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
             open={open}
             onClose={handleMenuClose}
             onClick={handleMenuClose}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            anchorOrigin={{ horizontal: isArabic ? 'left' : 'right', vertical: 'bottom' }}
+            transformOrigin={{ horizontal: isArabic ? 'left' : 'right', vertical: 'top' }}
             MenuListProps={{
               'aria-label': 'User menu',
               autoFocusItem: open,
@@ -287,7 +291,8 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
                   display: 'block',
                   position: 'absolute',
                   top: 0,
-                  right: 14,
+                  right: isArabic ? 'auto' : 14,
+                  left: isArabic ? 14 : 'auto',
                   width: 10,
                   height: 10,
                   bgcolor: 'background.paper',
@@ -317,14 +322,14 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
               <ListItemIcon>
                 <Person fontSize="small" />
               </ListItemIcon>
-              Profile
+              {t('navbar.profile')}
             </MenuItem>
 
             <MenuItem onClick={handleSettings} sx={{ py: 1.5, px: 2 }}>
               <ListItemIcon>
                 <Settings fontSize="small" />
               </ListItemIcon>
-              Settings
+              {t('navbar.settings')}
             </MenuItem>
 
             <Divider />
@@ -333,7 +338,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
               <ListItemIcon>
                 <Logout fontSize="small" color="error" />
               </ListItemIcon>
-              Logout
+              {t('navbar.logout')}
             </MenuItem>
           </Menu>
         </Box>

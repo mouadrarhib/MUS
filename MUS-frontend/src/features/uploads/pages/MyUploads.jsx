@@ -8,10 +8,12 @@ import ResourcesTable from '@/features/resources/components/ResourcesTable';
 import ResourceDialog from '@/features/resources/components/ResourceDialog';
 import ResourceDetailsDialog from '@/features/resources/components/ResourceDetailsDialog';
 import { EmptyState, PageHeader } from '@/shared/components/ui';
+import { useLanguage } from '@/app/providers/LanguageContext';
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
 
 const MyUploads = () => {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -132,12 +134,12 @@ const MyUploads = () => {
   return (
     <Box sx={{ width: '100%' }}>
       <PageHeader
-        title="My Uploads"
-        subtitle="View and manage the resources you uploaded"
+        title={t('pages.uploads.title')}
+        subtitle={t('pages.uploads.subtitle')}
         icon={UploadFile}
         breadcrumbs={[
-          { label: 'Dashboard', to: '/dashboard' },
-          { label: 'My Uploads' },
+          { label: t('common.dashboard'), to: '/dashboard' },
+          { label: t('pages.uploads.title') },
         ]}
         actions={
           <Button
@@ -157,7 +159,7 @@ const MyUploads = () => {
               },
             }}
           >
-            Upload Resource
+            {t('pages.uploads.add')}
           </Button>
         }
       />

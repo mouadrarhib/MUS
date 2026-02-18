@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import { useLanguage } from '@/app/providers/LanguageContext';
 
 export const Sidebar = ({
   items = [],
@@ -20,6 +21,7 @@ export const Sidebar = ({
   variant = 'permanent',
   navbarHeight = 0,
 }) => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const activePath = location.pathname;
@@ -57,6 +59,7 @@ export const Sidebar = ({
           {items.map((item, index) => {
             // Render section headers
             if (item.type === 'section') {
+              const sectionLabel = item.labelKey ? t(item.labelKey) : item.label;
               return (
                 <Box key={index} sx={{ mt: index > 0 ? 2.5 : 0.5, mb: 1 }}>
                   <Typography
@@ -67,11 +70,13 @@ export const Sidebar = ({
                     letterSpacing={0.5}
                     sx={{ px: 2 }}
                   >
-                    {item.label}
+                    {sectionLabel}
                   </Typography>
                 </Box>
               );
             }
+
+            const itemLabel = item.labelKey ? t(item.labelKey) : item.label;
 
             const isActive = isPathActive(item.path);
 
@@ -117,7 +122,7 @@ export const Sidebar = ({
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText
-                  primary={item.label}
+                  primary={itemLabel}
                   primaryTypographyProps={{
                     fontWeight: isActive ? 600 : 500,
                     fontSize: { xs: '0.9rem', sm: '0.95rem' },
@@ -148,6 +153,7 @@ export const Sidebar = ({
 
   return (
     <Drawer
+      anchor="left"
       variant={variant}
       open={open}
       onClose={onClose}

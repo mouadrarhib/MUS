@@ -7,8 +7,10 @@ import VerifyStatsCards from '../components/VerifyStatsCards';
 import VerifyResourcesTable from '../components/VerifyResourcesTable';
 import VerifyResourceDialog from '../components/VerifyResourceDialog';
 import { PageHeader } from '@/shared/components/ui';
+import { useLanguage } from '@/app/providers/LanguageContext';
 
 const VerifyResources = () => {
+  const { t } = useLanguage();
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedResource, setSelectedResource] = useState(null);
@@ -104,16 +106,16 @@ const VerifyResources = () => {
     <Box sx={{ width: '100%' }}>
       {/* Header */}
       <PageHeader
-        title="Content Verification"
-        subtitle="Review and approve resources submitted by students and teachers"
+        title={t('pages.verify.title')}
+        subtitle={t('pages.verify.subtitle')}
         icon={AdminPanelSettings}
         breadcrumbs={[
-          { label: 'Dashboard', to: '/dashboard' },
-          { label: 'Verify Resources' },
+          { label: t('common.dashboard'), to: '/dashboard' },
+          { label: t('pages.verify.title') },
         ]}
         actions={
           <Chip
-            label={`${resources.length} Pending`}
+            label={`${resources.length} ${t('pages.verify.pending')}`}
             color="warning"
             size="small"
             sx={{ fontWeight: 600 }}
