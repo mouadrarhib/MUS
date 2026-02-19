@@ -30,7 +30,9 @@ import {
   listResourceStatuses,
   listResourceEducationalTypes,
   listResourceFormats,
+  downloadResourceHandler,
 } from "../controllers/resourceController.js";
+
 import validateRequest from "./validateRequest.js";
 import authMiddleware, { optionalAuthMiddleware } from "../middleware/auth.js";
 import {
@@ -190,8 +192,17 @@ router.get(
   listResourcesByLanguage
 );
 
+router.post(
+  "/:id/download",
+  authMiddleware,
+  [param("id").isInt().withMessage("Valid resource ID is required")],
+  validateRequest,
+  downloadResourceHandler
+);
+
 router.get(
   "/:id",
+
   requirePublishedOrOwnerOrAdmin(getResourceForVisibility),
   [param("id").isInt().withMessage("Valid resource ID is required")],
   validateRequest,

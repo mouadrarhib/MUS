@@ -480,3 +480,14 @@ export const createResourceWithModules = async (resourceData, moduleIds = []) =>
 
   return resource;
 };
+
+export const recordResourceDownload = async (userId, resourceId) => {
+  const [results] = await sequelize.query(
+    `SELECT * FROM public.sp_resource_record_download(:user_id, :resource_id)`,
+    {
+      replacements: { user_id: userId, resource_id: resourceId },
+    }
+  );
+  return results[0];
+};
+

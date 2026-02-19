@@ -29,7 +29,9 @@ import {
   getResourceStatuses,
   getResourceEducationalTypes,
   getResourceFormats,
+  recordResourceDownload,
 } from "../services/resourceService.js";
+
 
 /**
  * @swagger
@@ -1032,3 +1034,32 @@ export const listResourceFormats = asyncHandler(async (req, res) => {
   const result = await getResourceFormats();
   return successResponse(res, "Resource formats retrieved successfully", result);
 });
+
+/**
+ * @swagger
+ * /resources/{id}/download:
+ *   post:
+ *     summary: Record a resource download
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Download recorded
+ */
+export const downloadResourceHandler = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+  
+  const result = await recordResourceDownload(userId, id);
+  
+  return successResponse(res, result.message || "Download recorded", result);
+});
+
