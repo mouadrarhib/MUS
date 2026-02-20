@@ -147,10 +147,52 @@ export const getAdminDashboard = async () => {
       (SELECT COUNT(*) FROM favorites) AS total_favorites,
       (SELECT COUNT(*) FROM ratings) AS total_ratings
   `);
+
+  const [rewardsStats] = await sequelize.query(`
+    WITH student_users AS (
+      SELECT u.id, u.full_name, COALESCE(u.points, 0) AS points
+      FROM users u
+      INNER JOIN user_roles ur ON u.id = ur.user_id
+      INNER JOIN roles ro ON ur.role_id = ro.id
+      WHERE ro.name = 'student'
+    )
+    SELECT
+      (SELECT COUNT(*) FROM resource_downloads)::BIGINT AS total_downloads,
+      (
+        SELECT COUNT(*)
+        FROM resource_downloads rd
+        WHERE rd.downloaded_at >= CURRENT_DATE - INTERVAL '7 days'
+      )::BIGINT AS downloads_last_7_days,
+      (
+        SELECT COUNT(*)
+        FROM resource_downloads rd
+        WHERE rd.downloaded_at >= CURRENT_DATE - INTERVAL '30 days'
+      )::BIGINT AS downloads_last_30_days,
+      (SELECT COALESCE(SUM(su.points), 0) FROM student_users su)::BIGINT AS total_points_awarded,
+      (
+        SELECT su.id
+        FROM student_users su
+        ORDER BY su.points DESC, su.full_name ASC
+        LIMIT 1
+      ) AS top_points_student_id,
+      (
+        SELECT su.full_name
+        FROM student_users su
+        ORDER BY su.points DESC, su.full_name ASC
+        LIMIT 1
+      ) AS top_points_student_name,
+      (
+        SELECT su.points
+        FROM student_users su
+        ORDER BY su.points DESC, su.full_name ASC
+        LIMIT 1
+      )::BIGINT AS top_points_value
+  `);
   
   return {
     students: stats,
     global: globalStats[0] || {},
+    rewards: rewardsStats[0] || {},
     timestamp: new Date(),
   };
 };
