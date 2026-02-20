@@ -23,6 +23,26 @@ const normalizeRoles = (rawRoles) => {
     .map(mapRole);
 };
 
+const extractUserFromPayload = (payload) => {
+  return (
+    payload?.user ||
+    payload?.data?.user ||
+    payload?.data?.data?.user ||
+    null
+  );
+};
+
+const extractTokenFromPayload = (payload) => {
+  return (
+    payload?.token ||
+    payload?.accessToken ||
+    payload?.data?.token ||
+    payload?.data?.accessToken ||
+    payload?.data?.data?.token ||
+    null
+  );
+};
+
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
@@ -30,36 +50,9 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(null);
 
-  useEffect(() => {
-    const storedToken = localStorage.getItem('authToken');
-    const storedRoles = localStorage.getItem('userRoles');
-    const storedUser = localStorage.getItem('userData');
-
-    if (storedToken && storedRoles && storedUser) {
-      setToken(storedToken);
-      setRoles(normalizeRoles(JSON.parse(storedRoles)));
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-    }
-
-    setLoading(false);
-  }, []);
-
   const login = useCallback((userData) => {
-    const newToken =
-      userData?.token ||
-      userData?.accessToken ||
-      userData?.data?.token ||
-      userData?.data?.accessToken ||
-      userData?.data?.data?.token ||
-      null;
-
-    const newUser =
-      userData?.user ||
-      userData?.data?.user ||
-      userData?.data?.data?.user ||
-      null;
+    const newToken = extractTokenFromPayload(userData);
+    const newUser = extractUserFromPayload(userData);
 
     const userRoles = normalizeRoles(newUser?.roles || userData?.roles || userData?.data?.roles || []);
     
@@ -88,6 +81,65 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('rememberEmail');
   }, []);
 
+  const refreshProfile = useCallback(async () => {
+    try {
+      const response = await apiClient.get('/auth/me', { skipAuthRedirect: true });
+      const profileUser = extractUserFromPayload(response?.data);
+      if (!profileUser) return null;
+
+      const normalized = { ...profileUser };
+
+      const userRoles = normalizeRoles(normalized?.roles || []);
+      setUser(normalized);
+      setRoles(userRoles);
+      localStorage.setItem('userData', JSON.stringify(normalized));
+      localStorage.setItem('userRoles', JSON.stringify(userRoles));
+      return normalized;
+    } catch (_error) {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const bootstrapAuth = async () => {
+      const storedToken = localStorage.getItem('authToken');
+      const storedRoles = localStorage.getItem('userRoles');
+      const storedUser = localStorage.getItem('userData');
+
+      if (!storedToken || !storedUser) {
+        if (mounted) setLoading(false);
+        return;
+      }
+
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        const parsedRoles = normalizeRoles(storedRoles ? JSON.parse(storedRoles) : parsedUser?.roles || []);
+
+        if (!mounted) return;
+
+        setToken(storedToken);
+        setRoles(parsedRoles);
+        setUser(parsedUser);
+        setIsAuthenticated(true);
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+        await refreshProfile();
+      } catch (_error) {
+        if (mounted) {
+          logout();
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    bootstrapAuth();
+    return () => {
+      mounted = false;
+    };
+  }, [logout, refreshProfile]);
+
   const hasRole = useCallback(
     (requiredRole) => {
       if (!requiredRole) return true;
@@ -105,6 +157,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
+    refreshProfile,
     hasRole,
     isStudent: roles.includes('USER') || roles.includes('STUDENT'),
     isAdmin: roles.includes('ADMIN'),

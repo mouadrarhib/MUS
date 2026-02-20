@@ -12,7 +12,8 @@ import {
   CalendarToday,
   Public,
   PersonAdd,
-  NewReleases
+  NewReleases,
+  CloudDownload
 } from '@mui/icons-material';
 
 import StatsOverview from '../components/StatsOverview';
@@ -55,6 +56,7 @@ const Overview = () => {
 
   const students = statsData?.data?.students || {};
   const globalStats = statsData?.data?.global || {};
+  const rewardsStats = statsData?.data?.rewards || {};
 
   // Parse values (they come as strings from API)
   const stats = {
@@ -83,6 +85,14 @@ const Overview = () => {
       totalResources: parseInt(globalStats.total_resources) || 0,
       totalFavorites: parseInt(globalStats.total_favorites) || 0,
       totalRatings: parseInt(globalStats.total_ratings) || 0,
+    },
+    rewards: {
+      totalDownloads: parseInt(rewardsStats.total_downloads) || 0,
+      downloadsLast7Days: parseInt(rewardsStats.downloads_last_7_days) || 0,
+      downloadsLast30Days: parseInt(rewardsStats.downloads_last_30_days) || 0,
+      totalPointsAwarded: parseInt(rewardsStats.total_points_awarded) || 0,
+      topPointsStudentName: rewardsStats.top_points_student_name || 'No data',
+      topPointsValue: parseInt(rewardsStats.top_points_value) || 0,
     },
   };
 
@@ -128,6 +138,18 @@ const Overview = () => {
               <Typography variant="body2" color="text.secondary">
                 Platform overview and quick stats
               </Typography>
+              <Chip
+                icon={<EmojiEvents sx={{ fontSize: 14 }} />}
+                label={`${Number(user?.points || 0)} points`}
+                size="small"
+                sx={{
+                  mt: 1,
+                  borderRadius: 2,
+                  bgcolor: (theme) => alpha(theme.palette.warning.main, 0.14),
+                  color: 'warning.dark',
+                  fontWeight: 700,
+                }}
+              />
             </>
           )}
         </Box>
@@ -364,6 +386,119 @@ const Overview = () => {
       </Box>
 
       {/* Global Stats & Activity Row */}
+      <Box sx={{ mb: 3 }}>
+        {loading ? (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2,
+              borderRadius: 3,
+              border: '1px solid',
+              borderColor: 'divider',
+              background: (theme) => theme.palette.mode === 'dark'
+                ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
+                : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+            }}
+          >
+            <Skeleton variant="text" width={140} height={24} />
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 2, mt: 2 }}>
+              {[...Array(4)].map((_, idx) => (
+                <Skeleton key={idx} variant="rounded" height={84} />
+              ))}
+            </Box>
+          </Paper>
+        ) : (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2,
+              borderRadius: 3,
+              border: '1px solid',
+              borderColor: 'divider',
+              background: (theme) => theme.palette.mode === 'dark'
+                ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
+                : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+            }}
+          >
+            <Box display="flex" alignItems="center" gap={1} mb={2}>
+              <EmojiEvents sx={{ fontSize: 18, color: 'warning.main' }} />
+              <Typography variant="subtitle2" fontWeight="600">
+                Rewards Overview
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+                gap: 1.5,
+              }}
+            >
+              {[
+                {
+                  label: 'Total Downloads',
+                  value: stats.rewards.totalDownloads,
+                  icon: CloudDownload,
+                  color: 'primary',
+                },
+                {
+                  label: 'Downloads (7 days)',
+                  value: stats.rewards.downloadsLast7Days,
+                  icon: TrendingUp,
+                  color: 'success',
+                },
+                {
+                  label: 'Total Points Awarded',
+                  value: stats.rewards.totalPointsAwarded,
+                  icon: EmojiEvents,
+                  color: 'warning',
+                },
+                {
+                  label: 'Top Points Student',
+                  value: `${stats.rewards.topPointsStudentName} (${stats.rewards.topPointsValue})`,
+                  icon: People,
+                  color: 'info',
+                },
+              ].map((item, i) => {
+                const Icon = item.icon;
+                return (
+                  <Box
+                    key={i}
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 2,
+                      bgcolor: (theme) => alpha(theme.palette[item.color].main, 0.06),
+                      border: '1px solid',
+                      borderColor: (theme) => alpha(theme.palette[item.color].main, 0.16),
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" gap={1} mb={0.75}>
+                      <Icon sx={{ fontSize: 16, color: `${item.color}.main` }} />
+                      <Typography variant="caption" color="text.secondary">
+                        {item.label}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1" fontWeight="700" color="text.primary" noWrap>
+                      {item.value}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+            <Box display="flex" gap={1} mt={1.5} flexWrap="wrap">
+              <Chip
+                size="small"
+                label={`+${stats.rewards.downloadsLast30Days} downloads (30 days)`}
+                sx={{
+                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                  color: 'primary.main',
+                  fontWeight: 600,
+                }}
+              />
+            </Box>
+          </Paper>
+        )}
+      </Box>
+
       <Box 
         sx={{ 
           display: 'grid',

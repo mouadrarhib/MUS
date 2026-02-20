@@ -128,6 +128,11 @@ export const resourcesService = {
     return normalizeResource(response?.data);
   },
 
+  recordDownload: async (resourceId) => {
+    const response = await post(`${RESOURCE.ROOT}/${resourceId}/download`);
+    return response?.data || response || {};
+  },
+
   updateResource: async (resourceId, updatedData) => {
     const response = await patch(`${RESOURCE.ROOT}/${resourceId}`, updatedData);
     clearResourceListCaches();

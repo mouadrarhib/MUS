@@ -20,7 +20,8 @@ import {
   Settings,
   Person,
   DarkMode,
-  LightMode
+  LightMode,
+  EmojiEvents
 } from '@mui/icons-material';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useThemeMode } from '@/app/providers/ThemeContext';
@@ -97,6 +98,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
   };
 
   const primaryRole = getPrimaryRole();
+  const userPoints = Number(user?.points || 0);
 
   return (
     <AppBar
@@ -228,24 +230,44 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
               >
                 {user?.full_name || 'User'}
               </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.75, mt: 0.25 }}>
                 <Box
                   component="span"
-                sx={{
-                  display: 'inline-block',
-                  px: 1,
-                  py: 0.25,
-                  borderRadius: 1,
-                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
-                  color: 'primary.main',
-                  fontSize: '0.7rem',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                }}
+                  sx={{
+                    display: 'inline-block',
+                    px: 1,
+                    py: 0.25,
+                    borderRadius: 1,
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                    color: 'primary.main',
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                  }}
                 >
                   {primaryRole}
                 </Box>
+                <Box
+                  component="span"
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    px: 1,
+                    py: 0.25,
+                    borderRadius: 1,
+                    bgcolor: (theme) => alpha(theme.palette.warning.main, 0.16),
+                    color: 'warning.dark',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  <EmojiEvents sx={{ fontSize: 12 }} />
+                  {userPoints}
+                </Box>
               </Box>
+            </Box>
 
             {/* Avatar */}
             <Avatar
@@ -313,6 +335,24 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
               <Typography variant="caption" color="text.secondary">
                 {user?.email || 'No email'}
               </Typography>
+              <Box
+                sx={{
+                  mt: 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.75,
+                  px: 1,
+                  py: 0.4,
+                  borderRadius: 1,
+                  bgcolor: (theme) => alpha(theme.palette.warning.main, 0.12),
+                  color: 'warning.dark',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                }}
+              >
+                <EmojiEvents sx={{ fontSize: 14 }} />
+                {userPoints} pts
+              </Box>
             </Box>
 
             <Divider />

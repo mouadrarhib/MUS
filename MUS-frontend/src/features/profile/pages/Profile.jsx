@@ -35,6 +35,7 @@ import {
   Lock,
   LockOpen,
   CheckCircle,
+  EmojiEvents,
 } from '@mui/icons-material';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import authService from '@/services/authService';
@@ -412,6 +413,11 @@ const Profile = () => {
               icon={<Person sx={{ fontSize: 20 }} />}
               label="Full Name"
               value={user?.full_name}
+            />
+            <InfoItem
+              icon={<EmojiEvents sx={{ fontSize: 20 }} />}
+              label="Points"
+              value={Number(user?.points || 0)}
             />
             <InfoItem
               icon={<Email sx={{ fontSize: 20 }} />}
