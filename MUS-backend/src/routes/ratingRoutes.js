@@ -2,6 +2,7 @@ import { Router } from "express";
 import { body, param, query } from "express-validator";
 import validateRequest from "./validateRequest.js";
 import authMiddleware from "../middleware/auth.js";
+import { requireRole } from "../middleware/authorization.js";
 
 import {
   addOrUpdateRating,
@@ -115,6 +116,7 @@ router.get(
 router.post(
   "/",
   authMiddleware,
+  requireRole("student", "teacher"),
   [
     body("resource_id").isInt().withMessage("Valid resource ID is required"),
     body("score").isInt({ min: 1, max: 5 }).withMessage("Score must be between 1 and 5"),
@@ -124,12 +126,13 @@ router.post(
   addOrUpdateRating
 );
 
-router.get("/my-ratings", authMiddleware, listMyRatings);
-router.get("/my-summary", authMiddleware, getMyRatingSummary);
+router.get("/my-ratings", authMiddleware, requireRole("student", "teacher"), listMyRatings);
+router.get("/my-summary", authMiddleware, requireRole("student", "teacher"), getMyRatingSummary);
 
 router.get(
   "/resource/:resourceId/my-rating",
   authMiddleware,
+  requireRole("student", "teacher"),
   [param("resourceId").isInt().withMessage("Valid resource ID is required")],
   validateRequest,
   getMyRatingForResource
@@ -138,6 +141,7 @@ router.get(
 router.delete(
   "/resource/:resourceId",
   authMiddleware,
+  requireRole("student", "teacher"),
   [param("resourceId").isInt().withMessage("Valid resource ID is required")],
   validateRequest,
   deleteMyRating
@@ -146,6 +150,7 @@ router.delete(
 router.get(
   "/can-rate/:resourceId",
   authMiddleware,
+  requireRole("student", "teacher"),
   [param("resourceId").isInt().withMessage("Valid resource ID is required")],
   validateRequest,
   checkCanRate

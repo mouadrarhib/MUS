@@ -18,6 +18,7 @@ import ratingRoutes from "./ratingRoutes.js";
 import favoriteRoutes from "./favoriteRoutes.js";
 import adminRoutes from "./adminRoutes.js";
 import resourceModuleMapRoutes from "./resourceModuleMapRoutes.js";
+import qaRoutes from "./qaRoutes.js";
 
 
 const router = Router();
@@ -34,6 +35,7 @@ router.use("/semesters", semesterRoutes);
 router.use("/modules", moduleRoutes);
 router.use("/ratings", ratingRoutes);
 router.use("/resources", resourceRoutes);
+router.use("/qa", qaRoutes);
 router.use("", resourceModuleMapRoutes);
 
 router.use(authMiddleware);

@@ -93,7 +93,7 @@ import {
  *           type: integer
  */
 
-const getAuthUserIdFromReq = (req) => req?.user?.sub || req?.user?.id;
+const getAuthUserIdFromReq = (req) => req?.user?.id;
 
 // ============================================================================
 // CREATE OR UPDATE RATING (UPSERT)

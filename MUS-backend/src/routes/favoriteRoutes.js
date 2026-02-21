@@ -25,6 +25,23 @@ import {
 const router = Router();
 router.use(authMiddleware);
 
+router.get(
+  "/resource/:resourceId/users",
+  requireRole("admin"),
+  [
+    param("resourceId").isInt(),
+    query("reason")
+      .optional()
+      .isString()
+      .isLength({ max: 500 })
+      .withMessage("Reason must be a string up to 500 chars"),
+  ],
+  validateRequest,
+  listUsersWhoFavoritedHandler
+);
+
+router.use(requireRole("student", "teacher"));
+
 router.post(
   "/toggle",
   [body("resource_id").isInt().withMessage("Valid resource ID is required")],
@@ -111,21 +128,6 @@ router.get(
   [param("resourceId").isInt()],
   validateRequest,
   countResourceFavoritesHandler
-);
-
-router.get(
-  "/resource/:resourceId/users",
-  requireRole("admin"),
-  [
-    param("resourceId").isInt(),
-    query("reason")
-      .optional()
-      .isString()
-      .isLength({ max: 500 })
-      .withMessage("Reason must be a string up to 500 chars"),
-  ],
-  validateRequest,
-  listUsersWhoFavoritedHandler
 );
 
 router.delete(

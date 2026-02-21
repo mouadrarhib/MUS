@@ -389,3 +389,42 @@ Le projet passe en mode execution en suivant ce chemin:
 - validation finale par tests complets.
 
 Ce document est la reference pour demarrer les prochaines phases de developpement.
+
+---
+
+## 14) Etat d'avancement implementation (demarrage des phases)
+
+### Phase 1 lancee (backend)
+
+Ce qui est deja implemente dans le code:
+- ajout du module Q&A backend:
+  - `src/routes/qaRoutes.js`
+  - `src/controllers/qaController.js`
+  - `src/services/qaService.js`
+- ajout migration BD Q&A:
+  - `Database/migrations/003_add_qa_core.sql`
+- durcissement regle metier ratings/favorites:
+  - admin bloque sur endpoints ratings authentifies,
+  - admin bloque sur endpoints favoris utilisateur,
+  - endpoint admin d'audit favoris conserve (`/favorites/resource/:resourceId/users`).
+
+### Actions BD necessaires avant test Q&A
+
+La migration Q&A doit etre executee en base pour activer les endpoints `/api/qa/*`.
+
+Exemple (PostgreSQL):
+
+```sql
+\i Database/migrations/003_add_qa_core.sql
+```
+
+ou via ton outil SQL habituel (DBeaver), en executant le script complet.
+
+### Verification rapide apres migration
+
+1. `GET /api/qa/questions` -> doit retourner `200` (liste vide ou data).
+2. `POST /api/qa/questions` (student/teacher/admin connecte) -> `201`.
+3. `POST /api/qa/questions/:id/answers` (student/teacher/admin) -> `201`.
+4. `PATCH /api/qa/answers/:answerId/accept` (teacher/admin) -> `200`.
+5. `POST /api/ratings` avec admin -> `403` (attendu).
+6. `GET /api/favorites/my-favorites` avec admin -> `403` (attendu).
