@@ -23,17 +23,45 @@ const Resources = () => {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [availableTags, setAvailableTags] = useState([]);
+  const [tagsLoading, setTagsLoading] = useState(false);
 
   useEffect(() => {
     loadResources();
+    loadAvailableTags();
   }, []);
+
+  const loadAvailableTags = async () => {
+    setTagsLoading(true);
+    try {
+      const tags = await resourcesService.listTags({ is_active: true, limit: 200 });
+      setAvailableTags(Array.isArray(tags) ? tags : []);
+    } catch (loadTagsError) {
+      console.error('Error loading tags:', loadTagsError);
+      setAvailableTags([]);
+    } finally {
+      setTagsLoading(false);
+    }
+  };
+
+  const hydrateResourcesWithTags = async (items) => {
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) return list;
+
+    const tagMap = await resourcesService.getResourcesTagsMap(list.map((resource) => resource.id));
+    return list.map((resource) => ({
+      ...resource,
+      tags: Array.isArray(tagMap?.[resource.id]) ? tagMap[resource.id] : [],
+    }));
+  };
 
   const loadResources = async () => {
     setLoading(true);
     setError('');
     try {
       const data = await resourcesService.getAllResources();
-      setResources(data);
+      const withTags = await hydrateResourcesWithTags(data);
+      setResources(withTags);
     } catch (error) {
       console.error('Error loading resources:', error);
       setError('We could not load resources right now. Please try again.');
@@ -93,6 +121,8 @@ const Resources = () => {
         const updatedResource = await resourcesService.updateResource(editingResource.id, payload);
         console.log('[Resources] Resource updated', { resourceId: updatedResource?.id, hasFile });
 
+        await resourcesService.replaceResourceTags(updatedResource.id, resourceData.tagIds || []);
+
         if (hasFile) {
           await resourcesService.uploadFileToResource(updatedResource.id, resourceData.file);
           console.log('[Resources] File uploaded via backend and attached', { resourceId: updatedResource.id });
@@ -100,6 +130,8 @@ const Resources = () => {
       } else {
         const createdResource = await resourcesService.createResource(payload);
         console.log('[Resources] Resource created', { resourceId: createdResource?.id, hasFile });
+
+        await resourcesService.replaceResourceTags(createdResource.id, resourceData.tagIds || []);
 
         if (hasFile) {
           await resourcesService.uploadFileToResource(createdResource.id, resourceData.file);
@@ -233,6 +265,8 @@ const Resources = () => {
         onClose={handleCloseDialog}
         onSave={handleSaveResource}
         saving={saving}
+        availableTags={availableTags}
+        tagsLoading={tagsLoading}
       />
 
       {/* Resource Details Dialog */}

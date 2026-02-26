@@ -265,6 +265,18 @@ const ResourceDetailsDialog = ({ open, resource, onClose }) => {
               variant="outlined"
               sx={{ fontSize: '0.65rem', height: 22 }}
             />
+            {Array.isArray(resource.tags)
+              ? resource.tags.slice(0, 6).map((tag) => (
+                  <Chip
+                    key={`tag-${tag.tag_id || tag.id}`}
+                    label={`#${tag.name || tag.tag_name}`}
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                    sx={{ fontSize: '0.65rem', height: 22 }}
+                  />
+                ))
+              : null}
           </Box>
 
           {/* Quick Stats Row */}

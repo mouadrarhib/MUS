@@ -18,6 +18,8 @@ import {
   Stepper,
   Step,
   StepLabel,
+  Autocomplete,
+  CircularProgress,
   alpha,
 } from '@mui/material';
 import Grid from '@mui/material/GridLegacy';
@@ -37,7 +39,7 @@ import {
 
   const steps = ['Basic Information', 'Academic Context', 'Settings'];
 
-const ResourceDialog = ({ open, resource, onClose, onSave, saving = false }) => {
+const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, availableTags = [], tagsLoading = false }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [uploadMethod, setUploadMethod] = useState('url');
   const [selectedFile, setSelectedFile] = useState(null);
@@ -58,6 +60,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false }) => 
       difficulty: 'medium',
       isExamRelated: false,
     },
+    tagIds: [],
   });
 
   const [errors, setErrors] = useState({});
@@ -81,6 +84,9 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false }) => 
           difficulty: resource.academicContext?.difficulty || 'medium',
           isExamRelated: resource.academicContext?.isExamRelated || false,
         },
+        tagIds: Array.isArray(resource.tags)
+          ? resource.tags.map((tag) => Number(tag.tag_id || tag.id)).filter(Number.isFinite)
+          : [],
       });
       if (resource.url) setUploadMethod('url');
     } else {
@@ -101,6 +107,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false }) => 
           difficulty: 'medium',
           isExamRelated: false,
         },
+        tagIds: [],
       });
     }
     setErrors({});
@@ -289,6 +296,40 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false }) => 
                         <MenuItem value="word">Word</MenuItem>
                       </Select>
                     </FormControl>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Autocomplete
+                      multiple
+                      size="small"
+                      options={availableTags}
+                      loading={tagsLoading}
+                      value={availableTags.filter((tag) => formData.tagIds.includes(Number(tag.id || tag.tag_id)))}
+                      isOptionEqualToValue={(option, value) => Number(option.id || option.tag_id) === Number(value.id || value.tag_id)}
+                      getOptionLabel={(option) => option.name || option.tag_name || ''}
+                      onChange={(_, value) => {
+                        const ids = (value || [])
+                          .map((tag) => Number(tag.id || tag.tag_id))
+                          .filter(Number.isFinite);
+                        setFormData((prev) => ({ ...prev, tagIds: Array.from(new Set(ids)) }));
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Tags"
+                          placeholder="Select tags"
+                          helperText="Use tags to improve discovery and recommendations"
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {tagsLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                                {params.InputProps.endAdornment}
+                              </>
+                            ),
+                          }}
+                        />
+                      )}
+                    />
                   </Grid>
                 </Grid>
               </Box>
@@ -785,11 +826,15 @@ ResourceDialog.propTypes = {
   onClose: PropTypes.func.isRequired,
   onSave: PropTypes.func.isRequired,
   saving: PropTypes.bool,
+  availableTags: PropTypes.array,
+  tagsLoading: PropTypes.bool,
 };
 
 ResourceDialog.defaultProps = {
   resource: null,
   saving: false,
+  availableTags: [],
+  tagsLoading: false,
 };
 
 export default ResourceDialog;

@@ -87,7 +87,10 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
   // Filter resources by search
   const filteredResources = resources.filter(resource =>
     resource.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resource.author?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    resource.author?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (Array.isArray(resource.tags)
+      ? resource.tags.some((tag) => String(tag.name || tag.tag_name || '').toLowerCase().includes(searchTerm.toLowerCase()))
+      : false)
   );
 
   const paginatedResources = filteredResources.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
@@ -218,6 +221,19 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
                       <Typography variant="caption" color="text.secondary" noWrap>
                         {resource.academicContext?.moduleCode}
                       </Typography>
+                      {Array.isArray(resource.tags) && resource.tags.length > 0 ? (
+                        <Box sx={{ mt: 0.5, display: 'flex', gap: 0.4, flexWrap: 'wrap' }}>
+                          {resource.tags.slice(0, 2).map((tag) => (
+                            <Chip
+                              key={`table-tag-${resource.id}-${tag.tag_id || tag.id}`}
+                              label={`#${tag.name || tag.tag_name}`}
+                              size="small"
+                              variant="outlined"
+                              sx={{ height: 18, fontSize: '0.6rem' }}
+                            />
+                          ))}
+                        </Box>
+                      ) : null}
                     </Box>
                   </TableCell>
                   <TableCell>

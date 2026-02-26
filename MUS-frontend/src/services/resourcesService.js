@@ -1,4 +1,4 @@
-import { del, get, patch, post } from "@/services/http";
+import { del, get, patch, post, put } from "@/services/http";
 
 const RESOURCE = {
   ROOT: "/resources",
@@ -82,6 +82,40 @@ const extractOne = (response) => {
 };
 
 export const resourcesService = {
+  listTags: async (params = {}) => {
+    const response = await get(`/tags`, { params });
+    return Array.isArray(response?.data) ? response.data : [];
+  },
+
+  listPopularTags: async (limit = 20) => {
+    const response = await get(`/tags/popular`, { params: { limit } });
+    return Array.isArray(response?.data) ? response.data : [];
+  },
+
+  getResourceTags: async (resourceId) => {
+    const response = await get(`/resources/${resourceId}/tags`);
+    return Array.isArray(response?.data) ? response.data : [];
+  },
+
+  getResourcesTagsMap: async (resourceIds = []) => {
+    const normalized = Array.from(new Set((resourceIds || []).map((v) => Number(v)).filter(Number.isFinite)));
+    if (!normalized.length) return {};
+
+    const response = await get(`/tags/resources-map`, {
+      params: {
+        resource_ids: normalized.join(","),
+      },
+    });
+
+    return response?.data && typeof response.data === "object" ? response.data : {};
+  },
+
+  replaceResourceTags: async (resourceId, tagIds = []) => {
+    const normalized = Array.from(new Set((tagIds || []).map((v) => Number(v)).filter(Number.isFinite)));
+    const response = await put(`/resources/${resourceId}/tags`, { tag_ids: normalized });
+    return Array.isArray(response?.data) ? response.data : [];
+  },
+
   createResource: async (resourceData) => {
     const response = await post(RESOURCE.ROOT, resourceData);
     clearResourceListCaches();

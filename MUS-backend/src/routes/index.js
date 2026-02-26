@@ -19,6 +19,7 @@ import favoriteRoutes from "./favoriteRoutes.js";
 import adminRoutes from "./adminRoutes.js";
 import resourceModuleMapRoutes from "./resourceModuleMapRoutes.js";
 import qaRoutes from "./qaRoutes.js";
+import tagRoutes from "./tagRoutes.js";
 
 
 const router = Router();
@@ -37,6 +38,7 @@ router.use("/ratings", ratingRoutes);
 router.use("/resources", resourceRoutes);
 router.use("/qa", qaRoutes);
 router.use("", resourceModuleMapRoutes);
+router.use("", tagRoutes);
 
 router.use(authMiddleware);
 router.use("/roles", roleRoutes);

@@ -614,6 +614,34 @@ export const SQL = {
     DELETE_BY_RESOURCE: `SELECT public.sp_rating_delete_by_resource(:resource_id)`,
   },
 
+  TAG: {
+    CREATE: `SELECT * FROM public.sp_tag_create(:name, :slug, :category, :description, :created_by)`,
+
+    GET_BY_ID: `SELECT * FROM public.sp_tag_get_by_id(:id)`,
+
+    GET_BY_SLUG: `SELECT * FROM public.sp_tag_get_by_slug(:slug)`,
+
+    GET_ALL: `SELECT * FROM public.sp_tag_get_all(:search_term, :category, :is_active, :limit_value)`,
+
+    UPDATE: `SELECT * FROM public.sp_tag_update(:id, :name, :slug, :category, :description, :is_active)`,
+
+    DELETE: `SELECT public.sp_tag_delete(:id)`,
+
+    EXISTS_BY_SLUG: `SELECT public.sp_tag_exists_by_slug(:slug, :exclude_id)`,
+
+    GET_BY_RESOURCE: `SELECT * FROM public.sp_tag_get_by_resource(:resource_id)`,
+
+    GET_BY_RESOURCES: `SELECT * FROM public.sp_tag_get_by_resources(CAST(:resource_ids AS BIGINT[]))`,
+
+    ATTACH_TO_RESOURCE: `SELECT * FROM public.sp_tag_attach_to_resource(:resource_id, :tag_id)`,
+
+    DETACH_FROM_RESOURCE: `SELECT public.sp_tag_detach_from_resource(:resource_id, :tag_id)`,
+
+    REPLACE_RESOURCE_TAGS: `SELECT * FROM public.sp_tag_replace_resource_tags(:resource_id, CAST(:tag_ids AS BIGINT[]))`,
+
+    GET_POPULAR: `SELECT * FROM public.sp_tag_get_popular(:limit_value)`,
+  },
+
   FAVORITE: {
     // Add/Remove operations (avec mapping des noms)
     ADD: `
