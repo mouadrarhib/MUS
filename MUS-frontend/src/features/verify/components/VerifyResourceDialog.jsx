@@ -10,6 +10,7 @@ import {
   Chip,
   IconButton,
   TextField,
+  CircularProgress,
   alpha,
   Divider,
 } from '@mui/material';
@@ -31,8 +32,9 @@ import {
   Star as StarIcon,
 } from '@mui/icons-material';
 import PropTypes from 'prop-types';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AsyncButton } from '@/shared/components/ui';
+import resourcesService from '@/services/resourcesService';
 
 const VerifyResourceDialog = ({ 
   open, 
@@ -45,8 +47,44 @@ const VerifyResourceDialog = ({
   mode = 'view' // 'view', 'approve', 'reject'
 }) => {
   const [rejectionReason, setRejectionReason] = useState('');
+  const [fileActionLoading, setFileActionLoading] = useState(false);
+  const [fileActionError, setFileActionError] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setFileActionError('');
+    }
+  }, [open, resource?.id]);
 
   if (!resource) return null;
+
+  const extensionFromResource = String(resource?.format || '').toLowerCase();
+  const previewableExtensions = new Set(['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'mp4', 'webm']);
+  const canPreviewInline = previewableExtensions.has(extensionFromResource);
+
+  const openFile = async ({ download = false } = {}) => {
+    if (!resource?.id) return;
+    setFileActionLoading(true);
+    setFileActionError('');
+
+    try {
+      const result = await resourcesService.getResourceFileUrl(resource.id, { download });
+      const url = result?.download_url;
+      if (!url) {
+        throw new Error('No file URL available for this resource');
+      }
+
+      if (url.startsWith('r2://')) {
+        throw new Error('Invalid cloud URL returned for this resource');
+      }
+
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      setFileActionError(error?.response?.data?.message || error?.message || 'Unable to open file');
+    } finally {
+      setFileActionLoading(false);
+    }
+  };
 
   const handleApprove = () => {
     onApprove(resource.id);
@@ -203,10 +241,28 @@ const VerifyResourceDialog = ({
       </DialogTitle>
 
       <DialogContent sx={{ p: 3 }}>
+        {fileActionError ? (
+          <Box
+            sx={{
+              mb: 2,
+              p: 1.25,
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'error.light',
+              bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+            }}
+          >
+            <Typography variant="caption" color="error.main" fontWeight={600}>
+              {fileActionError}
+            </Typography>
+          </Box>
+        ) : null}
+
         {/* Resource Header */}
         <Box
           sx={{
             p: 2.5,
+            mt: 1,
             mb: 3,
             borderRadius: 3,
             border: '1px solid',
@@ -225,23 +281,24 @@ const VerifyResourceDialog = ({
                 {resource.description}
               </Typography>
             </Box>
-            {resource.url && (
+            <Box sx={{ ml: 2, display: 'flex', gap: 1 }}>
               <Button
                 size="small"
-                variant="outlined"
-                startIcon={<OpenInNew sx={{ fontSize: 14 }} />}
-                href={resource.url}
-                target="_blank"
+                variant={canPreviewInline ? "outlined" : "contained"}
+                color={canPreviewInline ? "primary" : "info"}
+                startIcon={fileActionLoading ? <CircularProgress size={14} color="inherit" /> : <OpenInNew sx={{ fontSize: 14 }} />}
+                disabled={fileActionLoading}
+                onClick={() => openFile({ download: !canPreviewInline })}
                 sx={{
-                  ml: 2,
                   textTransform: 'none',
                   fontSize: '0.75rem',
                   borderRadius: 2,
+                  boxShadow: canPreviewInline ? undefined : 'none',
                 }}
               >
-                Preview
+                {fileActionLoading ? 'Opening...' : (canPreviewInline ? 'Open File' : 'Download File')}
               </Button>
-            )}
+            </Box>
           </Box>
           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
             <Chip

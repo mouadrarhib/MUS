@@ -3,7 +3,9 @@ import AppError from "../helpers/appError.js";
 import { storage } from "../helpers/storage.js";
 
 const authMiddleware = (req, res, next) => {
-  const token = req.cookies?.auth_token;
+  const bearer = req.headers?.authorization;
+  const bearerToken = typeof bearer === "string" && bearer.startsWith("Bearer ") ? bearer.slice(7).trim() : null;
+  const token = req.cookies?.auth_token || bearerToken;
 
   if (!token) {
     return next(new AppError("Authorization token missing", 401));
@@ -41,7 +43,9 @@ const authMiddleware = (req, res, next) => {
 };
 
 export const optionalAuthMiddleware = (req, _res, next) => {
-  const token = req.cookies?.auth_token;
+  const bearer = req.headers?.authorization;
+  const bearerToken = typeof bearer === "string" && bearer.startsWith("Bearer ") ? bearer.slice(7).trim() : null;
+  const token = req.cookies?.auth_token || bearerToken;
 
   if (!token) {
     return next();

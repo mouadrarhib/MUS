@@ -59,6 +59,11 @@ const extractObjectKeyFromResource = (resource) => {
     if (resource.url.startsWith(prefix)) {
       return resource.url.slice(prefix.length);
     }
+
+    const genericMatch = resource.url.match(/^r2:\/\/[^/]+\/(.+)$/i);
+    if (genericMatch?.[1]) {
+      return genericMatch[1];
+    }
   }
 
   return null;
@@ -920,14 +925,22 @@ export const uploadFileDirectlyToResource = async ({ resourceId, fileBuffer, ori
   return attachUploadedObjectToResource({ resourceId, objectKey, actor });
 };
 
-export const getResourceFileUrl = async (resourceId) => {
+export const getResourceFileUrl = async (resourceId, options = {}) => {
   const resource = await getResourceById(resourceId);
   if (!resource) {
     throw new AppError("Resource not found", 404);
   }
 
   const objectKey = extractObjectKeyFromResource(resource);
-  if (!objectKey || !isR2Configured()) {
+  if (objectKey && !isR2Configured()) {
+    throw new AppError("Storage service is unavailable", 503);
+  }
+
+  if (!objectKey) {
+    if (typeof resource.url === "string" && resource.url.startsWith("r2://")) {
+      throw new AppError("Resource file reference is invalid", 500);
+    }
+
     return {
       download_url: resource.url || null,
       source: "resource_url",
@@ -939,6 +952,7 @@ export const getResourceFileUrl = async (resourceId) => {
   const { downloadUrl, expiresIn } = await getDownloadUrl({
     objectKey,
     filename: fileName,
+    forceDownload: options?.forceDownload === true,
   });
 
   return {

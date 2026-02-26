@@ -150,8 +150,10 @@ export const resourcesService = {
     return normalizeResource(extractOne(response));
   },
 
-  getResourceFileUrl: async (resourceId) => {
-    const response = await get(`${RESOURCE.ROOT}/${resourceId}/file-url`);
+  getResourceFileUrl: async (resourceId, { download = false } = {}) => {
+    const response = await get(`${RESOURCE.ROOT}/${resourceId}/file-url`, {
+      params: download ? { download: true } : undefined,
+    });
     return response?.data || {};
   },
 

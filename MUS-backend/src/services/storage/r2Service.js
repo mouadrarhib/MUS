@@ -131,7 +131,7 @@ export const headObject = async (objectKey) => {
   return response;
 };
 
-export const getDownloadUrl = async ({ objectKey, filename = null }) => {
+export const getDownloadUrl = async ({ objectKey, filename = null, forceDownload = false }) => {
   const client = createClient();
   const { bucket } = ensureConfigured();
   const expiresIn = getSignedUrlTtl();
@@ -142,7 +142,7 @@ export const getDownloadUrl = async ({ objectKey, filename = null }) => {
     Key: objectKey,
     ...(dispositionName
       ? {
-          ResponseContentDisposition: `inline; filename="${dispositionName}"`,
+          ResponseContentDisposition: `${forceDownload ? "attachment" : "inline"}; filename="${dispositionName}"`,
         }
       : {}),
   });

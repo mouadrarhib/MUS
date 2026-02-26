@@ -1277,7 +1277,8 @@ export const confirmResourceUploadHandler = asyncHandler(async (req, res) => {
  */
 export const getResourceFileUrlHandler = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const result = await getResourceFileUrl(id);
+  const forceDownload = String(req.query?.download || "").toLowerCase() === "true";
+  const result = await getResourceFileUrl(id, { forceDownload });
   return successResponse(res, "Resource file URL generated successfully", result);
 });
 
