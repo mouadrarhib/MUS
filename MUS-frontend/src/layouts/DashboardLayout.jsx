@@ -7,6 +7,7 @@ import { Navbar, NAVBAR_HEIGHT } from '@/shared/components/ui/navigation/Navbar'
 import { DASHBOARD_NAVIGATION } from '@/config/dashboardNavigation';
 import { pageTransitionSx } from '@/styles/motion';
 import { useLanguage } from '@/app/providers/LanguageContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 const DESKTOP_SIDEBAR_WIDTH = 280;
 const MOBILE_SIDEBAR_WIDTH = 'min(88vw, 340px)';
@@ -14,6 +15,7 @@ const MOBILE_SIDEBAR_WIDTH = 'min(88vw, 340px)';
 const DashboardLayout = () => {
   const theme = useTheme();
   const { language } = useLanguage();
+  const { hasAnyRole } = useAuth();
   const isArabic = language === 'ar';
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
@@ -24,7 +26,12 @@ const DashboardLayout = () => {
     setSidebarOpen(!isMobile);
   }, [isMobile]);
 
-  const filteredNavigation = DASHBOARD_NAVIGATION;
+  const filteredNavigation = DASHBOARD_NAVIGATION.filter((item) => {
+    if (!Array.isArray(item?.roles) || item.roles.length === 0) {
+      return true;
+    }
+    return hasAnyRole(item.roles);
+  });
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default', direction: 'ltr' }}>

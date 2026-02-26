@@ -149,6 +149,14 @@ export const AuthProvider = ({ children }) => {
     [roles]
   );
 
+  const hasAnyRole = useCallback(
+    (requiredRoles = []) => {
+      if (!Array.isArray(requiredRoles) || requiredRoles.length === 0) return true;
+      return requiredRoles.some((role) => hasRole(role));
+    },
+    [hasRole]
+  );
+
   const value = {
     isAuthenticated,
     user,
@@ -159,7 +167,9 @@ export const AuthProvider = ({ children }) => {
     logout,
     refreshProfile,
     hasRole,
+    hasAnyRole,
     isStudent: roles.includes('USER') || roles.includes('STUDENT'),
+    isTeacher: roles.includes('TEACHER'),
     isAdmin: roles.includes('ADMIN'),
     isModerator: roles.includes('MODERATOR'),
   };

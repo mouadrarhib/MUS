@@ -61,16 +61,44 @@ const AppRouter = () => {
           <Route index element={<DashboardOverview />} />
 
           {/* Users Management Page */}
-          <Route path="users" element={<UsersPage />} />
+          <Route
+            path="users"
+            element={
+              <ProtectedRoute requiredRoles={['ADMIN']}>
+                <UsersPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Resources Management Page */}
-          <Route path="resources" element={<ResourcesPage />} />
+          <Route
+            path="resources"
+            element={
+              <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+                <ResourcesPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Library / Favorites Page */}
-          <Route path="library" element={<LibraryPage />} />
+          <Route
+            path="library"
+            element={
+              <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+                <LibraryPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* My Uploads Page */}
-          <Route path="uploads" element={<MyUploadsPage />} />
+          <Route
+            path="uploads"
+            element={
+              <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+                <MyUploadsPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Profile Page */}
           <Route path="profile" element={<ProfilePage />} />
@@ -79,10 +107,24 @@ const AppRouter = () => {
           <Route path="settings" element={<SettingsPage />} />
 
           {/* Verify Content Page - Admin Only */}
-          <Route path="verify" element={<VerifyResourcesPage />} />
+          <Route
+            path="verify"
+            element={
+              <ProtectedRoute requiredRoles={['ADMIN']}>
+                <VerifyResourcesPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Academic Catalog - Admin Only */}
-          <Route path="catalog" element={<CatalogManagementPage />} />
+          <Route
+            path="catalog"
+            element={
+              <ProtectedRoute requiredRoles={['ADMIN']}>
+                <CatalogManagementPage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* 4. Catch-all 404 */}

@@ -2,8 +2,8 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from '@/features/auth/context/AuthContext';
 
-export const ProtectedRoute = ({ children, requiredRole = null }) => {
-  const { isAuthenticated, loading, hasRole } = useAuth();
+export const ProtectedRoute = ({ children, requiredRole = null, requiredRoles = [] }) => {
+  const { isAuthenticated, loading, hasRole, hasAnyRole } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -27,8 +27,11 @@ export const ProtectedRoute = ({ children, requiredRole = null }) => {
   }
 
   if (requiredRole && !hasRole(requiredRole)) {
-    // No dedicated unauthorized route; send back to login
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (Array.isArray(requiredRoles) && requiredRoles.length > 0 && !hasAnyRole(requiredRoles)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;

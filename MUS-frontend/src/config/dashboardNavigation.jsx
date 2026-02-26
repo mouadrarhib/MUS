@@ -24,16 +24,16 @@ export const DASHBOARD_NAVIGATION = [
     labelKey: 'nav.myLibrary',
     path: '/dashboard/library',
     icon: <School />,
-    roles: ['STUDENT']
+    roles: ['STUDENT', 'TEACHER', 'ADMIN']
   },
 
-  // TEACHER
-  { type: 'section', labelKey: 'nav.teaching', roles: ['TEACHER'] },
+  // UPLOADS
+  { type: 'section', labelKey: 'nav.teaching', roles: ['TEACHER', 'STUDENT', 'ADMIN'] },
   {
     labelKey: 'nav.myUploads',
     path: '/dashboard/uploads',
     icon: <UploadFile />,
-    roles: ['TEACHER']
+    roles: ['STUDENT', 'TEACHER', 'ADMIN']
   },
 
   // ADMIN
@@ -47,12 +47,14 @@ export const DASHBOARD_NAVIGATION = [
   {
     labelKey: 'nav.users',
     path: '/dashboard/users',
-    icon: <Group />
+    icon: <Group />,
+    roles: ['ADMIN']
   },
   {
     labelKey: 'nav.resources',
     path: '/dashboard/resources',
-    icon: <Description />
+    icon: <Description />,
+    roles: ['STUDENT', 'TEACHER', 'ADMIN']
   },
   {
     labelKey: 'nav.academicCatalog',
@@ -66,11 +68,11 @@ export const DASHBOARD_NAVIGATION = [
     labelKey: 'nav.wallet',
     path: '/dashboard/wallet',
     icon: <AccountBalanceWallet />,
-    roles: ['STUDENT', 'TEACHER']
+    roles: ['STUDENT', 'TEACHER', 'ADMIN']
   },
 
   // SETTINGS - Available to all
-  { type: 'section', labelKey: 'nav.preferences' },
+  { type: 'section', labelKey: 'nav.preferences', roles: ['ADMIN', 'TEACHER', 'STUDENT'] },
   {
     labelKey: 'nav.settings',
     path: '/dashboard/settings',
