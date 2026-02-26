@@ -1,5 +1,6 @@
 import asyncHandler from "../helpers/asyncHandler.js";
 import { successResponse } from "../helpers/response.js";
+import AppError from "../helpers/appError.js";
 import {
   createResource,
   getAllResources,
@@ -30,6 +31,13 @@ import {
   getResourceEducationalTypes,
   getResourceFormats,
   recordResourceDownload,
+  createResourceUploadUrl,
+  createResourceUploadUrlById,
+  createResourceFromUploadedObject,
+  getResourceFileUrl,
+  attachUploadedObjectToResource,
+  attachExternalUrlToResource,
+  uploadFileDirectlyToResource,
 } from "../services/resourceService.js";
 
 
@@ -1063,3 +1071,377 @@ export const downloadResourceHandler = asyncHandler(async (req, res) => {
   return successResponse(res, result.message || "Download recorded", result);
 });
 
+/**
+ * @swagger
+ * /resources/upload-url:
+ *   post:
+ *     summary: Generate a signed upload URL for Cloudflare R2
+ *     description: |
+ *       Use this endpoint first, then upload the file bytes directly to the returned `upload_url`.
+ *
+ *       For Postman you can pass values in either:
+ *       - Query params (`filename`, `mime_type`, `size_bytes`) OR
+ *       - JSON body with the same fields.
+ *
+ *       After uploading bytes to `upload_url`, call `/resources/confirm-upload`.
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: filename
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Original file name (can be passed in body instead)
+ *       - in: query
+ *         name: mime_type
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: MIME type (can be passed in body instead)
+ *       - in: query
+ *         name: size_bytes
+ *         required: false
+ *         schema:
+ *           type: integer
+ *         description: File size in bytes (can be passed in body instead)
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               filename:
+ *                 type: string
+ *                 example: chapter-1.pdf
+ *               mime_type:
+ *                 type: string
+ *                 example: application/pdf
+ *               size_bytes:
+ *                 type: integer
+ *                 example: 1203045
+ *     responses:
+ *       200:
+ *         description: Signed upload URL generated
+ */
+export const requestResourceUploadUrlHandler = asyncHandler(async (req, res) => {
+  const filename = req.body?.filename || req.query?.filename;
+  const mime_type = req.body?.mime_type || req.query?.mime_type;
+  const result = await createResourceUploadUrl({
+    userId: req.user.id,
+    filename,
+    mimeType: mime_type,
+  });
+
+  return successResponse(res, "Upload URL generated successfully", result);
+});
+
+/**
+ * @swagger
+ * /resources/confirm-upload:
+ *   post:
+ *     summary: Create resource row from uploaded object
+ *     description: |
+ *       Call this after successful PUT upload to the signed `upload_url`.
+ *       This creates the resource in DB and stores the file reference.
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [object_key, title, resource_type_id]
+ *             properties:
+ *               object_key:
+ *                 type: string
+ *                 example: pending/uuid/2026/02/abc123-chapter-1.pdf
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               language:
+ *                 type: string
+ *               license:
+ *                 type: string
+ *               educational_type:
+ *                 type: string
+ *               format:
+ *                 type: string
+ *               resource_type_id:
+ *                 type: integer
+ *               metadata:
+ *                 type: object
+ *     responses:
+ *       201:
+ *         description: Resource created from uploaded object
+ */
+export const confirmResourceUploadHandler = asyncHandler(async (req, res) => {
+  const {
+    object_key,
+    title,
+    description,
+    status,
+    language,
+    license,
+    educational_type,
+    format,
+    resource_type_id,
+    metadata,
+  } = req.body;
+
+  const result = await createResourceFromUploadedObject({
+    objectKey: object_key,
+    title,
+    description,
+    status,
+    language,
+    license,
+    educationalType: educational_type,
+    format,
+    resourceTypeId: resource_type_id,
+    metadata,
+    actor: req.user,
+  });
+
+  return successResponse(res, "Resource created from uploaded file", result, 201);
+});
+
+/**
+ * @swagger
+ * /resources/{id}/file-url:
+ *   get:
+ *     summary: Get signed URL to access resource file
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Signed file URL generated
+ */
+export const getResourceFileUrlHandler = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const result = await getResourceFileUrl(id);
+  return successResponse(res, "Resource file URL generated successfully", result);
+});
+
+/**
+ * @swagger
+ * /resources/{id}/upload-url:
+ *   post:
+ *     summary: Generate signed upload URL for an existing resource
+ *     description: |
+ *       Preferred flow for Postman/UI when resource already exists.
+ *       1) Create resource (`POST /resources`)
+ *       2) Call this endpoint
+ *       3) Upload bytes to returned `upload_url`
+ *       4) Finalize with `POST /resources/{id}/attach-file`
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: filename
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: mime_type
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: size_bytes
+ *         required: false
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               filename:
+ *                 type: string
+ *               mime_type:
+ *                 type: string
+ *               size_bytes:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Signed upload URL generated
+ */
+export const requestResourceUploadUrlByIdHandler = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const filename = req.body?.filename || req.query?.filename;
+  const mime_type = req.body?.mime_type || req.query?.mime_type;
+
+  const result = await createResourceUploadUrlById({
+    resourceId: id,
+    filename,
+    mimeType: mime_type,
+    actor: req.user,
+  });
+
+  return successResponse(res, "Upload URL generated successfully", result);
+});
+
+/**
+ * @swagger
+ * /resources/{id}/attach-file:
+ *   post:
+ *     summary: Attach uploaded object to existing resource
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [object_key]
+ *             properties:
+ *               object_key:
+ *                 type: string
+ *                 example: resources/12/2026/02/abc-myfile.pdf
+ *     responses:
+ *       200:
+ *         description: File attached to resource
+ */
+export const attachFileToResourceHandler = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { object_key } = req.body;
+
+  const result = await attachUploadedObjectToResource({
+    resourceId: id,
+    objectKey: object_key,
+    actor: req.user,
+  });
+
+  return successResponse(res, "File attached to resource successfully", result);
+});
+
+/**
+ * @swagger
+ * /resources/{id}/attach-url:
+ *   patch:
+ *     summary: Attach or update external URL on existing resource
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [url]
+ *             properties:
+ *               url:
+ *                 type: string
+ *                 example: https://example.com/file.pdf
+ *     responses:
+ *       200:
+ *         description: URL attached to resource
+ */
+export const attachUrlToResourceHandler = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { url } = req.body;
+
+  const result = await attachExternalUrlToResource({
+    resourceId: id,
+    url,
+    actor: req.user,
+  });
+
+  return successResponse(res, "URL attached to resource successfully", result);
+});
+
+/**
+ * @swagger
+ * /resources/{id}/upload-file:
+ *   post:
+ *     summary: Upload file through backend and attach to resource
+ *     description: |
+ *       Use this endpoint when direct browser upload to R2 is blocked by CORS.
+ *       This uploads the binary to backend as multipart/form-data and backend stores it in R2.
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file]
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: File uploaded and attached
+ */
+export const uploadFileToResourceHandler = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const file = req.file;
+
+  if (!file?.buffer) {
+    throw new AppError("File is required", 422);
+  }
+
+  const result = await uploadFileDirectlyToResource({
+    resourceId: id,
+    fileBuffer: file.buffer,
+    originalName: file.originalname,
+    mimeType: file.mimetype,
+    actor: req.user,
+  });
+
+  return successResponse(res, "File uploaded and attached successfully", result);
+});

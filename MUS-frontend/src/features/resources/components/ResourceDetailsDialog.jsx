@@ -27,9 +27,49 @@ import {
   InsertDriveFile as FileIcon,
 } from '@mui/icons-material';
 import PropTypes from 'prop-types';
+import { useEffect, useState } from 'react';
+import resourcesService from '@/services/resourcesService';
+import { AsyncButton } from '@/shared/components/ui';
 
 const ResourceDetailsDialog = ({ open, resource, onClose }) => {
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setDownloadError('');
+    }
+  }, [open, resource?.id]);
+
   if (!resource) return null;
+
+  const handleDownload = async () => {
+    if (!resource?.id) return;
+
+    setDownloading(true);
+    setDownloadError('');
+
+    try {
+      const result = await resourcesService.getResourceFileUrl(resource.id);
+      const downloadUrl = result?.download_url;
+
+      if (!downloadUrl) {
+        throw new Error('No download URL is available for this resource');
+      }
+
+      window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+
+      try {
+        await resourcesService.recordDownload(resource.id);
+      } catch {
+        // Keep UX smooth if analytics/download counter fails.
+      }
+    } catch (error) {
+      setDownloadError(error?.response?.data?.message || error?.message || 'Download failed');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const getStatusColor = (status) => {
     const colors = {
@@ -169,6 +209,23 @@ const ResourceDetailsDialog = ({ open, resource, onClose }) => {
       </DialogTitle>
 
       <DialogContent sx={{ p: 3 }}>
+        {downloadError ? (
+          <Box
+            sx={{
+              mb: 2,
+              p: 1.5,
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'error.light',
+              bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+            }}
+          >
+            <Typography variant="caption" color="error.main" fontWeight={600}>
+              {downloadError}
+            </Typography>
+          </Box>
+        ) : null}
+
         {/* Resource Header */}
         <Box
           sx={{
@@ -438,9 +495,25 @@ const ResourceDetailsDialog = ({ open, resource, onClose }) => {
       </DialogContent>
 
       <DialogActions sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+        <AsyncButton
+          onClick={handleDownload}
+          variant="outlined"
+          disabled={downloading}
+          loading={downloading}
+          loadingText="Downloading..."
+          startIcon={<DownloadIcon sx={{ fontSize: 18 }} />}
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 600,
+          }}
+        >
+          Download
+        </AsyncButton>
         <Button 
           onClick={onClose} 
           variant="contained"
+          disabled={downloading}
           sx={{ 
             borderRadius: 2, 
             textTransform: 'none',

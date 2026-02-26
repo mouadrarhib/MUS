@@ -39,6 +39,7 @@ import {
   Assignment,
 } from "@mui/icons-material";
 import PropTypes from "prop-types";
+import { AsyncButton } from '@/shared/components/ui';
 
 // Sample universities
 const commonUniversities = [
@@ -90,7 +91,7 @@ const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-const UserDialog = ({ open, user, onClose, onSave }) => {
+const UserDialog = ({ open, user, onClose, onSave, saving = false }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -201,7 +202,7 @@ const UserDialog = ({ open, user, onClose, onSave }) => {
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (validateForm()) {
       const {
         institutionName,
@@ -218,7 +219,7 @@ const UserDialog = ({ open, user, onClose, onSave }) => {
       } = formData;
 
       // Convert to API format with snake_case
-      onSave({
+      await onSave({
         full_name: fullName,
         email: email,
         roles: userRoles.join(', '),
@@ -297,6 +298,7 @@ const UserDialog = ({ open, user, onClose, onSave }) => {
         </Stack>
         <IconButton
           onClick={onClose}
+          disabled={saving}
           sx={{
             position: "absolute",
             right: 12,
@@ -854,6 +856,7 @@ const UserDialog = ({ open, user, onClose, onSave }) => {
           onClick={onClose}
           variant="outlined"
           fullWidth
+          disabled={saving}
           sx={{
             borderRadius: 2,
             textTransform: "none",
@@ -867,10 +870,12 @@ const UserDialog = ({ open, user, onClose, onSave }) => {
         >
           Cancel
         </Button>
-        <Button
+        <AsyncButton
           onClick={handleSave}
           variant="contained"
           fullWidth
+          loading={saving}
+          loadingText={user ? 'Saving...' : 'Creating...'}
           sx={{
             borderRadius: 2,
             textTransform: "none",
@@ -883,7 +888,7 @@ const UserDialog = ({ open, user, onClose, onSave }) => {
           }}
         >
           {user ? "Save Changes" : "Create User"}
-        </Button>
+        </AsyncButton>
       </DialogActions>
     </Dialog>
   );
@@ -894,10 +899,12 @@ UserDialog.propTypes = {
   user: PropTypes.object,
   onClose: PropTypes.func.isRequired,
   onSave: PropTypes.func.isRequired,
+  saving: PropTypes.bool,
 };
 
 UserDialog.defaultProps = {
   user: null,
+  saving: false,
 };
 
 export default UserDialog;

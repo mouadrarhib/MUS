@@ -1,20 +1,16 @@
 import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, alpha } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Add, Delete as DeleteIcon, Warning as WarningIcon, UploadFile, ErrorOutline, CloudUpload } from '@mui/icons-material';
-import { useAuth } from '@/features/auth/context/AuthContext';
 import resourcesService from '@/services/resourcesService';
 import ResourcesStatsCards from '@/features/resources/components/ResourcesStatsCards';
 import ResourcesTable from '@/features/resources/components/ResourcesTable';
 import ResourceDialog from '@/features/resources/components/ResourceDialog';
 import ResourceDetailsDialog from '@/features/resources/components/ResourceDetailsDialog';
-import { EmptyState, PageHeader } from '@/shared/components/ui';
+import { AsyncButton, EmptyState, PageHeader } from '@/shared/components/ui';
 import { useLanguage } from '@/app/providers/LanguageContext';
-
-const normalize = (value) => String(value || '').trim().toLowerCase();
 
 const MyUploads = () => {
   const { t } = useLanguage();
-  const { user } = useAuth();
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
@@ -24,18 +20,8 @@ const MyUploads = () => {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [resourceToDelete, setResourceToDelete] = useState(null);
   const [error, setError] = useState('');
-
-  const currentUser = useMemo(() => {
-    const id = user?.id || user?.user_id || user?.uuid || null;
-    const name = user?.full_name || user?.name || null;
-
-    return {
-      id: normalize(id),
-      name: normalize(name),
-      institution: normalize(user?.institution_name || user?.institution || ''),
-      role: normalize(user?.role || (Array.isArray(user?.roles) ? user.roles[0] : '')),
-    };
-  }, [user]);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadMyResources();
@@ -81,26 +67,52 @@ const MyUploads = () => {
   };
 
   const handleSaveResource = async (resourceData) => {
+    setSaving(true);
     try {
+      const hasFile = Boolean(resourceData.file);
+      const normalizedUrl = typeof resourceData.url === 'string' ? resourceData.url.trim() : '';
+
+      const payload = {
+        title: resourceData.title,
+        description: resourceData.description,
+        status: resourceData.status || 'draft',
+        educational_type: resourceData.educationalType || resourceData.educational_type || 'notes',
+        format: resourceData.format || 'pdf',
+        resource_type_id: resourceData.resource_type_id || 1,
+        metadata: {
+          ...(resourceData.metadata || {}),
+          academicContext: resourceData.academicContext || null,
+        },
+        ...(normalizedUrl ? { url: normalizedUrl } : {}),
+      };
+
       if (editingResource) {
-        await resourcesService.updateResource(editingResource.id, resourceData);
+        const updatedResource = await resourcesService.updateResource(editingResource.id, payload);
+        console.log('[Uploads] Resource updated', { resourceId: updatedResource?.id, hasFile });
+
+        if (hasFile) {
+          await resourcesService.uploadFileToResource(updatedResource.id, resourceData.file);
+          console.log('[Uploads] File uploaded via backend and attached', { resourceId: updatedResource.id });
+        }
       } else {
-        await resourcesService.createResource({
-          ...resourceData,
-          status: resourceData.status || 'draft',
-          author: {
-            id: user?.id || user?.user_id || user?.uuid || `u_${Date.now()}`,
-            name: user?.full_name || user?.name || 'Current User',
-            role: (currentUser.role || 'teacher').replace('role_', ''),
-            institution: user?.institution_name || user?.institution || 'Unknown Institution',
-          },
-        });
+        const createdResource = await resourcesService.createResource(payload);
+        console.log('[Uploads] Resource created', { resourceId: createdResource?.id, hasFile });
+
+        if (hasFile) {
+          await resourcesService.uploadFileToResource(createdResource.id, resourceData.file);
+          console.log('[Uploads] File uploaded via backend and attached', { resourceId: createdResource.id });
+        } else {
+          await resourcesService.attachUrlToResource(createdResource.id, payload.url);
+          console.log('[Uploads] URL attached to resource', { resourceId: createdResource.id, url: payload.url });
+        }
       }
 
       await loadMyResources();
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving resource:', error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -112,6 +124,7 @@ const MyUploads = () => {
 
   const handleConfirmDelete = async () => {
     if (!resourceToDelete) return;
+    setDeleting(true);
 
     try {
       await resourcesService.deleteResource(resourceToDelete.id);
@@ -120,6 +133,8 @@ const MyUploads = () => {
       setResourceToDelete(null);
     } catch (error) {
       console.error('Error deleting resource:', error);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -146,6 +161,7 @@ const MyUploads = () => {
             variant="contained"
             startIcon={<Add />}
             onClick={handleOpenDialog}
+            disabled={saving || deleting}
             sx={{
               borderRadius: 2,
               px: 2.5,
@@ -203,6 +219,7 @@ const MyUploads = () => {
         resource={editingResource}
         onClose={handleCloseDialog}
         onSave={handleSaveResource}
+        saving={saving}
       />
 
       <ResourceDetailsDialog open={openDetailsDialog} resource={viewingResource} onClose={handleCloseDetailsDialog} />
@@ -265,18 +282,21 @@ const MyUploads = () => {
         </DialogContent>
 
         <DialogActions sx={{ p: 2.5, gap: 1, borderTop: '1px solid', borderColor: 'divider' }}>
-          <Button onClick={handleCancelDelete} variant="outlined" sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}>
+          <Button onClick={handleCancelDelete} variant="outlined" disabled={deleting} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}>
             Cancel
           </Button>
-          <Button
+          <AsyncButton
             onClick={handleConfirmDelete}
             variant="contained"
             color="error"
+            disabled={deleting}
+            loading={deleting}
+            loadingText="Deleting..."
             startIcon={<DeleteIcon sx={{ fontSize: 18 }} />}
             sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, boxShadow: 'none' }}
           >
             Delete
-          </Button>
+          </AsyncButton>
         </DialogActions>
       </Dialog>
     </Box>

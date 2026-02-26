@@ -32,6 +32,7 @@ import {
 } from '@mui/icons-material';
 import PropTypes from 'prop-types';
 import { useState } from 'react';
+import { AsyncButton } from '@/shared/components/ui';
 
 const VerifyResourceDialog = ({ 
   open, 
@@ -40,6 +41,7 @@ const VerifyResourceDialog = ({
   onApprove, 
   onReject,
   onStartReject,
+  actionLoading = false,
   mode = 'view' // 'view', 'approve', 'reject'
 }) => {
   const [rejectionReason, setRejectionReason] = useState('');
@@ -188,6 +190,7 @@ const VerifyResourceDialog = ({
         </Box>
         <IconButton
           onClick={onClose}
+          disabled={actionLoading}
           sx={{
             position: 'absolute',
             right: 8,
@@ -472,6 +475,7 @@ const VerifyResourceDialog = ({
         <Button 
           onClick={onClose} 
           variant="outlined"
+          disabled={actionLoading}
           sx={{ 
             borderRadius: 2, 
             textTransform: 'none',
@@ -483,10 +487,11 @@ const VerifyResourceDialog = ({
         
         {mode === 'view' && (
           <>
-            <Button 
+            <AsyncButton 
               onClick={onStartReject}
               variant="outlined"
               color="error"
+              disabled={actionLoading}
               startIcon={<Cancel sx={{ fontSize: 18 }} />}
               sx={{ 
                 borderRadius: 2, 
@@ -495,11 +500,13 @@ const VerifyResourceDialog = ({
               }}
             >
               Reject
-            </Button>
-            <Button 
+            </AsyncButton>
+            <AsyncButton 
               onClick={handleApprove}
               variant="contained"
               color="success"
+              loading={actionLoading}
+              loadingText="Publishing..."
               startIcon={<CheckCircle sx={{ fontSize: 18 }} />}
               sx={{ 
                 borderRadius: 2, 
@@ -509,15 +516,17 @@ const VerifyResourceDialog = ({
               }}
             >
               Approve & Publish
-            </Button>
+            </AsyncButton>
           </>
         )}
 
         {mode === 'approve' && (
-          <Button 
+          <AsyncButton 
             onClick={handleApprove}
             variant="contained"
             color="success"
+            loading={actionLoading}
+            loadingText="Publishing..."
             startIcon={<CheckCircle sx={{ fontSize: 18 }} />}
             sx={{ 
               borderRadius: 2, 
@@ -527,16 +536,18 @@ const VerifyResourceDialog = ({
             }}
           >
             Confirm & Publish
-          </Button>
+          </AsyncButton>
         )}
 
         {mode === 'reject' && (
-          <Button 
+          <AsyncButton 
             onClick={handleReject}
             variant="contained"
             color="error"
+            loading={actionLoading}
+            loadingText="Rejecting..."
             startIcon={<Cancel sx={{ fontSize: 18 }} />}
-            disabled={!rejectionReason.trim()}
+            disabled={!rejectionReason.trim() || actionLoading}
             sx={{ 
               borderRadius: 2, 
               textTransform: 'none',
@@ -545,7 +556,7 @@ const VerifyResourceDialog = ({
             }}
           >
             Confirm Rejection
-          </Button>
+          </AsyncButton>
         )}
       </DialogActions>
     </Dialog>
@@ -559,12 +570,14 @@ VerifyResourceDialog.propTypes = {
   onApprove: PropTypes.func.isRequired,
   onReject: PropTypes.func.isRequired,
   onStartReject: PropTypes.func,
+  actionLoading: PropTypes.bool,
   mode: PropTypes.oneOf(['view', 'approve', 'reject']),
 };
 
 VerifyResourceDialog.defaultProps = {
   resource: null,
   onStartReject: () => {},
+  actionLoading: false,
   mode: 'view',
 };
 

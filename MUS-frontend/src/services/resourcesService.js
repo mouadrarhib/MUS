@@ -75,11 +75,84 @@ const extractDataArray = (response, key) => {
   return [];
 };
 
+const extractOne = (response) => {
+  const data = response?.data;
+  if (Array.isArray(data)) return data[0] || null;
+  return data || null;
+};
+
 export const resourcesService = {
   createResource: async (resourceData) => {
     const response = await post(RESOURCE.ROOT, resourceData);
     clearResourceListCaches();
-    return normalizeResource(response?.data);
+    return normalizeResource(extractOne(response));
+  },
+
+  requestUploadUrl: async ({ filename, mime_type, size_bytes }) => {
+    const response = await post(`${RESOURCE.ROOT}/upload-url`, { filename, mime_type, size_bytes });
+    return response?.data || {};
+  },
+
+  requestUploadUrlByResourceId: async (resourceId, { filename, mime_type, size_bytes }) => {
+    const response = await post(`${RESOURCE.ROOT}/${resourceId}/upload-url`, {
+      filename,
+      mime_type,
+      size_bytes,
+    });
+    return response?.data || {};
+  },
+
+  uploadFileToSignedUrl: async ({ uploadUrl, file, contentType }) => {
+    const result = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": contentType || file?.type || "application/octet-stream",
+      },
+      body: file,
+    });
+
+    if (!result.ok) {
+      throw new Error(`Upload failed with status ${result.status}`);
+    }
+
+    return true;
+  },
+
+  uploadFileToResource: async (resourceId, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await post(`${RESOURCE.ROOT}/${resourceId}/upload-file`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    clearResourceListCaches();
+    return normalizeResource(extractOne(response));
+  },
+
+  confirmUpload: async (payload) => {
+    const response = await post(`${RESOURCE.ROOT}/confirm-upload`, payload);
+    clearResourceListCaches();
+    return normalizeResource(extractOne(response));
+  },
+
+  attachFileToResource: async (resourceId, object_key) => {
+    const response = await post(`${RESOURCE.ROOT}/${resourceId}/attach-file`, { object_key });
+    clearResourceListCaches();
+    return normalizeResource(extractOne(response));
+  },
+
+  attachUrlToResource: async (resourceId, url) => {
+    const response = await patch(`${RESOURCE.ROOT}/${resourceId}/attach-url`, { url });
+    clearResourceListCaches();
+    return normalizeResource(extractOne(response));
+  },
+
+  getResourceFileUrl: async (resourceId) => {
+    const response = await get(`${RESOURCE.ROOT}/${resourceId}/file-url`);
+    return response?.data || {};
   },
 
   getAllResources: async (params = {}, options = {}) => {
@@ -136,7 +209,7 @@ export const resourcesService = {
   updateResource: async (resourceId, updatedData) => {
     const response = await patch(`${RESOURCE.ROOT}/${resourceId}`, updatedData);
     clearResourceListCaches();
-    return normalizeResource(response?.data);
+    return normalizeResource(extractOne(response));
   },
 
   deleteResource: async (resourceId) => {
@@ -202,25 +275,25 @@ export const resourcesService = {
   updateResourceMetadata: async (resourceId, metadata) => {
     const response = await patch(`${RESOURCE.ROOT}/${resourceId}/metadata`, { metadata });
     clearResourceListCaches();
-    return normalizeResource(response?.data);
+    return normalizeResource(extractOne(response));
   },
 
   updateResourceStatus: async (resourceId, status) => {
     const response = await patch(`${RESOURCE.ROOT}/${resourceId}/status`, { status });
     clearResourceListCaches();
-    return normalizeResource(response?.data);
+    return normalizeResource(extractOne(response));
   },
 
   publishResource: async (resourceId) => {
     const response = await post(`${RESOURCE.ROOT}/${resourceId}/publish`);
     clearResourceListCaches();
-    return normalizeResource(response?.data);
+    return normalizeResource(extractOne(response));
   },
 
   archiveResource: async (resourceId) => {
     const response = await post(`${RESOURCE.ROOT}/${resourceId}/archive`);
     clearResourceListCaches();
-    return normalizeResource(response?.data);
+    return normalizeResource(extractOne(response));
   },
 
   searchResources: async (searchTerm) => {

@@ -7,7 +7,7 @@ import ResourcesStatsCards from '../components/ResourcesStatsCards';
 import ResourcesTable from '../components/ResourcesTable';
 import ResourceDialog from '../components/ResourceDialog';
 import ResourceDetailsDialog from '../components/ResourceDetailsDialog';
-import { EmptyState, PageHeader } from '@/shared/components/ui';
+import { AsyncButton, EmptyState, PageHeader } from '@/shared/components/ui';
 import { useLanguage } from '@/app/providers/LanguageContext';
 
 const Resources = () => {
@@ -21,6 +21,8 @@ const Resources = () => {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [resourceToDelete, setResourceToDelete] = useState(null);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadResources();
@@ -66,16 +68,58 @@ const Resources = () => {
   };
 
   const handleSaveResource = async (resourceData) => {
+    setSaving(true);
     try {
+      const hasFile = Boolean(resourceData.file);
+      const normalizedUrl = typeof resourceData.url === 'string' ? resourceData.url.trim() : '';
+      const payload = {
+        title: resourceData.title,
+        description: resourceData.description,
+        status: resourceData.status || 'draft',
+        educational_type: resourceData.educationalType || resourceData.educational_type || 'notes',
+        format: resourceData.format || 'pdf',
+        resource_type_id: resourceData.resource_type_id || 1,
+        metadata: {
+          ...(resourceData.metadata || {}),
+          academicContext: resourceData.academicContext || null,
+        },
+        ...(normalizedUrl ? { url: normalizedUrl } : {}),
+      };
+
       if (editingResource) {
-        await resourcesService.updateResource(editingResource.id, resourceData);
+        const updatedResource = await resourcesService.updateResource(editingResource.id, payload);
+        console.log('[Resources] Resource updated', { resourceId: updatedResource?.id, hasFile });
+
+        if (hasFile) {
+          await resourcesService.uploadFileToResource(updatedResource.id, resourceData.file);
+          console.log('[Resources] File uploaded via backend and attached', { resourceId: updatedResource.id });
+        }
       } else {
-        await resourcesService.createResource(resourceData);
+        const createdResource = await resourcesService.createResource(payload);
+        console.log('[Resources] Resource created', { resourceId: createdResource?.id, hasFile });
+
+        if (hasFile) {
+          await resourcesService.uploadFileToResource(createdResource.id, resourceData.file);
+          console.log('[Resources] File uploaded via backend and attached', { resourceId: createdResource.id });
+        } else if (payload.url) {
+          await resourcesService.attachUrlToResource(createdResource.id, payload.url);
+          console.log('[Resources] URL attached to resource', { resourceId: createdResource.id, url: payload.url });
+        }
       }
       await loadResources();
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving resource:', error);
+      const message = error?.response?.data?.message || error?.message || 'Failed to save resource';
+      console.error('Resource save error details:', {
+        status: error?.response?.status,
+        message,
+        data: error?.response?.data,
+      });
+      setError(message);
+      throw error;
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -87,6 +131,7 @@ const Resources = () => {
 
   const handleConfirmDelete = async () => {
     if (!resourceToDelete) return;
+    setDeleting(true);
     try {
       await resourcesService.deleteResource(resourceToDelete.id);
       await loadResources();
@@ -94,6 +139,8 @@ const Resources = () => {
       setResourceToDelete(null);
     } catch (error) {
       console.error('Error deleting resource:', error);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -121,6 +168,7 @@ const Resources = () => {
             variant="contained"
             startIcon={<Add />}
             onClick={handleOpenDialog}
+            disabled={saving || deleting}
             sx={{
               borderRadius: 2,
               px: 2.5,
@@ -181,6 +229,7 @@ const Resources = () => {
         resource={editingResource}
         onClose={handleCloseDialog}
         onSave={handleSaveResource}
+        saving={saving}
       />
 
       {/* Resource Details Dialog */}
@@ -252,6 +301,7 @@ const Resources = () => {
           <Button
             onClick={handleCancelDelete}
             variant="outlined"
+            disabled={deleting}
             sx={{ 
               borderRadius: 2, 
               textTransform: 'none',
@@ -260,10 +310,13 @@ const Resources = () => {
           >
             Cancel
           </Button>
-          <Button
+          <AsyncButton
             onClick={handleConfirmDelete}
             variant="contained"
             color="error"
+            disabled={deleting}
+            loading={deleting}
+            loadingText="Deleting..."
             startIcon={<DeleteIcon sx={{ fontSize: 18 }} />}
             sx={{ 
               borderRadius: 2, 
@@ -273,7 +326,7 @@ const Resources = () => {
             }}
           >
             Delete
-          </Button>
+          </AsyncButton>
         </DialogActions>
       </Dialog>
     </Box>

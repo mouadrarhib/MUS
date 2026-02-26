@@ -7,7 +7,7 @@ import UsersStatsCards from '../components/UsersStatsCards';
 import UsersTable from '../components/UsersTable';
 import UserDialog from '../components/UserDialog';
 import UserDetailsDialog from '../components/UserDetailsDialog';
-import { PageHeader } from '@/shared/components/ui';
+import { AsyncButton, PageHeader } from '@/shared/components/ui';
 import { useLanguage } from '@/app/providers/LanguageContext';
 
 const Users = () => {
@@ -20,6 +20,8 @@ const Users = () => {
   const [viewingUser, setViewingUser] = useState(null);
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+  const [savingUser, setSavingUser] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   // Load users on component mount
   useEffect(() => {
@@ -64,6 +66,7 @@ const Users = () => {
   };
 
   const handleSaveUser = async (userData) => {
+    setSavingUser(true);
     try {
       if (editingUser) {
         await usersService.updateUser(editingUser.user_id, userData);
@@ -74,6 +77,9 @@ const Users = () => {
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving user:', error);
+      throw error;
+    } finally {
+      setSavingUser(false);
     }
   };
 
@@ -85,6 +91,7 @@ const Users = () => {
 
   const handleConfirmDelete = async () => {
     if (!userToDelete) return;
+    setDeletingUser(true);
     try {
       await usersService.deleteUser(userToDelete.user_id);
       await loadUsers();
@@ -92,6 +99,8 @@ const Users = () => {
       setUserToDelete(null);
     } catch (error) {
       console.error('Error deleting user:', error);
+    } finally {
+      setDeletingUser(false);
     }
   };
 
@@ -128,6 +137,7 @@ const Users = () => {
             variant="contained"
             startIcon={<Add />}
             onClick={handleOpenDialog}
+            disabled={savingUser || deletingUser}
             sx={{
               borderRadius: 2,
               px: 2.5,
@@ -171,6 +181,7 @@ const Users = () => {
         user={editingUser}
         onClose={handleCloseDialog}
         onSave={handleSaveUser}
+        saving={savingUser}
       />
 
       {/* User Details Dialog */}
@@ -242,6 +253,7 @@ const Users = () => {
           <Button
             onClick={handleCancelDelete}
             variant="outlined"
+            disabled={deletingUser}
             sx={{ 
               borderRadius: 2, 
               textTransform: 'none',
@@ -250,10 +262,12 @@ const Users = () => {
           >
             Cancel
           </Button>
-          <Button
+          <AsyncButton
             onClick={handleConfirmDelete}
             variant="contained"
             color="error"
+            loading={deletingUser}
+            loadingText="Deleting..."
             startIcon={<DeleteIcon sx={{ fontSize: 18 }} />}
             sx={{ 
               borderRadius: 2, 
@@ -263,7 +277,7 @@ const Users = () => {
             }}
           >
             Delete
-          </Button>
+          </AsyncButton>
         </DialogActions>
       </Dialog>
     </Box>

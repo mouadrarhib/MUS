@@ -23,6 +23,7 @@ import {
 } from '@mui/material';
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { AsyncButton } from '@/shared/components/ui';
 import {
   Description as DescriptionIcon,
   School as SchoolIcon,
@@ -36,7 +37,7 @@ import {
 
   const steps = ['Basic Information', 'Academic Context', 'Settings'];
 
-const ResourceDialog = ({ open, resource, onClose, onSave }) => {
+const ResourceDialog = ({ open, resource, onClose, onSave, saving = false }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [uploadMethod, setUploadMethod] = useState('url');
   const [selectedFile, setSelectedFile] = useState(null);
@@ -167,14 +168,19 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const dataToSave = {
       ...formData,
       ...(resource && { id: resource.id }),
       ...(uploadMethod === 'file' && selectedFile && { file: selectedFile }),
     };
-    onSave(dataToSave);
-    onClose();
+
+    try {
+      await onSave(dataToSave);
+      onClose();
+    } catch {
+      // Parent handles error display/logging.
+    }
   };
 
   const getStatusColor = (status) => {
@@ -632,6 +638,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
         </Box>
         <IconButton
           onClick={onClose}
+          disabled={saving}
           sx={{ position: 'absolute', right: 12, top: 12, color: 'text.secondary' }}
         >
           <Close sx={{ fontSize: 20 }} />
@@ -696,6 +703,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
           onClick={onClose}
           variant="outlined"
           size="small"
+          disabled={saving}
           sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
         >
           Cancel
@@ -706,6 +714,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
             onClick={handleBack}
             variant="outlined"
             size="small"
+            disabled={saving}
             startIcon={<ArrowBack sx={{ fontSize: 16 }} />}
             sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
           >
@@ -717,6 +726,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
             onClick={handleNext}
             variant="contained"
             size="small"
+            disabled={saving}
             endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
             sx={{
               borderRadius: 2,
@@ -729,10 +739,13 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
             Next
           </Button>
         ) : (
-          <Button
+          <AsyncButton
             onClick={handleSave}
             variant="contained"
             size="small"
+            disabled={saving}
+            loading={saving}
+            loadingText={resource ? 'Updating...' : 'Creating...'}
             sx={{
               borderRadius: 2,
               textTransform: 'none',
@@ -742,7 +755,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave }) => {
             }}
           >
             {resource ? 'Update' : 'Create'}
-          </Button>
+          </AsyncButton>
         )}
       </DialogActions>
     </Dialog>
@@ -754,10 +767,12 @@ ResourceDialog.propTypes = {
   resource: PropTypes.object,
   onClose: PropTypes.func.isRequired,
   onSave: PropTypes.func.isRequired,
+  saving: PropTypes.bool,
 };
 
 ResourceDialog.defaultProps = {
   resource: null,
+  saving: false,
 };
 
 export default ResourceDialog;

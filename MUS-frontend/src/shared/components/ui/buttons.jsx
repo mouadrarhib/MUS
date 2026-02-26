@@ -2,6 +2,33 @@ import React from 'react';
 import { Button, CircularProgress, IconButton as MuiIconButton, Tooltip } from '@mui/material';
 import PropTypes from 'prop-types';
 
+export const AsyncButton = ({
+  children,
+  loading = false,
+  loadingText = 'Processing...',
+  disabled = false,
+  startIcon,
+  loadingIndicatorSize = 16,
+  ...props
+}) => (
+  <Button
+    disabled={disabled || loading}
+    startIcon={loading ? <CircularProgress size={loadingIndicatorSize} color="inherit" /> : startIcon}
+    {...props}
+  >
+    {loading ? loadingText : children}
+  </Button>
+);
+
+AsyncButton.propTypes = {
+  children: PropTypes.node,
+  loading: PropTypes.bool,
+  loadingText: PropTypes.string,
+  disabled: PropTypes.bool,
+  startIcon: PropTypes.node,
+  loadingIndicatorSize: PropTypes.number,
+};
+
 export const PrimaryButton = ({ children, loading, disabled, startIcon, ...props }) => (
   <Button
     variant="contained"

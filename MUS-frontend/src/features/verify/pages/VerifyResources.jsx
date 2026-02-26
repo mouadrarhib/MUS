@@ -16,6 +16,7 @@ const VerifyResources = () => {
   const [selectedResource, setSelectedResource] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState('view'); // 'view', 'approve', 'reject'
+  const [actionLoading, setActionLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   // Stats tracking
@@ -66,11 +67,13 @@ const VerifyResources = () => {
   };
 
   const handleCloseDialog = () => {
+    if (actionLoading) return;
     setDialogOpen(false);
     setSelectedResource(null);
   };
 
   const handleApproveResource = async (resourceId) => {
+    setActionLoading(true);
     try {
       await resourcesService.publishResource(resourceId);
       
@@ -83,10 +86,13 @@ const VerifyResources = () => {
     } catch (error) {
       console.error('Error approving resource:', error);
       showSnackbar('Failed to approve resource', 'error');
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleRejectResource = async (resourceId, reason) => {
+    setActionLoading(true);
     try {
       await resourcesService.archiveResource(resourceId);
       
@@ -99,6 +105,8 @@ const VerifyResources = () => {
     } catch (error) {
       console.error('Error rejecting resource:', error);
       showSnackbar('Failed to reject resource', 'error');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -151,6 +159,7 @@ const VerifyResources = () => {
         onApprove={handleApproveResource}
         onReject={handleRejectResource}
         onStartReject={() => setDialogMode('reject')}
+        actionLoading={actionLoading}
       />
 
       {/* Snackbar for notifications */}

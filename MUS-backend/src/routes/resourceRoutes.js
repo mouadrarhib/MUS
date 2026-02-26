@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { body, param } from "express-validator";
+import { body, param, query } from "express-validator";
+import multer from "multer";
 import {
   addResource,
   listResources,
@@ -31,6 +32,13 @@ import {
   listResourceEducationalTypes,
   listResourceFormats,
   downloadResourceHandler,
+  requestResourceUploadUrlHandler,
+  confirmResourceUploadHandler,
+  getResourceFileUrlHandler,
+  requestResourceUploadUrlByIdHandler,
+  attachFileToResourceHandler,
+  attachUrlToResourceHandler,
+  uploadFileToResourceHandler,
 } from "../controllers/resourceController.js";
 
 import validateRequest from "./validateRequest.js";
@@ -44,6 +52,10 @@ import {
 import { getResourceById } from "../services/resourceService.js";
 
 const router = Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 250 * 1024 * 1024 },
+});
 router.use(optionalAuthMiddleware);
 
 const getResourceOwnerId = async (req) => {
@@ -81,6 +93,103 @@ router.post(
   ],
   validateRequest,
   addResource
+);
+
+router.post(
+  "/upload-url",
+  authMiddleware,
+  [
+    body("filename").optional().isString().notEmpty(),
+    query("filename").optional().isString().notEmpty(),
+    body("mime_type").optional().isString(),
+    query("mime_type").optional().isString(),
+    body("size_bytes").optional().isInt({ min: 1 }).withMessage("Valid size is required"),
+    query("size_bytes").optional().isInt({ min: 1 }).withMessage("Valid size is required"),
+    body().custom((_, { req }) => {
+      if (req.body?.filename || req.query?.filename) {
+        return true;
+      }
+      throw new Error("Filename is required (body.filename or query filename)");
+    }),
+  ],
+  validateRequest,
+  requestResourceUploadUrlHandler
+);
+
+router.post(
+  "/confirm-upload",
+  authMiddleware,
+  [
+    body("object_key").isString().notEmpty().withMessage("Object key is required"),
+    body("title").isString().notEmpty().withMessage("Title is required"),
+    body("description").optional().isString(),
+    body("status").optional().isString(),
+    body("language").optional().isString(),
+    body("license").optional().isString(),
+    body("educational_type").optional().isString(),
+    body("format").optional().isString(),
+    body("resource_type_id").isInt().withMessage("Resource type ID is required"),
+    body("metadata").optional().isObject(),
+  ],
+  validateRequest,
+  confirmResourceUploadHandler
+);
+
+router.post(
+  "/:id/upload-url",
+  authMiddleware,
+  requireOwnerOrAdmin(getResourceOwnerId),
+  [
+    param("id").isInt().withMessage("Valid resource ID is required"),
+    body("filename").optional().isString().notEmpty(),
+    query("filename").optional().isString().notEmpty(),
+    body("mime_type").optional().isString(),
+    query("mime_type").optional().isString(),
+    body("size_bytes").optional().isInt({ min: 1 }).withMessage("Valid size is required"),
+    query("size_bytes").optional().isInt({ min: 1 }).withMessage("Valid size is required"),
+    body().custom((_, { req }) => {
+      if (req.body?.filename || req.query?.filename) {
+        return true;
+      }
+      throw new Error("Filename is required (body.filename or query filename)");
+    }),
+  ],
+  validateRequest,
+  requestResourceUploadUrlByIdHandler
+);
+
+router.post(
+  "/:id/attach-file",
+  authMiddleware,
+  requireOwnerOrAdmin(getResourceOwnerId),
+  [
+    param("id").isInt().withMessage("Valid resource ID is required"),
+    body("object_key").isString().notEmpty().withMessage("Object key is required"),
+  ],
+  validateRequest,
+  attachFileToResourceHandler
+);
+
+router.patch(
+  "/:id/attach-url",
+  authMiddleware,
+  requireOwnerOrAdmin(getResourceOwnerId),
+  [
+    param("id").isInt().withMessage("Valid resource ID is required"),
+    body("url").isString().isURL().withMessage("Valid URL is required"),
+  ],
+  validateRequest,
+  attachUrlToResourceHandler
+);
+
+router.post(
+  "/:id/upload-file",
+  authMiddleware,
+  requireOwnerOrAdmin(getResourceOwnerId),
+  [param("id").isInt().withMessage("Valid resource ID is required")],
+  validateRequest,
+  upload.single("file"),
+  uploadFileToResourceHandler
 );
 
 router.get("/", listResources);
@@ -198,6 +307,14 @@ router.post(
   [param("id").isInt().withMessage("Valid resource ID is required")],
   validateRequest,
   downloadResourceHandler
+);
+
+router.get(
+  "/:id/file-url",
+  [param("id").isInt().withMessage("Valid resource ID is required")],
+  validateRequest,
+  requirePublishedOrOwnerOrAdmin(getResourceForVisibility),
+  getResourceFileUrlHandler
 );
 
 router.get(
