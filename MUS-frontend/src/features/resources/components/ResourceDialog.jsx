@@ -7,7 +7,6 @@ import {
   Button,
   Box,
   Typography,
-  Grid,
   MenuItem,
   Select,
   FormControl,
@@ -21,6 +20,7 @@ import {
   StepLabel,
   alpha,
 } from '@mui/material';
+import Grid from '@mui/material/GridLegacy';
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { AsyncButton } from '@/shared/components/ui';
@@ -46,7 +46,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false }) => 
     description: '',
     educationalType: 'notes',
     format: 'pdf',
-    status: 'draft',
+    status: 'pending',
     url: '',
     pricePoints: 0,
     academicContext: {
@@ -69,7 +69,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false }) => 
         description: resource.description || '',
         educationalType: resource.educationalType || 'notes',
         format: resource.format || 'pdf',
-        status: resource.status || 'draft',
+        status: resource.status || 'pending',
         url: resource.url || '',
         pricePoints: resource.pricePoints || 0,
         academicContext: {
@@ -89,7 +89,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false }) => 
         description: '',
         educationalType: 'notes',
         format: 'pdf',
-        status: 'draft',
+        status: 'pending',
         url: '',
         pricePoints: 0,
         academicContext: {
@@ -485,34 +485,51 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false }) => 
                 </Typography>
                 <Grid container spacing={1.5}>
                   <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel shrink>Publication Status *</InputLabel>
-                      <Select
-                        name="status"
-                        value={formData.status}
-                        onChange={handleInputChange}
-                        label="Publication Status *"
-                        displayEmpty
-                        notched
-                        sx={{ borderRadius: 2 }}
-                      >
-                        <MenuItem value="draft">
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Chip label="Draft" color="warning" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                          </Box>
-                        </MenuItem>
-                        <MenuItem value="published">
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Chip label="Published" color="success" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                          </Box>
-                        </MenuItem>
-                        <MenuItem value="archived">
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Chip label="Archived" color="default" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                          </Box>
-                        </MenuItem>
-                      </Select>
-                    </FormControl>
+                    {resource ? (
+                      <FormControl fullWidth size="small">
+                        <InputLabel shrink>Publication Status *</InputLabel>
+                        <Select
+                          name="status"
+                          value={formData.status}
+                          onChange={handleInputChange}
+                          label="Publication Status *"
+                          displayEmpty
+                          notched
+                          sx={{ borderRadius: 2 }}
+                        >
+                          <MenuItem value="pending">
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Chip label="Pending" color="info" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                            </Box>
+                          </MenuItem>
+                          <MenuItem value="draft">
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Chip label="Draft" color="warning" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                            </Box>
+                          </MenuItem>
+                          <MenuItem value="published">
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Chip label="Published" color="success" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                            </Box>
+                          </MenuItem>
+                          <MenuItem value="archived">
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Chip label="Archived" color="default" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                            </Box>
+                          </MenuItem>
+                        </Select>
+                      </FormControl>
+                    ) : (
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Publication Status"
+                        value="Pending (auto)"
+                        InputProps={{ readOnly: true }}
+                        helperText="All new resources are submitted for admin review."
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      />
+                    )}
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <TextField

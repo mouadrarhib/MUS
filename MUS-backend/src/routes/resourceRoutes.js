@@ -18,6 +18,7 @@ import {
   updateResourceStatusHandler,
   publishResourceHandler,
   archiveResourceHandler,
+  rejectResourceHandler,
   searchResourcesHandler,
   advancedSearchResourcesHandler,
   searchResourcesByMetadataHandler,
@@ -396,6 +397,18 @@ router.post(
   [param("id").isInt().withMessage("Valid resource ID is required")],
   validateRequest,
   archiveResourceHandler
+);
+
+router.post(
+  "/:id/reject",
+  authMiddleware,
+  requireRole("admin"),
+  [
+    param("id").isInt().withMessage("Valid resource ID is required"),
+    body("reason").optional().isString(),
+  ],
+  validateRequest,
+  rejectResourceHandler
 );
 
 router.get(

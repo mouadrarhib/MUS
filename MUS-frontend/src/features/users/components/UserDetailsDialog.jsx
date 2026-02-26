@@ -10,11 +10,11 @@ import {
   Chip,
   Divider,
   Avatar,
-  Grid,
   Rating,
   IconButton,
   alpha,
 } from '@mui/material';
+import Grid from '@mui/material/GridLegacy';
 import {
   School as SchoolIcon,
   Code as CodeIcon,

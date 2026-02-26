@@ -30,7 +30,7 @@ const VerifyResources = () => {
   const loadPendingResources = async () => {
     setLoading(true);
     try {
-      const data = await resourcesService.listResourcesByStatus('draft');
+      const data = await resourcesService.listResourcesByStatus('pending');
       setResources(data);
     } catch (error) {
       console.error('Error loading pending resources:', error);
@@ -94,13 +94,13 @@ const VerifyResources = () => {
   const handleRejectResource = async (resourceId, reason) => {
     setActionLoading(true);
     try {
-      await resourcesService.archiveResource(resourceId);
+      await resourcesService.rejectResource(resourceId, reason);
       
       // Remove from pending list
       setResources(prev => prev.filter(r => r.id !== resourceId));
       setRejectedToday(prev => prev + 1);
       
-      showSnackbar('Resource rejected. Author has been notified.', 'info');
+      showSnackbar('Resource rejected and removed from cloud/database.', 'info');
       handleCloseDialog();
     } catch (error) {
       console.error('Error rejecting resource:', error);

@@ -296,6 +296,14 @@ export const resourcesService = {
     return normalizeResource(extractOne(response));
   },
 
+  rejectResource: async (resourceId, reason = "") => {
+    const response = await post(`${RESOURCE.ROOT}/${resourceId}/reject`, {
+      ...(reason ? { reason } : {}),
+    });
+    clearResourceListCaches();
+    return response?.data || {};
+  },
+
   searchResources: async (searchTerm) => {
     const response = await get(`${RESOURCE.ROOT}/search/${searchTerm}`);
     return normalizeArray(extractDataArray(response));

@@ -75,7 +75,6 @@ const MyUploads = () => {
       const payload = {
         title: resourceData.title,
         description: resourceData.description,
-        status: resourceData.status || 'draft',
         educational_type: resourceData.educationalType || resourceData.educational_type || 'notes',
         format: resourceData.format || 'pdf',
         resource_type_id: resourceData.resource_type_id || 1,
@@ -85,6 +84,10 @@ const MyUploads = () => {
         },
         ...(normalizedUrl ? { url: normalizedUrl } : {}),
       };
+
+      if (editingResource && resourceData.status) {
+        payload.status = resourceData.status;
+      }
 
       if (editingResource) {
         const updatedResource = await resourcesService.updateResource(editingResource.id, payload);

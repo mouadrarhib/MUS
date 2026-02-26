@@ -675,6 +675,47 @@ export const archiveResourceHandler = asyncHandler(async (req, res) => {
 
 /**
  * @swagger
+ * /resources/{id}/reject:
+ *   post:
+ *     summary: Reject resource and permanently delete it (DB + cloud file)
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 example: Contains copyrighted content
+ *     responses:
+ *       200:
+ *         description: Resource rejected and deleted
+ */
+export const rejectResourceHandler = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const reason = req.body?.reason || null;
+
+  await deleteResource(id, req.user);
+  return successResponse(res, "Resource rejected and deleted successfully", {
+    id: Number(id),
+    deleted: true,
+    reason,
+  });
+});
+
+/**
+ * @swagger
  * /resources/search/{searchTerm}:
  *   get:
  *     summary: Search for resources

@@ -120,12 +120,8 @@ const persistStorageColumns = async ({
 };
 
 const resolveCreationStatus = (requestedStatus, roles = []) => {
-  if (isAdmin(roles)) {
-    return requestedStatus || "published";
-  }
-  if (isTeacher(roles)) {
-    return process.env.AUTO_PUBLISH_TEACHER === "true" ? "published" : "pending";
-  }
+  void requestedStatus;
+  void roles;
   return "pending";
 };
 

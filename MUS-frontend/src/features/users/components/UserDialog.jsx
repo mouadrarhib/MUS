@@ -10,7 +10,6 @@ import {
   FormControlLabel,
   Checkbox,
   Typography,
-  Grid,
   Divider,
   MenuItem,
   Select,
@@ -29,6 +28,7 @@ import {
   Popper,
   Paper,
 } from "@mui/material";
+import Grid from '@mui/material/GridLegacy';
 import {
   Close,
   School as SchoolIcon,

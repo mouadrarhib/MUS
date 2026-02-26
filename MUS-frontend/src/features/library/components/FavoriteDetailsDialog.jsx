@@ -8,10 +8,10 @@ import {
   Box,
   Typography,
   Chip,
-  Grid,
   IconButton,
   alpha,
 } from '@mui/material';
+import Grid from '@mui/material/GridLegacy';
 import {
   Description as DescriptionIcon,
   Star as StarIcon,

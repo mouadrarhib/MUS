@@ -8,12 +8,12 @@ import {
   Box,
   Typography,
   Chip,
-  Grid,
   IconButton,
   TextField,
   alpha,
   Divider,
 } from '@mui/material';
+import Grid from '@mui/material/GridLegacy';
 import {
   Description as DescriptionIcon,
   Code as CodeIcon,
@@ -180,7 +180,7 @@ const VerifyResourceDialog = ({
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 {mode === 'reject' 
-                  ? 'Provide a reason for rejection' 
+                  ? 'Provide a reason. The resource and file will be permanently deleted.' 
                   : mode === 'approve'
                     ? 'Confirm publication'
                     : 'Verify content before publishing'}
