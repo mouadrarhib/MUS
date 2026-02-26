@@ -232,6 +232,23 @@ export const resourcesService = {
     return myResourcesInFlight;
   },
 
+  getMyRejections: async (limit = 100) => {
+    const response = await get(`${RESOURCE.ROOT}/my-rejections`, {
+      params: { limit },
+    });
+    return Array.isArray(response?.data) ? response.data : [];
+  },
+
+  getAllRejections: async ({ search = null, limit = 200 } = {}) => {
+    const response = await get(`${RESOURCE.ROOT}/rejections`, {
+      params: {
+        ...(search ? { search } : {}),
+        limit,
+      },
+    });
+    return Array.isArray(response?.data) ? response.data : [];
+  },
+
   getResourceById: async (resourceId) => {
     const response = await get(`${RESOURCE.ROOT}/${resourceId}`);
     return normalizeResource(response?.data);

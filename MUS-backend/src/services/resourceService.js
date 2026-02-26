@@ -14,6 +14,7 @@ import {
   putObjectBuffer,
   deleteObject,
 } from "./storage/r2Service.js";
+import { createResourceRejection } from "./resourceRejectionService.js";
 
 const allowedTransitions = {
   draft: ["pending"],
@@ -357,6 +358,34 @@ export const deleteResource = async (id, actor = null) => {
   await sequelize.query(SQL.RESOURCE.DELETE, {
     replacements: { id },
   });
+};
+
+export const rejectResourceAndDelete = async (id, reason, actor = null) => {
+  const normalizedReason = String(reason || "").trim();
+  if (normalizedReason.length < 5) {
+    throw new AppError("Rejection reason must be at least 5 characters", 422);
+  }
+
+  const resource = await getResourceById(id);
+  if (!resource) {
+    throw new AppError("Resource not found", 404);
+  }
+
+  await deleteResource(id, actor);
+
+  const rejection = await createResourceRejection({
+    resourceIdOriginal: resource.id,
+    uploaderId: resource.created_by,
+    rejectedBy: actor?.id || null,
+    reason: normalizedReason,
+    resourceTitle: resource.title,
+    resourceUrl: resource.url || null,
+    resourceFormat: resource.format || null,
+    resourceEducationalType: resource.educational_type || null,
+    resourceSnapshot: resource,
+  });
+
+  return rejection;
 };
 
 export const searchResources = async (searchTerm, actor = null) => {

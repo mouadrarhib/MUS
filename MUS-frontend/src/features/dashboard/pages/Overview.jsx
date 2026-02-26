@@ -21,11 +21,14 @@ import QuickActions from '../components/QuickActions';
 import { ResourceDonut, EngagementBars } from '../components/MiniChart';
 
 import adminService from '@/services/adminService';
+import resourcesService from '@/services/resourcesService';
 
 const Overview = () => {
   const { user } = useAuth();
   const [statsData, setStatsData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [rejections, setRejections] = useState([]);
+  const [rejectionsLoading, setRejectionsLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
@@ -49,6 +52,33 @@ const Overview = () => {
     };
 
     loadDashboard();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadMyRejections = async () => {
+      setRejectionsLoading(true);
+      try {
+        const data = await resourcesService.getMyRejections(5);
+        if (mounted) {
+          setRejections(Array.isArray(data) ? data : []);
+        }
+      } catch {
+        if (mounted) {
+          setRejections([]);
+        }
+      } finally {
+        if (mounted) {
+          setRejectionsLoading(false);
+        }
+      }
+    };
+
+    loadMyRejections();
     return () => {
       mounted = false;
     };
@@ -199,6 +229,101 @@ const Overview = () => {
         ) : (
           <QuickActions />
         )}
+      </Box>
+
+      {/* Rejected Resources */}
+      <Box mb={3}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2.5,
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+            background: (theme) =>
+              theme.palette.mode === 'dark'
+                ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
+                : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+          }}
+        >
+          <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
+            <Box display="flex" alignItems="center" gap={1.25}>
+              <Box
+                sx={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: (theme) => alpha(theme.palette.error.main, 0.12),
+                }}
+              >
+                <NewReleases sx={{ fontSize: 18, color: 'error.main' }} />
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" fontWeight={700}>
+                  Rejected Resources
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Reasons for recently rejected uploads
+                </Typography>
+              </Box>
+            </Box>
+            <Chip
+              size="small"
+              color="error"
+              label={`${rejections.length} recent`}
+              sx={{ fontWeight: 700, borderRadius: 2 }}
+            />
+          </Box>
+
+          {rejectionsLoading ? (
+            <Box sx={{ display: 'grid', gap: 1.25 }}>
+              {[...Array(2)].map((_, index) => (
+                <Skeleton key={`overview-rejection-skeleton-${index}`} variant="rounded" height={56} />
+              ))}
+            </Box>
+          ) : rejections.length > 0 ? (
+            <Box sx={{ display: 'grid', gap: 1.25 }}>
+              {rejections.map((item) => (
+                <Box
+                  key={`overview-rejection-${item.id}`}
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: (theme) => alpha(theme.palette.error.main, 0.22),
+                    bgcolor: (theme) => alpha(theme.palette.error.main, 0.05),
+                  }}
+                >
+                  <Box display="flex" alignItems="center" justifyContent="space-between" gap={1} mb={0.5}>
+                    <Typography variant="body2" fontWeight={700} noWrap>
+                      {item.resource_title || `Resource #${item.resource_id_original || item.id}`}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                      {new Date(item.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </Typography>
+                  </Box>
+                  <Typography variant="caption" color="error.main" sx={{ display: 'block', fontWeight: 600 }}>
+                    Reason: {item.reason}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    Reviewed by: {item.reviewer_name || 'Moderator'}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          ) : (
+            <Typography variant="caption" color="text.secondary">
+              No rejected resources.
+            </Typography>
+          )}
+        </Paper>
       </Box>
 
       {/* Main Stats Grid */}

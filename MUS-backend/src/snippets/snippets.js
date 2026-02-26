@@ -642,6 +642,16 @@ export const SQL = {
     GET_POPULAR: `SELECT * FROM public.sp_tag_get_popular(:limit_value)`,
   },
 
+  RESOURCE_REJECTION: {
+    CREATE: `SELECT * FROM public.sp_resource_rejection_create(:resource_id_original, :uploader_id, :rejected_by, :reason, :resource_title, :resource_url, :resource_format, :resource_educational_type, CAST(:resource_snapshot AS jsonb))`,
+
+    GET_BY_USER: `SELECT * FROM public.sp_resource_rejection_get_by_user(:uploader_id, :limit_value)`,
+
+    GET_BY_ID: `SELECT * FROM public.sp_resource_rejection_get_by_id(:id)`,
+
+    GET_ALL: `SELECT * FROM public.sp_resource_rejection_get_all(:search_term, :limit_value)`,
+  },
+
   FAVORITE: {
     // Add/Remove operations (avec mapping des noms)
     ADD: `

@@ -40,6 +40,8 @@ import {
   attachFileToResourceHandler,
   attachUrlToResourceHandler,
   uploadFileToResourceHandler,
+  listMyResourceRejectionsHandler,
+  listAllResourceRejectionsHandler,
 } from "../controllers/resourceController.js";
 
 import validateRequest from "./validateRequest.js";
@@ -195,6 +197,26 @@ router.post(
 
 router.get("/", listResources);
 router.get("/my-resources", authMiddleware, listMyResources);
+router.get(
+  "/my-rejections",
+  authMiddleware,
+  [query("limit").optional().isInt({ min: 1, max: 500 })],
+  validateRequest,
+  listMyResourceRejectionsHandler
+);
+
+router.get(
+  "/rejections",
+  authMiddleware,
+  requireRole("admin"),
+  [
+    query("search").optional().isString(),
+    query("limit").optional().isInt({ min: 1, max: 1000 }),
+  ],
+  validateRequest,
+  listAllResourceRejectionsHandler
+);
+
 router.get("/published", listPublishedResources);
 router.get("/with-ratings", listResourcesWithRatings);
 router.get("/statuses", listResourceStatuses);
@@ -405,7 +427,11 @@ router.post(
   requireRole("admin"),
   [
     param("id").isInt().withMessage("Valid resource ID is required"),
-    body("reason").optional().isString(),
+    body("reason")
+      .isString()
+      .trim()
+      .isLength({ min: 5, max: 1000 })
+      .withMessage("Rejection reason is required and must be at least 5 characters"),
   ],
   validateRequest,
   rejectResourceHandler

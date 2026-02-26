@@ -17,6 +17,7 @@ import {
   publishResource,
   archiveResource,
   deleteResource,
+  rejectResourceAndDelete,
   searchResources,
   advancedSearchResources,
   searchResourcesByMetadata,
@@ -39,6 +40,10 @@ import {
   attachExternalUrlToResource,
   uploadFileDirectlyToResource,
 } from "../services/resourceService.js";
+import {
+  getAllResourceRejections,
+  getResourceRejectionsByUser,
+} from "../services/resourceRejectionService.js";
 
 
 /**
@@ -689,7 +694,7 @@ export const archiveResourceHandler = asyncHandler(async (req, res) => {
  *         schema:
  *           type: integer
  *     requestBody:
- *       required: false
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
@@ -704,14 +709,78 @@ export const archiveResourceHandler = asyncHandler(async (req, res) => {
  */
 export const rejectResourceHandler = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const reason = req.body?.reason || null;
+  const reason = req.body?.reason;
 
-  await deleteResource(id, req.user);
+  const rejection = await rejectResourceAndDelete(id, reason, req.user);
   return successResponse(res, "Resource rejected and deleted successfully", {
     id: Number(id),
     deleted: true,
-    reason,
+    reason: rejection?.reason || reason,
+    rejection_id: rejection?.id || null,
   });
+});
+
+/**
+ * @swagger
+ * /resources/my-rejections:
+ *   get:
+ *     summary: Get rejection reasons for current user resources
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Rejection history retrieved
+ */
+export const listMyResourceRejectionsHandler = asyncHandler(async (req, res) => {
+  const limit = req.query?.limit ? Number.parseInt(req.query.limit, 10) : 100;
+  const result = await getResourceRejectionsByUser({
+    uploaderId: req.user.id,
+    limitValue: Number.isInteger(limit) ? limit : 100,
+  });
+
+  return successResponse(res, "My resource rejections retrieved successfully", result);
+});
+
+/**
+ * @swagger
+ * /resources/rejections:
+ *   get:
+ *     summary: Get all resource rejections (admin)
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Rejection history retrieved
+ */
+export const listAllResourceRejectionsHandler = asyncHandler(async (req, res) => {
+  const search = req.query?.search || null;
+  const limit = req.query?.limit ? Number.parseInt(req.query.limit, 10) : 200;
+
+  const result = await getAllResourceRejections({
+    searchTerm: search,
+    limitValue: Number.isInteger(limit) ? limit : 200,
+  });
+
+  return successResponse(res, "Resource rejections retrieved successfully", result);
 });
 
 /**
