@@ -199,6 +199,8 @@ export const SQL = {
 
   USER: {
     REGISTER: `SELECT * FROM public.sp_user_register(:full_name, :email, :password)`,
+
+    REGISTER_STUDENT: `SELECT * FROM public.sp_user_register_student(:full_name, :email, :password, :institution_id, :program_id, :level_id, :current_semester_id)`,
     
     LOGIN: `SELECT * FROM public.sp_user_login(:email, :password)`,
     

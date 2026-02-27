@@ -241,99 +241,97 @@ const MyUploads = () => {
         />
       </Box>
 
-      <Box mb={3}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2.5,
-            borderRadius: 3,
-            border: '1px solid',
-            borderColor: 'divider',
-            background: (theme) =>
-              theme.palette.mode === 'dark'
-                ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-                : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-          }}
-        >
-          <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
-            <Box display="flex" alignItems="center" gap={1.25}>
-              <Box
-                sx={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: (theme) => alpha(theme.palette.error.main, 0.12),
-                }}
-              >
-                <GppBadIcon sx={{ fontSize: 18, color: 'error.main' }} />
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" fontWeight={700}>
-                  Rejected Resources
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  See why your resources were rejected
-                </Typography>
-              </Box>
-            </Box>
-            <Chip
-              size="small"
-              color="error"
-              label={`${rejections.length} recent`}
-              sx={{ fontWeight: 700, borderRadius: 2 }}
-            />
-          </Box>
-
-          {rejectionsLoading ? (
-            <Box sx={{ display: 'grid', gap: 1.25 }}>
-              {[...Array(2)].map((_, index) => (
-                <Skeleton key={`rejection-skeleton-${index}`} variant="rounded" height={58} />
-              ))}
-            </Box>
-          ) : rejections.length > 0 ? (
-            <Box sx={{ display: 'grid', gap: 1.25 }}>
-              {rejections.slice(0, 4).map((item) => (
+      {rejections.length > 0 ? (
+        <Box mb={3}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2.5,
+              borderRadius: 3,
+              border: '1px solid',
+              borderColor: 'divider',
+              background: (theme) =>
+                theme.palette.mode === 'dark'
+                  ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
+                  : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+            }}
+          >
+            <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
+              <Box display="flex" alignItems="center" gap={1.25}>
                 <Box
-                  key={`rejection-${item.id}`}
                   sx={{
-                    p: 1.5,
+                    width: 34,
+                    height: 34,
                     borderRadius: 2,
-                    border: '1px solid',
-                    borderColor: (theme) => alpha(theme.palette.error.main, 0.22),
-                    bgcolor: (theme) => alpha(theme.palette.error.main, 0.05),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: (theme) => alpha(theme.palette.error.main, 0.12),
                   }}
                 >
-                  <Box display="flex" alignItems="center" justifyContent="space-between" gap={1} mb={0.5}>
-                    <Typography variant="body2" fontWeight={700} noWrap>
-                      {item.resource_title || `Resource #${item.resource_id_original || item.id}`}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-                      {new Date(item.created_at).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </Typography>
-                  </Box>
-                  <Typography variant="caption" color="error.main" sx={{ display: 'block', fontWeight: 600 }}>
-                    Reason: {item.reason}
+                  <GppBadIcon sx={{ fontSize: 18, color: 'error.main' }} />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={700}>
+                    Rejected Resources
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    Reviewed by: {item.reviewer_name || 'Moderator'}
+                  <Typography variant="caption" color="text.secondary">
+                    See why your resources were rejected
                   </Typography>
                 </Box>
-              ))}
+              </Box>
+              <Chip
+                size="small"
+                color="error"
+                label={`${rejections.length} recent`}
+                sx={{ fontWeight: 700, borderRadius: 2 }}
+              />
             </Box>
-          ) : (
-            <Typography variant="caption" color="text.secondary">
-              No rejected resources so far.
-            </Typography>
-          )}
-        </Paper>
-      </Box>
+
+            {rejectionsLoading ? (
+              <Box sx={{ display: 'grid', gap: 1.25 }}>
+                {[...Array(2)].map((_, index) => (
+                  <Skeleton key={`rejection-skeleton-${index}`} variant="rounded" height={58} />
+                ))}
+              </Box>
+            ) : (
+              <Box sx={{ display: 'grid', gap: 1.25 }}>
+                {rejections.slice(0, 4).map((item) => (
+                  <Box
+                    key={`rejection-${item.id}`}
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 2,
+                      border: '1px solid',
+                      borderColor: (theme) => alpha(theme.palette.error.main, 0.22),
+                      bgcolor: (theme) => alpha(theme.palette.error.main, 0.05),
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" justifyContent="space-between" gap={1} mb={0.5}>
+                      <Typography variant="body2" fontWeight={700} noWrap>
+                        {item.resource_title || `Resource #${item.resource_id_original || item.id}`}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                        {new Date(item.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" color="error.main" sx={{ display: 'block', fontWeight: 600 }}>
+                      Reason: {item.reason}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      Reviewed by: {item.reviewer_name || 'Moderator'}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </Paper>
+        </Box>
+      ) : null}
 
       {error && !loading ? (
         <EmptyState

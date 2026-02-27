@@ -39,11 +39,11 @@ export const useRegister = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const register = useCallback(async (email, password, fullName) => {
+  const register = useCallback(async (payloadOrEmail, password, fullName) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await authService.register(email, password, fullName);
+      const response = await authService.register(payloadOrEmail, password, fullName);
       return response;
     } catch (err) {
       const message = err.response?.data?.message || err.message || 'Registration failed';

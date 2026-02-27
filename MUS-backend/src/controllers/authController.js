@@ -68,6 +68,18 @@ import {
  *         full_name:
  *           type: string
  *           example: Jane Doe
+ *         institution_id:
+ *           type: integer
+ *           example: 3
+ *         program_id:
+ *           type: integer
+ *           example: 12
+ *         level_id:
+ *           type: integer
+ *           example: 21
+ *         current_semester_id:
+ *           type: integer
+ *           example: 5
  *     LoginRequest:
  *       type: object
  *       required: [email, password]
@@ -155,8 +167,16 @@ import {
  *               $ref: '#/components/schemas/AuthResponse'
  */
 export const register = asyncHandler(async (req, res) => {
-  const { full_name, email, password } = req.body;
-  const result = await registerUser({ full_name, email, password });
+  const { full_name, email, password, institution_id, program_id, level_id, current_semester_id } = req.body;
+  const result = await registerUser({
+    full_name,
+    email,
+    password,
+    institution_id,
+    program_id,
+    level_id,
+    current_semester_id,
+  });
   if (result?.token) {
     const isProduction = process.env.NODE_ENV === "production";
     res.cookie("auth_token", result.token, {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -15,6 +15,10 @@ import {
   Alert,
   Stack,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   Visibility,
@@ -29,6 +33,10 @@ import logo from '@/assets/images/logo.png';
 import { useRegister } from '../hooks/useAuthHooks';
 import { pageTransitionSx } from '@/styles/motion';
 import { useForm, Controller } from 'react-hook-form';
+import institutionService from '@/services/institutionService';
+import institutionProgramService from '@/services/institutionProgramService';
+import levelService from '@/services/levelService';
+import semesterService from '@/services/semesterService';
 
 export const RegisterForm = () => {
   const navigate = useNavigate();
@@ -39,11 +47,22 @@ export const RegisterForm = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registerError, setRegisterError] = useState('');
   const [registerSuccess, setRegisterSuccess] = useState('');
+  const [institutions, setInstitutions] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [levels, setLevels] = useState([]);
+  const [semesters, setSemesters] = useState([]);
+  const [catalogLoading, setCatalogLoading] = useState({
+    institutions: false,
+    programs: false,
+    levels: false,
+    semesters: false,
+  });
   const {
     register,
     control,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -52,10 +71,116 @@ export const RegisterForm = () => {
       password: '',
       confirmPassword: '',
       agreeToTerms: false,
+      institution_id: '',
+      program_id: '',
+      level_id: '',
+      current_semester_id: '',
     },
   });
 
   const passwordValue = watch('password');
+  const institutionId = watch('institution_id');
+  const programId = watch('program_id');
+  const levelId = watch('level_id');
+
+  const toList = (response) => {
+    const payload = response?.data ?? response;
+    return Array.isArray(payload) ? payload : [];
+  };
+
+  useEffect(() => {
+    const loadInstitutions = async () => {
+      setCatalogLoading((prev) => ({ ...prev, institutions: true }));
+      try {
+        const response = await institutionService.getAllInstitutions();
+        setInstitutions(toList(response));
+      } catch {
+        setRegisterError('Failed to load institutions. Please refresh and try again.');
+      } finally {
+        setCatalogLoading((prev) => ({ ...prev, institutions: false }));
+      }
+    };
+
+    loadInstitutions();
+  }, []);
+
+  useEffect(() => {
+    const nextInstitutionId = String(institutionId || '');
+    setValue('program_id', '');
+    setValue('level_id', '');
+    setValue('current_semester_id', '');
+    setPrograms([]);
+    setLevels([]);
+    setSemesters([]);
+
+    if (!nextInstitutionId) {
+      return;
+    }
+
+    const loadPrograms = async () => {
+      setCatalogLoading((prev) => ({ ...prev, programs: true }));
+      try {
+        const response = await institutionProgramService.getProgramsByInstitution(nextInstitutionId);
+        setPrograms(toList(response));
+      } catch {
+        setRegisterError('Failed to load programs for selected institution.');
+      } finally {
+        setCatalogLoading((prev) => ({ ...prev, programs: false }));
+      }
+    };
+
+    loadPrograms();
+  }, [institutionId, setValue]);
+
+  useEffect(() => {
+    const nextProgramId = String(programId || '');
+    setValue('level_id', '');
+    setValue('current_semester_id', '');
+    setLevels([]);
+    setSemesters([]);
+
+    if (!nextProgramId) {
+      return;
+    }
+
+    const loadLevels = async () => {
+      setCatalogLoading((prev) => ({ ...prev, levels: true }));
+      try {
+        const response = await levelService.getLevelsByProgram(nextProgramId);
+        setLevels(toList(response));
+      } catch {
+        setRegisterError('Failed to load levels for selected program.');
+      } finally {
+        setCatalogLoading((prev) => ({ ...prev, levels: false }));
+      }
+    };
+
+    loadLevels();
+  }, [programId, setValue]);
+
+  useEffect(() => {
+    const nextLevelId = String(levelId || '');
+    setValue('current_semester_id', '');
+    setSemesters([]);
+
+    if (!nextLevelId) {
+      return;
+    }
+
+    const loadSemesters = async () => {
+      setCatalogLoading((prev) => ({ ...prev, semesters: true }));
+      try {
+        const response = await semesterService.getSemestersByLevel(nextLevelId);
+        setSemesters(toList(response));
+      } catch {
+        setRegisterError('Failed to load semesters for selected level.');
+      } finally {
+        setCatalogLoading((prev) => ({ ...prev, semesters: false }));
+      }
+    };
+
+    loadSemesters();
+  }, [levelId, setValue]);
 
   
   const handleClickShowPassword = () => {
@@ -71,7 +196,15 @@ export const RegisterForm = () => {
     setRegisterSuccess('');
 
     try {
-      const response = await apiRegister(formData.email, formData.password, formData.fullName);
+      const response = await apiRegister({
+        full_name: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        institution_id: Number(formData.institution_id),
+        program_id: Number(formData.program_id),
+        level_id: Number(formData.level_id),
+        current_semester_id: Number(formData.current_semester_id),
+      });
       
       setRegisterSuccess('Account created successfully! Logging you in...');
       authLogin(response.data);
@@ -258,6 +391,130 @@ export const RegisterForm = () => {
                     ),
                   }}
                 />
+
+                <FormControl fullWidth error={Boolean(errors.institution_id)}>
+                  <InputLabel id="register-institution-label">Institution</InputLabel>
+                  <Controller
+                    name="institution_id"
+                    control={control}
+                    rules={{ required: 'Institution is required' }}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        labelId="register-institution-label"
+                        label="Institution"
+                        disabled={catalogLoading.institutions}
+                      >
+                        <MenuItem value="">
+                          <em>Select institution</em>
+                        </MenuItem>
+                        {institutions.map((institution) => (
+                          <MenuItem key={institution.id} value={String(institution.id)}>
+                            {institution.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    )}
+                  />
+                  {errors.institution_id ? (
+                    <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                      {errors.institution_id.message}
+                    </Typography>
+                  ) : null}
+                </FormControl>
+
+                <FormControl fullWidth error={Boolean(errors.program_id)}>
+                  <InputLabel id="register-program-label">Program</InputLabel>
+                  <Controller
+                    name="program_id"
+                    control={control}
+                    rules={{ required: 'Program is required' }}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        labelId="register-program-label"
+                        label="Program"
+                        disabled={!institutionId || catalogLoading.programs}
+                      >
+                        <MenuItem value="">
+                          <em>{institutionId ? 'Select program' : 'Select institution first'}</em>
+                        </MenuItem>
+                        {programs.map((program) => (
+                          <MenuItem key={program.id || program.program_id} value={String(program.id || program.program_id)}>
+                            {program.name || program.program_name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    )}
+                  />
+                  {errors.program_id ? (
+                    <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                      {errors.program_id.message}
+                    </Typography>
+                  ) : null}
+                </FormControl>
+
+                <FormControl fullWidth error={Boolean(errors.level_id)}>
+                  <InputLabel id="register-level-label">Level</InputLabel>
+                  <Controller
+                    name="level_id"
+                    control={control}
+                    rules={{ required: 'Level is required' }}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        labelId="register-level-label"
+                        label="Level"
+                        disabled={!programId || catalogLoading.levels}
+                      >
+                        <MenuItem value="">
+                          <em>{programId ? 'Select level' : 'Select program first'}</em>
+                        </MenuItem>
+                        {levels.map((level) => (
+                          <MenuItem key={level.id} value={String(level.id)}>
+                            {level.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    )}
+                  />
+                  {errors.level_id ? (
+                    <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                      {errors.level_id.message}
+                    </Typography>
+                  ) : null}
+                </FormControl>
+
+                <FormControl fullWidth error={Boolean(errors.current_semester_id)}>
+                  <InputLabel id="register-semester-label">Current Semester</InputLabel>
+                  <Controller
+                    name="current_semester_id"
+                    control={control}
+                    rules={{ required: 'Current semester is required' }}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        labelId="register-semester-label"
+                        label="Current Semester"
+                        disabled={!levelId || catalogLoading.semesters}
+                      >
+                        <MenuItem value="">
+                          <em>{levelId ? 'Select semester' : 'Select level first'}</em>
+                        </MenuItem>
+                        {semesters.map((semester) => (
+                          <MenuItem key={semester.id} value={String(semester.id)}>
+                            {semester.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    )}
+                  />
+                  {errors.current_semester_id ? (
+                    <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                      {errors.current_semester_id.message}
+                    </Typography>
+                  ) : null}
+                </FormControl>
 
                 <Box>
                   <FormControlLabel

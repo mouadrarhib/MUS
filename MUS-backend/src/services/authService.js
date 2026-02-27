@@ -91,9 +91,38 @@ const getUserById = async (id, transaction) => {
   return user ? user.get({ plain: true }) : null;
 };
 
-export const registerUser = async ({ full_name, email, password }) => {
+export const registerUser = async ({
+  full_name,
+  email,
+  password,
+  institution_id: rawInstitutionId,
+  program_id: rawProgramId,
+  level_id: rawLevelId,
+  current_semester_id: rawSemesterId,
+}) => {
+  const hasAnyAcademicField = [rawInstitutionId, rawProgramId, rawLevelId, rawSemesterId].some(
+    (value) => value !== undefined && value !== null && String(value).trim() !== ""
+  );
+
+  const institution_id = rawInstitutionId != null ? Number(rawInstitutionId) : null;
+  const program_id = rawProgramId != null ? Number(rawProgramId) : null;
+  const level_id = rawLevelId != null ? Number(rawLevelId) : null;
+  const current_semester_id = rawSemesterId != null ? Number(rawSemesterId) : null;
+
+  const shouldCreateStudentProfile = hasAnyAcademicField;
+
   if (!email || !password) {
     throw new AppError("Email and password are required", 400);
+  }
+
+  if (
+    shouldCreateStudentProfile &&
+    (![institution_id, program_id, level_id, current_semester_id].every((value) => Number.isInteger(value) && value > 0))
+  ) {
+    throw new AppError(
+      "Institution, program, level, and semester are required for student registration",
+      400
+    );
   }
 
   const existingUser = await getUserByEmail(email);
@@ -103,9 +132,14 @@ export const registerUser = async ({ full_name, email, password }) => {
 
   let routineUser = null;
   try {
-    const [rows] = await sequelize.query(SQL.USER.REGISTER, {
-      replacements: { full_name, email, password },
-    });
+    const [rows] = await sequelize.query(
+      shouldCreateStudentProfile ? SQL.USER.REGISTER_STUDENT : SQL.USER.REGISTER,
+      {
+        replacements: shouldCreateStudentProfile
+          ? { full_name, email, password, institution_id, program_id, level_id, current_semester_id }
+          : { full_name, email, password },
+      }
+    );
     routineUser = rows?.[0] || null;
   } catch (error) {
     if (error.original?.code === "23505") {
@@ -119,6 +153,48 @@ export const registerUser = async ({ full_name, email, password }) => {
   }
 
   const createdUser = await sequelize.transaction(async (transaction) => {
+    const validateAcademicSelection = async () => {
+      const [[institutionExists]] = await sequelize.query(
+        "SELECT EXISTS (SELECT 1 FROM public.institutions WHERE id = :institution_id) AS exists",
+        { replacements: { institution_id }, transaction }
+      );
+      if (!institutionExists?.exists) {
+        throw new AppError("Institution not found", 400);
+      }
+
+      const [[programExists]] = await sequelize.query(
+        "SELECT EXISTS (SELECT 1 FROM public.programs WHERE id = :program_id) AS exists",
+        { replacements: { program_id }, transaction }
+      );
+      if (!programExists?.exists) {
+        throw new AppError("Program not found", 400);
+      }
+
+      const [[mappingExists]] = await sequelize.query(
+        "SELECT EXISTS (SELECT 1 FROM public.institution_programs WHERE institution_id = :institution_id AND program_id = :program_id) AS exists",
+        { replacements: { institution_id, program_id }, transaction }
+      );
+      if (!mappingExists?.exists) {
+        throw new AppError("Program is not available for selected institution", 400);
+      }
+
+      const [[levelMatchesProgram]] = await sequelize.query(
+        "SELECT EXISTS (SELECT 1 FROM public.levels WHERE id = :level_id AND program_id = :program_id) AS exists",
+        { replacements: { level_id, program_id }, transaction }
+      );
+      if (!levelMatchesProgram?.exists) {
+        throw new AppError("Level does not belong to selected program", 400);
+      }
+
+      const [[semesterMatchesLevel]] = await sequelize.query(
+        "SELECT EXISTS (SELECT 1 FROM public.semesters WHERE id = :current_semester_id AND level_id = :level_id) AS exists",
+        { replacements: { current_semester_id, level_id }, transaction }
+      );
+      if (!semesterMatchesLevel?.exists) {
+        throw new AppError("Semester does not belong to selected level", 400);
+      }
+    };
+
     let userInstance =
       (routineUser &&
         (await User.findByPk(routineUser.id, {
@@ -132,6 +208,19 @@ export const registerUser = async ({ full_name, email, password }) => {
         { full_name, email, password_hash: await hashPassword(password) },
         { transaction }
       );
+
+      if (shouldCreateStudentProfile) {
+        await validateAcademicSelection();
+        await sequelize.query(SQL.STUDENT_PROFILE.CREATE, {
+          replacements: {
+            user_id: userInstance.id,
+            institution_id,
+            program_id,
+            current_semester_id,
+          },
+          transaction,
+        });
+      }
     }
 
     const studentRole = await ensureStudentRole(transaction);
@@ -147,7 +236,15 @@ export const registerUser = async ({ full_name, email, password }) => {
   const roles = await getRolesForUser(createdUser.id);
   const token = generateToken({ sub: createdUser.id, roles });
 
-  return { user: sanitizeUser(createdUser), token };
+  const normalizedUser = sanitizeUser(createdUser);
+  return {
+    user: {
+      ...normalizedUser,
+      roles,
+      role: roles[0] || null,
+    },
+    token,
+  };
 };
 
 export const loginUser = async ({ email, password }) => {
@@ -191,7 +288,15 @@ export const loginUser = async ({ email, password }) => {
   const roles = await getRolesForUser(user.id);
   const token = generateToken({ sub: user.id, roles, authVia: usedRoutine ? "routine" : "fallback" });
 
-  return { user: sanitizeUser(user), token };
+  const normalizedUser = sanitizeUser(user);
+  return {
+    user: {
+      ...normalizedUser,
+      roles,
+      role: roles[0] || null,
+    },
+    token,
+  };
 };
 
 export const getProfile = async (userId) => {

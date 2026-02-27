@@ -33,6 +33,23 @@ router.post(
       .isLength({ min: 8 })
       .withMessage("Password must be at least 8 characters"),
     body("full_name").optional().isString(),
+    body("institution_id").optional().isInt({ min: 1 }).withMessage("Valid institution ID is required"),
+    body("program_id").optional().isInt({ min: 1 }).withMessage("Valid program ID is required"),
+    body("level_id").optional().isInt({ min: 1 }).withMessage("Valid level ID is required"),
+    body("current_semester_id").optional().isInt({ min: 1 }).withMessage("Valid current semester ID is required"),
+    body().custom((payload) => {
+      const fields = [
+        payload?.institution_id,
+        payload?.program_id,
+        payload?.level_id,
+        payload?.current_semester_id,
+      ];
+      const provided = fields.filter((value) => value !== undefined && value !== null && String(value).trim() !== "");
+      if (provided.length > 0 && provided.length < fields.length) {
+        throw new Error("Institution, program, level, and current semester must all be provided together");
+      }
+      return true;
+    }),
   ],
   validateRequest,
   register

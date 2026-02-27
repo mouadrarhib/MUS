@@ -17,12 +17,17 @@ const AUTH = {
 };
 
 export const authService = {
-  register: (email, password, fullName) =>
-    post(AUTH.REGISTER, {
-      email,
+  register: (payloadOrEmail, password, fullName) => {
+    if (typeof payloadOrEmail === "object" && payloadOrEmail !== null) {
+      return post(AUTH.REGISTER, payloadOrEmail);
+    }
+
+    return post(AUTH.REGISTER, {
+      email: payloadOrEmail,
       password,
       full_name: fullName,
-    }),
+    });
+  },
 
   login: (email, password, skipAuthRedirect = false) =>
     post(

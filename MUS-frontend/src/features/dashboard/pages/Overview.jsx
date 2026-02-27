@@ -239,7 +239,7 @@ const Overview = () => {
         )}
       </Box>
 
-      {!isAdmin ? (
+      {!isAdmin && rejections.length > 0 ? (
         <Box mb={3}>
           <Paper
             elevation={0}
@@ -292,7 +292,7 @@ const Overview = () => {
                   <Skeleton key={`overview-rejection-skeleton-${index}`} variant="rounded" height={56} />
                 ))}
               </Box>
-            ) : rejections.length > 0 ? (
+            ) : (
               <Box sx={{ display: 'grid', gap: 1.25 }}>
                 {rejections.map((item) => (
                   <Box
@@ -326,10 +326,6 @@ const Overview = () => {
                   </Box>
                 ))}
               </Box>
-            ) : (
-              <Typography variant="caption" color="text.secondary">
-                No rejected resources.
-              </Typography>
             )}
           </Paper>
         </Box>
