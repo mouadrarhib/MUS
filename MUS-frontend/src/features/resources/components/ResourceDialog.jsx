@@ -183,6 +183,20 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
         : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
   };
 
+  const inputSurfaceSx = {
+    '& .MuiOutlinedInput-root': {
+      borderRadius: 2,
+      bgcolor: 'background.paper',
+      backgroundImage: 'none',
+    },
+  };
+
+  const selectSurfaceSx = {
+    borderRadius: 2,
+    bgcolor: 'background.paper',
+    backgroundImage: 'none',
+  };
+
   const renderStepContent = (step) => {
     switch (step) {
       case 0:
@@ -205,7 +219,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                           required
                           InputLabelProps={{ shrink: true }}
                           placeholder="Enter resource title"
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      sx={inputSurfaceSx}
                     />
                   </Grid>
                   <Grid item xs={12}>
@@ -221,7 +235,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                           required
                       InputLabelProps={{ shrink: true }}
                       placeholder="Enter resource description"
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      sx={inputSurfaceSx}
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
@@ -236,7 +250,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                             label="Educational Type *"
                             displayEmpty
                             notched
-                            sx={{ borderRadius: 2 }}
+                            sx={selectSurfaceSx}
                           >
                             <MenuItem value="exam">Exam</MenuItem>
                             <MenuItem value="course">Course</MenuItem>
@@ -258,7 +272,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                             label="Format *"
                             displayEmpty
                             notched
-                            sx={{ borderRadius: 2 }}
+                            sx={selectSurfaceSx}
                           >
                             <MenuItem value="pdf">PDF</MenuItem>
                             <MenuItem value="video">Video</MenuItem>
@@ -353,7 +367,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                     required
                     InputLabelProps={{ shrink: true }}
                     placeholder="https://example.com/resource.pdf"
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    sx={inputSurfaceSx}
                   />
                 ) : (
                   <Box>
@@ -418,7 +432,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                   {...register('academicContext.moduleCode')}
                   InputLabelProps={{ shrink: true }}
                   placeholder="e.g., MATH101"
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  sx={inputSurfaceSx}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -429,7 +443,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                   {...register('academicContext.moduleTitle')}
                   InputLabelProps={{ shrink: true }}
                   placeholder="e.g., Calculus I"
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  sx={inputSurfaceSx}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -440,7 +454,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                   {...register('academicContext.semesterName')}
                   InputLabelProps={{ shrink: true }}
                   placeholder="e.g., Semester 1"
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  sx={inputSurfaceSx}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -451,7 +465,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                   {...register('academicContext.levelName')}
                   InputLabelProps={{ shrink: true }}
                   placeholder="e.g., 1st Year"
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  sx={inputSurfaceSx}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -462,7 +476,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                   {...register('academicContext.programName')}
                   InputLabelProps={{ shrink: true }}
                   placeholder="e.g., Computer Science"
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  sx={inputSurfaceSx}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -477,7 +491,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                         label="Difficulty Level"
                         displayEmpty
                         notched
-                        sx={{ borderRadius: 2 }}
+                        sx={selectSurfaceSx}
                       >
                         <MenuItem value="easy">Easy</MenuItem>
                         <MenuItem value="medium">Medium</MenuItem>
@@ -513,7 +527,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                               label="Publication Status *"
                               displayEmpty
                               notched
-                              sx={{ borderRadius: 2 }}
+                              sx={selectSurfaceSx}
                             >
                               <MenuItem value="pending">
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -547,7 +561,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                         value="Pending (auto)"
                         InputProps={{ readOnly: true }}
                         helperText="All new resources are submitted for admin review."
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        sx={inputSurfaceSx}
                       />
                     )}
                   </Grid>
@@ -567,7 +581,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                       inputProps={{ min: 0 }}
                       InputLabelProps={{ shrink: true }}
                       helperText="Set to 0 for free"
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      sx={inputSurfaceSx}
                     />
                   </Grid>
                 </Grid>
@@ -609,9 +623,11 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
         sx: {
           borderRadius: 4,
           overflow: 'hidden',
+          bgcolor: 'background.paper',
+          backgroundImage: 'none',
           background: (theme) =>
             theme.palette.mode === 'dark'
-              ? 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)'
+              ? 'linear-gradient(180deg, rgba(18,18,18,0.98) 0%, rgba(18,18,18,0.98) 100%)'
               : 'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%)',
         }
       }}
