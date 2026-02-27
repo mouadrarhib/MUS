@@ -25,6 +25,7 @@ import {
 import Grid from '@mui/material/GridLegacy';
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { useForm, Controller } from 'react-hook-form';
 import { AsyncButton } from '@/shared/components/ui';
 import {
   Description as DescriptionIcon,
@@ -37,99 +38,80 @@ import {
   ArrowForward,
 } from '@mui/icons-material';
 
-  const steps = ['Basic Information', 'Academic Context', 'Settings'];
+const steps = ['Basic Information', 'Academic Context', 'Settings'];
+
+const getDefaultValues = (resource) => ({
+  title: resource?.title || '',
+  description: resource?.description || '',
+  educationalType: resource?.educationalType || 'notes',
+  format: resource?.format || 'pdf',
+  status: resource?.status || 'pending',
+  url: resource?.url || '',
+  pricePoints: Number(resource?.pricePoints || 0),
+  academicContext: {
+    moduleCode: resource?.academicContext?.moduleCode || '',
+    moduleTitle: resource?.academicContext?.moduleTitle || '',
+    semesterName: resource?.academicContext?.semesterName || '',
+    levelName: resource?.academicContext?.levelName || '',
+    programName: resource?.academicContext?.programName || '',
+    difficulty: resource?.academicContext?.difficulty || 'medium',
+    isExamRelated: resource?.academicContext?.isExamRelated || false,
+  },
+  tagIds: Array.isArray(resource?.tags)
+    ? resource.tags.map((tag) => Number(tag.tag_id || tag.id)).filter(Number.isFinite)
+    : [],
+});
 
 const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, availableTags = [], tagsLoading = false }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [uploadMethod, setUploadMethod] = useState('url');
   const [selectedFile, setSelectedFile] = useState(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    educationalType: 'notes',
-    format: 'pdf',
-    status: 'pending',
-    url: '',
-    pricePoints: 0,
-    academicContext: {
-      moduleCode: '',
-      moduleTitle: '',
-      semesterName: '',
-      levelName: '',
-      programName: '',
-      difficulty: 'medium',
-      isExamRelated: false,
-    },
-    tagIds: [],
+  const {
+    register,
+    control,
+    reset,
+    watch,
+    setValue,
+    handleSubmit,
+    trigger,
+    setError,
+    clearErrors,
+    formState: { errors },
+  } = useForm({
+    defaultValues: getDefaultValues(resource),
   });
 
-  const [errors, setErrors] = useState({});
+  const educationalType = watch('educationalType');
+  const format = watch('format');
 
   useEffect(() => {
-    if (resource) {
-      setFormData({
-        title: resource.title || '',
-        description: resource.description || '',
-        educationalType: resource.educationalType || 'notes',
-        format: resource.format || 'pdf',
-        status: resource.status || 'pending',
-        url: resource.url || '',
-        pricePoints: resource.pricePoints || 0,
-        academicContext: {
-          moduleCode: resource.academicContext?.moduleCode || '',
-          moduleTitle: resource.academicContext?.moduleTitle || '',
-          semesterName: resource.academicContext?.semesterName || '',
-          levelName: resource.academicContext?.levelName || '',
-          programName: resource.academicContext?.programName || '',
-          difficulty: resource.academicContext?.difficulty || 'medium',
-          isExamRelated: resource.academicContext?.isExamRelated || false,
-        },
-        tagIds: Array.isArray(resource.tags)
-          ? resource.tags.map((tag) => Number(tag.tag_id || tag.id)).filter(Number.isFinite)
-          : [],
-      });
-      if (resource.url) setUploadMethod('url');
-    } else {
-      setFormData({
-        title: '',
-        description: '',
-        educationalType: 'notes',
-        format: 'pdf',
-        status: 'pending',
-        url: '',
-        pricePoints: 0,
-        academicContext: {
-          moduleCode: '',
-          moduleTitle: '',
-          semesterName: '',
-          levelName: '',
-          programName: '',
-          difficulty: 'medium',
-          isExamRelated: false,
-        },
-        tagIds: [],
-      });
-    }
-    setErrors({});
+    reset(getDefaultValues(resource));
+    clearErrors();
     setSelectedFile(null);
     setUploadMethod('url');
     setActiveStep(0);
-  }, [resource, open]);
+  }, [resource, open, reset, clearErrors]);
 
-  const validateStep = (step) => {
-    const newErrors = {};
+  const validateStep = async (step) => {
     if (step === 0) {
-      if (!formData.title.trim()) newErrors.title = 'Title is required';
-      if (!formData.description.trim()) newErrors.description = 'Description is required';
-      if (uploadMethod === 'url' && !formData.url.trim()) newErrors.url = 'URL is required';
-      if (uploadMethod === 'file' && !selectedFile && !resource) newErrors.file = 'File is required';
+      const fields = ['title', 'description'];
+      if (uploadMethod === 'url') fields.push('url');
+      const valid = await trigger(fields);
+
+      if (uploadMethod === 'file' && !selectedFile && !resource) {
+        setError('file', { type: 'manual', message: 'File is required' });
+        return false;
+      }
+
+      clearErrors('file');
+      return valid;
     }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+    return true;
   };
 
-  const handleNext = () => {
-    if (validateStep(activeStep)) {
+  const handleNext = async () => {
+    if (await validateStep(activeStep)) {
       setActiveStep((prev) => prev + 1);
     }
   };
@@ -138,24 +120,10 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
     setActiveStep((prev) => prev - 1);
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
-  };
-
-  const handleAcademicContextChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      academicContext: { ...prev.academicContext, [name]: value }
-    }));
-  };
-
   const handleUploadMethodChange = (event, newMethod) => {
     if (newMethod !== null) {
       setUploadMethod(newMethod);
-      setErrors(prev => ({ ...prev, url: '', file: '' }));
+      clearErrors(['url', 'file']);
     }
   };
 
@@ -169,15 +137,15 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
         'ppt': 'powerpoint', 'pptx': 'powerpoint', 'doc': 'word', 'docx': 'word',
       };
       if (formatMap[extension]) {
-        setFormData(prev => ({ ...prev, format: formatMap[extension] }));
+        setValue('format', formatMap[extension], { shouldDirty: true });
       }
-      setErrors(prev => ({ ...prev, file: '' }));
+      clearErrors('file');
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (data) => {
     const dataToSave = {
-      ...formData,
+      ...data,
       ...(resource && { id: resource.id }),
       ...(uploadMethod === 'file' && selectedFile && { file: selectedFile }),
     };
@@ -227,106 +195,116 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Resource Title"
-                      name="title"
-                      value={formData.title}
-                      onChange={handleInputChange}
-                      error={!!errors.title}
-                      helperText={errors.title}
-                      required
-                      InputLabelProps={{ shrink: true }}
-                      placeholder="Enter resource title"
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Resource Title"
+                          {...register('title', { required: 'Title is required' })}
+                          error={!!errors.title}
+                          helperText={errors.title?.message}
+                          required
+                          InputLabelProps={{ shrink: true }}
+                          placeholder="Enter resource title"
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
                   </Grid>
                   <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Description"
-                      name="description"
-                      value={formData.description}
-                      onChange={handleInputChange}
-                      error={!!errors.description}
-                      helperText={errors.description}
-                      multiline
-                      rows={4}
-                      required
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Description"
+                          {...register('description', { required: 'Description is required' })}
+                          error={!!errors.description}
+                          helperText={errors.description?.message}
+                          multiline
+                          rows={4}
+                          required
                       InputLabelProps={{ shrink: true }}
                       placeholder="Enter resource description"
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel shrink>Educational Type *</InputLabel>
-                      <Select
-                        name="educationalType"
-                        value={formData.educationalType}
-                        onChange={handleInputChange}
-                        label="Educational Type *"
-                        displayEmpty
-                        notched
-                        sx={{ borderRadius: 2 }}
-                      >
-                        <MenuItem value="exam">Exam</MenuItem>
-                        <MenuItem value="course">Course</MenuItem>
-                        <MenuItem value="notes">Notes</MenuItem>
-                      </Select>
-                    </FormControl>
+                    <Controller
+                      name="educationalType"
+                      control={control}
+                      render={({ field }) => (
+                        <FormControl fullWidth size="small">
+                          <InputLabel shrink>Educational Type *</InputLabel>
+                          <Select
+                            {...field}
+                            label="Educational Type *"
+                            displayEmpty
+                            notched
+                            sx={{ borderRadius: 2 }}
+                          >
+                            <MenuItem value="exam">Exam</MenuItem>
+                            <MenuItem value="course">Course</MenuItem>
+                            <MenuItem value="notes">Notes</MenuItem>
+                          </Select>
+                        </FormControl>
+                      )}
+                    />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel shrink>Format *</InputLabel>
-                      <Select
-                        name="format"
-                        value={formData.format}
-                        onChange={handleInputChange}
-                        label="Format *"
-                        displayEmpty
-                        notched
-                        sx={{ borderRadius: 2 }}
-                      >
-                        <MenuItem value="pdf">PDF</MenuItem>
-                        <MenuItem value="video">Video</MenuItem>
-                        <MenuItem value="powerpoint">PowerPoint</MenuItem>
-                        <MenuItem value="word">Word</MenuItem>
-                      </Select>
-                    </FormControl>
+                    <Controller
+                      name="format"
+                      control={control}
+                      render={({ field }) => (
+                        <FormControl fullWidth size="small">
+                          <InputLabel shrink>Format *</InputLabel>
+                          <Select
+                            {...field}
+                            label="Format *"
+                            displayEmpty
+                            notched
+                            sx={{ borderRadius: 2 }}
+                          >
+                            <MenuItem value="pdf">PDF</MenuItem>
+                            <MenuItem value="video">Video</MenuItem>
+                            <MenuItem value="powerpoint">PowerPoint</MenuItem>
+                            <MenuItem value="word">Word</MenuItem>
+                          </Select>
+                        </FormControl>
+                      )}
+                    />
                   </Grid>
                   <Grid item xs={12}>
-                    <Autocomplete
-                      multiple
-                      size="small"
-                      options={availableTags}
-                      loading={tagsLoading}
-                      value={availableTags.filter((tag) => formData.tagIds.includes(Number(tag.id || tag.tag_id)))}
-                      isOptionEqualToValue={(option, value) => Number(option.id || option.tag_id) === Number(value.id || value.tag_id)}
-                      getOptionLabel={(option) => option.name || option.tag_name || ''}
-                      onChange={(_, value) => {
-                        const ids = (value || [])
-                          .map((tag) => Number(tag.id || tag.tag_id))
-                          .filter(Number.isFinite);
-                        setFormData((prev) => ({ ...prev, tagIds: Array.from(new Set(ids)) }));
-                      }}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Tags"
-                          placeholder="Select tags"
-                          helperText="Use tags to improve discovery and recommendations"
-                          InputProps={{
-                            ...params.InputProps,
-                            endAdornment: (
-                              <>
-                                {tagsLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                                {params.InputProps.endAdornment}
-                              </>
-                            ),
+                    <Controller
+                      name="tagIds"
+                      control={control}
+                      render={({ field }) => (
+                        <Autocomplete
+                          multiple
+                          size="small"
+                          options={availableTags}
+                          loading={tagsLoading}
+                          value={availableTags.filter((tag) => (field.value || []).includes(Number(tag.id || tag.tag_id)))}
+                          isOptionEqualToValue={(option, value) => Number(option.id || option.tag_id) === Number(value.id || value.tag_id)}
+                          getOptionLabel={(option) => option.name || option.tag_name || ''}
+                          onChange={(_, value) => {
+                            const ids = (value || [])
+                              .map((tag) => Number(tag.id || tag.tag_id))
+                              .filter(Number.isFinite);
+                            field.onChange(Array.from(new Set(ids)));
                           }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Tags"
+                              placeholder="Select tags"
+                              helperText="Use tags to improve discovery and recommendations"
+                              InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <>
+                                    {tagsLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                                    {params.InputProps.endAdornment}
+                                  </>
+                                ),
+                              }}
+                            />
+                          )}
                         />
                       )}
                     />
@@ -364,11 +342,14 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                     fullWidth
                     size="small"
                     label="Resource URL"
-                    name="url"
-                    value={formData.url}
-                    onChange={handleInputChange}
+                    {...register('url', {
+                      validate: (value) => {
+                        if (uploadMethod !== 'url') return true;
+                        return value?.trim() ? true : 'URL is required';
+                      },
+                    })}
                     error={!!errors.url}
-                    helperText={errors.url || 'Paste a direct link to the resource file.'}
+                    helperText={errors.url?.message || 'Paste a direct link to the resource file.'}
                     required
                     InputLabelProps={{ shrink: true }}
                     placeholder="https://example.com/resource.pdf"
@@ -384,12 +365,12 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                         py: 2,
                         borderRadius: 2,
                         textTransform: 'none',
-                        borderStyle: 'dashed',
-                        borderWidth: 2,
-                        borderColor: errors.file ? 'error.main' : (selectedFile ? 'success.main' : 'divider'),
-                        bgcolor: selectedFile ? (theme) => alpha(theme.palette.success.main, 0.05) : 'transparent',
-                        color: selectedFile ? 'success.main' : 'text.secondary',
-                        display: 'flex',
+                         borderStyle: 'dashed',
+                         borderWidth: 2,
+                         borderColor: errors.file?.message ? 'error.main' : (selectedFile ? 'success.main' : 'divider'),
+                         bgcolor: selectedFile ? (theme) => alpha(theme.palette.success.main, 0.05) : 'transparent',
+                         color: selectedFile ? 'success.main' : 'text.secondary',
+                         display: 'flex',
                         flexDirection: 'column',
                         gap: 0.5,
                       }}
@@ -410,9 +391,9 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                         accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4,.avi,.mov"
                       />
                     </Button>
-                    {errors.file && (
+                    {errors.file?.message && (
                       <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
-                        {errors.file}
+                        {errors.file.message}
                       </Typography>
                     )}
                   </Box>
@@ -434,9 +415,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                   fullWidth
                   size="small"
                   label="Module Code"
-                  name="moduleCode"
-                  value={formData.academicContext.moduleCode}
-                  onChange={handleAcademicContextChange}
+                  {...register('academicContext.moduleCode')}
                   InputLabelProps={{ shrink: true }}
                   placeholder="e.g., MATH101"
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -447,9 +426,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                   fullWidth
                   size="small"
                   label="Module Title"
-                  name="moduleTitle"
-                  value={formData.academicContext.moduleTitle}
-                  onChange={handleAcademicContextChange}
+                  {...register('academicContext.moduleTitle')}
                   InputLabelProps={{ shrink: true }}
                   placeholder="e.g., Calculus I"
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -460,9 +437,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                   fullWidth
                   size="small"
                   label="Semester"
-                  name="semesterName"
-                  value={formData.academicContext.semesterName}
-                  onChange={handleAcademicContextChange}
+                  {...register('academicContext.semesterName')}
                   InputLabelProps={{ shrink: true }}
                   placeholder="e.g., Semester 1"
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -473,9 +448,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                   fullWidth
                   size="small"
                   label="Academic Level"
-                  name="levelName"
-                  value={formData.academicContext.levelName}
-                  onChange={handleAcademicContextChange}
+                  {...register('academicContext.levelName')}
                   InputLabelProps={{ shrink: true }}
                   placeholder="e.g., 1st Year"
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -486,31 +459,33 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                   fullWidth
                   size="small"
                   label="Program Name"
-                  name="programName"
-                  value={formData.academicContext.programName}
-                  onChange={handleAcademicContextChange}
+                  {...register('academicContext.programName')}
                   InputLabelProps={{ shrink: true }}
                   placeholder="e.g., Computer Science"
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth size="small">
-                  <InputLabel shrink>Difficulty Level</InputLabel>
-                  <Select
-                    name="difficulty"
-                    value={formData.academicContext.difficulty}
-                    onChange={handleAcademicContextChange}
-                    label="Difficulty Level"
-                    displayEmpty
-                    notched
-                    sx={{ borderRadius: 2 }}
-                  >
-                    <MenuItem value="easy">Easy</MenuItem>
-                    <MenuItem value="medium">Medium</MenuItem>
-                    <MenuItem value="hard">Hard</MenuItem>
-                  </Select>
-                </FormControl>
+                <Controller
+                  name="academicContext.difficulty"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth size="small">
+                      <InputLabel shrink>Difficulty Level</InputLabel>
+                      <Select
+                        {...field}
+                        label="Difficulty Level"
+                        displayEmpty
+                        notched
+                        sx={{ borderRadius: 2 }}
+                      >
+                        <MenuItem value="easy">Easy</MenuItem>
+                        <MenuItem value="medium">Medium</MenuItem>
+                        <MenuItem value="hard">Hard</MenuItem>
+                      </Select>
+                    </FormControl>
+                  )}
+                />
               </Grid>
             </Grid>
           </Box>
@@ -527,39 +502,43 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                 <Grid container spacing={1.5}>
                   <Grid item xs={12} sm={6}>
                     {resource ? (
-                      <FormControl fullWidth size="small">
-                        <InputLabel shrink>Publication Status *</InputLabel>
-                        <Select
-                          name="status"
-                          value={formData.status}
-                          onChange={handleInputChange}
-                          label="Publication Status *"
-                          displayEmpty
-                          notched
-                          sx={{ borderRadius: 2 }}
-                        >
-                          <MenuItem value="pending">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Chip label="Pending" color="info" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                            </Box>
-                          </MenuItem>
-                          <MenuItem value="draft">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Chip label="Draft" color="warning" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                            </Box>
-                          </MenuItem>
-                          <MenuItem value="published">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Chip label="Published" color="success" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                            </Box>
-                          </MenuItem>
-                          <MenuItem value="archived">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Chip label="Archived" color="default" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                            </Box>
-                          </MenuItem>
-                        </Select>
-                      </FormControl>
+                      <Controller
+                        name="status"
+                        control={control}
+                        render={({ field }) => (
+                          <FormControl fullWidth size="small">
+                            <InputLabel shrink>Publication Status *</InputLabel>
+                            <Select
+                              {...field}
+                              label="Publication Status *"
+                              displayEmpty
+                              notched
+                              sx={{ borderRadius: 2 }}
+                            >
+                              <MenuItem value="pending">
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Chip label="Pending" color="info" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                </Box>
+                              </MenuItem>
+                              <MenuItem value="draft">
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Chip label="Draft" color="warning" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                </Box>
+                              </MenuItem>
+                              <MenuItem value="published">
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Chip label="Published" color="success" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                </Box>
+                              </MenuItem>
+                              <MenuItem value="archived">
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Chip label="Archived" color="default" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                </Box>
+                              </MenuItem>
+                            </Select>
+                          </FormControl>
+                        )}
+                      />
                     ) : (
                       <TextField
                         fullWidth
@@ -577,10 +556,14 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                       fullWidth
                       size="small"
                       label="Price Points"
-                      name="pricePoints"
                       type="number"
-                      value={formData.pricePoints}
-                      onChange={handleInputChange}
+                      {...register('pricePoints', {
+                        valueAsNumber: true,
+                        setValueAs: (value) => {
+                          const parsed = Number(value);
+                          return Number.isFinite(parsed) ? Math.max(parsed, 0) : 0;
+                        },
+                      })}
                       inputProps={{ min: 0 }}
                       InputLabelProps={{ shrink: true }}
                       helperText="Set to 0 for free"
@@ -673,12 +656,12 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
             </Box>
             <Box display="flex" alignItems="center" gap={1} sx={{ mr: 2 }}>
               <Chip
-                label={formData.educationalType}
+                label={educationalType}
                 size="small"
                 sx={{ textTransform: 'capitalize', fontWeight: 600, fontSize: '0.7rem', height: 24 }}
               />
               <Chip
-                label={formData.format}
+                label={format}
                 size="small"
                 variant="outlined"
                 sx={{ textTransform: 'uppercase', fontWeight: 600, fontSize: '0.7rem', height: 24 }}
@@ -798,7 +781,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
           </Button>
         ) : (
           <AsyncButton
-            onClick={handleSave}
+            onClick={handleSubmit(handleSave)}
             variant="contained"
             size="small"
             disabled={saving}

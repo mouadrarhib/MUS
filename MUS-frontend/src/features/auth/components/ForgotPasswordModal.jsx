@@ -3,6 +3,7 @@ import { Box, Typography, Stepper, Step, StepLabel } from '@mui/material';
 import { Email as EmailIcon, Lock as LockIcon } from '@mui/icons-material';
 import authService from '@/services/authService'
 import { Modal, TextField, PrimaryButton, OutlinedButton, useNotification } from '../../../shared/components/ui';
+import { useForm } from 'react-hook-form';
 
 
 /**
@@ -12,57 +13,32 @@ export const ForgotPasswordModal = ({ open, onClose }) => {
   const { showSuccess, showError } = useNotification();
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    newPassword: '',
-    confirmPassword: '',
+  const {
+    register,
+    reset,
+    getValues,
+    trigger,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      email: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
   });
-  const [errors, setErrors] = useState({});
 
   const steps = ['Enter Email', 'Reset Password'];
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: '' });
-    }
-  };
-
-  const validateEmail = () => {
-    const newErrors = {};
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const validatePassword = () => {
-    const newErrors = {};
-    if (!formData.newPassword) {
-      newErrors.newPassword = 'Password is required';
-    } else if (formData.newPassword.length < 8) {
-      newErrors.newPassword = 'Password must be at least 8 characters';
-    }
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (formData.newPassword !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleVerifyEmail = async () => {
-    if (!validateEmail()) return;
+    const valid = await trigger('email');
+    if (!valid) return;
+
+    const email = getValues('email');
 
     setLoading(true);
     try {
       // Check if email exists using the new API endpoint
-      const result = await authService.checkEmailExists(formData.email);
+      const result = await authService.checkEmailExists(email);
       
       if (result.data?.exists) {
         // Email exists, proceed to next step
@@ -88,12 +64,15 @@ export const ForgotPasswordModal = ({ open, onClose }) => {
   };
 
   const handleResetPassword = async () => {
-    if (!validatePassword()) return;
+    const valid = await trigger(['newPassword', 'confirmPassword']);
+    if (!valid) return;
+
+    const { email, newPassword } = getValues();
 
     setLoading(true);
     try {
       // Use the new forgot password endpoint that doesn't require authentication
-      await authService.forgotPassword(formData.email, formData.newPassword);
+      await authService.forgotPassword(email, newPassword);
       showSuccess('Password reset successfully! Please login with your new password.');
       handleClose();
     } catch (error) {
@@ -108,8 +87,7 @@ export const ForgotPasswordModal = ({ open, onClose }) => {
 
   const handleClose = () => {
     setActiveStep(0);
-    setFormData({ email: '', newPassword: '', confirmPassword: '' });
-    setErrors({});
+    reset({ email: '', newPassword: '', confirmPassword: '' });
     onClose();
   };
 
@@ -124,12 +102,16 @@ export const ForgotPasswordModal = ({ open, onClose }) => {
             <TextField
               fullWidth
               label="Email Address"
-              name="email"
               type="email"
-              value={formData.email}
-              onChange={handleInputChange}
+              {...register('email', {
+                required: 'Email is required',
+                pattern: {
+                  value: /\S+@\S+\.\S+/,
+                  message: 'Email is invalid',
+                },
+              })}
               error={Boolean(errors.email)}
-              helperText={errors.email}
+              helperText={errors.email?.message}
               startAdornment={<EmailIcon />}
               sx={{ mb: 3 }}
             />
@@ -151,24 +133,29 @@ export const ForgotPasswordModal = ({ open, onClose }) => {
             <TextField
               fullWidth
               label="New Password"
-              name="newPassword"
               type="password"
-              value={formData.newPassword}
-              onChange={handleInputChange}
+              {...register('newPassword', {
+                required: 'Password is required',
+                minLength: {
+                  value: 8,
+                  message: 'Password must be at least 8 characters',
+                },
+              })}
               error={Boolean(errors.newPassword)}
-              helperText={errors.newPassword}
+              helperText={errors.newPassword?.message}
               startAdornment={<LockIcon />}
               sx={{ mb: 2 }}
             />
             <TextField
               fullWidth
               label="Confirm Password"
-              name="confirmPassword"
               type="password"
-              value={formData.confirmPassword}
-              onChange={handleInputChange}
+              {...register('confirmPassword', {
+                required: 'Please confirm your password',
+                validate: (value) => value === getValues('newPassword') || 'Passwords do not match',
+              })}
               error={Boolean(errors.confirmPassword)}
-              helperText={errors.confirmPassword}
+              helperText={errors.confirmPassword?.message}
               startAdornment={<LockIcon />}
               sx={{ mb: 3 }}
             />

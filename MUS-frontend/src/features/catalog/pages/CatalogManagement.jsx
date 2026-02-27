@@ -45,6 +45,7 @@ import institutionService from "@/services/institutionService";
 import institutionProgramService from "@/services/institutionProgramService";
 import { PageHeader } from "@/shared/components/ui";
 import { useLanguage } from "@/app/providers/LanguageContext";
+import { useForm, Controller } from "react-hook-form";
 
 const TAB_KEYS = {
   INSTITUTION_TYPES: "institutionTypes",
@@ -67,6 +68,30 @@ const extractOne = (response) => {
   return Array.isArray(data) ? data[0] || null : data || null;
 };
 
+const getDialogDefaultValues = (type, item = null) => {
+  if (type === TAB_KEYS.INSTITUTION_TYPES || type === TAB_KEYS.DOMAINS) {
+    return { name: item?.name || "" };
+  }
+
+  if (type === TAB_KEYS.PROGRAMS) {
+    return {
+      name: item?.name || "",
+      domain_id: String(item?.domain_id || item?.domainId || ""),
+    };
+  }
+
+  if (type === TAB_KEYS.INSTITUTIONS) {
+    return {
+      name: item?.name || "",
+      institution_type_id: String(item?.institution_type_id || item?.institutionTypeId || ""),
+      country: item?.country || "",
+      city: item?.city || "",
+    };
+  }
+
+  return {};
+};
+
 const CatalogManagement = () => {
   const { t } = useLanguage();
   const theme = useTheme();
@@ -83,8 +108,6 @@ const CatalogManagement = () => {
   const [programs, setPrograms] = useState([]);
   const [institutions, setInstitutions] = useState([]);
 
-  const [selectedInstitutionId, setSelectedInstitutionId] = useState("");
-  const [selectedProgramId, setSelectedProgramId] = useState("");
   const [institutionPrograms, setInstitutionPrograms] = useState([]);
   const [mappingLoading, setMappingLoading] = useState(false);
 
@@ -92,7 +115,29 @@ const CatalogManagement = () => {
   const [dialogMode, setDialogMode] = useState("create");
   const [dialogType, setDialogType] = useState(TAB_KEYS.INSTITUTION_TYPES);
   const [editingId, setEditingId] = useState(null);
-  const [formValues, setFormValues] = useState({});
+  const {
+    register,
+    control,
+    reset,
+    handleSubmit,
+    formState: { errors: formErrors },
+  } = useForm({
+    defaultValues: getDialogDefaultValues(TAB_KEYS.INSTITUTION_TYPES),
+  });
+  const {
+    control: mappingControl,
+    watch: watchMapping,
+    setValue: setMappingValue,
+    handleSubmit: handleMappingSubmit,
+  } = useForm({
+    defaultValues: {
+      institutionId: "",
+      programId: "",
+    },
+  });
+
+  const selectedInstitutionId = watchMapping("institutionId") || "";
+  const selectedProgramId = watchMapping("programId") || "";
 
   const domainNameById = useMemo(() => {
     const map = new Map();
@@ -187,19 +232,7 @@ const CatalogManagement = () => {
     setDialogType(type);
     setDialogMode("create");
     setEditingId(null);
-
-    if (type === TAB_KEYS.INSTITUTION_TYPES || type === TAB_KEYS.DOMAINS) {
-      setFormValues({ name: "" });
-    } else if (type === TAB_KEYS.PROGRAMS) {
-      setFormValues({ name: "", domain_id: "" });
-    } else if (type === TAB_KEYS.INSTITUTIONS) {
-      setFormValues({
-        name: "",
-        institution_type_id: "",
-        country: "",
-        city: "",
-      });
-    }
+    reset(getDialogDefaultValues(type));
 
     setDialogOpen(true);
   };
@@ -209,34 +242,15 @@ const CatalogManagement = () => {
     setDialogType(type);
     setDialogMode("edit");
     setEditingId(item.id);
-
-    if (type === TAB_KEYS.INSTITUTION_TYPES || type === TAB_KEYS.DOMAINS) {
-      setFormValues({ name: item.name || "" });
-    } else if (type === TAB_KEYS.PROGRAMS) {
-      setFormValues({
-        name: item.name || "",
-        domain_id: String(item.domain_id || item.domainId || ""),
-      });
-    } else if (type === TAB_KEYS.INSTITUTIONS) {
-      setFormValues({
-        name: item.name || "",
-        institution_type_id: String(item.institution_type_id || item.institutionTypeId || ""),
-        country: item.country || "",
-        city: item.city || "",
-      });
-    }
+    reset(getDialogDefaultValues(type, item));
 
     setDialogOpen(true);
   };
 
   const closeDialog = () => {
     setDialogOpen(false);
-    setFormValues({});
+    reset(getDialogDefaultValues(dialogType));
     setEditingId(null);
-  };
-
-  const handleFormChange = (name, value) => {
-    setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
   const refreshAfterMutation = async () => {
@@ -246,7 +260,7 @@ const CatalogManagement = () => {
     }
   };
 
-  const handleSubmitDialog = async () => {
+  const handleSubmitDialog = handleSubmit(async (formValues) => {
     setSubmitting(true);
     clearMessages();
     try {
@@ -307,7 +321,7 @@ const CatalogManagement = () => {
     } finally {
       setSubmitting(false);
     }
-  };
+  });
 
   const handleDelete = async (type, item) => {
     const confirmed = window.confirm(`Delete ${item.name}? This action cannot be undone.`);
@@ -344,21 +358,21 @@ const CatalogManagement = () => {
     }
   };
 
-  const handleAddMapping = async () => {
-    if (!selectedInstitutionId || !selectedProgramId) return;
+  const handleAddMapping = handleMappingSubmit(async ({ institutionId, programId }) => {
+    if (!institutionId || !programId) return;
     setSubmitting(true);
     clearMessages();
     try {
-      await institutionProgramService.addAssociation(Number(selectedInstitutionId), Number(selectedProgramId));
-      setSelectedProgramId("");
-      await loadInstitutionPrograms(selectedInstitutionId);
+      await institutionProgramService.addAssociation(Number(institutionId), Number(programId));
+      setMappingValue("programId", "");
+      await loadInstitutionPrograms(institutionId);
       setSuccess("Program mapped to institution successfully");
     } catch (e) {
       setError(getErrorMessage(e, "Failed to create mapping"));
     } finally {
       setSubmitting(false);
     }
-  };
+  });
 
   const handleRemoveMapping = async (programId) => {
     if (!selectedInstitutionId) return;
@@ -478,35 +492,50 @@ const CatalogManagement = () => {
     return (
       <Box>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr auto" }, gap: 2, mb: 2 }}>
-          <FormControl size="small" fullWidth>
-            <InputLabel>Institution</InputLabel>
-            <Select
-              value={selectedInstitutionId}
-              label="Institution"
-              onChange={(event) => setSelectedInstitutionId(String(event.target.value))}
-            >
-              {institutions.map((institution) => (
-                <MenuItem key={institution.id} value={String(institution.id)}>
-                  {institution.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Controller
+            name="institutionId"
+            control={mappingControl}
+            render={({ field }) => (
+              <FormControl size="small" fullWidth>
+                <InputLabel>Institution</InputLabel>
+                <Select
+                  {...field}
+                  label="Institution"
+                  onChange={(event) => {
+                    field.onChange(String(event.target.value));
+                    setMappingValue("programId", "");
+                  }}
+                >
+                  {institutions.map((institution) => (
+                    <MenuItem key={institution.id} value={String(institution.id)}>
+                      {institution.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          />
 
-          <FormControl size="small" fullWidth>
-            <InputLabel>Program</InputLabel>
-            <Select
-              value={selectedProgramId}
-              label="Program"
-              onChange={(event) => setSelectedProgramId(String(event.target.value))}
-            >
-              {programs.map((program) => (
-                <MenuItem key={program.id} value={String(program.id)}>
-                  {program.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Controller
+            name="programId"
+            control={mappingControl}
+            render={({ field }) => (
+              <FormControl size="small" fullWidth>
+                <InputLabel>Program</InputLabel>
+                <Select
+                  {...field}
+                  label="Program"
+                  onChange={(event) => field.onChange(String(event.target.value))}
+                >
+                  {programs.map((program) => (
+                    <MenuItem key={program.id} value={String(program.id)}>
+                      {program.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          />
 
           <Button
             variant="contained"
@@ -596,9 +625,10 @@ const CatalogManagement = () => {
           <TextField
             size="small"
             fullWidth
-            value={formValues.name || ""}
+            {...register("name", { required: "Name is required" })}
             placeholder={dialogType === TAB_KEYS.DOMAINS ? "e.g. Computer Science" : "e.g. University"}
-            onChange={(event) => handleFormChange("name", event.target.value)}
+            error={!!formErrors.name}
+            helperText={formErrors.name?.message || " "}
             sx={{
               "& .MuiInputBase-root": {
                 borderRadius: 2,
@@ -626,28 +656,43 @@ const CatalogManagement = () => {
             size="small"
             fullWidth
             label="Program Name"
-            value={formValues.name || ""}
+            {...register("name", { required: "Program name is required" })}
             helperText="Program label shown to students"
             placeholder="e.g. Software Engineering"
-            onChange={(event) => handleFormChange("name", event.target.value)}
+            error={!!formErrors.name}
+            FormHelperTextProps={{
+              sx: { color: formErrors.name ? "error.main" : "inherit" },
+            }}
+            helperText={formErrors.name?.message || "Program label shown to students"}
             sx={{ gridColumn: { xs: "1 / -1", sm: "1 / 2" } }}
             InputLabelProps={{ shrink: true }}
             InputProps={{ sx: { borderRadius: 2 } }}
           />
-          <FormControl fullWidth size="small" sx={{ gridColumn: { xs: "1 / -1", sm: "2 / 3" } }}>
-            <InputLabel>Domain</InputLabel>
-            <Select
-              value={formValues.domain_id || ""}
-              label="Domain"
-              onChange={(event) => handleFormChange("domain_id", String(event.target.value))}
-            >
-              {domains.map((domain) => (
-                <MenuItem key={domain.id} value={String(domain.id)}>
-                  {domain.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Controller
+            name="domain_id"
+            control={control}
+            rules={{ required: "Domain is required" }}
+            render={({ field }) => (
+              <FormControl
+                fullWidth
+                size="small"
+                sx={{ gridColumn: { xs: "1 / -1", sm: "2 / 3" } }}
+                error={!!formErrors.domain_id}
+              >
+                <InputLabel>Domain</InputLabel>
+                <Select
+                  {...field}
+                  label="Domain"
+                >
+                  {domains.map((domain) => (
+                    <MenuItem key={domain.id} value={String(domain.id)}>
+                      {domain.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          />
         </Box>
       );
     }
@@ -665,35 +710,49 @@ const CatalogManagement = () => {
           size="small"
           fullWidth
           label="Institution Name"
-          value={formValues.name || ""}
+          {...register("name", { required: "Institution name is required" })}
           helperText="Official name of the institution"
           placeholder="e.g. National School of AI"
-          onChange={(event) => handleFormChange("name", event.target.value)}
+          error={!!formErrors.name}
+          FormHelperTextProps={{
+            sx: { color: formErrors.name ? "error.main" : "inherit" },
+          }}
+          helperText={formErrors.name?.message || "Official name of the institution"}
           sx={{ gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
           InputLabelProps={{ shrink: true }}
           InputProps={{ sx: { borderRadius: 2 } }}
         />
-        <FormControl fullWidth size="small" sx={{ gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}>
-          <InputLabel>Institution Type</InputLabel>
-          <Select
-            value={formValues.institution_type_id || ""}
-            label="Institution Type"
-            onChange={(event) => handleFormChange("institution_type_id", String(event.target.value))}
-          >
-            {institutionTypes.map((item) => (
-              <MenuItem key={item.id} value={String(item.id)}>
-                {item.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Controller
+          name="institution_type_id"
+          control={control}
+          rules={{ required: "Institution type is required" }}
+          render={({ field }) => (
+            <FormControl
+              fullWidth
+              size="small"
+              sx={{ gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
+              error={!!formErrors.institution_type_id}
+            >
+              <InputLabel>Institution Type</InputLabel>
+              <Select
+                {...field}
+                label="Institution Type"
+              >
+                {institutionTypes.map((item) => (
+                  <MenuItem key={item.id} value={String(item.id)}>
+                    {item.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+        />
         <TextField
           size="small"
           fullWidth
           label="Country"
-          value={formValues.country || ""}
+          {...register("country")}
           placeholder="e.g. Morocco"
-          onChange={(event) => handleFormChange("country", event.target.value)}
           sx={{ gridColumn: { xs: "1 / -1", sm: "1 / 2" } }}
           InputLabelProps={{ shrink: true }}
           InputProps={{ sx: { borderRadius: 2 } }}
@@ -702,9 +761,8 @@ const CatalogManagement = () => {
           size="small"
           fullWidth
           label="City"
-          value={formValues.city || ""}
+          {...register("city")}
           placeholder="e.g. Casablanca"
-          onChange={(event) => handleFormChange("city", event.target.value)}
           sx={{ gridColumn: { xs: "1 / -1", sm: "2 / 3" } }}
           InputLabelProps={{ shrink: true }}
           InputProps={{ sx: { borderRadius: 2 } }}
@@ -740,19 +798,6 @@ const CatalogManagement = () => {
     title: "Entry",
     subtitle: "Manage catalog entry",
     icon: <Edit fontSize="small" />,
-  };
-
-  const isDialogValid = () => {
-    if (dialogType === TAB_KEYS.INSTITUTION_TYPES || dialogType === TAB_KEYS.DOMAINS) {
-      return Boolean(formValues.name?.trim());
-    }
-    if (dialogType === TAB_KEYS.PROGRAMS) {
-      return Boolean(formValues.name?.trim() && formValues.domain_id);
-    }
-    if (dialogType === TAB_KEYS.INSTITUTIONS) {
-      return Boolean(formValues.name?.trim() && formValues.institution_type_id);
-    }
-    return true;
   };
 
   const getHeaderAction = () => {
@@ -917,7 +962,7 @@ const CatalogManagement = () => {
           <Button
             variant="contained"
             onClick={handleSubmitDialog}
-            disabled={submitting || !isDialogValid()}
+            disabled={submitting}
             sx={{ minWidth: { xs: 140, sm: 160 } }}
           >
             {dialogMode === "create" ? "Create" : "Save Changes"}

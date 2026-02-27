@@ -29,6 +29,7 @@ import logo from '@/assets/images/logo.png';
 import { useNotification } from '../../../shared/components/ui/notifications';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
 import { pageTransitionSx } from '@/styles/motion';
+import { useForm, Controller } from 'react-hook-form';
 
 export const LoginForm = () => {
   const navigate = useNavigate();
@@ -39,13 +40,19 @@ export const LoginForm = () => {
   
   const [showPassword, setShowPassword] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    email: localStorage.getItem('rememberEmail') || '',
-    password: '',
-    rememberMe: !!localStorage.getItem('rememberEmail'),
-  });
-  const [errors, setErrors] = useState({});
   const [loginError, setLoginError] = useState('');
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      email: localStorage.getItem('rememberEmail') || '',
+      password: '',
+      rememberMe: !!localStorage.getItem('rememberEmail'),
+    },
+  });
 
   // --- FIX 1: Redirect ALL authenticated users to Dashboard ---
   useEffect(() => {
@@ -62,42 +69,8 @@ export const LoginForm = () => {
     setShowPassword(!showPassword);
   };
 
-  const handleInputChange = (e) => {
-    const { name, value, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: name === 'rememberMe' ? checked : value,
-    });
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: '' });
-    }
+  const handleSubmitForm = handleSubmit(async (formData) => {
     setLoginError('');
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoginError('');
-
-    if (!validateForm()) return;
 
     try {
       const response = await apiLogin(formData.email, formData.password);
@@ -133,7 +106,7 @@ export const LoginForm = () => {
       setLoginError(errorMessage);
       showError(errorMessage);
     }
-  };
+  });
 
   return (
     <Box
@@ -178,17 +151,22 @@ export const LoginForm = () => {
                 </Alert>
               )}
 
-              <Stack component="form" spacing={2} onSubmit={handleSubmit} noValidate>
+              <Stack component="form" spacing={2} onSubmit={handleSubmitForm} noValidate>
                 <TextField
                   fullWidth
                   id="email"
-                  name="email"
                   label="Email Address"
                   type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
+                  {...register('email', {
+                    required: 'Email is required',
+                    pattern: {
+                      value: /\S+@\S+\.\S+/,
+                      message: 'Email is invalid',
+                    },
+                    onChange: () => setLoginError(''),
+                  })}
                   error={Boolean(errors.email)}
-                  helperText={errors.email}
+                  helperText={errors.email?.message}
                   autoComplete="email"
                   autoFocus
                   InputProps={{
@@ -203,13 +181,18 @@ export const LoginForm = () => {
                 <TextField
                   fullWidth
                   id="password"
-                  name="password"
                   label="Password"
                   type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={handleInputChange}
+                  {...register('password', {
+                    required: 'Password is required',
+                    minLength: {
+                      value: 8,
+                      message: 'Password must be at least 8 characters',
+                    },
+                    onChange: () => setLoginError(''),
+                  })}
                   error={Boolean(errors.password)}
-                  helperText={errors.password}
+                  helperText={errors.password?.message}
                   autoComplete="current-password"
                   InputProps={{
                     startAdornment: (
@@ -242,11 +225,16 @@ export const LoginForm = () => {
                 >
                   <FormControlLabel
                     control={
-                      <Checkbox
+                      <Controller
                         name="rememberMe"
-                        checked={formData.rememberMe}
-                        onChange={handleInputChange}
-                        color="primary"
+                        control={control}
+                        render={({ field }) => (
+                          <Checkbox
+                            checked={!!field.value}
+                            onChange={(event) => field.onChange(event.target.checked)}
+                            color="primary"
+                          />
+                        )}
                       />
                     }
                     label="Remember me"

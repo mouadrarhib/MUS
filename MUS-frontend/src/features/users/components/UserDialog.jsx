@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -15,7 +15,6 @@ import {
   Select,
   FormControl,
   InputLabel,
-  Autocomplete,
   FormHelperText,
   Slide,
   IconButton,
@@ -25,8 +24,6 @@ import {
   useMediaQuery,
   ListItemIcon,
   ListItemText,
-  Popper,
-  Paper,
 } from "@mui/material";
 import Grid from '@mui/material/GridLegacy';
 import {
@@ -39,6 +36,7 @@ import {
   Assignment,
 } from "@mui/icons-material";
 import PropTypes from "prop-types";
+import { useForm, Controller } from "react-hook-form";
 import { AsyncButton } from '@/shared/components/ui';
 
 // Sample universities
@@ -91,150 +89,95 @@ const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
+const getDefaultValues = (user) => {
+  let rolesArray = ["student"];
+  if (Array.isArray(user?.roles)) {
+    rolesArray = user.roles.map((r) => String(r).trim().toLowerCase()).filter(Boolean);
+  } else if (typeof user?.roles === "string") {
+    rolesArray = user.roles.split(",").map((r) => r.trim().toLowerCase()).filter(Boolean);
+  } else if (user?.role) {
+    rolesArray = [String(user.role).trim().toLowerCase()];
+  }
+
+  if (rolesArray.length === 0) {
+    rolesArray = ["student"];
+  }
+
+  return {
+    fullName: user?.full_name || "",
+    email: user?.email || "",
+    userRoles: rolesArray,
+    isActive: user?.is_active !== undefined ? user.is_active : true,
+    institutionName: user?.institution_name || "",
+    institutionCity: user?.institution_city || "",
+    institutionType: user?.institution_type || "",
+    programName: user?.program_name || "",
+    domainName: user?.domain_name || "",
+    currentSemesterName: user?.current_semester_name || "",
+    levelName: user?.current_level_name || "",
+  };
+};
+
 const UserDialog = ({ open, user, onClose, onSave, saving = false }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    userRoles: ["student"],
-    isActive: true,
-    institutionName: "",
-    institutionCity: "",
-    institutionType: "",
-    programName: "",
-    domainName: "",
-    currentSemesterName: "",
-    levelName: "",
+  const {
+    register,
+    control,
+    reset,
+    watch,
+    getValues,
+    setValue,
+    setError,
+    clearErrors,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    defaultValues: getDefaultValues(user),
   });
-  const [errors, setErrors] = useState({});
+
+  const selectedRoles = watch("userRoles") || [];
+  const isActive = watch("isActive");
 
   useEffect(() => {
-    if (user) {
-      // Parse roles from comma-separated string to array
-      const rolesArray = user.roles 
-        ? user.roles.split(',').map(r => r.trim().toLowerCase())
-        : ['student'];
-      
-      setFormData({
-        fullName: user.full_name || "",
-        email: user.email || "",
-        userRoles: rolesArray,
-        isActive: user.is_active !== undefined ? user.is_active : true,
-        institutionName: user.institution_name || "",
-        institutionCity: user.institution_city || "",
-        institutionType: user.institution_type || "",
-        programName: user.program_name || "",
-        domainName: user.domain_name || "",
-        currentSemesterName: user.current_semester_name || "",
-        levelName: user.current_level_name || "",
-      });
-    } else {
-      setFormData({
-        fullName: "",
-        email: "",
-        userRoles: ["student"],
-        isActive: true,
-        institutionName: "",
-        institutionCity: "",
-        institutionType: "",
-        programName: "",
-        domainName: "",
-        currentSemesterName: "",
-        levelName: "",
-      });
-      setErrors({});
-    }
-  }, [user, open]);
-
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = "Full name is required";
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Invalid email format";
-    }
-
-    if (formData.userRoles.length === 0) {
-      newErrors.userRoles = "At least one role is required";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
-    }
-  };
+    reset(getDefaultValues(user));
+    clearErrors();
+  }, [user, open, reset, clearErrors]);
 
   const handleRoleChange = (role) => {
-    setFormData((prev) => {
-      const roles = prev.userRoles.includes(role)
-        ? prev.userRoles.filter((r) => r !== role)
-        : [...prev.userRoles, role];
-      return { ...prev, userRoles: roles };
-    });
-    if (errors.userRoles) {
-      setErrors((prev) => ({ ...prev, userRoles: "" }));
-    }
+    const currentRoles = getValues("userRoles") || [];
+    const nextRoles = currentRoles.includes(role)
+      ? currentRoles.filter((r) => r !== role)
+      : [...currentRoles, role];
+    setValue("userRoles", nextRoles, { shouldDirty: true });
+    clearErrors("userRoles");
   };
 
-  const handleActiveChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      isActive: e.target.checked,
-    }));
-  };
-
-  const handleSave = async () => {
-    if (validateForm()) {
-      const {
-        institutionName,
-        institutionCity,
-        institutionType,
-        programName,
-        domainName,
-        currentSemesterName,
-        levelName,
-        fullName,
-        email,
-        userRoles,
-        isActive,
-      } = formData;
-
-      // Convert to API format with snake_case
-      await onSave({
-        full_name: fullName,
-        email: email,
-        roles: userRoles.join(', '),
-        is_active: isActive,
-        institution_name: institutionName,
-        institution_city: institutionCity,
-        institution_type: institutionType,
-        program_name: programName,
-        domain_name: domainName,
-        current_semester_name: currentSemesterName,
-        current_level_name: levelName,
-        ...(user && { user_id: user.user_id }),
+  const handleSave = handleSubmit(async (data) => {
+    if (!data.userRoles?.length) {
+      setError("userRoles", {
+        type: "manual",
+        message: "At least one role is required",
       });
+      return;
     }
-  };
+
+    await onSave({
+      full_name: data.fullName,
+      email: data.email,
+      roles: data.userRoles.join(", "),
+      is_active: data.isActive,
+      institution_name: data.institutionName,
+      institution_city: data.institutionCity,
+      institution_type: data.institutionType,
+      program_name: data.programName,
+      domain_name: data.domainName,
+      current_semester_name: data.currentSemesterName,
+      current_level_name: data.levelName,
+      ...(user && { user_id: user.user_id }),
+    });
+  });
 
   return (
     <Dialog
@@ -341,11 +284,11 @@ const UserDialog = ({ open, user, onClose, onSave, saving = false }) => {
                   <TextField
                     fullWidth
                     label="Full Name"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleInputChange}
+                    {...register("fullName", {
+                      required: "Full name is required",
+                    })}
                     error={!!errors.fullName}
-                    helperText={errors.fullName}
+                    helperText={errors.fullName?.message}
                     sx={{
                       "& .MuiOutlinedInput-root": {
                         borderRadius: 2,
@@ -364,12 +307,16 @@ const UserDialog = ({ open, user, onClose, onSave, saving = false }) => {
                   <TextField
                     fullWidth
                     label="Email"
-                    name="email"
                     type="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
+                    {...register("email", {
+                      required: "Email is required",
+                      pattern: {
+                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                        message: "Invalid email format",
+                      },
+                    })}
                     error={!!errors.email}
-                    helperText={errors.email}
+                    helperText={errors.email?.message}
                     sx={{
                       "& .MuiOutlinedInput-root": {
                         borderRadius: 2,
@@ -420,10 +367,10 @@ const UserDialog = ({ open, user, onClose, onSave, saving = false }) => {
                         p: 2,
                         borderRadius: 2,
                         border: "2px solid",
-                        borderColor: formData.userRoles.includes(role.value)
+                        borderColor: selectedRoles.includes(role.value)
                           ? "primary.main"
                           : "divider",
-                        bgcolor: formData.userRoles.includes(role.value)
+                        bgcolor: selectedRoles.includes(role.value)
                           ? alpha(theme.palette.primary.main, 0.08)
                           : "background.paper",
                         cursor: "pointer",
@@ -445,7 +392,7 @@ const UserDialog = ({ open, user, onClose, onSave, saving = false }) => {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            bgcolor: formData.userRoles.includes(role.value)
+                            bgcolor: selectedRoles.includes(role.value)
                               ? alpha(theme.palette.primary.main, 0.15)
                               : alpha(theme.palette.text.primary, 0.05),
                             fontSize: "1.2rem",
@@ -465,7 +412,7 @@ const UserDialog = ({ open, user, onClose, onSave, saving = false }) => {
                                 : "Learner"}
                           </Typography>
                         </Box>
-                        {formData.userRoles.includes(role.value) && (
+                        {selectedRoles.includes(role.value) && (
                           <CheckCircle
                             sx={{ color: "primary.main", fontSize: 20 }}
                           />
@@ -503,126 +450,96 @@ const UserDialog = ({ open, user, onClose, onSave, saving = false }) => {
                 <Grid item xs={12}>
                   <FormControl fullWidth>
                     <InputLabel id="institution-label">Institution</InputLabel>
-                    <Select
-                      labelId="institution-label"
-                      id="institution-select"
-                      value={formData.institutionName}
-                      label="Institution"
-                      onChange={(e) => {
-                        const selectedUni = commonUniversities.find(
-                          (u) => u.label === e.target.value,
-                        );
-                        setFormData((prev) => ({
-                          ...prev,
-                          institutionName: e.target.value,
-                          institutionCity: selectedUni ? selectedUni.city : "",
-                        }));
-                      }}
-                      renderValue={(value) => {
-                        const selected = commonUniversities.find(
-                          (u) => u.label === value,
-                        );
-                        return selected ? (
-                          <Stack
-                            direction="row"
-                            alignItems="center"
-                            spacing={1.5}
-                          >
-                            <SchoolIcon
-                              fontSize="small"
-                              sx={{ color: "primary.main" }}
-                            />
-                            <Box>
-                              <Typography variant="body2">
-                                {selected.label}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                📍 {selected.city}
-                              </Typography>
-                            </Box>
-                          </Stack>
-                        ) : (
-                          <Typography color="text.secondary">
-                            Select institution
-                          </Typography>
-                        );
-                      }}
-                      sx={{
-                        borderRadius: 2,
-                        "& .MuiOutlinedInput-notchedOutline": {
-                          borderColor: "divider",
-                        },
-                        "&:hover .MuiOutlinedInput-notchedOutline": {
-                          borderColor: "primary.main",
-                        },
-                        "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                          borderColor: "primary.main",
-                          borderWidth: 2,
-                        },
-                      }}
-                      MenuProps={{
-                        PaperProps: {
-                          sx: {
+                    <Controller
+                      name="institutionName"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          {...field}
+                          labelId="institution-label"
+                          id="institution-select"
+                          label="Institution"
+                          onChange={(e) => {
+                            const selectedUni = commonUniversities.find((u) => u.label === e.target.value);
+                            field.onChange(e.target.value);
+                            setValue("institutionCity", selectedUni ? selectedUni.city : "", { shouldDirty: true });
+                          }}
+                          renderValue={(value) => {
+                            const selected = commonUniversities.find((u) => u.label === value);
+                            return selected ? (
+                              <Stack direction="row" alignItems="center" spacing={1.5}>
+                                <SchoolIcon fontSize="small" sx={{ color: "primary.main" }} />
+                                <Box>
+                                  <Typography variant="body2">{selected.label}</Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    📍 {selected.city}
+                                  </Typography>
+                                </Box>
+                              </Stack>
+                            ) : (
+                              <Typography color="text.secondary">Select institution</Typography>
+                            );
+                          }}
+                          sx={{
                             borderRadius: 2,
-                            mt: 1,
-                            maxHeight: 400,
-                            boxShadow: theme.shadows[8],
-                            "& .MuiMenuItem-root": {
-                              borderRadius: 1,
-                              mx: 1,
-                              my: 0.5,
-                              py: 1.5,
-                              "&:hover": {
-                                bgcolor: alpha(
-                                  theme.palette.primary.main,
-                                  0.08,
-                                ),
-                              },
-                              "&.Mui-selected": {
-                                bgcolor: alpha(
-                                  theme.palette.primary.main,
-                                  0.12,
-                                ),
-                                "&:hover": {
-                                  bgcolor: alpha(
-                                    theme.palette.primary.main,
-                                    0.16,
-                                  ),
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "divider",
+                            },
+                            "&:hover .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "primary.main",
+                            },
+                            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "primary.main",
+                              borderWidth: 2,
+                            },
+                          }}
+                          MenuProps={{
+                            PaperProps: {
+                              sx: {
+                                borderRadius: 2,
+                                mt: 1,
+                                maxHeight: 400,
+                                boxShadow: theme.shadows[8],
+                                "& .MuiMenuItem-root": {
+                                  borderRadius: 1,
+                                  mx: 1,
+                                  my: 0.5,
+                                  py: 1.5,
+                                  "&:hover": {
+                                    bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                  },
+                                  "&.Mui-selected": {
+                                    bgcolor: alpha(theme.palette.primary.main, 0.12),
+                                    "&:hover": {
+                                      bgcolor: alpha(theme.palette.primary.main, 0.16),
+                                    },
+                                  },
                                 },
                               },
                             },
-                          },
-                        },
-                      }}
-                    >
-                      {commonUniversities.map((university) => (
-                        <MenuItem
-                          key={university.label}
-                          value={university.label}
+                          }}
                         >
-                          <ListItemIcon sx={{ minWidth: 36 }}>
-                            <SchoolIcon
-                              fontSize="small"
-                              sx={{ color: "primary.main" }}
-                            />
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={university.label}
-                            secondary={`📍 ${university.city}`}
-                            primaryTypographyProps={{
-                              variant: "body2",
-                              fontWeight: 500,
-                            }}
-                            secondaryTypographyProps={{
-                              variant: "caption",
-                            }}
-                          />
-                        </MenuItem>
-                      ))}
-                    </Select>
+                          {commonUniversities.map((university) => (
+                            <MenuItem key={university.label} value={university.label}>
+                              <ListItemIcon sx={{ minWidth: 36 }}>
+                                <SchoolIcon fontSize="small" sx={{ color: "primary.main" }} />
+                              </ListItemIcon>
+                              <ListItemText
+                                primary={university.label}
+                                secondary={`📍 ${university.city}`}
+                                primaryTypographyProps={{
+                                  variant: "body2",
+                                  fontWeight: 500,
+                                }}
+                                secondaryTypographyProps={{
+                                  variant: "caption",
+                                }}
+                              />
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      )}
+                    />
                     <FormHelperText>
                       Select your educational institution
                     </FormHelperText>
@@ -634,93 +551,72 @@ const UserDialog = ({ open, user, onClose, onSave, saving = false }) => {
                     <InputLabel id="institution-type-label">
                       Institution Type
                     </InputLabel>
-                    <Select
-                      labelId="institution-type-label"
-                      id="institution-type-select"
-                      value={formData.institutionType}
-                      label="Institution Type"
-                      onChange={(e) =>
-                        handleInputChange({
-                          target: {
-                            name: "institutionType",
-                            value: e.target.value,
-                          },
-                        })
-                      }
-                      renderValue={(value) => {
-                        const selected = institutionTypes.find(
-                          (t) => t.value === value,
-                        );
-                        return selected ? (
-                          <Stack
-                            direction="row"
-                            alignItems="center"
-                            spacing={1.5}
-                          >
-                            {selected.icon}
-                            <Typography>{selected.label}</Typography>
-                          </Stack>
-                        ) : (
-                          <Typography color="text.secondary">
-                            Select institution type
-                          </Typography>
-                        );
-                      }}
-                      sx={{
-                        borderRadius: 2,
-                        "& .MuiOutlinedInput-notchedOutline": {
-                          borderColor: "divider",
-                        },
-                        "&:hover .MuiOutlinedInput-notchedOutline": {
-                          borderColor: "primary.main",
-                        },
-                        "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                          borderColor: "primary.main",
-                          borderWidth: 2,
-                        },
-                      }}
-                      MenuProps={{
-                        PaperProps: {
-                          sx: {
+                    <Controller
+                      name="institutionType"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          {...field}
+                          labelId="institution-type-label"
+                          id="institution-type-select"
+                          label="Institution Type"
+                          renderValue={(value) => {
+                            const selected = institutionTypes.find((t) => t.value === value);
+                            return selected ? (
+                              <Stack direction="row" alignItems="center" spacing={1.5}>
+                                {selected.icon}
+                                <Typography>{selected.label}</Typography>
+                              </Stack>
+                            ) : (
+                              <Typography color="text.secondary">Select institution type</Typography>
+                            );
+                          }}
+                          sx={{
                             borderRadius: 2,
-                            mt: 1,
-                            boxShadow: theme.shadows[8],
-                            "& .MuiMenuItem-root": {
-                              borderRadius: 1,
-                              mx: 1,
-                              my: 0.5,
-                              "&:hover": {
-                                bgcolor: alpha(
-                                  theme.palette.primary.main,
-                                  0.08,
-                                ),
-                              },
-                              "&.Mui-selected": {
-                                bgcolor: alpha(
-                                  theme.palette.primary.main,
-                                  0.12,
-                                ),
-                                "&:hover": {
-                                  bgcolor: alpha(
-                                    theme.palette.primary.main,
-                                    0.16,
-                                  ),
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "divider",
+                            },
+                            "&:hover .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "primary.main",
+                            },
+                            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "primary.main",
+                              borderWidth: 2,
+                            },
+                          }}
+                          MenuProps={{
+                            PaperProps: {
+                              sx: {
+                                borderRadius: 2,
+                                mt: 1,
+                                boxShadow: theme.shadows[8],
+                                "& .MuiMenuItem-root": {
+                                  borderRadius: 1,
+                                  mx: 1,
+                                  my: 0.5,
+                                  "&:hover": {
+                                    bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                  },
+                                  "&.Mui-selected": {
+                                    bgcolor: alpha(theme.palette.primary.main, 0.12),
+                                    "&:hover": {
+                                      bgcolor: alpha(theme.palette.primary.main, 0.16),
+                                    },
+                                  },
                                 },
                               },
                             },
-                          },
-                        },
-                      }}
-                    >
-                      {institutionTypes.map((type) => (
-                        <MenuItem key={type.value} value={type.value}>
-                          <ListItemIcon sx={{ minWidth: 36 }}>
-                            {type.icon}
-                          </ListItemIcon>
-                          <ListItemText primary={type.label} />
-                        </MenuItem>
-                      ))}
-                    </Select>
+                          }}
+                        >
+                          {institutionTypes.map((type) => (
+                            <MenuItem key={type.value} value={type.value}>
+                              <ListItemIcon sx={{ minWidth: 36 }}>{type.icon}</ListItemIcon>
+                              <ListItemText primary={type.label} />
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      )}
+                    />
                     <FormHelperText>
                       Select the type of educational institution
                     </FormHelperText>
@@ -728,15 +624,13 @@ const UserDialog = ({ open, user, onClose, onSave, saving = false }) => {
                 </Grid>
               </Grid>
 
-              {formData.userRoles.includes("student") && (
+              {selectedRoles.includes("student") && (
                 <Grid container spacing={3} sx={{ mt: 1 }}>
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
                       label="Program Name"
-                      name="programName"
-                      value={formData.programName}
-                      onChange={handleInputChange}
+                      {...register("programName")}
                       placeholder="e.g., Computer Science"
                       sx={{
                         "& .MuiOutlinedInput-root": {
@@ -749,9 +643,7 @@ const UserDialog = ({ open, user, onClose, onSave, saving = false }) => {
                     <TextField
                       fullWidth
                       label="Domain/Field"
-                      name="domainName"
-                      value={formData.domainName}
-                      onChange={handleInputChange}
+                      {...register("domainName")}
                       placeholder="e.g., Software Engineering"
                       sx={{
                         "& .MuiOutlinedInput-root": {
@@ -764,9 +656,7 @@ const UserDialog = ({ open, user, onClose, onSave, saving = false }) => {
                     <TextField
                       fullWidth
                       label="Current Semester"
-                      name="currentSemesterName"
-                      value={formData.currentSemesterName}
-                      onChange={handleInputChange}
+                      {...register("currentSemesterName")}
                       placeholder="e.g., Fall 2026"
                       sx={{
                         "& .MuiOutlinedInput-root": {
@@ -779,9 +669,7 @@ const UserDialog = ({ open, user, onClose, onSave, saving = false }) => {
                     <TextField
                       fullWidth
                       label="Level/Year"
-                      name="levelName"
-                      value={formData.levelName}
-                      onChange={handleInputChange}
+                      {...register("levelName")}
                       placeholder="e.g., 3rd Year"
                       sx={{
                         "& .MuiOutlinedInput-root": {
@@ -812,26 +700,32 @@ const UserDialog = ({ open, user, onClose, onSave, saving = false }) => {
               </Typography>
               <FormControlLabel
                 control={
-                  <Checkbox
-                    checked={formData.isActive}
-                    onChange={handleActiveChange}
-                    sx={{
-                      color: "primary.main",
-                      "&.Mui-checked": {
-                        color: "primary.main",
-                      },
-                    }}
+                  <Controller
+                    name="isActive"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox
+                        checked={!!field.value}
+                        onChange={(event) => field.onChange(event.target.checked)}
+                        sx={{
+                          color: "primary.main",
+                          "&.Mui-checked": {
+                            color: "primary.main",
+                          },
+                        }}
+                      />
+                    )}
                   />
                 }
                 label={
                   <Box>
                     <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                      {formData.isActive
+                      {isActive
                         ? "Active Account"
                         : "Inactive Account"}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {formData.isActive
+                      {isActive
                         ? "User can access the platform"
                         : "User access is disabled"}
                     </Typography>

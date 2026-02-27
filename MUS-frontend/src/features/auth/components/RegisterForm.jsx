@@ -28,6 +28,7 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import logo from '@/assets/images/logo.png';
 import { useRegister } from '../hooks/useAuthHooks';
 import { pageTransitionSx } from '@/styles/motion';
+import { useForm, Controller } from 'react-hook-form';
 
 export const RegisterForm = () => {
   const navigate = useNavigate();
@@ -36,16 +37,25 @@ export const RegisterForm = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    agreeToTerms: false,
-  });
-  const [errors, setErrors] = useState({});
   const [registerError, setRegisterError] = useState('');
   const [registerSuccess, setRegisterSuccess] = useState('');
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      fullName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      agreeToTerms: false,
+    },
+  });
+
+  const passwordValue = watch('password');
 
   
   const handleClickShowPassword = () => {
@@ -56,58 +66,9 @@ export const RegisterForm = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
-  const handleInputChange = (e) => {
-    const { name, value, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: name === 'agreeToTerms' ? checked : value,
-    });
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: '' });
-    }
+  const handleSubmitForm = handleSubmit(async (formData) => {
     setRegisterError('');
     setRegisterSuccess('');
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
-    }
-
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    }
-
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    if (!formData.agreeToTerms) {
-      newErrors.agreeToTerms = 'You must agree to the terms and conditions';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setRegisterError('');
-    setRegisterSuccess('');
-
-    if (!validateForm()) return;
 
     try {
       const response = await apiRegister(formData.email, formData.password, formData.fullName);
@@ -120,10 +81,10 @@ export const RegisterForm = () => {
           navigate('/admin');
         }
       }, 1000);
-    } catch (err) {
+    } catch {
       setRegisterError(apiError || 'Registration failed. Please try again.');
     }
-  };
+  });
 
   return (
     <Box
@@ -169,17 +130,21 @@ export const RegisterForm = () => {
                 </Alert>
               )}
 
-              <Stack component="form" spacing={2} onSubmit={handleSubmit} noValidate>
+              <Stack component="form" spacing={2} onSubmit={handleSubmitForm} noValidate>
                 <TextField
                   fullWidth
                   id="fullName"
-                  name="fullName"
                   label="Full Name"
                   type="text"
-                  value={formData.fullName}
-                  onChange={handleInputChange}
+                  {...register('fullName', {
+                    required: 'Full name is required',
+                    onChange: () => {
+                      setRegisterError('');
+                      setRegisterSuccess('');
+                    },
+                  })}
                   error={Boolean(errors.fullName)}
-                  helperText={errors.fullName}
+                  helperText={errors.fullName?.message}
                   autoComplete="name"
                   autoFocus
                   InputProps={{
@@ -194,13 +159,21 @@ export const RegisterForm = () => {
                 <TextField
                   fullWidth
                   id="email"
-                  name="email"
                   label="Email Address"
                   type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
+                  {...register('email', {
+                    required: 'Email is required',
+                    pattern: {
+                      value: /\S+@\S+\.\S+/,
+                      message: 'Email is invalid',
+                    },
+                    onChange: () => {
+                      setRegisterError('');
+                      setRegisterSuccess('');
+                    },
+                  })}
                   error={Boolean(errors.email)}
-                  helperText={errors.email}
+                  helperText={errors.email?.message}
                   autoComplete="email"
                   InputProps={{
                     startAdornment: (
@@ -214,13 +187,21 @@ export const RegisterForm = () => {
                 <TextField
                   fullWidth
                   id="password"
-                  name="password"
                   label="Password"
                   type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={handleInputChange}
+                  {...register('password', {
+                    required: 'Password is required',
+                    minLength: {
+                      value: 8,
+                      message: 'Password must be at least 8 characters',
+                    },
+                    onChange: () => {
+                      setRegisterError('');
+                      setRegisterSuccess('');
+                    },
+                  })}
                   error={Boolean(errors.password)}
-                  helperText={errors.password}
+                  helperText={errors.password?.message}
                   autoComplete="new-password"
                   InputProps={{
                     startAdornment: (
@@ -245,13 +226,18 @@ export const RegisterForm = () => {
                 <TextField
                   fullWidth
                   id="confirmPassword"
-                  name="confirmPassword"
                   label="Confirm Password"
                   type={showConfirmPassword ? 'text' : 'password'}
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
+                  {...register('confirmPassword', {
+                    required: 'Please confirm your password',
+                    validate: (value) => value === passwordValue || 'Passwords do not match',
+                    onChange: () => {
+                      setRegisterError('');
+                      setRegisterSuccess('');
+                    },
+                  })}
                   error={Boolean(errors.confirmPassword)}
-                  helperText={errors.confirmPassword}
+                  helperText={errors.confirmPassword?.message}
                   autoComplete="new-password"
                   InputProps={{
                     startAdornment: (
@@ -276,11 +262,23 @@ export const RegisterForm = () => {
                 <Box>
                   <FormControlLabel
                     control={
-                      <Checkbox
+                      <Controller
                         name="agreeToTerms"
-                        checked={formData.agreeToTerms}
-                        onChange={handleInputChange}
-                        color="primary"
+                        control={control}
+                        rules={{
+                          validate: (value) => value || 'You must agree to the terms and conditions',
+                        }}
+                        render={({ field }) => (
+                          <Checkbox
+                            checked={!!field.value}
+                            onChange={(event) => {
+                              field.onChange(event.target.checked);
+                              setRegisterError('');
+                              setRegisterSuccess('');
+                            }}
+                            color="primary"
+                          />
+                        )}
                       />
                     }
                     label={
@@ -298,7 +296,7 @@ export const RegisterForm = () => {
                   />
                   {errors.agreeToTerms && (
                     <Typography variant="caption" color="error" sx={{ ml: 4, display: 'block' }}>
-                      {errors.agreeToTerms}
+                      {errors.agreeToTerms.message}
                     </Typography>
                   )}
                 </Box>
