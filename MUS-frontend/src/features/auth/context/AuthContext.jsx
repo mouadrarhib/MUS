@@ -4,10 +4,15 @@ import apiClient from '../../../services/api.js';
 const AuthContext = createContext();
 
 const normalizeRoles = (rawRoles) => {
-  if (!Array.isArray(rawRoles)) return [];
+  const asArray = Array.isArray(rawRoles)
+    ? rawRoles
+    : rawRoles == null
+      ? []
+      : [rawRoles];
 
   const mapRole = (role) => {
-    const normalized = String(role || '').trim().toUpperCase().replace(/^ROLE_/, '');
+    const rawValue = typeof role === 'object' ? role?.name || role?.role || '' : role;
+    const normalized = String(rawValue || '').trim().toUpperCase().replace(/^ROLE_/, '');
 
     if (normalized.includes('ADMIN')) return 'ADMIN';
     if (normalized.includes('TEACHER')) return 'TEACHER';
@@ -16,11 +21,13 @@ const normalizeRoles = (rawRoles) => {
     return normalized;
   };
 
-  return rawRoles
+  return asArray
     .filter((r) => r != null)
-    .map((r) => String(r).trim())
+    .map((r) => (typeof r === 'object' ? (r?.name || r?.role || '') : String(r)).trim())
     .filter(Boolean)
-    .map(mapRole);
+    .map(mapRole)
+    .filter(Boolean)
+    .filter((value, index, arr) => arr.indexOf(value) === index);
 };
 
 const extractUserFromPayload = (payload) => {
@@ -54,7 +61,15 @@ export const AuthProvider = ({ children }) => {
     const newToken = extractTokenFromPayload(userData);
     const newUser = extractUserFromPayload(userData);
 
-    const userRoles = normalizeRoles(newUser?.roles || userData?.roles || userData?.data?.roles || []);
+    const userRoles = normalizeRoles(
+      newUser?.roles ||
+      newUser?.role ||
+      userData?.roles ||
+      userData?.role ||
+      userData?.data?.roles ||
+      userData?.data?.role ||
+      []
+    );
     
     setToken(newToken);
     setRoles(userRoles);
@@ -89,7 +104,7 @@ export const AuthProvider = ({ children }) => {
 
       const normalized = { ...profileUser };
 
-      const userRoles = normalizeRoles(normalized?.roles || []);
+      const userRoles = normalizeRoles(normalized?.roles || normalized?.role || []);
       setUser(normalized);
       setRoles(userRoles);
       localStorage.setItem('userData', JSON.stringify(normalized));
@@ -115,7 +130,11 @@ export const AuthProvider = ({ children }) => {
 
       try {
         const parsedUser = JSON.parse(storedUser);
-        const parsedRoles = normalizeRoles(storedRoles ? JSON.parse(storedRoles) : parsedUser?.roles || []);
+        const parsedRoles = normalizeRoles(
+          storedRoles
+            ? JSON.parse(storedRoles)
+            : parsedUser?.roles || parsedUser?.role || []
+        );
 
         if (!mounted) return;
 
@@ -168,7 +187,7 @@ export const AuthProvider = ({ children }) => {
     refreshProfile,
     hasRole,
     hasAnyRole,
-    isStudent: roles.includes('USER') || roles.includes('STUDENT'),
+    isStudent: roles.includes('STUDENT'),
     isTeacher: roles.includes('TEACHER'),
     isAdmin: roles.includes('ADMIN'),
     isModerator: roles.includes('MODERATOR'),

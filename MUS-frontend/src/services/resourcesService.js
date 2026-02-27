@@ -6,9 +6,15 @@ const RESOURCE = {
 };
 
 let myResourcesInFlight = null;
+let myResourcesCache = null;
+let myResourcesCacheTs = 0;
 const RESOURCE_CACHE_TTL_MS = 5000;
 const resourceListInFlight = new Map();
 const resourceListCache = new Map();
+const tagListInFlight = new Map();
+const myRejectionsInFlight = new Map();
+const myRejectionsCache = new Map();
+const resourceTagsMapInFlight = new Map();
 
 const makeCacheKey = (prefix, payload) => `${prefix}:${JSON.stringify(payload || {})}`;
 
@@ -32,6 +38,12 @@ const setCached = (key, data) => {
 const clearResourceListCaches = () => {
   resourceListInFlight.clear();
   resourceListCache.clear();
+  resourceTagsMapInFlight.clear();
+  myResourcesInFlight = null;
+  myResourcesCache = null;
+  myResourcesCacheTs = 0;
+  myRejectionsInFlight.clear();
+  myRejectionsCache.clear();
 };
 
 const normalizeResource = (item) => {
@@ -83,8 +95,23 @@ const extractOne = (response) => {
 
 export const resourcesService = {
   listTags: async (params = {}) => {
-    const response = await get(`/tags`, { params });
-    return Array.isArray(response?.data) ? response.data : [];
+    const key = makeCacheKey("tags", params);
+    const cached = getCached(key);
+    if (cached) return cached;
+    if (tagListInFlight.has(key)) return tagListInFlight.get(key);
+
+    const request = get(`/tags`, { params })
+      .then((response) => {
+        const data = Array.isArray(response?.data) ? response.data : [];
+        setCached(key, data);
+        return data;
+      })
+      .finally(() => {
+        tagListInFlight.delete(key);
+      });
+
+    tagListInFlight.set(key, request);
+    return request;
   },
 
   listPopularTags: async (limit = 20) => {
@@ -101,13 +128,29 @@ export const resourcesService = {
     const normalized = Array.from(new Set((resourceIds || []).map((v) => Number(v)).filter(Number.isFinite)));
     if (!normalized.length) return {};
 
-    const response = await get(`/tags/resources-map`, {
-      params: {
-        resource_ids: normalized.join(","),
-      },
-    });
+    const sortedIds = [...normalized].sort((a, b) => a - b);
+    const key = makeCacheKey("resources-tags-map", { ids: sortedIds });
 
-    return response?.data && typeof response.data === "object" ? response.data : {};
+    const cached = getCached(key);
+    if (cached) return cached;
+    if (resourceTagsMapInFlight.has(key)) return resourceTagsMapInFlight.get(key);
+
+    const request = get(`/tags/resources-map`, {
+      params: {
+        resource_ids: sortedIds.join(","),
+      },
+    })
+      .then((response) => {
+        const data = response?.data && typeof response.data === "object" ? response.data : {};
+        setCached(key, data);
+        return data;
+      })
+      .finally(() => {
+        resourceTagsMapInFlight.delete(key);
+      });
+
+    resourceTagsMapInFlight.set(key, request);
+    return request;
   },
 
   replaceResourceTags: async (resourceId, tagIds = []) => {
@@ -220,10 +263,25 @@ export const resourcesService = {
     return normalizeArray(extractDataArray(response, "resources"));
   },
 
-  getMyResources: async () => {
-    if (!myResourcesInFlight) {
+  getMyResources: async (options = {}) => {
+    const { force = false } = options;
+
+    if (!force && myResourcesCache && Date.now() - myResourcesCacheTs <= RESOURCE_CACHE_TTL_MS) {
+      return myResourcesCache;
+    }
+
+    if (!force && myResourcesInFlight) {
+      return myResourcesInFlight;
+    }
+
+    if (!myResourcesInFlight || force) {
       myResourcesInFlight = get(`${RESOURCE.ROOT}/my-resources`)
-        .then((response) => normalizeArray(extractDataArray(response)))
+        .then((response) => {
+          const data = normalizeArray(extractDataArray(response));
+          myResourcesCache = data;
+          myResourcesCacheTs = Date.now();
+          return data;
+        })
         .finally(() => {
           myResourcesInFlight = null;
         });
@@ -232,11 +290,31 @@ export const resourcesService = {
     return myResourcesInFlight;
   },
 
-  getMyRejections: async (limit = 100) => {
-    const response = await get(`${RESOURCE.ROOT}/my-rejections`, {
+  getMyRejections: async (limit = 100, options = {}) => {
+    const { force = false } = options;
+    const key = makeCacheKey("my-rejections", { limit });
+
+    if (!force) {
+      const cached = getCached(key);
+      if (cached) return cached;
+      if (myRejectionsInFlight.has(key)) return myRejectionsInFlight.get(key);
+    }
+
+    const request = get(`${RESOURCE.ROOT}/my-rejections`, {
       params: { limit },
-    });
-    return Array.isArray(response?.data) ? response.data : [];
+    })
+      .then((response) => {
+        const data = Array.isArray(response?.data) ? response.data : [];
+        setCached(key, data);
+        myRejectionsCache.set(key, data);
+        return data;
+      })
+      .finally(() => {
+        myRejectionsInFlight.delete(key);
+      });
+
+    myRejectionsInFlight.set(key, request);
+    return request;
   },
 
   getAllRejections: async ({ search = null, limit = 200 } = {}) => {
