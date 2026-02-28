@@ -343,10 +343,32 @@ router.post(
   requireRole("student"),
   [
     param("id").isInt().withMessage("ID de ressource invalide"),
+    body("module_id").optional().isInt({ min: 1 }).withMessage("ID de module invalide"),
     body("note").optional().isString().isLength({ min: 3, max: 1000 }).withMessage("La note doit contenir entre 3 et 1000 caracteres"),
   ],
   validateRequest,
   createConfusionSignalHandler
+);
+
+router.get(
+  "/:id/confusion-signals/count",
+  authMiddleware,
+  requireRole("teacher", "admin"),
+  [param("id").isInt().withMessage("ID de ressource invalide")],
+  validateRequest,
+  getResourceConfusionCountHandler
+);
+
+router.get(
+  "/:id/confusion-signals/recent",
+  authMiddleware,
+  requireRole("teacher", "admin"),
+  [
+    param("id").isInt().withMessage("ID de ressource invalide"),
+    query("limit").optional().isInt({ min: 1, max: 100 }).withMessage("limit doit etre entre 1 et 100"),
+  ],
+  validateRequest,
+  getResourceConfusionRecentHandler
 );
 
 router.get(

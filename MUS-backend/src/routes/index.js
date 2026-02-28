@@ -20,6 +20,8 @@ import adminRoutes from "./adminRoutes.js";
 import resourceModuleMapRoutes from "./resourceModuleMapRoutes.js";
 import qaRoutes from "./qaRoutes.js";
 import tagRoutes from "./tagRoutes.js";
+import confusionCaseRoutes from "./confusionCaseRoutes.js";
+import notificationRoutes from "./notificationRoutes.js";
 
 
 const router = Router();
@@ -46,6 +48,8 @@ router.use("/user-roles", userRoleRoutes);
 router.use("/student-profiles", studentProfileRoutes);
 router.use("/user-settings", userSettingsRoutes);
 router.use("/favorites", favoriteRoutes);
+router.use("", confusionCaseRoutes);
+router.use("", notificationRoutes);
 router.use("/admin", adminRoutes);
 
 

@@ -16,6 +16,7 @@ import {
   moderateQuestion,
   moderateAnswer,
 } from "../services/qaService.js";
+import { linkOfficialAnswerToConfusionCase } from "../services/resourceConfusionService.js";
 
 /**
  * @swagger
@@ -223,7 +224,24 @@ export const createAnswerHandler = asyncHandler(async (req, res) => {
     example,
   });
 
-  return successResponse(res, "Reponse creee avec succes", answer, 201);
+  let linkedCase = null;
+  if (answer.is_official) {
+    linkedCase = await linkOfficialAnswerToConfusionCase({
+      questionId,
+      answerId: answer.id,
+      actor: req.user,
+    });
+  }
+
+  return successResponse(
+    res,
+    "Reponse creee avec succes",
+    {
+      ...answer,
+      confusion_case: linkedCase,
+    },
+    201
+  );
 });
 
 /**

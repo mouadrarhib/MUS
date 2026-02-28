@@ -698,3 +698,242 @@ create trigger trg_qa_comments_set_updated_at before
 update
     on
     public.qa_comments for each row execute function set_updated_at_column();
+
+
+-- public.confusion_case_status enum definition
+
+-- DROP TYPE public.confusion_case_status;
+
+CREATE TYPE public.confusion_case_status AS ENUM (
+	'nouveau',
+	'assigne',
+	'en_cours',
+	'repondu_officiel',
+	'resolu'
+);
+
+
+-- public.confusion_case_priority enum definition
+
+-- DROP TYPE public.confusion_case_priority;
+
+CREATE TYPE public.confusion_case_priority AS ENUM (
+	'basse',
+	'normale',
+	'haute',
+	'critique'
+);
+
+
+-- public.module_staff_assignments definition
+
+-- Drop table
+
+-- DROP TABLE public.module_staff_assignments;
+
+CREATE TABLE public.module_staff_assignments (
+	id bigserial NOT NULL,
+	module_id int8 NOT NULL,
+	user_id uuid NOT NULL,
+	assignment_role text NOT NULL,
+	is_primary bool DEFAULT false NOT NULL,
+	is_active bool DEFAULT true NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT module_staff_assignments_assignment_role_check CHECK ((assignment_role = ANY (ARRAY['teacher_referent'::text, 'admin_referent'::text]))),
+	CONSTRAINT module_staff_assignments_module_id_user_id_assignment_role_key UNIQUE (module_id, user_id, assignment_role),
+	CONSTRAINT module_staff_assignments_pkey PRIMARY KEY (id),
+	CONSTRAINT module_staff_assignments_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.modules(id) ON DELETE CASCADE,
+	CONSTRAINT module_staff_assignments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_module_staff_module_role_active ON public.module_staff_assignments USING btree (module_id, assignment_role, is_active);
+CREATE UNIQUE INDEX uq_module_staff_primary_active ON public.module_staff_assignments USING btree (module_id, assignment_role) WHERE ((is_primary = true) AND (is_active = true));
+
+
+-- public.resource_confusion_cases definition
+
+-- Drop table
+
+-- DROP TABLE public.resource_confusion_cases;
+
+CREATE TABLE public.resource_confusion_cases (
+	id bigserial NOT NULL,
+	resource_id int8 NOT NULL,
+	module_id int8 NOT NULL,
+	student_id uuid NOT NULL,
+	status public."confusion_case_status" DEFAULT 'nouveau'::confusion_case_status NOT NULL,
+	priority public."confusion_case_priority" DEFAULT 'normale'::confusion_case_priority NOT NULL,
+	assigned_to_user_id uuid NULL,
+	assigned_by_user_id uuid NULL,
+	official_answer_id int8 NULL,
+	first_signal_at timestamptz DEFAULT now() NOT NULL,
+	last_signal_at timestamptz DEFAULT now() NOT NULL,
+	resolved_at timestamptz NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT resource_confusion_cases_pkey PRIMARY KEY (id),
+	CONSTRAINT resource_confusion_cases_assigned_by_user_id_fkey FOREIGN KEY (assigned_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT resource_confusion_cases_assigned_to_user_id_fkey FOREIGN KEY (assigned_to_user_id) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT resource_confusion_cases_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.modules(id) ON DELETE RESTRICT,
+	CONSTRAINT resource_confusion_cases_official_answer_id_fkey FOREIGN KEY (official_answer_id) REFERENCES public.qa_answers(id) ON DELETE SET NULL,
+	CONSTRAINT resource_confusion_cases_resource_id_fkey FOREIGN KEY (resource_id) REFERENCES public.resources(id) ON DELETE CASCADE,
+	CONSTRAINT resource_confusion_cases_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_confusion_cases_assignee_status_updated ON public.resource_confusion_cases USING btree (assigned_to_user_id, status, updated_at DESC);
+CREATE INDEX idx_confusion_cases_module_status_updated ON public.resource_confusion_cases USING btree (module_id, status, updated_at DESC);
+CREATE INDEX idx_confusion_cases_student_updated ON public.resource_confusion_cases USING btree (student_id, updated_at DESC);
+CREATE UNIQUE INDEX uq_confusion_case_open ON public.resource_confusion_cases USING btree (student_id, resource_id, module_id) WHERE (status <> 'resolu'::confusion_case_status);
+
+-- Table Triggers
+
+-- DROP FUNCTION public.set_confusion_case_updated_at();
+
+CREATE OR REPLACE FUNCTION public.set_confusion_case_updated_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$function$
+;
+
+create trigger trg_confusion_cases_set_updated_at before
+update
+    on
+    public.resource_confusion_cases for each row execute function set_confusion_case_updated_at();
+
+
+-- public.resource_confusion_case_events definition
+
+-- Drop table
+
+-- DROP TABLE public.resource_confusion_case_events;
+
+CREATE TABLE public.resource_confusion_case_events (
+	id bigserial NOT NULL,
+	case_id int8 NOT NULL,
+	event_type text NOT NULL,
+	actor_user_id uuid NULL,
+	payload jsonb NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT resource_confusion_case_events_event_type_check CHECK ((event_type = ANY (ARRAY['case_created'::text, 'signal_attached'::text, 'auto_assigned'::text, 'admin_assigned'::text, 'status_changed'::text, 'official_answer_linked'::text, 'resolved'::text, 'reopened'::text]))),
+	CONSTRAINT resource_confusion_case_events_pkey PRIMARY KEY (id),
+	CONSTRAINT resource_confusion_case_events_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT resource_confusion_case_events_case_id_fkey FOREIGN KEY (case_id) REFERENCES public.resource_confusion_cases(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_confusion_case_events_case_created ON public.resource_confusion_case_events USING btree (case_id, created_at DESC);
+
+
+-- public.user_notifications definition
+
+-- Drop table
+
+-- DROP TABLE public.user_notifications;
+
+CREATE TABLE public.user_notifications (
+	id bigserial NOT NULL,
+	recipient_user_id uuid NOT NULL,
+	"type" text NOT NULL,
+	title text NOT NULL,
+	body text NOT NULL,
+	payload jsonb NULL,
+	is_read bool DEFAULT false NOT NULL,
+	read_at timestamptz NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT user_notifications_pkey PRIMARY KEY (id),
+	CONSTRAINT user_notifications_recipient_user_id_fkey FOREIGN KEY (recipient_user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_notifications_recipient_unread_created ON public.user_notifications USING btree (recipient_user_id, is_read, created_at DESC);
+
+
+-- public.user_push_devices definition
+
+-- Drop table
+
+-- DROP TABLE public.user_push_devices;
+
+CREATE TABLE public.user_push_devices (
+	id bigserial NOT NULL,
+	user_id uuid NOT NULL,
+	device_token text NOT NULL,
+	platform text NOT NULL,
+	device_name text NULL,
+	is_active bool DEFAULT true NOT NULL,
+	last_seen_at timestamptz DEFAULT now() NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT user_push_devices_pkey PRIMARY KEY (id),
+	CONSTRAINT user_push_devices_platform_check CHECK ((platform = ANY (ARRAY['web'::text, 'android'::text, 'ios'::text]))),
+	CONSTRAINT user_push_devices_user_id_device_token_key UNIQUE (user_id, device_token),
+	CONSTRAINT user_push_devices_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_user_push_devices_token ON public.user_push_devices USING btree (device_token);
+CREATE INDEX idx_user_push_devices_user_active ON public.user_push_devices USING btree (user_id, is_active, updated_at DESC);
+
+-- Table Triggers
+
+-- DROP FUNCTION public.set_user_push_device_updated_at();
+
+CREATE OR REPLACE FUNCTION public.set_user_push_device_updated_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$function$
+;
+
+create trigger trg_user_push_devices_set_updated_at before
+update
+    on
+    public.user_push_devices for each row execute function set_user_push_device_updated_at();
+
+
+-- public.notification_deliveries definition
+
+-- Drop table
+
+-- DROP TABLE public.notification_deliveries;
+
+CREATE TABLE public.notification_deliveries (
+	id bigserial NOT NULL,
+	notification_id int8 NOT NULL,
+	channel text NOT NULL,
+	destination text NULL,
+	status text NOT NULL,
+	provider_message_id text NULL,
+	error_message text NULL,
+	attempts int4 DEFAULT 1 NOT NULL,
+	sent_at timestamptz NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT notification_deliveries_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'push'::text]))),
+	CONSTRAINT notification_deliveries_pkey PRIMARY KEY (id),
+	CONSTRAINT notification_deliveries_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'sent'::text, 'failed'::text, 'skipped'::text]))),
+	CONSTRAINT notification_deliveries_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES public.user_notifications(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_notification_deliveries_channel_status ON public.notification_deliveries USING btree (channel, status, created_at DESC);
+CREATE INDEX idx_notification_deliveries_notification ON public.notification_deliveries USING btree (notification_id, created_at DESC);
+
+-- Table Triggers
+
+-- DROP FUNCTION public.set_notification_delivery_updated_at();
+
+CREATE OR REPLACE FUNCTION public.set_notification_delivery_updated_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$function$
+;
+
+create trigger trg_notification_deliveries_set_updated_at before
+update
+    on
+    public.notification_deliveries for each row execute function set_notification_delivery_updated_at();

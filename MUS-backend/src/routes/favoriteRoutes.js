@@ -40,7 +40,7 @@ router.get(
   listUsersWhoFavoritedHandler
 );
 
-router.use(requireRole("student", "teacher", "admin"));
+router.use(requireRole("student", "teacher"));
 
 router.post(
   "/toggle",

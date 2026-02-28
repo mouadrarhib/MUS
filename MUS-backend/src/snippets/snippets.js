@@ -654,6 +654,52 @@ export const SQL = {
     GET_ALL: `SELECT * FROM public.sp_resource_rejection_get_all(:search_term, :limit_value)`,
   },
 
+  CONFUSION: {
+    CREATE_SIGNAL_AND_ASSIGN: `SELECT * FROM public.sp_confusion_signal_create_and_assign(:resource_id, :module_id, :user_id, :note, :anti_spam_minutes)`,
+
+    GET_CASE_BY_ID: `SELECT * FROM public.sp_confusion_case_get_by_id(:case_id)`,
+
+    GET_CASES_FOR_STUDENT: `SELECT * FROM public.sp_confusion_cases_get_for_student(:student_id, :status, :limit_value, :offset_value)`,
+
+    GET_CASES_FOR_STAFF: `SELECT * FROM public.sp_confusion_cases_get_for_staff(:actor_user_id, :is_admin, :status, :module_id, :assigned_to_me, :limit_value, :offset_value)`,
+
+    ASSIGN_CASE: `SELECT * FROM public.sp_confusion_case_assign(:case_id, :assignee_user_id, :assigned_by_user_id, :reason)`,
+
+    UPDATE_CASE_STATUS: `SELECT * FROM public.sp_confusion_case_update_status(:case_id, :status, :actor_user_id, :reason)`,
+
+    LINK_OFFICIAL_ANSWER: `SELECT * FROM public.sp_confusion_case_link_official_answer(:question_id, :answer_id, :actor_user_id)`,
+
+    PICK_ASSIGNEE: `SELECT * FROM public.sp_confusion_pick_assignee(:module_id)`,
+
+    UPSERT_MODULE_STAFF: `SELECT * FROM public.sp_module_staff_assignment_upsert(:module_id, :user_id, :assignment_role, :is_primary, :is_active)`,
+
+    GET_MODULE_STAFF: `SELECT * FROM public.sp_module_staff_assignment_get_by_module(:module_id)`,
+  },
+
+  NOTIFICATION: {
+    CREATE: `SELECT * FROM public.sp_notification_create(:recipient_user_id, :type, :title, :body, CAST(:payload AS jsonb))`,
+
+    GET_FOR_USER: `SELECT * FROM public.sp_notification_get_for_user(:recipient_user_id, :unread_only, :limit_value, :offset_value)`,
+
+    MARK_READ: `SELECT * FROM public.sp_notification_mark_read(:notification_id, :recipient_user_id)`,
+
+    GET_USER_PREFERENCES: `SELECT * FROM public.sp_notification_get_user_preferences(:user_id)`,
+
+    REGISTER_PUSH_DEVICE: `SELECT * FROM public.sp_notification_register_push_device(:user_id, :device_token, :platform, :device_name)`,
+
+    UNREGISTER_PUSH_DEVICE: `SELECT * FROM public.sp_notification_unregister_push_device(:user_id, :device_token)`,
+
+    LIST_PUSH_DEVICES: `SELECT * FROM public.sp_notification_list_push_devices(:user_id, :active_only)`,
+
+    DELIVERY_CREATE: `SELECT * FROM public.sp_notification_delivery_create(:notification_id, :channel, :destination, :status, :provider_message_id, :error_message, :attempts, :sent_at)`,
+
+    DELIVERY_UPDATE_STATUS: `SELECT * FROM public.sp_notification_delivery_update_status(:delivery_id, :status, :provider_message_id, :error_message, :sent_at)`,
+
+    DELIVERY_GET_RETRY_CANDIDATES: `SELECT * FROM public.sp_notification_delivery_get_retry_candidates(:limit_value, :max_attempts, :base_delay_seconds)`,
+
+    DELIVERY_PREPARE_RETRY: `SELECT * FROM public.sp_notification_delivery_prepare_retry(:delivery_id, :max_attempts)`,
+  },
+
   FAVORITE: {
     // Add/Remove operations (avec mapping des noms)
     ADD: `
