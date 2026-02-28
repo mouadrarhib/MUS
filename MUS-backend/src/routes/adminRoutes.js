@@ -28,6 +28,7 @@ import {
   // Compatibilité
   getStudentResourcesHandler,
 } from "../controllers/adminController.js";
+import { getConfusionOverviewHandler } from "../controllers/resourceConfusionController.js";
 
 
 const router = express.Router();
@@ -47,6 +48,17 @@ router.use(requireRole("admin"));
 
 // GET /admin/dashboard - Dashboard admin complet
 router.get("/dashboard", getAdminDashboardHandler);
+
+// GET /admin/confusion/overview - Vue globale des signaux de blocage
+router.get(
+  "/confusion/overview",
+  [
+    query("group_by").optional().isIn(["resource", "module"]).withMessage("group_by doit etre resource ou module"),
+    query("days").optional().isInt({ min: 1, max: 90 }).withMessage("days doit etre entre 1 et 90"),
+  ],
+  validateRequest,
+  getConfusionOverviewHandler
+);
 
 
 /**
@@ -74,7 +86,7 @@ router.get("/students/statistics", getStudentsStatisticsHandler);
 // GET /admin/students/search - Rechercher des étudiants
 router.get(
   "/students/search",
-  [query("q").notEmpty().withMessage("Search term is required")],
+  [query("q").notEmpty().withMessage("Le terme de recherche est requis")],
   validateRequest,
   searchStudentsHandler
 );
@@ -83,7 +95,7 @@ router.get(
 // GET /admin/students/filter/status - Filtrer par statut
 router.get(
   "/students/filter/status",
-  [query("is_active").isBoolean().withMessage("is_active must be boolean")],
+  [query("is_active").isBoolean().withMessage("is_active doit etre un booleen")],
   validateRequest,
   filterStudentsByStatusHandler
 );
@@ -92,7 +104,7 @@ router.get(
 // GET /admin/students/filter/profile - Filtrer par profil
 router.get(
   "/students/filter/profile",
-  [query("has_profile").isBoolean().withMessage("has_profile must be boolean")],
+  [query("has_profile").isBoolean().withMessage("has_profile doit etre un booleen")],
   validateRequest,
   filterStudentsByProfileHandler
 );
@@ -101,7 +113,7 @@ router.get(
 // GET /admin/students/filter/institution/:institutionId - Filtrer par institution
 router.get(
   "/students/filter/institution/:institutionId",
-  [param("institutionId").isInt().withMessage("Invalid institution ID")],
+  [param("institutionId").isInt().withMessage("ID d'institution invalide")],
   validateRequest,
   filterStudentsByInstitutionHandler
 );
@@ -110,7 +122,7 @@ router.get(
 // GET /admin/students/filter/program/:programId - Filtrer par programme
 router.get(
   "/students/filter/program/:programId",
-  [param("programId").isInt().withMessage("Invalid program ID")],
+  [param("programId").isInt().withMessage("ID de programme invalide")],
   validateRequest,
   filterStudentsByProgramHandler
 );
@@ -119,7 +131,7 @@ router.get(
 // GET /admin/students/:userId - Détails d'un étudiant
 router.get(
   "/students/:userId",
-  [param("userId").isUUID().withMessage("Invalid user ID")],
+  [param("userId").isUUID().withMessage("ID utilisateur invalide")],
   validateRequest,
   getStudentDetailsHandler
 );
@@ -133,8 +145,8 @@ router.get("/students", getAllStudentsHandler);
 router.patch(
   "/users/:userId/toggle-status",
   [
-    param("userId").isUUID().withMessage("Invalid user ID"),
-    body("is_active").isBoolean().withMessage("is_active must be boolean"),
+    param("userId").isUUID().withMessage("ID utilisateur invalide"),
+    body("is_active").isBoolean().withMessage("is_active doit etre un booleen"),
   ],
   validateRequest,
   toggleUserStatusHandler
@@ -155,7 +167,7 @@ router.get(
     query("group_by")
       .optional()
       .isIn(["role", "status", "module"])
-      .withMessage("group_by must be one of: role, status, module"),
+      .withMessage("group_by doit etre l'un de: role, status, module"),
   ],
   validateRequest,
   getResourcesStatisticsHandler
@@ -177,31 +189,31 @@ router.get(
     query("role")
       .optional()
       .isIn(["student", "teacher", "admin"])
-      .withMessage("role must be one of: student, teacher, admin"),
+      .withMessage("role doit etre l'un de: student, teacher, admin"),
     query("status")
       .optional()
       .isIn(["draft", "pending", "published", "rejected", "archived"])
-      .withMessage("status must be one of: draft, pending, published, rejected, archived"),
+      .withMessage("status doit etre l'un de: draft, pending, published, rejected, archived"),
     query("creator_id")
       .optional()
       .isUUID()
-      .withMessage("creator_id must be a valid UUID"),
+      .withMessage("creator_id doit etre un UUID valide"),
     query("module_id")
       .optional()
       .isInt()
-      .withMessage("module_id must be an integer"),
+      .withMessage("module_id doit etre un entier"),
     query("program_id")
       .optional()
       .isInt()
-      .withMessage("program_id must be an integer"),
+      .withMessage("program_id doit etre un entier"),
     query("domain_id")
       .optional()
       .isInt()
-      .withMessage("domain_id must be an integer"),
+      .withMessage("domain_id doit etre un entier"),
     query("search")
       .optional()
       .isString()
-      .withMessage("search must be a string"),
+      .withMessage("search doit etre une chaine de caracteres"),
   ],
   validateRequest,
   getAllResourcesHandler
@@ -219,7 +231,7 @@ router.get(
 // ⚠️ Cette route est conservée pour compatibilité avec le code existant
 router.get(
   "/students/:userId/resources",
-  [param("userId").isUUID().withMessage("Invalid user ID")],
+  [param("userId").isUUID().withMessage("ID utilisateur invalide")],
   validateRequest,
   getStudentResourcesHandler
 );

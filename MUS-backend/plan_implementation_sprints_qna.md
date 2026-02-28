@@ -98,6 +98,8 @@ Tri par defaut:
 
 1. Executer migration `003_add_qa_core.sql`.
 2. Tester endpoints Q&A (CRUD base + accept + moderation + quota).
-3. Ajouter endpoints moderation questions/commentaires (option sprint suivant).
-4. Ajouter signal `Je ne comprends pas` (sprint suivant).
-5. Finaliser campagne tests E2E multi-role.
+3. Executer migration `004_enforce_qa_question_resource_required.sql`.
+4. Executer migration `005_cleanup_and_enforce_qa_question_integrity.sql`.
+5. Executer migration `006_add_resource_confusion_signals.sql`.
+6. Tester endpoints confusion signals + overview admin.
+7. Finaliser campagne tests E2E multi-role.

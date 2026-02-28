@@ -9,6 +9,8 @@ const STUDENT_QUESTION_LIMIT = 5;
 const STUDENT_ANSWER_LIMIT = 5;
 
 const canModerate = (roles = []) => isTeacher(roles) || isAdmin(roles);
+const canViewHidden = ({ actor = null, includeHidden = false }) =>
+  Boolean(includeHidden && canModerate(actor?.roles || []));
 
 const toBadges = (answer) => {
   const badges = [];
@@ -19,7 +21,7 @@ const toBadges = (answer) => {
 };
 
 const assertStudentQuota = async ({ userId, roles = [], type }) => {
-  if (!isStudent(roles)) return;
+  if (!isStudent(roles) || isTeacher(roles) || isAdmin(roles)) return;
 
   const table = type === "question" ? "public.qa_questions" : "public.qa_answers";
   const limit = type === "question" ? STUDENT_QUESTION_LIMIT : STUDENT_ANSWER_LIMIT;
@@ -75,7 +77,7 @@ const questionProjection = (actor = null) => {
       ELSE q.user_id
     END AS user_id,
     CASE
-      WHEN q.is_anonymous = TRUE AND :viewer_id IS DISTINCT FROM q.user_id AND :is_admin = FALSE THEN 'Anonymous'
+      WHEN q.is_anonymous = TRUE AND :viewer_id IS DISTINCT FROM q.user_id AND :is_admin = FALSE THEN 'Anonyme'
       ELSE u.full_name
     END AS user_name
   `;
@@ -105,7 +107,7 @@ const ensureResourceLinkedToModule = async ({ resourceId, moduleId }) => {
   );
 
   if (!rows.length) {
-    throw new AppError("Resource must be linked to the selected module", 400);
+    throw new AppError("La ressource doit etre liee au module selectionne", 400);
   }
 };
 
@@ -191,22 +193,57 @@ export const getQuestionById = async (questionId, actor = null, includeHidden = 
   return rows[0] || null;
 };
 
-const ensureQuestionExists = async (questionId) => {
+const ensureQuestionExists = async (questionId, { allowHidden = false } = {}) => {
   const [rows] = await sequelize.query(
-    `SELECT id, module_id, status::text AS status FROM public.qa_questions WHERE id = :question_id LIMIT 1`,
-    { replacements: { question_id: questionId } }
+    `
+    SELECT id, module_id, status::text AS status, moderation_status::text AS moderation_status
+    FROM public.qa_questions
+    WHERE id = :question_id
+      AND (:allow_hidden = TRUE OR moderation_status = 'active'::qa_moderation_status)
+    LIMIT 1
+    `,
+    {
+      replacements: {
+        question_id: questionId,
+        allow_hidden: allowHidden,
+      },
+    }
   );
   if (!rows.length) {
-    throw new AppError("Question not found", 404);
+    throw new AppError("Question introuvable", 404);
   }
   return rows[0];
 };
 
+const ensureAnswerExists = async (answerId, { allowHidden = false } = {}) => {
+  const [rows] = await sequelize.query(
+    `
+    SELECT id, question_id, moderation_status::text AS moderation_status
+    FROM public.qa_answers
+    WHERE id = :answer_id
+      AND (:allow_hidden = TRUE OR moderation_status = 'active'::qa_moderation_status)
+    LIMIT 1
+    `,
+    {
+      replacements: {
+        answer_id: answerId,
+        allow_hidden: allowHidden,
+      },
+    }
+  );
+
+  if (!rows.length) {
+    throw new AppError("Reponse introuvable", 404);
+  }
+
+  return rows[0];
+};
+
 export const createAnswer = async ({ questionId, userId, roles = [], body, explanation = null, example = null }) => {
-  const question = await ensureQuestionExists(questionId);
+  const question = await ensureQuestionExists(questionId, { allowHidden: false });
 
   if (question.status === "closed") {
-    throw new AppError("Question is closed", 409);
+    throw new AppError("La question est fermee", 409);
   }
 
   await assertStudentQuota({ userId, roles, type: "answer" });
@@ -214,10 +251,10 @@ export const createAnswer = async ({ questionId, userId, roles = [], body, expla
   const official = isTeacher(roles);
   if (official) {
     if (!explanation || explanation.trim().length < 50) {
-      throw new AppError("Official answer requires an explanation of at least 50 characters", 400);
+      throw new AppError("Une reponse officielle exige une explication d'au moins 50 caracteres", 400);
     }
     if (!example || example.trim().length < 10) {
-      throw new AppError("Official answer requires a concrete example", 400);
+      throw new AppError("Une reponse officielle exige un exemple concret", 400);
     }
   }
 
@@ -251,8 +288,9 @@ export const createAnswer = async ({ questionId, userId, roles = [], body, expla
   return rows[0];
 };
 
-export const listAnswersByQuestion = async (questionId) => {
-  await ensureQuestionExists(questionId);
+export const listAnswersByQuestion = async (questionId, actor = null, includeHidden = false) => {
+  const allowHidden = canViewHidden({ actor, includeHidden });
+  await ensureQuestionExists(questionId, { allowHidden });
 
   const [rows] = await sequelize.query(
     `
@@ -274,10 +312,10 @@ export const listAnswersByQuestion = async (questionId) => {
     FROM public.qa_answers a
     INNER JOIN public.users u ON u.id = a.user_id
     WHERE a.question_id = :question_id
-      AND a.moderation_status = 'active'::qa_moderation_status
+      AND (:allow_hidden = TRUE OR a.moderation_status = 'active'::qa_moderation_status)
     ORDER BY a.is_accepted DESC, a.is_official DESC, a.created_at ASC
     `,
-    { replacements: { question_id: questionId } }
+    { replacements: { question_id: questionId, allow_hidden: allowHidden } }
   );
 
   return rows.map((row) => ({
@@ -306,13 +344,13 @@ export const acceptAnswer = async ({ answerId, actor }) => {
   );
 
   if (!rows.length) {
-    throw new AppError("Answer not found", 404);
+    throw new AppError("Reponse introuvable", 404);
   }
 
   const answer = rows[0];
   const allowed = await canAcceptAnswer({ actor, questionId: answer.question_id });
   if (!allowed) {
-    throw new AppError("Access denied", 403);
+    throw new AppError("Acces refuse", 403);
   }
 
   await sequelize.query(
@@ -349,18 +387,58 @@ export const acceptAnswer = async ({ answerId, actor }) => {
   return updatedRows[0];
 };
 
-export const moderateAnswer = async ({ answerId, actor, status, reason }) => {
-  if (!canModerate(actor?.roles || [])) {
-    throw new AppError("Access denied", 403);
-  }
-
+const validateModerationPayload = ({ status, reason }) => {
   if (!["active", "hidden", "deleted"].includes(status)) {
-    throw new AppError("Invalid moderation status", 400);
+    throw new AppError("Statut de moderation invalide", 400);
   }
 
   if (status !== "active" && (!reason || reason.trim().length < 5)) {
-    throw new AppError("Moderation reason is required (at least 5 chars)", 400);
+    throw new AppError("Une raison de moderation est requise (au moins 5 caracteres)", 400);
   }
+};
+
+export const moderateQuestion = async ({ questionId, actor, status, reason }) => {
+  if (!canModerate(actor?.roles || [])) {
+    throw new AppError("Acces refuse", 403);
+  }
+
+  validateModerationPayload({ status, reason });
+
+  const [rows] = await sequelize.query(
+    `
+    UPDATE public.qa_questions
+    SET
+      moderation_status = :status::qa_moderation_status,
+      moderated_by = :moderated_by,
+      moderated_at = CASE WHEN :status = 'active' THEN NULL ELSE NOW() END,
+      moderation_reason = CASE WHEN :status = 'active' THEN NULL ELSE :reason END,
+      status = CASE WHEN :status = 'active' THEN status ELSE 'closed'::qa_question_status END
+    WHERE id = :question_id
+    RETURNING id, moderation_status::text AS moderation_status, moderated_by, moderated_at, moderation_reason, status::text AS status
+    `,
+    {
+      replacements: {
+        question_id: questionId,
+        status,
+        reason: reason?.trim() || null,
+        moderated_by: actor.id,
+      },
+    }
+  );
+
+  if (!rows.length) {
+    throw new AppError("Question introuvable", 404);
+  }
+
+  return rows[0];
+};
+
+export const moderateAnswer = async ({ answerId, actor, status, reason }) => {
+  if (!canModerate(actor?.roles || [])) {
+    throw new AppError("Acces refuse", 403);
+  }
+
+  validateModerationPayload({ status, reason });
 
   const [rows] = await sequelize.query(
     `
@@ -387,14 +465,52 @@ export const moderateAnswer = async ({ answerId, actor, status, reason }) => {
   );
 
   if (!rows.length) {
-    throw new AppError("Answer not found", 404);
+    throw new AppError("Reponse introuvable", 404);
+  }
+
+  return rows[0];
+};
+
+export const moderateComment = async ({ commentId, actor, status, reason }) => {
+  if (!canModerate(actor?.roles || [])) {
+    throw new AppError("Acces refuse", 403);
+  }
+
+  validateModerationPayload({ status, reason });
+
+  const [rows] = await sequelize.query(
+    `
+    UPDATE public.qa_comments
+    SET
+      moderation_status = :status::qa_moderation_status,
+      moderated_by = :moderated_by,
+      moderated_at = CASE WHEN :status = 'active' THEN NULL ELSE NOW() END,
+      moderation_reason = CASE WHEN :status = 'active' THEN NULL ELSE :reason END
+    WHERE id = :comment_id
+    RETURNING id, question_id, answer_id, moderation_status::text AS moderation_status, moderated_by, moderated_at, moderation_reason
+    `,
+    {
+      replacements: {
+        comment_id: commentId,
+        status,
+        reason: reason?.trim() || null,
+        moderated_by: actor.id,
+      },
+    }
+  );
+
+  if (!rows.length) {
+    throw new AppError("Commentaire introuvable", 404);
   }
 
   return rows[0];
 };
 
 export const createCommentOnQuestion = async ({ questionId, userId, body }) => {
-  await ensureQuestionExists(questionId);
+  const question = await ensureQuestionExists(questionId, { allowHidden: false });
+  if (question.status === "closed") {
+    throw new AppError("La question est fermee", 409);
+  }
 
   const [rows] = await sequelize.query(
     `
@@ -415,14 +531,7 @@ export const createCommentOnQuestion = async ({ questionId, userId, body }) => {
 };
 
 export const createCommentOnAnswer = async ({ answerId, userId, body }) => {
-  const [answers] = await sequelize.query(
-    `SELECT id FROM public.qa_answers WHERE id = :answer_id LIMIT 1`,
-    { replacements: { answer_id: answerId } }
-  );
-
-  if (!answers.length) {
-    throw new AppError("Answer not found", 404);
-  }
+  await ensureAnswerExists(answerId, { allowHidden: false });
 
   const [rows] = await sequelize.query(
     `
@@ -442,8 +551,9 @@ export const createCommentOnAnswer = async ({ answerId, userId, body }) => {
   return rows[0];
 };
 
-export const listCommentsByQuestion = async (questionId) => {
-  await ensureQuestionExists(questionId);
+export const listCommentsByQuestion = async (questionId, actor = null, includeHidden = false) => {
+  const allowHidden = canViewHidden({ actor, includeHidden });
+  await ensureQuestionExists(questionId, { allowHidden });
 
   const [rows] = await sequelize.query(
     `
@@ -459,24 +569,18 @@ export const listCommentsByQuestion = async (questionId) => {
     FROM public.qa_comments c
     INNER JOIN public.users u ON u.id = c.user_id
     WHERE c.question_id = :question_id
-      AND c.moderation_status = 'active'::qa_moderation_status
+      AND (:allow_hidden = TRUE OR c.moderation_status = 'active'::qa_moderation_status)
     ORDER BY c.created_at ASC
     `,
-    { replacements: { question_id: questionId } }
+    { replacements: { question_id: questionId, allow_hidden: allowHidden } }
   );
 
   return rows;
 };
 
-export const listCommentsByAnswer = async (answerId) => {
-  const [answers] = await sequelize.query(
-    `SELECT id FROM public.qa_answers WHERE id = :answer_id LIMIT 1`,
-    { replacements: { answer_id: answerId } }
-  );
-
-  if (!answers.length) {
-    throw new AppError("Answer not found", 404);
-  }
+export const listCommentsByAnswer = async (answerId, actor = null, includeHidden = false) => {
+  const allowHidden = canViewHidden({ actor, includeHidden });
+  await ensureAnswerExists(answerId, { allowHidden });
 
   const [rows] = await sequelize.query(
     `
@@ -492,10 +596,10 @@ export const listCommentsByAnswer = async (answerId) => {
     FROM public.qa_comments c
     INNER JOIN public.users u ON u.id = c.user_id
     WHERE c.answer_id = :answer_id
-      AND c.moderation_status = 'active'::qa_moderation_status
+      AND (:allow_hidden = TRUE OR c.moderation_status = 'active'::qa_moderation_status)
     ORDER BY c.created_at ASC
     `,
-    { replacements: { answer_id: answerId } }
+    { replacements: { answer_id: answerId, allow_hidden: allowHidden } }
   );
 
   return rows;

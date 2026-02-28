@@ -5,7 +5,7 @@ const getUserFromReq = (req) => req.user;
 export const requireAuth = (req, _res, next) => {
   const user = getUserFromReq(req);
   if (!user?.id) {
-    return next(new AppError("Authentication required", 401));
+    return next(new AppError("Authentification requise", 401));
   }
   return next();
 };
@@ -14,14 +14,14 @@ export const requireRole = (...allowedRoles) => {
   return (req, _res, next) => {
     const user = getUserFromReq(req);
     if (!user?.id) {
-      return next(new AppError("Authentication required", 401));
+      return next(new AppError("Authentification requise", 401));
     }
 
     const userRoles = user.roles || [];
     const hasRole = allowedRoles.some((role) => userRoles.includes(role));
 
     if (!hasRole) {
-      return next(new AppError(`Access denied. Required role: ${allowedRoles.join(" or ")}`, 403));
+      return next(new AppError(`Acces refuse. Role requis: ${allowedRoles.join(" ou ")}`, 403));
     }
 
     return next();
@@ -34,7 +34,7 @@ export const requireSelfOrAdmin = (paramName = "userId") => {
   return (req, _res, next) => {
     const user = getUserFromReq(req);
     if (!user?.id) {
-      return next(new AppError("Authentication required", 401));
+      return next(new AppError("Authentification requise", 401));
     }
 
     const targetUserId = req.params?.[paramName] || req.body?.[paramName];
@@ -43,7 +43,7 @@ export const requireSelfOrAdmin = (paramName = "userId") => {
       return next();
     }
 
-    return next(new AppError("Access denied", 403));
+    return next(new AppError("Acces refuse", 403));
   };
 };
 
@@ -52,7 +52,7 @@ export const requireOwnerOrAdmin = (getOwnerIdFn) => {
     try {
       const user = getUserFromReq(req);
       if (!user?.id) {
-        return next(new AppError("Authentication required", 401));
+        return next(new AppError("Authentification requise", 401));
       }
 
       if ((user.roles || []).includes("admin")) {
@@ -61,11 +61,11 @@ export const requireOwnerOrAdmin = (getOwnerIdFn) => {
 
       const ownerId = await getOwnerIdFn(req);
       if (!ownerId) {
-        return next(new AppError("Resource not found", 404));
+        return next(new AppError("Ressource introuvable", 404));
       }
 
       if (ownerId !== user.id) {
-        return next(new AppError("Access denied", 403));
+        return next(new AppError("Acces refuse", 403));
       }
 
       return next();
@@ -80,7 +80,7 @@ export const requirePublishedOrOwnerOrAdmin = (getResourceFn) => {
     try {
       const resource = await getResourceFn(req);
       if (!resource) {
-        return next(new AppError("Resource not found", 404));
+        return next(new AppError("Ressource introuvable", 404));
       }
 
       if (String(resource.status || "").toLowerCase() === "published") {
@@ -94,7 +94,7 @@ export const requirePublishedOrOwnerOrAdmin = (getResourceFn) => {
         return next();
       }
 
-      return next(new AppError("Resource not found", 404));
+      return next(new AppError("Ressource introuvable", 404));
     } catch (error) {
       return next(error);
     }

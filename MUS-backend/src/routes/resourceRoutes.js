@@ -43,6 +43,11 @@ import {
   listMyResourceRejectionsHandler,
   listAllResourceRejectionsHandler,
 } from "../controllers/resourceController.js";
+import {
+  createConfusionSignalHandler,
+  getResourceConfusionCountHandler,
+  getResourceConfusionRecentHandler,
+} from "../controllers/resourceConfusionController.js";
 
 import validateRequest from "./validateRequest.js";
 import authMiddleware, { optionalAuthMiddleware } from "../middleware/auth.js";
@@ -83,7 +88,7 @@ router.post(
   "/",
   authMiddleware,
   [
-    body("title").isString().withMessage("Title is required"),
+    body("title").isString().withMessage("Le titre est requis"),
     body("description").optional().isString(),
     body("status").optional().isString(),
     body("url").optional().isString(),
@@ -91,7 +96,7 @@ router.post(
     body("license").optional().isString(),
     body("educational_type").optional().isString(),
     body("format").optional().isString(),
-    body("resource_type_id").isInt().withMessage("Resource type ID is required"),
+    body("resource_type_id").isInt().withMessage("L'ID du type de ressource est requis"),
     body("metadata").optional().isObject(),
   ],
   validateRequest,
@@ -240,8 +245,8 @@ router.post(
 router.post(
   "/search-metadata",
   [
-    body("metadata_key").isString().withMessage("Metadata key is required"),
-    body("metadata_value").isString().withMessage("Metadata value is required"),
+    body("metadata_key").isString().withMessage("La cle de metadonnee est requise"),
+    body("metadata_value").isString().withMessage("La valeur de metadonnee est requise"),
   ],
   validateRequest,
   searchResourcesByMetadataHandler
@@ -249,77 +254,77 @@ router.post(
 
 router.get(
   "/search/:searchTerm",
-  [param("searchTerm").isString().withMessage("Search term is required")],
+  [param("searchTerm").isString().withMessage("Le terme de recherche est requis")],
   validateRequest,
   searchResourcesHandler
 );
 
 router.get(
   "/status/:status",
-  [param("status").isString().withMessage("Status is required")],
+  [param("status").isString().withMessage("Le statut est requis")],
   validateRequest,
   listResourcesByStatus
 );
 
 router.get(
   "/status/:status/count",
-  [param("status").isString().withMessage("Status is required")],
+  [param("status").isString().withMessage("Le statut est requis")],
   validateRequest,
   countResourcesByStatusHandler
 );
 
 router.get(
   "/educational-type/:educationalType",
-  [param("educationalType").isString().withMessage("Educational type is required")],
+  [param("educationalType").isString().withMessage("Le type educatif est requis")],
   validateRequest,
   listResourcesByEducationalType
 );
 
 router.get(
   "/educational-type/:educationalType/count",
-  [param("educationalType").isString().withMessage("Educational type is required")],
+  [param("educationalType").isString().withMessage("Le type educatif est requis")],
   validateRequest,
   countResourcesByEducationalTypeHandler
 );
 
 router.get(
   "/format/:format",
-  [param("format").isString().withMessage("Format is required")],
+  [param("format").isString().withMessage("Le format est requis")],
   validateRequest,
   listResourcesByFormat
 );
 
 router.get(
   "/format/:format/count",
-  [param("format").isString().withMessage("Format is required")],
+  [param("format").isString().withMessage("Le format est requis")],
   validateRequest,
   countResourcesByFormatHandler
 );
 
 router.get(
   "/resource-type/:resourceTypeId",
-  [param("resourceTypeId").isInt().withMessage("Resource type ID is required")],
+  [param("resourceTypeId").isInt().withMessage("L'ID du type de ressource est requis")],
   validateRequest,
   listResourcesByResourceType
 );
 
 router.get(
   "/creator/:creatorId",
-  [param("creatorId").isUUID().withMessage("Valid creator UUID is required")],
+  [param("creatorId").isUUID().withMessage("UUID createur invalide")],
   validateRequest,
   listResourcesByCreator
 );
 
 router.get(
   "/creator/:creatorId/count",
-  [param("creatorId").isUUID().withMessage("Valid creator UUID is required")],
+  [param("creatorId").isUUID().withMessage("UUID createur invalide")],
   validateRequest,
   countResourcesByCreatorHandler
 );
 
 router.get(
   "/language/:language",
-  [param("language").isString().withMessage("Language is required")],
+  [param("language").isString().withMessage("La langue est requise")],
   validateRequest,
   listResourcesByLanguage
 );
@@ -327,9 +332,21 @@ router.get(
 router.post(
   "/:id/download",
   authMiddleware,
-  [param("id").isInt().withMessage("Valid resource ID is required")],
+  [param("id").isInt().withMessage("ID de ressource invalide")],
   validateRequest,
   downloadResourceHandler
+);
+
+router.post(
+  "/:id/confusion-signals",
+  authMiddleware,
+  requireRole("student"),
+  [
+    param("id").isInt().withMessage("ID de ressource invalide"),
+    body("note").optional().isString().isLength({ min: 3, max: 1000 }).withMessage("La note doit contenir entre 3 et 1000 caracteres"),
+  ],
+  validateRequest,
+  createConfusionSignalHandler
 );
 
 router.get(
@@ -344,7 +361,7 @@ router.get(
   "/:id",
 
   requirePublishedOrOwnerOrAdmin(getResourceForVisibility),
-  [param("id").isInt().withMessage("Valid resource ID is required")],
+  [param("id").isInt().withMessage("ID de ressource invalide")],
   validateRequest,
   getResource
 );
@@ -354,7 +371,7 @@ router.patch(
   authMiddleware,
   requireOwnerOrAdmin(getResourceOwnerId),
   [
-    param("id").isInt().withMessage("Valid resource ID is required"),
+    param("id").isInt().withMessage("ID de ressource invalide"),
     body("title").optional().isString(),
     body("description").optional().isString(),
     body("status").optional().isString(),
@@ -374,7 +391,7 @@ router.delete(
   "/:id",
   authMiddleware,
   requireOwnerOrAdmin(getResourceOwnerId),
-  [param("id").isInt().withMessage("Valid resource ID is required")],
+  [param("id").isInt().withMessage("ID de ressource invalide")],
   validateRequest,
   deleteExistingResource
 );
@@ -384,8 +401,8 @@ router.patch(
   authMiddleware,
   requireOwnerOrAdmin(getResourceOwnerId),
   [
-    param("id").isInt().withMessage("Valid resource ID is required"),
-    body("metadata").isObject().withMessage("Metadata is required"),
+    param("id").isInt().withMessage("ID de ressource invalide"),
+    body("metadata").isObject().withMessage("Les metadonnees sont requises"),
   ],
   validateRequest,
   updateResourceMetadataHandler
@@ -396,8 +413,8 @@ router.patch(
   authMiddleware,
   requireAuth,
   [
-    param("id").isInt().withMessage("Valid resource ID is required"),
-    body("status").isString().withMessage("Status is required"),
+    param("id").isInt().withMessage("ID de ressource invalide"),
+    body("status").isString().withMessage("Le statut est requis"),
   ],
   validateRequest,
   updateResourceStatusHandler
@@ -407,7 +424,7 @@ router.post(
   "/:id/publish",
   authMiddleware,
   requireRole("admin"),
-  [param("id").isInt().withMessage("Valid resource ID is required")],
+  [param("id").isInt().withMessage("ID de ressource invalide")],
   validateRequest,
   publishResourceHandler
 );
@@ -416,7 +433,7 @@ router.post(
   "/:id/archive",
   authMiddleware,
   requireRole("admin"),
-  [param("id").isInt().withMessage("Valid resource ID is required")],
+  [param("id").isInt().withMessage("ID de ressource invalide")],
   validateRequest,
   archiveResourceHandler
 );
@@ -441,7 +458,7 @@ router.get(
   "/:id/statistics",
   authMiddleware,
   requireOwnerOrAdmin(getResourceOwnerId),
-  [param("id").isInt().withMessage("Valid resource ID is required")],
+  [param("id").isInt().withMessage("ID de ressource invalide")],
   validateRequest,
   getResourceStatisticsHandler
 );

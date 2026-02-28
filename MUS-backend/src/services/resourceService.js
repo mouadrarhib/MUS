@@ -252,17 +252,17 @@ export const updateResource = async (
 ) => {
   const resource = await getResourceById(id);
   if (!resource) {
-    throw new AppError("Resource not found", 404);
+    throw new AppError("Ressource introuvable", 404);
   }
 
   const admin = isAdmin(actor?.roles || []);
   const owner = actor?.id && resource.created_by === actor.id;
   if (!admin && !owner) {
-    throw new AppError("Access denied", 403);
+    throw new AppError("Acces refuse", 403);
   }
 
   if (!admin && !["draft", "rejected"].includes(normalizeStatus(resource.status))) {
-    throw new AppError("You can only edit draft or rejected resources", 403);
+    throw new AppError("Vous ne pouvez modifier que les ressources en brouillon ou rejetees", 403);
   }
 
   const [results] = await sequelize.query(SQL.RESOURCE.UPDATE, {
@@ -296,26 +296,26 @@ export const updateResourceMetadata = async (id, metadata) => {
 export const updateResourceStatus = async (id, status, actor = null) => {
   const resource = await getResourceById(id);
   if (!resource) {
-    throw new AppError("Resource not found", 404);
+    throw new AppError("Ressource introuvable", 404);
   }
 
   const currentStatus = normalizeStatus(resource.status);
   const requestedStatus = normalizeStatus(status);
   const allowed = allowedTransitions[currentStatus] || [];
   if (!allowed.includes(requestedStatus)) {
-    throw new AppError(`Invalid status transition: ${currentStatus} -> ${requestedStatus}`, 403);
+    throw new AppError(`Transition de statut invalide : ${currentStatus} -> ${requestedStatus}`, 403);
   }
 
   const admin = isAdmin(actor?.roles || []);
   const owner = actor?.id && resource.created_by === actor.id;
   if (!admin) {
     if (!owner) {
-      throw new AppError("Access denied", 403);
+      throw new AppError("Acces refuse", 403);
     }
 
     const ownerAllowed = new Set(["draft", "pending", "rejected"]);
     if (!ownerAllowed.has(requestedStatus)) {
-      throw new AppError("Only admin can set this status", 403);
+      throw new AppError("Seul un administrateur peut definir ce statut", 403);
     }
   }
 
@@ -331,17 +331,17 @@ export const archiveResource = async (id, actor = null) => updateResourceStatus(
 export const deleteResource = async (id, actor = null) => {
   const resource = await getResourceById(id);
   if (!resource) {
-    throw new AppError("Resource not found", 404);
+    throw new AppError("Ressource introuvable", 404);
   }
 
   const admin = isAdmin(actor?.roles || []);
   const owner = actor?.id && resource.created_by === actor.id;
   if (!admin && !owner) {
-    throw new AppError("Access denied", 403);
+    throw new AppError("Acces refuse", 403);
   }
 
   if (!admin && normalizeStatus(resource.status) !== "draft") {
-    throw new AppError("You can only delete draft resources", 403);
+    throw new AppError("Vous ne pouvez supprimer que les ressources en brouillon", 403);
   }
 
   const objectKey = extractObjectKeyFromResource(resource);
@@ -580,10 +580,10 @@ export const canModifyResource = async (resourceId, userId, admin = false) => {
 
   const resource = await getResourceById(resourceId);
   if (!resource) {
-    throw new AppError("Resource not found", 404);
+    throw new AppError("Ressource introuvable", 404);
   }
   if (resource.created_by !== userId) {
-    throw new AppError("You don't have permission to modify this resource", 403);
+    throw new AppError("Vous n'avez pas la permission de modifier cette ressource", 403);
   }
   return true;
 };

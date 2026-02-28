@@ -45,7 +45,7 @@ export const getStudentDetails = async (userId) => {
   });
   
   if (results.length === 0) {
-    throw new AppError("Student not found", 404);
+    throw new AppError("Etudiant introuvable", 404);
   }
   
   return results[0];
@@ -126,7 +126,7 @@ export const toggleUserStatus = async (userId, isActive) => {
   
   return {
     success: true,
-    message: `User ${isActive ? "activated" : "deactivated"} successfully`,
+    message: `Utilisateur ${isActive ? "active" : "desactive"} avec succes`,
     user_id: userId,
     is_active: isActive,
   };

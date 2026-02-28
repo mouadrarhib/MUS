@@ -274,14 +274,55 @@ const run = async () => {
       expectedStatus: 201,
     })
   );
+  const questionCommentId = pickId(tests[tests.length - 1].payload);
   record(
     await student.request("comment on answer", "POST", `/api/qa/answers/${officialAnswerId}/comments`, {
       body: { body: "Merci prof" },
       expectedStatus: 201,
     })
   );
+  const answerCommentId = pickId(tests[tests.length - 1].payload);
   record(await pub.request("public list question comments", "GET", `/api/qa/questions/${questionId}/comments`, { expectedStatus: 200 }));
   record(await pub.request("public list answer comments", "GET", `/api/qa/answers/${officialAnswerId}/comments`, { expectedStatus: 200 }));
+
+  if (answerCommentId) {
+    record(
+      await teacher.request("moderate comment hidden", "PATCH", `/api/qa/comments/${answerCommentId}/moderate`, {
+        body: { moderation_status: "hidden", reason: "Hors sujet" },
+        expectedStatus: 200,
+      })
+    );
+
+    const commentsAfterHide = await pub.request(
+      "public list answer comments after hide",
+      "GET",
+      `/api/qa/answers/${officialAnswerId}/comments`,
+      { expectedStatus: 200 }
+    );
+    record(commentsAfterHide);
+    const hiddenCommentVisible = (commentsAfterHide.payload?.data || []).some((c) => c.id === answerCommentId);
+    if (hiddenCommentVisible) fail("Hidden comment is still visible in public list");
+  }
+
+  record(
+    await teacher.request("moderate question hidden", "PATCH", `/api/qa/questions/${questionId}/moderate`, {
+      body: { moderation_status: "hidden", reason: "Question en revision" },
+      expectedStatus: 200,
+    })
+  );
+
+  record(await pub.request("public get hidden question", "GET", `/api/qa/questions/${questionId}`, { expectedStatus: 404 }));
+  record(
+    await pub.request("public list answers hidden question", "GET", `/api/qa/questions/${questionId}/answers`, {
+      expectedStatus: 404,
+    })
+  );
+
+  record(
+    await teacher.request("teacher include_hidden get question", "GET", `/api/qa/questions/${questionId}?include_hidden=true`, {
+      expectedStatus: 200,
+    })
+  );
 
   record(await quotaStudent.request("register", "POST", "/api/auth/register", { body: quotaStudentCreds, expectedStatus: 201 }));
   record(

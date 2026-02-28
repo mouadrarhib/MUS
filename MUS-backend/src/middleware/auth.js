@@ -8,14 +8,14 @@ const authMiddleware = (req, res, next) => {
   const token = req.cookies?.auth_token || bearerToken;
 
   if (!token) {
-    return next(new AppError("Authorization token missing", 401));
+    return next(new AppError("Jeton d'authentification manquant", 401));
   }
 
   try {
     const decoded = verifyToken(token);
 
     if (!decoded.sub) {
-      return next(new AppError("Invalid token payload", 401));
+      return next(new AppError("Charge utile du jeton invalide", 401));
     }
 
     const normalizedUser = {
@@ -31,14 +31,14 @@ const authMiddleware = (req, res, next) => {
     });
   } catch (error) {
     if (error.name === "TokenExpiredError") {
-      return next(new AppError("Token has expired", 401));
+      return next(new AppError("Le jeton a expire", 401));
     }
     
     if (error.name === "JsonWebTokenError") {
-      return next(new AppError("Invalid token", 401));
+      return next(new AppError("Jeton invalide", 401));
     }
-    
-    return next(new AppError("Authentication failed", 401));
+
+    return next(new AppError("Echec de l'authentification", 401));
   }
 };
 

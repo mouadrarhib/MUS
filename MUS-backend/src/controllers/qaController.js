@@ -12,6 +12,8 @@ import {
   listCommentsByQuestion,
   listAnswersByQuestion,
   listQuestions,
+  moderateComment,
+  moderateQuestion,
   moderateAnswer,
 } from "../services/qaService.js";
 
@@ -106,7 +108,7 @@ export const createQuestionHandler = asyncHandler(async (req, res) => {
     isAnonymous: is_anonymous,
   });
 
-  return successResponse(res, "Question created successfully", question, 201);
+  return successResponse(res, "Question creee avec succes", question, 201);
 });
 
 /**
@@ -144,7 +146,7 @@ export const listQuestionsHandler = asyncHandler(async (req, res) => {
   const status = req.query.status || null;
   const includeHidden = String(req.query.include_hidden || "false").toLowerCase() === "true";
   const questions = await listQuestions(req.user || null, { moduleId, resourceId, status, includeHidden });
-  return successResponse(res, "Questions retrieved successfully", questions);
+  return successResponse(res, "Questions recuperees avec succes", questions);
 });
 
 /**
@@ -176,10 +178,10 @@ export const getQuestionHandler = asyncHandler(async (req, res) => {
   const question = await getQuestionById(questionId, req.user || null, includeHidden);
 
   if (!question) {
-    return res.status(404).json({ success: false, message: "Question not found" });
+    return res.status(404).json({ success: false, message: "Question introuvable" });
   }
 
-  return successResponse(res, "Question retrieved successfully", question);
+  return successResponse(res, "Question recuperee avec succes", question);
 });
 
 /**
@@ -221,7 +223,7 @@ export const createAnswerHandler = asyncHandler(async (req, res) => {
     example,
   });
 
-  return successResponse(res, "Answer created successfully", answer, 201);
+  return successResponse(res, "Reponse creee avec succes", answer, 201);
 });
 
 /**
@@ -236,6 +238,11 @@ export const createAnswerHandler = asyncHandler(async (req, res) => {
  *         required: true
  *         schema:
  *           type: integer
+ *       - in: query
+ *         name: include_hidden
+ *         schema:
+ *           type: boolean
+ *         description: Teacher/Admin only
  *     responses:
  *       200:
  *         description: Answers retrieved successfully
@@ -243,8 +250,59 @@ export const createAnswerHandler = asyncHandler(async (req, res) => {
 
 export const listAnswersHandler = asyncHandler(async (req, res) => {
   const questionId = parseInt(req.params.questionId, 10);
-  const answers = await listAnswersByQuestion(questionId);
-  return successResponse(res, "Answers retrieved successfully", answers);
+  const includeHidden = String(req.query.include_hidden || "false").toLowerCase() === "true";
+  const answers = await listAnswersByQuestion(questionId, req.user || null, includeHidden);
+  return successResponse(res, "Reponses recuperees avec succes", answers);
+});
+
+/**
+ * @swagger
+ * /qa/questions/{questionId}/moderate:
+ *   patch:
+ *     summary: Moderate a question (teacher/admin)
+ *     tags: [QA]
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: questionId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/QAModerateAnswerRequest'
+ *     responses:
+ *       200:
+ *         description: Question moderation updated successfully
+ */
+
+export const moderateQuestionHandler = asyncHandler(async (req, res) => {
+  const questionId = parseInt(req.params.questionId, 10);
+  const { moderation_status, reason = null } = req.body;
+
+  const question = await moderateQuestion({
+    questionId,
+    actor: req.user,
+    status: moderation_status,
+    reason,
+  });
+
+  await logAudit({
+    userId: req.user.id,
+    action: "QA_MODERATE_QUESTION",
+    resourceType: "qa_question",
+    resourceId: questionId,
+    newValue: { moderation_status, reason },
+    ip: req.ip,
+    userAgent: req.get("user-agent") || null,
+  });
+
+  return successResponse(res, "Moderation de la question mise a jour avec succes", question);
 });
 
 /**
@@ -285,7 +343,7 @@ export const acceptAnswerHandler = asyncHandler(async (req, res) => {
     userAgent: req.get("user-agent") || null,
   });
 
-  return successResponse(res, "Answer accepted successfully", answer);
+  return successResponse(res, "Reponse acceptee avec succes", answer);
 });
 
 /**
@@ -335,7 +393,7 @@ export const moderateAnswerHandler = asyncHandler(async (req, res) => {
     userAgent: req.get("user-agent") || null,
   });
 
-  return successResponse(res, "Answer moderation updated successfully", answer);
+  return successResponse(res, "Moderation de la reponse mise a jour avec succes", answer);
 });
 
 /**
@@ -374,7 +432,7 @@ export const createQuestionCommentHandler = asyncHandler(async (req, res) => {
     body,
   });
 
-  return successResponse(res, "Comment added successfully", comment, 201);
+  return successResponse(res, "Commentaire ajoute avec succes", comment, 201);
 });
 
 /**
@@ -413,7 +471,7 @@ export const createAnswerCommentHandler = asyncHandler(async (req, res) => {
     body,
   });
 
-  return successResponse(res, "Comment added successfully", comment, 201);
+  return successResponse(res, "Commentaire ajoute avec succes", comment, 201);
 });
 
 /**
@@ -428,6 +486,11 @@ export const createAnswerCommentHandler = asyncHandler(async (req, res) => {
  *         required: true
  *         schema:
  *           type: integer
+ *       - in: query
+ *         name: include_hidden
+ *         schema:
+ *           type: boolean
+ *         description: Teacher/Admin only
  *     responses:
  *       200:
  *         description: Comments retrieved successfully
@@ -435,8 +498,9 @@ export const createAnswerCommentHandler = asyncHandler(async (req, res) => {
 
 export const listQuestionCommentsHandler = asyncHandler(async (req, res) => {
   const questionId = parseInt(req.params.questionId, 10);
-  const comments = await listCommentsByQuestion(questionId);
-  return successResponse(res, "Comments retrieved successfully", comments);
+  const includeHidden = String(req.query.include_hidden || "false").toLowerCase() === "true";
+  const comments = await listCommentsByQuestion(questionId, req.user || null, includeHidden);
+  return successResponse(res, "Commentaires recuperes avec succes", comments);
 });
 
 /**
@@ -451,6 +515,11 @@ export const listQuestionCommentsHandler = asyncHandler(async (req, res) => {
  *         required: true
  *         schema:
  *           type: integer
+ *       - in: query
+ *         name: include_hidden
+ *         schema:
+ *           type: boolean
+ *         description: Teacher/Admin only
  *     responses:
  *       200:
  *         description: Comments retrieved successfully
@@ -458,6 +527,57 @@ export const listQuestionCommentsHandler = asyncHandler(async (req, res) => {
 
 export const listAnswerCommentsHandler = asyncHandler(async (req, res) => {
   const answerId = parseInt(req.params.answerId, 10);
-  const comments = await listCommentsByAnswer(answerId);
-  return successResponse(res, "Comments retrieved successfully", comments);
+  const includeHidden = String(req.query.include_hidden || "false").toLowerCase() === "true";
+  const comments = await listCommentsByAnswer(answerId, req.user || null, includeHidden);
+  return successResponse(res, "Commentaires recuperes avec succes", comments);
+});
+
+/**
+ * @swagger
+ * /qa/comments/{commentId}/moderate:
+ *   patch:
+ *     summary: Moderate a comment (teacher/admin)
+ *     tags: [QA]
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/QAModerateAnswerRequest'
+ *     responses:
+ *       200:
+ *         description: Comment moderation updated successfully
+ */
+
+export const moderateCommentHandler = asyncHandler(async (req, res) => {
+  const commentId = parseInt(req.params.commentId, 10);
+  const { moderation_status, reason = null } = req.body;
+
+  const comment = await moderateComment({
+    commentId,
+    actor: req.user,
+    status: moderation_status,
+    reason,
+  });
+
+  await logAudit({
+    userId: req.user.id,
+    action: "QA_MODERATE_COMMENT",
+    resourceType: "qa_comment",
+    resourceId: commentId,
+    newValue: { moderation_status, reason },
+    ip: req.ip,
+    userAgent: req.get("user-agent") || null,
+  });
+
+  return successResponse(res, "Moderation du commentaire mise a jour avec succes", comment);
 });
