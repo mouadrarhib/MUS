@@ -65,7 +65,12 @@ const ResourceDetailsDialog = ({ open, resource, onClose }) => {
         // Keep UX smooth if analytics/download counter fails.
       }
     } catch (error) {
-      setDownloadError(error?.response?.data?.message || error?.message || 'Download failed');
+      const apiMessage = error?.response?.data?.message || error?.message || 'Download failed';
+      if (error?.response?.status === 403 && /premium/i.test(apiMessage)) {
+        setDownloadError('This is a premium resource. Upgrade membership to download.');
+      } else {
+        setDownloadError(apiMessage);
+      }
     } finally {
       setDownloading(false);
     }
@@ -262,6 +267,13 @@ const ResourceDetailsDialog = ({ open, resource, onClose }) => {
             <Chip
               label={resource.format?.toUpperCase()}
               size="small"
+              variant="outlined"
+              sx={{ fontSize: '0.65rem', height: 22 }}
+            />
+            <Chip
+              label={(resource.access_tier || resource.accessTier || 'free').toUpperCase()}
+              size="small"
+              color={(resource.access_tier || resource.accessTier) === 'premium' ? 'warning' : 'default'}
               variant="outlined"
               sx={{ fontSize: '0.65rem', height: 22 }}
             />

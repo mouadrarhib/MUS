@@ -105,6 +105,7 @@ const Resources = () => {
         description: resourceData.description,
         educational_type: resourceData.educationalType || resourceData.educational_type || 'notes',
         format: resourceData.format || 'pdf',
+        access_tier: resourceData.accessTier || resourceData.access_tier || 'free',
         resource_type_id: resourceData.resource_type_id || 1,
         metadata: {
           ...(resourceData.metadata || {}),

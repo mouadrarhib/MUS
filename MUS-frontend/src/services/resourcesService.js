@@ -53,12 +53,15 @@ const normalizeResource = (item) => {
   const status = item.status || item.resource_status;
   const educationalType = item.educational_type || item.resource_educational_type || item.educationalType;
   const createdAt = item.created_at || item.resource_created_at || item.createdAt;
+  const accessTier = String(item.access_tier || item.accessTier || "free").toLowerCase() === "premium" ? "premium" : "free";
 
   return {
     ...item,
     id,
     status,
     educationalType,
+    access_tier: accessTier,
+    accessTier,
     format: item.format || item.resource_format,
     title: item.title || item.resource_title,
     description: item.description || item.resource_description,

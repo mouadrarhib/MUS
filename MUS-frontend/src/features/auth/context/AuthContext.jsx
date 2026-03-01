@@ -191,6 +191,8 @@ export const AuthProvider = ({ children }) => {
     isTeacher: roles.includes('TEACHER'),
     isAdmin: roles.includes('ADMIN'),
     isModerator: roles.includes('MODERATOR'),
+    membership: user?.membership || null,
+    isPremium: Boolean(user?.membership?.is_premium),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

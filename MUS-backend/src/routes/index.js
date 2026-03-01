@@ -20,6 +20,7 @@ import adminRoutes from "./adminRoutes.js";
 import resourceModuleMapRoutes from "./resourceModuleMapRoutes.js";
 import qaRoutes from "./qaRoutes.js";
 import tagRoutes from "./tagRoutes.js";
+import membershipRoutes from "./membershipRoutes.js";
 import confusionCaseRoutes from "./confusionCaseRoutes.js";
 import notificationRoutes from "./notificationRoutes.js";
 
@@ -39,6 +40,7 @@ router.use("/modules", moduleRoutes);
 router.use("/ratings", ratingRoutes);
 router.use("/resources", resourceRoutes);
 router.use("/qa", qaRoutes);
+router.use("/memberships", membershipRoutes);
 router.use("", resourceModuleMapRoutes);
 router.use("", tagRoutes);
 

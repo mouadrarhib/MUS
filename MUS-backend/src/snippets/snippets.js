@@ -221,6 +221,18 @@ export const SQL = {
     UPDATE_PROFILE: `SELECT * FROM public.sp_user_update_profile(:id, :full_name)`,
   },
 
+  MEMBERSHIP: {
+    GET_ACTIVE_PLANS: `SELECT * FROM public.sp_membership_plan_get_all_active()`,
+
+    GET_CURRENT_BY_USER: `SELECT * FROM public.sp_user_membership_get_current(:user_id)`,
+
+    HAS_PREMIUM_ACCESS: `SELECT public.sp_user_has_premium_access(:user_id) AS has_premium_access`,
+
+    ASSIGN: `SELECT * FROM public.sp_user_membership_assign(:user_id, :plan_code, :starts_at, :ends_at, :source, :notes)`,
+
+    CANCEL: `SELECT public.sp_user_membership_cancel(:user_id, :notes) AS cancelled`,
+  },
+
   ROLE: {
     CREATE: `SELECT * FROM public.sp_role_create(:name, :description)`,
 

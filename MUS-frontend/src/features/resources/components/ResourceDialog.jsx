@@ -27,6 +27,7 @@ import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useForm, Controller } from 'react-hook-form';
 import { AsyncButton } from '@/shared/components/ui';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import {
   Description as DescriptionIcon,
   School as SchoolIcon,
@@ -45,6 +46,7 @@ const getDefaultValues = (resource) => ({
   description: resource?.description || '',
   educationalType: resource?.educationalType || 'notes',
   format: resource?.format || 'pdf',
+  accessTier: resource?.access_tier || resource?.accessTier || 'free',
   status: resource?.status || 'pending',
   url: resource?.url || '',
   pricePoints: Number(resource?.pricePoints || 0),
@@ -63,6 +65,7 @@ const getDefaultValues = (resource) => ({
 });
 
 const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, availableTags = [], tagsLoading = false }) => {
+  const { isAdmin } = useAuth();
   const [activeStep, setActiveStep] = useState(0);
   const [uploadMethod, setUploadMethod] = useState('url');
   const [selectedFile, setSelectedFile] = useState(null);
@@ -83,6 +86,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
 
   const educationalType = watch('educationalType');
   const format = watch('format');
+  const accessTier = watch('accessTier');
 
   useEffect(() => {
     reset(getDefaultValues(resource));
@@ -566,6 +570,27 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                     )}
                   </Grid>
                   <Grid item xs={12} sm={6}>
+                    <Controller
+                      name="accessTier"
+                      control={control}
+                      render={({ field }) => (
+                        <FormControl fullWidth size="small">
+                          <InputLabel shrink>Access Tier *</InputLabel>
+                          <Select
+                            {...field}
+                            label="Access Tier *"
+                            displayEmpty
+                            notched
+                            sx={selectSurfaceSx}
+                          >
+                            <MenuItem value="free">Free</MenuItem>
+                            {isAdmin ? <MenuItem value="premium">Premium</MenuItem> : null}
+                          </Select>
+                        </FormControl>
+                      )}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
                       size="small"
@@ -681,6 +706,12 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                 size="small"
                 variant="outlined"
                 sx={{ textTransform: 'uppercase', fontWeight: 600, fontSize: '0.7rem', height: 24 }}
+              />
+              <Chip
+                label={accessTier}
+                size="small"
+                color={accessTier === 'premium' ? 'warning' : 'default'}
+                sx={{ textTransform: 'capitalize', fontWeight: 600, fontSize: '0.7rem', height: 24 }}
               />
             </Box>
             {resource && (

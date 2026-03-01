@@ -15,6 +15,7 @@ import {
   deleteObject,
 } from "./storage/r2Service.js";
 import { createResourceRejection } from "./resourceRejectionService.js";
+import { userHasPremiumAccess } from "./membershipService.js";
 
 const allowedTransitions = {
   draft: ["pending"],
@@ -30,6 +31,7 @@ const normalizeStatus = (status) => String(status || "").toLowerCase();
 const isPublished = (resource) => normalizeStatus(resource?.status) === "published";
 const filterPublishedOnly = (resources = []) => resources.filter((resource) => isPublished(resource));
 const parseCountRow = (row = null) => Number(row ? Object.values(row)[0] : 0) || 0;
+const normalizeAccessTier = (value) => (String(value || "free").toLowerCase() === "premium" ? "premium" : "free");
 
 const parseMetadata = (metadata) => {
   if (!metadata) return {};
@@ -83,6 +85,54 @@ const mergeStorageMetadata = ({ existingMetadata, objectKey, mimeType, sizeBytes
     uploaded_at: new Date().toISOString(),
   },
 });
+
+const getResourceAccessTier = async (resourceId) => {
+  try {
+    const [rows] = await sequelize.query(
+      `SELECT COALESCE(access_tier, 'free')::text AS access_tier FROM public.resources WHERE id = :id LIMIT 1`,
+      {
+        replacements: { id: Number(resourceId) },
+      }
+    );
+    return normalizeAccessTier(rows?.[0]?.access_tier);
+  } catch {
+    return "free";
+  }
+};
+
+const setResourceAccessTier = async (resourceId, accessTier) => {
+  try {
+    await sequelize.query(
+      `UPDATE public.resources SET access_tier = :access_tier WHERE id = :id`,
+      {
+        replacements: {
+          id: Number(resourceId),
+          access_tier: normalizeAccessTier(accessTier),
+        },
+      }
+    );
+  } catch {
+    // Column may not exist before migration is applied.
+  }
+};
+
+const assertCanDownloadResource = async (resource, actor = null) => {
+  const accessTier = await getResourceAccessTier(resource.id);
+  if (accessTier !== "premium") {
+    return;
+  }
+
+  const admin = isAdmin(actor?.roles || []);
+  const owner = actor?.id && resource.created_by === actor.id;
+  if (admin || owner) {
+    return;
+  }
+
+  const canDownloadPremium = actor?.id ? await userHasPremiumAccess(actor.id) : false;
+  if (!canDownloadPremium) {
+    throw new AppError("Premium membership required to download this resource", 403);
+  }
+};
 
 const persistStorageColumns = async ({
   resourceId,
@@ -143,10 +193,17 @@ export const createResource = async (
   format,
   resourceTypeId,
   metadata,
+  accessTier,
   actor = null
 ) => {
   const userId = createdBy || getCurrentUserId() || null;
   const statusToCreate = resolveCreationStatus(status, actor?.roles || []);
+  const admin = isAdmin(actor?.roles || []);
+  const requestedAccessTier = normalizeAccessTier(accessTier);
+
+  if (!admin && requestedAccessTier === "premium") {
+    throw new AppError("Only admin can create premium resources", 403);
+  }
 
   const [results] = await sequelize.query(SQL.RESOURCE.CREATE, {
     replacements: {
@@ -163,6 +220,16 @@ export const createResource = async (
       metadata: metadata ? JSON.stringify(metadata) : null,
     },
   });
+
+  const created = Array.isArray(results) ? results[0] : results;
+  if (created?.id) {
+    await setResourceAccessTier(created.id, admin ? requestedAccessTier : "free");
+    return {
+      ...created,
+      access_tier: admin ? requestedAccessTier : "free",
+    };
+  }
+
   return results;
 };
 
@@ -175,7 +242,15 @@ export const getResourceById = async (id) => {
   const [results] = await sequelize.query(SQL.RESOURCE.GET_BY_ID, {
     replacements: { id },
   });
-  return results.length > 0 ? results[0] : null;
+
+  if (!results.length) return null;
+
+  const item = results[0];
+  const accessTier = item.access_tier || (await getResourceAccessTier(id));
+  return {
+    ...item,
+    access_tier: normalizeAccessTier(accessTier),
+  };
 };
 
 export const getResourcesByStatus = async (status, actor = null) => {
@@ -248,6 +323,7 @@ export const updateResource = async (
   format,
   resourceTypeId,
   metadata,
+  accessTier,
   actor = null
 ) => {
   const resource = await getResourceById(id);
@@ -265,6 +341,14 @@ export const updateResource = async (
     throw new AppError("Vous ne pouvez modifier que les ressources en brouillon ou rejetees", 403);
   }
 
+  if (!admin && typeof accessTier !== "undefined") {
+    const requestedTier = normalizeAccessTier(accessTier);
+    const currentTier = await getResourceAccessTier(id);
+    if (requestedTier !== currentTier) {
+      throw new AppError("Only admin can change resource access tier", 403);
+    }
+  }
+
   const [results] = await sequelize.query(SQL.RESOURCE.UPDATE, {
     replacements: {
       id,
@@ -280,6 +364,19 @@ export const updateResource = async (
       metadata: metadata ? JSON.stringify(metadata) : null,
     },
   });
+
+  if (admin && typeof accessTier !== "undefined") {
+    await setResourceAccessTier(id, accessTier);
+  }
+
+  const updated = Array.isArray(results) ? results[0] : results;
+  if (updated) {
+    return {
+      ...updated,
+      access_tier: await getResourceAccessTier(id),
+    };
+  }
+
   return results;
 };
 
@@ -600,7 +697,9 @@ export const createResourceWithModules = async (resourceData, moduleIds = []) =>
     resourceData.educational_type,
     resourceData.format,
     resourceData.resource_type_id,
-    resourceData.metadata
+    resourceData.metadata,
+    resourceData.access_tier,
+    resourceData.actor || null
   );
 
   if (moduleIds?.length) {
@@ -635,7 +734,14 @@ const assertCanModifyResourceSource = (resource, actor = null) => {
   }
 };
 
-export const recordResourceDownload = async (userId, resourceId) => {
+export const recordResourceDownload = async (userId, resourceId, actor = null) => {
+  const resource = await getResourceById(resourceId);
+  if (!resource) {
+    throw new AppError("Resource not found", 404);
+  }
+
+  await assertCanDownloadResource(resource, actor || { id: userId, roles: [] });
+
   const [results] = await sequelize.query(
     `SELECT * FROM public.sp_resource_record_download(:user_id, :resource_id)`,
     {
@@ -702,6 +808,7 @@ export const createResourceFromUploadedObject = async ({
   format,
   resourceTypeId,
   metadata,
+  accessTier,
   actor,
 }) => {
   if (!isR2Configured()) {
@@ -744,6 +851,7 @@ export const createResourceFromUploadedObject = async ({
     format,
     resourceTypeId,
     mergedMetadata,
+    accessTier,
     actor
   );
 
@@ -954,11 +1062,13 @@ export const uploadFileDirectlyToResource = async ({ resourceId, fileBuffer, ori
   return attachUploadedObjectToResource({ resourceId, objectKey, actor });
 };
 
-export const getResourceFileUrl = async (resourceId, options = {}) => {
+export const getResourceFileUrl = async (resourceId, options = {}, actor = null) => {
   const resource = await getResourceById(resourceId);
   if (!resource) {
     throw new AppError("Resource not found", 404);
   }
+
+  await assertCanDownloadResource(resource, actor);
 
   const objectKey = extractObjectKeyFromResource(resource);
   if (objectKey && !isR2Configured()) {

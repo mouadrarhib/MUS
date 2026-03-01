@@ -4,6 +4,7 @@ import { hashPassword, comparePassword } from "../utils/password.js";
 import { generateToken } from "../utils/jwt.js";
 import { SQL } from "../snippets/index.js";
 import crypto from "crypto";
+import { getCurrentMembershipForUser } from "./membershipService.js";
 
 const DEFAULT_ROLE = "student";
 
@@ -15,6 +16,27 @@ const sanitizeUser = (userInstance) => {
       : { ...userInstance };
   const { password_hash, ...rest } = data;
   return rest;
+};
+
+const withMembership = async (userLike) => {
+  if (!userLike?.id) return userLike;
+
+  try {
+    const membership = await getCurrentMembershipForUser(userLike.id);
+    return { ...userLike, membership };
+  } catch {
+    return {
+      ...userLike,
+      membership: {
+        plan_code: "free",
+        plan_name: "Free",
+        status: "active",
+        is_premium: false,
+        starts_at: null,
+        ends_at: null,
+      },
+    };
+  }
 };
 
 const getRolesForUser = async (userId, transaction) => {
@@ -236,7 +258,7 @@ export const registerUser = async ({
   const roles = await getRolesForUser(createdUser.id);
   const token = generateToken({ sub: createdUser.id, roles });
 
-  const normalizedUser = sanitizeUser(createdUser);
+  const normalizedUser = await withMembership(sanitizeUser(createdUser));
   return {
     user: {
       ...normalizedUser,
@@ -288,7 +310,7 @@ export const loginUser = async ({ email, password }) => {
   const roles = await getRolesForUser(user.id);
   const token = generateToken({ sub: user.id, roles, authVia: usedRoutine ? "routine" : "fallback" });
 
-  const normalizedUser = sanitizeUser(user);
+  const normalizedUser = await withMembership(sanitizeUser(user));
   return {
     user: {
       ...normalizedUser,
@@ -305,7 +327,7 @@ export const getProfile = async (userId) => {
     throw new AppError("User not found", 404);
   }
   const roles = await getRolesForUser(user.id);
-  return { user: { ...sanitizeUser(user), roles } };
+  return { user: { ...(await withMembership(sanitizeUser(user))), roles } };
 };
 
 export const getUserWithRolesById = async (userId) => {
@@ -314,7 +336,7 @@ export const getUserWithRolesById = async (userId) => {
     throw new AppError("User not found", 404);
   }
   const roles = await getRolesForUser(user.id);
-  return { user: { ...sanitizeUser(user), roles } };
+  return { user: { ...(await withMembership(sanitizeUser(user))), roles } };
 };
 
 export const changeEmail = async (userId, newEmail) => {
@@ -349,7 +371,7 @@ export const changeEmail = async (userId, newEmail) => {
   }
 
   const roles = await getRolesForUser(updatedUser.id);
-  return { user: { ...sanitizeUser(updatedUser), roles } };
+  return { user: { ...(await withMembership(sanitizeUser(updatedUser))), roles } };
 };
 
 export const changePassword = async (userId, oldPassword, newPassword) => {
@@ -527,7 +549,7 @@ export const updateProfile = async (userId, full_name) => {
   }
 
   const roles = await getRolesForUser(updatedUser.id);
-  return { user: { ...sanitizeUser(updatedUser), roles } };
+  return { user: { ...(await withMembership(sanitizeUser(updatedUser))), roles } };
 };
 
 export const setActive = async (userId, isActive) => {

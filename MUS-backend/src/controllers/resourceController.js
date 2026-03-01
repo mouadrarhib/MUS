@@ -155,6 +155,7 @@ export const addResource = asyncHandler(async (req, res) => {
     title, 
     description, 
     status, 
+    access_tier,
     url, 
     language, 
     license, 
@@ -179,6 +180,7 @@ export const addResource = asyncHandler(async (req, res) => {
     format,
     resource_type_id,
     metadata,
+    access_tier,
     req.user
   );
   return successResponse(res, "Ressource creee avec succes", result, 201);
@@ -318,6 +320,7 @@ export const updateExistingResource = asyncHandler(async (req, res) => {
     title, 
     description, 
     status, 
+    access_tier,
     url, 
     language, 
     license, 
@@ -339,6 +342,7 @@ export const updateExistingResource = asyncHandler(async (req, res) => {
     format,
     resource_type_id,
     metadata,
+    access_tier,
     req.user
   );
   return successResponse(res, "Ressource mise a jour avec succes", result);
@@ -1306,6 +1310,7 @@ export const confirmResourceUploadHandler = asyncHandler(async (req, res) => {
     format,
     resource_type_id,
     metadata,
+    access_tier,
   } = req.body;
 
   const result = await createResourceFromUploadedObject({
@@ -1319,6 +1324,7 @@ export const confirmResourceUploadHandler = asyncHandler(async (req, res) => {
     format,
     resourceTypeId: resource_type_id,
     metadata,
+    accessTier: access_tier,
     actor: req.user,
   });
 
@@ -1347,7 +1353,7 @@ export const confirmResourceUploadHandler = asyncHandler(async (req, res) => {
 export const getResourceFileUrlHandler = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const forceDownload = String(req.query?.download || "").toLowerCase() === "true";
-  const result = await getResourceFileUrl(id, { forceDownload });
+  const result = await getResourceFileUrl(id, { forceDownload }, req.user || null);
   return successResponse(res, "Resource file URL generated successfully", result);
 });
 
