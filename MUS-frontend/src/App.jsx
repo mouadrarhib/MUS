@@ -19,6 +19,7 @@ function App() {
       { match: '/dashboard/resources', title: `${t('pages.resources.title')} - ${baseTitle}` },
       { match: '/dashboard/library', title: `${t('pages.library.title')} - ${baseTitle}` },
       { match: '/dashboard/uploads', title: `${t('pages.uploads.title')} - ${baseTitle}` },
+      { match: '/dashboard/wallet', title: `${t('nav.wallet')} - ${baseTitle}` },
       { match: '/dashboard/profile', title: `${t('pages.profile.title')} - ${baseTitle}` },
       { match: '/dashboard/settings', title: `${t('pages.settings.title')} - ${baseTitle}` },
       { match: '/dashboard/verify', title: `${t('pages.verify.title')} - ${baseTitle}` },

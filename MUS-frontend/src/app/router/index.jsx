@@ -22,6 +22,7 @@ const ProfilePage = lazy(() => import('@/features/profile/pages/Profile'));
 const SettingsPage = lazy(() => import('@/features/settings/pages/Settings'));
 const VerifyResourcesPage = lazy(() => import('@/features/verify/pages/VerifyResources'));
 const CatalogManagementPage = lazy(() => import('@/features/catalog/pages/CatalogManagement'));
+const WalletPage = lazy(() => import('@/features/wallet/pages/Wallet'));
 
 const LoadingFallback = () => (
   <Box
@@ -96,6 +97,15 @@ const AppRouter = () => {
             element={
               <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
                 <MyUploadsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="wallet"
+            element={
+              <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+                <WalletPage />
               </ProtectedRoute>
             }
           />
