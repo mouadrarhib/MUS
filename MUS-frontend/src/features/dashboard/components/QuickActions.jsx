@@ -10,9 +10,11 @@ import {
   AdminPanelSettings
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 const QuickActions = () => {
   const navigate = useNavigate();
+  const { isAdmin, hasAnyRole } = useAuth();
 
   const actions = [
     {
@@ -20,12 +22,6 @@ const QuickActions = () => {
       icon: Add,
       color: 'primary',
       onClick: () => navigate('/dashboard/resources'),
-    },
-    {
-      label: 'View Students',
-      icon: People,
-      color: 'success',
-      onClick: () => navigate('/dashboard/users'),
     },
     {
       label: 'All Resources',
@@ -47,12 +43,23 @@ const QuickActions = () => {
     },
   ];
 
-  actions.splice(3, 0, {
-    label: 'Verify Content',
-    icon: AdminPanelSettings,
-    color: 'warning',
-    onClick: () => navigate('/dashboard/verify'),
-  });
+  if (isAdmin) {
+    actions.splice(1, 0, {
+      label: 'View Students',
+      icon: People,
+      color: 'success',
+      onClick: () => navigate('/dashboard/users'),
+    });
+  }
+
+  if (hasAnyRole(['ADMIN', 'TEACHER'])) {
+    actions.splice(3, 0, {
+      label: 'Verify Content',
+      icon: AdminPanelSettings,
+      color: 'warning',
+      onClick: () => navigate('/dashboard/verify'),
+    });
+  }
 
   return (
     <Paper
