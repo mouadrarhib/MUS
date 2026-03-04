@@ -27,6 +27,14 @@ const Overview = () => {
   const { user, isAdmin } = useAuth();
   const [statsData, setStatsData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [myResourceStats, setMyResourceStats] = useState({
+    totalResources: 0,
+    publishedResources: 0,
+    draftResources: 0,
+    archivedResources: 0,
+    avgRating: 0,
+    totalRatings: 0,
+  });
   const [rejections, setRejections] = useState([]);
   const [rejectionsLoading, setRejectionsLoading] = useState(true);
 
@@ -87,6 +95,79 @@ const Overview = () => {
     };
 
     loadMyRejections();
+    return () => {
+      mounted = false;
+    };
+  }, [isAdmin]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    if (isAdmin) {
+      return () => {
+        mounted = false;
+      };
+    }
+
+    const toNumber = (...values) => {
+      for (const value of values) {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) return parsed;
+      }
+      return 0;
+    };
+
+    const loadMyStats = async () => {
+      try {
+        const resources = await resourcesService.getMyResources();
+        const list = Array.isArray(resources) ? resources : [];
+
+        const published = list.filter((item) => item.status === 'published').length;
+        const draft = list.filter((item) => item.status === 'draft').length;
+        const archived = list.filter((item) => item.status === 'archived').length;
+
+        let weightedRatingSum = 0;
+        let weightedRatingCount = 0;
+
+        list.forEach((item) => {
+          const avg = toNumber(item.avg_rating, item.average_rating, item.avgRating, item.rating_avg);
+          const count = toNumber(item.total_ratings, item.ratings_count, item.ratingsCount, item.rating_count);
+
+          if (count > 0) {
+            weightedRatingSum += avg * count;
+            weightedRatingCount += count;
+          } else if (avg > 0) {
+            weightedRatingSum += avg;
+            weightedRatingCount += 1;
+          }
+        });
+
+        if (mounted) {
+          setMyResourceStats({
+            totalResources: list.length,
+            publishedResources: published,
+            draftResources: draft,
+            archivedResources: archived,
+            avgRating: weightedRatingCount > 0 ? weightedRatingSum / weightedRatingCount : 0,
+            totalRatings: weightedRatingCount,
+          });
+        }
+      } catch {
+        if (mounted) {
+          setMyResourceStats({
+            totalResources: 0,
+            publishedResources: 0,
+            draftResources: 0,
+            archivedResources: 0,
+            avgRating: 0,
+            totalRatings: 0,
+          });
+        }
+      }
+    };
+
+    loadMyStats();
+
     return () => {
       mounted = false;
     };
@@ -382,16 +463,20 @@ const Overview = () => {
             />
             <StatsOverview
               label="Total Resources"
-              value={stats.totalResources}
-              change={stats.resourcesLast7Days}
-              changeLabel={`+${stats.resourcesLast7Days} this week`}
+              value={isAdmin ? stats.totalResources : myResourceStats.totalResources}
+              change={isAdmin ? stats.resourcesLast7Days : myResourceStats.publishedResources}
+              changeLabel={
+                isAdmin
+                  ? `+${stats.resourcesLast7Days} this week`
+                  : `${myResourceStats.publishedResources} published`
+              }
               icon={Article}
               color="info"
             />
             <StatsOverview
               label="Avg Rating"
-              value={stats.avgRating.toFixed(1)}
-              changeLabel={`${stats.totalRatings} ratings`}
+              value={(isAdmin ? stats.avgRating : myResourceStats.avgRating).toFixed(1)}
+              changeLabel={`${isAdmin ? stats.totalRatings : myResourceStats.totalRatings} ratings`}
               icon={Star}
               color="warning"
             />
@@ -399,7 +484,7 @@ const Overview = () => {
         )}
       </Box>
 
-      {/* Charts & Top Contributor Row */}
+      {isAdmin ? (
       <Box 
         sx={{ 
           display: 'grid',
@@ -514,8 +599,9 @@ const Overview = () => {
           </>
         )}
       </Box>
+      ) : null}
 
-      {/* Global Stats & Activity Row */}
+      {isAdmin ? (
       <Box sx={{ mb: 3 }}>
         {loading ? (
           <Paper
@@ -628,7 +714,9 @@ const Overview = () => {
           </Paper>
         )}
       </Box>
+      ) : null}
 
+      {isAdmin ? (
       <Box 
         sx={{ 
           display: 'grid',
@@ -793,6 +881,7 @@ const Overview = () => {
           </>
         )}
       </Box>
+      ) : null}
     </Box>
   );
 };
