@@ -233,6 +233,14 @@ export const SQL = {
     CANCEL: `SELECT public.sp_user_membership_cancel(:user_id, :notes) AS cancelled`,
   },
 
+  WALLET: {
+    GET_SUMMARY: `SELECT * FROM public.sp_wallet_get_summary(:user_id)`,
+
+    GET_TOP_RESOURCES: `SELECT * FROM public.sp_wallet_get_top_resources(:user_id, :limit_value)`,
+
+    GET_ACTIVITY: `SELECT * FROM public.sp_wallet_get_activity(:user_id, :limit_value, :offset_value)`,
+  },
+
   ROLE: {
     CREATE: `SELECT * FROM public.sp_role_create(:name, :description)`,
 
