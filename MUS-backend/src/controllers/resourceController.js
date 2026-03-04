@@ -10,6 +10,7 @@ import {
   getResourcesByFormat,
   getResourcesByResourceType,
   getResourcesByCreator,
+  getMyResourceAnalytics,
   getResourcesByLanguage,
   updateResource,
   updateResourceMetadata,
@@ -233,6 +234,12 @@ export const listMyResources = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const result = await getResourcesByCreator(userId, req.user || null);
   return successResponse(res, "Vos ressources ont ete recuperees avec succes", result);
+});
+
+export const getMyResourceAnalyticsHandler = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const result = await getMyResourceAnalytics(userId);
+  return successResponse(res, "Your resource analytics retrieved successfully", result);
 });
 
 /**

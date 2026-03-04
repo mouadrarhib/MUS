@@ -293,6 +293,11 @@ export const resourcesService = {
     return myResourcesInFlight;
   },
 
+  getMyResourceAnalytics: async () => {
+    const response = await get(`${RESOURCE.ROOT}/my-analytics`);
+    return response?.data || {};
+  },
+
   getMyRejections: async (limit = 100, options = {}) => {
     const { force = false } = options;
     const key = makeCacheKey("my-rejections", { limit });

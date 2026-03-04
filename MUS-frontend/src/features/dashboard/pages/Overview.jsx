@@ -31,7 +31,17 @@ const Overview = () => {
     totalResources: 0,
     publishedResources: 0,
     draftResources: 0,
+    pendingResources: 0,
+    rejectedResources: 0,
     archivedResources: 0,
+    resourcesLast7Days: 0,
+    resourcesLast30Days: 0,
+    favoritesReceived: 0,
+    favoritesLast7Days: 0,
+    favoritesLast30Days: 0,
+    downloadsReceived: 0,
+    downloadsLast7Days: 0,
+    downloadsLast30Days: 0,
     avgRating: 0,
     totalRatings: 0,
   });
@@ -109,47 +119,32 @@ const Overview = () => {
       };
     }
 
-    const toNumber = (...values) => {
-      for (const value of values) {
-        const parsed = Number(value);
-        if (Number.isFinite(parsed)) return parsed;
-      }
-      return 0;
-    };
-
     const loadMyStats = async () => {
       try {
-        const resources = await resourcesService.getMyResources();
-        const list = Array.isArray(resources) ? resources : [];
-
-        const published = list.filter((item) => item.status === 'published').length;
-        const draft = list.filter((item) => item.status === 'draft').length;
-        const archived = list.filter((item) => item.status === 'archived').length;
-
-        let weightedRatingSum = 0;
-        let weightedRatingCount = 0;
-
-        list.forEach((item) => {
-          const avg = toNumber(item.avg_rating, item.average_rating, item.avgRating, item.rating_avg);
-          const count = toNumber(item.total_ratings, item.ratings_count, item.ratingsCount, item.rating_count);
-
-          if (count > 0) {
-            weightedRatingSum += avg * count;
-            weightedRatingCount += count;
-          } else if (avg > 0) {
-            weightedRatingSum += avg;
-            weightedRatingCount += 1;
-          }
-        });
+        const data = await resourcesService.getMyResourceAnalytics();
+        const toNumber = (value) => {
+          const parsed = Number(value);
+          return Number.isFinite(parsed) ? parsed : 0;
+        };
 
         if (mounted) {
           setMyResourceStats({
-            totalResources: list.length,
-            publishedResources: published,
-            draftResources: draft,
-            archivedResources: archived,
-            avgRating: weightedRatingCount > 0 ? weightedRatingSum / weightedRatingCount : 0,
-            totalRatings: weightedRatingCount,
+            totalResources: toNumber(data?.total_resources),
+            publishedResources: toNumber(data?.published_resources),
+            draftResources: toNumber(data?.draft_resources),
+            pendingResources: toNumber(data?.pending_resources),
+            rejectedResources: toNumber(data?.rejected_resources),
+            archivedResources: toNumber(data?.archived_resources),
+            resourcesLast7Days: toNumber(data?.resources_last_7_days),
+            resourcesLast30Days: toNumber(data?.resources_last_30_days),
+            favoritesReceived: toNumber(data?.total_favorites_received),
+            favoritesLast7Days: toNumber(data?.favorites_last_7_days),
+            favoritesLast30Days: toNumber(data?.favorites_last_30_days),
+            downloadsReceived: toNumber(data?.total_downloads_received),
+            downloadsLast7Days: toNumber(data?.downloads_last_7_days),
+            downloadsLast30Days: toNumber(data?.downloads_last_30_days),
+            avgRating: toNumber(data?.avg_rating_received),
+            totalRatings: toNumber(data?.total_ratings_received),
           });
         }
       } catch {
@@ -158,7 +153,17 @@ const Overview = () => {
             totalResources: 0,
             publishedResources: 0,
             draftResources: 0,
+            pendingResources: 0,
+            rejectedResources: 0,
             archivedResources: 0,
+            resourcesLast7Days: 0,
+            resourcesLast30Days: 0,
+            favoritesReceived: 0,
+            favoritesLast7Days: 0,
+            favoritesLast30Days: 0,
+            downloadsReceived: 0,
+            downloadsLast7Days: 0,
+            downloadsLast30Days: 0,
             avgRating: 0,
             totalRatings: 0,
           });
@@ -483,6 +488,135 @@ const Overview = () => {
           </>
         )}
       </Box>
+
+      {!isAdmin ? (
+        <Box sx={{ mb: 3 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2,
+              borderRadius: 3,
+              border: '1px solid',
+              borderColor: 'divider',
+              background: (theme) => theme.palette.mode === 'dark'
+                ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
+                : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+            }}
+          >
+            <Box display="flex" alignItems="center" gap={1} mb={2}>
+              <TrendingUp sx={{ fontSize: 18, color: 'primary.main' }} />
+              <Typography variant="subtitle2" fontWeight="700">
+                Your Resource Analytics
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+                gap: 1.5,
+              }}
+            >
+              {[
+                {
+                  label: 'Favorites Received',
+                  value: myResourceStats.favoritesReceived,
+                  hint: `+${myResourceStats.favoritesLast7Days} in 7 days`,
+                  color: 'error',
+                  icon: Favorite,
+                },
+                {
+                  label: 'Downloads Received',
+                  value: myResourceStats.downloadsReceived,
+                  hint: `+${myResourceStats.downloadsLast7Days} in 7 days`,
+                  color: 'primary',
+                  icon: CloudDownload,
+                },
+                {
+                  label: 'Resources Uploaded',
+                  value: myResourceStats.totalResources,
+                  hint: `+${myResourceStats.resourcesLast30Days} in 30 days`,
+                  color: 'info',
+                  icon: Article,
+                },
+                {
+                  label: 'Ratings Received',
+                  value: `${myResourceStats.avgRating.toFixed(1)} (${myResourceStats.totalRatings})`,
+                  hint: 'Average score across your resources',
+                  color: 'warning',
+                  icon: Star,
+                },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Box
+                    key={item.label}
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 2,
+                      bgcolor: (theme) => alpha(theme.palette[item.color].main, 0.06),
+                      border: '1px solid',
+                      borderColor: (theme) => alpha(theme.palette[item.color].main, 0.16),
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" gap={1} mb={0.75}>
+                      <Icon sx={{ fontSize: 16, color: `${item.color}.main` }} />
+                      <Typography variant="caption" color="text.secondary">
+                        {item.label}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1" fontWeight="700" color="text.primary" noWrap>
+                      {item.value}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {item.hint}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+
+            <Box display="flex" gap={1} mt={1.5} flexWrap="wrap">
+              <Chip
+                size="small"
+                label={`${myResourceStats.publishedResources} published`}
+                sx={{
+                  bgcolor: (theme) => alpha(theme.palette.success.main, 0.12),
+                  color: 'success.main',
+                  fontWeight: 600,
+                }}
+              />
+              <Chip
+                size="small"
+                label={`${myResourceStats.pendingResources} pending`}
+                sx={{
+                  bgcolor: (theme) => alpha(theme.palette.info.main, 0.12),
+                  color: 'info.main',
+                  fontWeight: 600,
+                }}
+              />
+              <Chip
+                size="small"
+                label={`${myResourceStats.draftResources} drafts`}
+                sx={{
+                  bgcolor: (theme) => alpha(theme.palette.warning.main, 0.12),
+                  color: 'warning.main',
+                  fontWeight: 600,
+                }}
+              />
+              <Chip
+                size="small"
+                label={`${myResourceStats.rejectedResources} rejected`}
+                sx={{
+                  bgcolor: (theme) => alpha(theme.palette.error.main, 0.12),
+                  color: 'error.main',
+                  fontWeight: 600,
+                }}
+              />
+            </Box>
+          </Paper>
+        </Box>
+      ) : null}
 
       {isAdmin ? (
       <Box 

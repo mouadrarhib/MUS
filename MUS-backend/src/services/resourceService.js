@@ -304,6 +304,96 @@ export const getResourcesByConnectedUser = async () => {
   return getResourcesByCreator(userId, { id: userId, roles: [] });
 };
 
+export const getMyResourceAnalytics = async (userId) => {
+  const [rows] = await sequelize.query(
+    `
+    WITH my_resources AS (
+      SELECT id, status, created_at
+      FROM public.resources
+      WHERE created_by = :user_id
+    ),
+    resource_counts AS (
+      SELECT
+        COUNT(*)::BIGINT AS total_resources,
+        COUNT(*) FILTER (WHERE status = 'published')::BIGINT AS published_resources,
+        COUNT(*) FILTER (WHERE status = 'draft')::BIGINT AS draft_resources,
+        COUNT(*) FILTER (WHERE status = 'pending')::BIGINT AS pending_resources,
+        COUNT(*) FILTER (WHERE status = 'rejected')::BIGINT AS rejected_resources,
+        COUNT(*) FILTER (WHERE status = 'archived')::BIGINT AS archived_resources,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days')::BIGINT AS resources_last_7_days,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days')::BIGINT AS resources_last_30_days
+      FROM my_resources
+    ),
+    favorites_received AS (
+      SELECT
+        COUNT(*)::BIGINT AS total_favorites_received,
+        COUNT(*) FILTER (WHERE f.created_at >= NOW() - INTERVAL '7 days')::BIGINT AS favorites_last_7_days,
+        COUNT(*) FILTER (WHERE f.created_at >= NOW() - INTERVAL '30 days')::BIGINT AS favorites_last_30_days
+      FROM public.favorites f
+      INNER JOIN my_resources mr ON mr.id = f.resource_id
+    ),
+    downloads_received AS (
+      SELECT
+        COUNT(*)::BIGINT AS total_downloads_received,
+        COUNT(*) FILTER (WHERE rd.downloaded_at >= NOW() - INTERVAL '7 days')::BIGINT AS downloads_last_7_days,
+        COUNT(*) FILTER (WHERE rd.downloaded_at >= NOW() - INTERVAL '30 days')::BIGINT AS downloads_last_30_days
+      FROM public.resource_downloads rd
+      INNER JOIN my_resources mr ON mr.id = rd.resource_id
+    ),
+    ratings_received AS (
+      SELECT
+        COUNT(*)::BIGINT AS total_ratings_received,
+        COALESCE(AVG(rt.score), 0)::NUMERIC(4,2) AS avg_rating_received
+      FROM public.ratings rt
+      INNER JOIN my_resources mr ON mr.id = rt.resource_id
+    )
+    SELECT
+      rc.total_resources,
+      rc.published_resources,
+      rc.draft_resources,
+      rc.pending_resources,
+      rc.rejected_resources,
+      rc.archived_resources,
+      rc.resources_last_7_days,
+      rc.resources_last_30_days,
+      fr.total_favorites_received,
+      fr.favorites_last_7_days,
+      fr.favorites_last_30_days,
+      dr.total_downloads_received,
+      dr.downloads_last_7_days,
+      dr.downloads_last_30_days,
+      rr.total_ratings_received,
+      rr.avg_rating_received
+    FROM resource_counts rc
+    CROSS JOIN favorites_received fr
+    CROSS JOIN downloads_received dr
+    CROSS JOIN ratings_received rr
+    `,
+    {
+      replacements: { user_id: userId },
+    }
+  );
+
+  return rows?.[0] || {
+    total_resources: 0,
+    published_resources: 0,
+    draft_resources: 0,
+    pending_resources: 0,
+    rejected_resources: 0,
+    archived_resources: 0,
+    resources_last_7_days: 0,
+    resources_last_30_days: 0,
+    total_favorites_received: 0,
+    favorites_last_7_days: 0,
+    favorites_last_30_days: 0,
+    total_downloads_received: 0,
+    downloads_last_7_days: 0,
+    downloads_last_30_days: 0,
+    total_ratings_received: 0,
+    avg_rating_received: 0,
+  };
+};
+
 export const getResourcesByLanguage = async (language, actor = null) => {
   const [results] = await sequelize.query(SQL.RESOURCE.GET_BY_LANGUAGE, {
     replacements: { language },

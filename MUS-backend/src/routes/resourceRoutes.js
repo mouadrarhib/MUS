@@ -5,6 +5,7 @@ import {
   addResource,
   listResources,
   listMyResources,
+  getMyResourceAnalyticsHandler,
   getResource,
   updateExistingResource,
   deleteExistingResource,
@@ -204,6 +205,7 @@ router.post(
 
 router.get("/", listResources);
 router.get("/my-resources", authMiddleware, listMyResources);
+router.get("/my-analytics", authMiddleware, getMyResourceAnalyticsHandler);
 router.get(
   "/my-rejections",
   authMiddleware,
