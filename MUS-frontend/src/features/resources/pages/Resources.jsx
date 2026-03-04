@@ -3,6 +3,7 @@ import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActi
 import { useState, useEffect } from 'react';
 import { Add, Delete as DeleteIcon, Warning as WarningIcon, Article, ErrorOutline } from '@mui/icons-material';
 import resourcesService from '@/services/resourcesService';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import ResourcesStatsCards from '../components/ResourcesStatsCards';
 import ResourcesTable from '../components/ResourcesTable';
 import ResourceDialog from '../components/ResourceDialog';
@@ -12,6 +13,7 @@ import { useLanguage } from '@/app/providers/LanguageContext';
 
 const Resources = () => {
   const { t } = useLanguage();
+  const { isAdmin } = useAuth();
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
@@ -29,7 +31,7 @@ const Resources = () => {
   useEffect(() => {
     loadResources();
     loadAvailableTags();
-  }, []);
+  }, [isAdmin]);
 
   const loadAvailableTags = async () => {
     setTagsLoading(true);
@@ -59,7 +61,9 @@ const Resources = () => {
     setLoading(true);
     setError('');
     try {
-      const data = await resourcesService.getAllResources();
+      const data = isAdmin
+        ? await resourcesService.getAllResources()
+        : await resourcesService.getMyResources();
       const withTags = await hydrateResourcesWithTags(data);
       setResources(withTags);
     } catch (error) {
