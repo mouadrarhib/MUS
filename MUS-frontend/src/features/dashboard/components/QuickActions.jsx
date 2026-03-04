@@ -4,10 +4,12 @@ import {
   Add,
   People,
   Article,
-  BarChart,
   Settings,
   Refresh,
-  AdminPanelSettings
+  AdminPanelSettings,
+  UploadFile,
+  AccountBalanceWallet,
+  School
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
@@ -28,12 +30,6 @@ const QuickActions = () => {
       icon: Article,
       color: 'info',
       onClick: () => navigate('/dashboard/resources'),
-    },
-    {
-      label: 'Analytics',
-      icon: BarChart,
-      color: 'warning',
-      onClick: () => navigate('/analytics'),
     },
     {
       label: 'Settings',
@@ -59,6 +55,29 @@ const QuickActions = () => {
       color: 'warning',
       onClick: () => navigate('/dashboard/verify'),
     });
+  }
+
+  if (hasAnyRole(['STUDENT', 'TEACHER'])) {
+    actions.push(
+      {
+        label: 'My Uploads',
+        icon: UploadFile,
+        color: 'info',
+        onClick: () => navigate('/dashboard/uploads'),
+      },
+      {
+        label: 'My Library',
+        icon: School,
+        color: 'primary',
+        onClick: () => navigate('/dashboard/library'),
+      },
+      {
+        label: 'My Wallet',
+        icon: AccountBalanceWallet,
+        color: 'success',
+        onClick: () => navigate('/dashboard/wallet'),
+      }
+    );
   }
 
   return (
