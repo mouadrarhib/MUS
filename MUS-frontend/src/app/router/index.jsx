@@ -75,7 +75,7 @@ const AppRouter = () => {
           <Route
             path="resources"
             element={
-              <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+              <ProtectedRoute requiredRoles={['ADMIN']}>
                 <ResourcesPage />
               </ProtectedRoute>
             }

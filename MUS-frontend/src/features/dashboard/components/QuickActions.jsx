@@ -23,13 +23,7 @@ const QuickActions = () => {
       label: 'Add Resource',
       icon: Add,
       color: 'primary',
-      onClick: () => navigate('/dashboard/resources'),
-    },
-    {
-      label: 'All Resources',
-      icon: Article,
-      color: 'info',
-      onClick: () => navigate('/dashboard/resources'),
+      onClick: () => navigate(isAdmin ? '/dashboard/resources' : '/dashboard/uploads'),
     },
     {
       label: 'Settings',
@@ -41,6 +35,15 @@ const QuickActions = () => {
 
   if (isAdmin) {
     actions.splice(1, 0, {
+      label: 'All Resources',
+      icon: Article,
+      color: 'info',
+      onClick: () => navigate('/dashboard/resources'),
+    });
+  }
+
+  if (isAdmin) {
+    actions.splice(2, 0, {
       label: 'View Students',
       icon: People,
       color: 'success',
