@@ -54,7 +54,7 @@ export const DASHBOARD_NAVIGATION = [
     labelKey: 'nav.resources',
     path: '/dashboard/resources',
     icon: <Description />,
-    roles: ['STUDENT', 'TEACHER', 'ADMIN']
+    roles: ['ADMIN']
   },
   {
     labelKey: 'nav.academicCatalog',
