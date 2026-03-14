@@ -13,7 +13,8 @@ import {
   Public,
   PersonAdd,
   NewReleases,
-  CloudDownload
+  CloudDownload,
+  School
 } from '@mui/icons-material';
 
 import StatsOverview from '../components/StatsOverview';
@@ -22,6 +23,7 @@ import { ResourceDonut, EngagementBars } from '../components/MiniChart';
 
 import adminService from '@/services/adminService';
 import resourcesService from '@/services/resourcesService';
+import personalizationService from '@/services/personalizationService';
 
 const Overview = () => {
   const { user, isAdmin } = useAuth();
@@ -47,6 +49,8 @@ const Overview = () => {
   });
   const [rejections, setRejections] = useState([]);
   const [rejectionsLoading, setRejectionsLoading] = useState(true);
+  const [recommendations, setRecommendations] = useState([]);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -105,6 +109,40 @@ const Overview = () => {
     };
 
     loadMyRejections();
+    return () => {
+      mounted = false;
+    };
+  }, [isAdmin]);
+
+  useEffect(() => {
+    let mounted = true;
+    if (isAdmin) {
+      setRecommendations([]);
+      setRecommendationsLoading(false);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    const loadRecommendations = async () => {
+      setRecommendationsLoading(true);
+      try {
+        const rows = await personalizationService.getMyRecommendations(6);
+        if (mounted) {
+          setRecommendations(Array.isArray(rows) ? rows : []);
+        }
+      } catch {
+        if (mounted) {
+          setRecommendations([]);
+        }
+      } finally {
+        if (mounted) {
+          setRecommendationsLoading(false);
+        }
+      }
+    };
+
+    loadRecommendations();
     return () => {
       mounted = false;
     };
@@ -614,6 +652,66 @@ const Overview = () => {
                 }}
               />
             </Box>
+          </Paper>
+        </Box>
+      ) : null}
+
+      {!isAdmin ? (
+        <Box sx={{ mb: 3 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2,
+              borderRadius: 3,
+              border: '1px solid',
+              borderColor: 'divider',
+              background: (theme) => theme.palette.mode === 'dark'
+                ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
+                : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+            }}
+          >
+            <Box display="flex" alignItems="center" gap={1} mb={1.5}>
+              <School sx={{ fontSize: 18, color: 'primary.main' }} />
+              <Typography variant="subtitle2" fontWeight={700}>
+                Recommended For You
+              </Typography>
+            </Box>
+
+            {recommendationsLoading ? (
+              <Box sx={{ display: 'grid', gap: 1.25 }}>
+                {[...Array(3)].map((_, index) => (
+                  <Skeleton key={`recommendation-skeleton-${index}`} variant="rounded" height={62} />
+                ))}
+              </Box>
+            ) : recommendations.length === 0 ? (
+              <Typography variant="caption" color="text.secondary">
+                Add interest tags in your profile to improve recommendations.
+              </Typography>
+            ) : (
+              <Box sx={{ display: 'grid', gap: 1.25 }}>
+                {recommendations.map((item) => (
+                  <Box
+                    key={`recommendation-${item.resource_id || item.id}`}
+                    sx={{
+                      p: 1.25,
+                      borderRadius: 2,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" justifyContent="space-between" gap={1} mb={0.5}>
+                      <Typography variant="body2" fontWeight={700} noWrap>
+                        {item.title}
+                      </Typography>
+                      <Chip size="small" label={`Score ${Number(item.score || 0).toFixed(1)}`} />
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      {(item.match_reasons || []).slice(0, 2).join(' • ') || 'Personalized match'}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            )}
           </Paper>
         </Box>
       ) : null}

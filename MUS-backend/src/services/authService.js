@@ -5,6 +5,7 @@ import { generateToken } from "../utils/jwt.js";
 import { SQL } from "../snippets/index.js";
 import crypto from "crypto";
 import { getCurrentMembershipForUser } from "./membershipService.js";
+import { normalizeTagIds, setUserTagPreferences } from "./personalizationService.js";
 
 const DEFAULT_ROLE = "student";
 
@@ -121,6 +122,7 @@ export const registerUser = async ({
   program_id: rawProgramId,
   level_id: rawLevelId,
   current_semester_id: rawSemesterId,
+  preferred_tag_ids: rawPreferredTagIds,
 }) => {
   const hasAnyAcademicField = [rawInstitutionId, rawProgramId, rawLevelId, rawSemesterId].some(
     (value) => value !== undefined && value !== null && String(value).trim() !== ""
@@ -130,6 +132,7 @@ export const registerUser = async ({
   const program_id = rawProgramId != null ? Number(rawProgramId) : null;
   const level_id = rawLevelId != null ? Number(rawLevelId) : null;
   const current_semester_id = rawSemesterId != null ? Number(rawSemesterId) : null;
+  const preferredTagIds = normalizeTagIds(rawPreferredTagIds || []);
 
   const shouldCreateStudentProfile = hasAnyAcademicField;
 
@@ -254,6 +257,14 @@ export const registerUser = async ({
 
     return routineUser || userInstance.get({ plain: true });
   });
+
+  if (preferredTagIds.length > 0) {
+    try {
+      await setUserTagPreferences(createdUser.id, preferredTagIds);
+    } catch {
+      // Preferences table/procedure may be unavailable before migration is applied.
+    }
+  }
 
   const roles = await getRolesForUser(createdUser.id);
   const token = generateToken({ sub: createdUser.id, roles });

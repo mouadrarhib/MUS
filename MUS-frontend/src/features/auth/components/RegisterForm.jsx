@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -19,6 +19,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Autocomplete,
 } from '@mui/material';
 import {
   Visibility,
@@ -37,6 +38,8 @@ import institutionService from '@/services/institutionService';
 import institutionProgramService from '@/services/institutionProgramService';
 import levelService from '@/services/levelService';
 import semesterService from '@/services/semesterService';
+import resourcesService from '@/services/resourcesService';
+import gsap from 'gsap';
 
 export const RegisterForm = () => {
   const navigate = useNavigate();
@@ -51,12 +54,16 @@ export const RegisterForm = () => {
   const [programs, setPrograms] = useState([]);
   const [levels, setLevels] = useState([]);
   const [semesters, setSemesters] = useState([]);
+  const [availableTags, setAvailableTags] = useState([]);
   const [catalogLoading, setCatalogLoading] = useState({
     institutions: false,
     programs: false,
     levels: false,
     semesters: false,
+    tags: false,
   });
+  const rootRef = useRef(null);
+  const formRef = useRef(null);
   const {
     register,
     control,
@@ -75,6 +82,7 @@ export const RegisterForm = () => {
       program_id: '',
       level_id: '',
       current_semester_id: '',
+      preferred_tag_ids: [],
     },
   });
 
@@ -102,6 +110,22 @@ export const RegisterForm = () => {
     };
 
     loadInstitutions();
+  }, []);
+
+  useEffect(() => {
+    const loadTags = async () => {
+      setCatalogLoading((prev) => ({ ...prev, tags: true }));
+      try {
+        const tags = await resourcesService.listTags({ is_active: true, limit: 200 });
+        setAvailableTags(Array.isArray(tags) ? tags : []);
+      } catch {
+        setAvailableTags([]);
+      } finally {
+        setCatalogLoading((prev) => ({ ...prev, tags: false }));
+      }
+    };
+
+    loadTags();
   }, []);
 
   useEffect(() => {
@@ -182,6 +206,40 @@ export const RegisterForm = () => {
     loadSemesters();
   }, [levelId, setValue]);
 
+  useEffect(() => {
+    if (!rootRef.current) return;
+
+    const ctx = gsap.context(() => {
+      gsap.from('[data-auth="container"]', {
+        opacity: 0,
+        y: 24,
+        duration: 0.6,
+        ease: 'power2.out',
+      });
+
+      gsap.from('[data-auth="hero"]', {
+        opacity: 0,
+        x: 24,
+        duration: 0.7,
+        ease: 'power2.out',
+        delay: 0.08,
+      });
+
+      if (formRef.current) {
+        gsap.from(formRef.current.querySelectorAll('[data-auth-field="true"]'), {
+          opacity: 0,
+          y: 14,
+          duration: 0.4,
+          ease: 'power2.out',
+          stagger: 0.04,
+          delay: 0.12,
+        });
+      }
+    }, rootRef);
+
+    return () => ctx.revert();
+  }, []);
+
   
   const handleClickShowPassword = () => {
     setShowPassword(!showPassword);
@@ -204,6 +262,9 @@ export const RegisterForm = () => {
         program_id: Number(formData.program_id),
         level_id: Number(formData.level_id),
         current_semester_id: Number(formData.current_semester_id),
+        preferred_tag_ids: Array.isArray(formData.preferred_tag_ids)
+          ? formData.preferred_tag_ids.map((id) => Number(id)).filter(Number.isFinite)
+          : [],
       });
       
       setRegisterSuccess('Account created successfully! Logging you in...');
@@ -221,6 +282,7 @@ export const RegisterForm = () => {
 
   return (
     <Box
+      ref={rootRef}
       sx={(theme) => ({
         minHeight: '100vh',
         display: 'flex',
@@ -228,16 +290,19 @@ export const RegisterForm = () => {
         justifyContent: 'center',
         px: { xs: 2, sm: 3 },
         py: { xs: 4, sm: 6 },
-        backgroundColor: theme.palette.background.default,
+        backgroundColor: theme.palette.mode === 'dark' ? '#111827' : '#e9edf3',
         ...pageTransitionSx(theme),
       })}
     >
       <Container maxWidth="md">
         <Paper
+          data-auth="container"
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', md: '1.1fr 0.9fr' },
             overflow: 'hidden',
+            borderRadius: 4,
+            bgcolor: (theme) => (theme.palette.mode === 'dark' ? '#1f2937' : '#f7f8fa'),
           }}
         >
           <Box sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
@@ -263,8 +328,9 @@ export const RegisterForm = () => {
                 </Alert>
               )}
 
-              <Stack component="form" spacing={2} onSubmit={handleSubmitForm} noValidate>
+              <Stack ref={formRef} component="form" spacing={2} onSubmit={handleSubmitForm} noValidate>
                 <TextField
+                  data-auth-field="true"
                   fullWidth
                   id="fullName"
                   label="Full Name"
@@ -290,6 +356,7 @@ export const RegisterForm = () => {
                 />
 
                 <TextField
+                  data-auth-field="true"
                   fullWidth
                   id="email"
                   label="Email Address"
@@ -318,6 +385,7 @@ export const RegisterForm = () => {
                 />
 
                 <TextField
+                  data-auth-field="true"
                   fullWidth
                   id="password"
                   label="Password"
@@ -357,6 +425,7 @@ export const RegisterForm = () => {
                 />
 
                 <TextField
+                  data-auth-field="true"
                   fullWidth
                   id="confirmPassword"
                   label="Confirm Password"
@@ -516,6 +585,42 @@ export const RegisterForm = () => {
                   ) : null}
                 </FormControl>
 
+                <Controller
+                  name="preferred_tag_ids"
+                  control={control}
+                  rules={{
+                    validate: (value) =>
+                      (Array.isArray(value) && value.length >= 3) || 'Select at least 3 interest tags',
+                  }}
+                  render={({ field }) => (
+                    <Autocomplete
+                      multiple
+                      options={availableTags}
+                      loading={catalogLoading.tags}
+                      value={availableTags.filter((tag) => (field.value || []).includes(Number(tag.id || tag.tag_id)))}
+                      isOptionEqualToValue={(option, value) => Number(option.id || option.tag_id) === Number(value.id || value.tag_id)}
+                      getOptionLabel={(option) => option.name || option.tag_name || ''}
+                      onChange={(_, selected) => {
+                        const ids = (selected || [])
+                          .map((tag) => Number(tag.id || tag.tag_id))
+                          .filter(Number.isFinite);
+                        field.onChange(Array.from(new Set(ids)));
+                        setRegisterError('');
+                        setRegisterSuccess('');
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Interest Tags"
+                          placeholder="Choose your learning interests"
+                          error={Boolean(errors.preferred_tag_ids)}
+                          helperText={errors.preferred_tag_ids?.message || 'Select tags to personalize your resource feed'}
+                        />
+                      )}
+                    />
+                  )}
+                />
+
                 <Box>
                   <FormControlLabel
                     control={
@@ -559,6 +664,7 @@ export const RegisterForm = () => {
                 </Box>
 
                 <Button
+                  data-auth-field="true"
                   type="submit"
                   fullWidth
                   variant="contained"
@@ -592,6 +698,7 @@ export const RegisterForm = () => {
           </Box>
 
           <Box
+            data-auth="hero"
             sx={(theme) => ({
               p: { xs: 3, sm: 4, md: 5 },
               borderTop: { xs: '1px solid', md: 'none' },
@@ -600,6 +707,7 @@ export const RegisterForm = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              bgcolor: (theme) => (theme.palette.mode === 'dark' ? '#1f2937' : '#f7f8fa'),
             })}
           >
             <Box sx={{ textAlign: { xs: 'center', md: 'left' }, maxWidth: 320 }}>

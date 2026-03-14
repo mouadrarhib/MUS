@@ -241,6 +241,16 @@ export const SQL = {
     GET_ACTIVITY: `SELECT * FROM public.sp_wallet_get_activity(:user_id, :limit_value, :offset_value)`,
   },
 
+  USER_TAG_PREFERENCE: {
+    GET_BY_USER: `SELECT * FROM public.sp_user_tag_preferences_get(:user_id)`,
+
+    SET_FOR_USER: `SELECT * FROM public.sp_user_tag_preferences_set(:user_id, :tag_ids)`,
+  },
+
+  RECOMMENDATION: {
+    GET_FOR_USER: `SELECT * FROM public.sp_recommendation_get_for_user(:user_id, :limit_value)`,
+  },
+
   ROLE: {
     CREATE: `SELECT * FROM public.sp_role_create(:name, :description)`,
 
