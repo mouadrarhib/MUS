@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -30,6 +30,7 @@ import { useNotification } from '../../../shared/components/ui/notifications';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
 import { pageTransitionSx } from '@/styles/motion';
 import { useForm, Controller } from 'react-hook-form';
+import gsap from 'gsap';
 
 export const LoginForm = () => {
   const navigate = useNavigate();
@@ -41,6 +42,8 @@ export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const rootRef = useRef(null);
+  const formRef = useRef(null);
   const {
     register,
     control,
@@ -54,15 +57,49 @@ export const LoginForm = () => {
     },
   });
 
-  // --- FIX 1: Redirect ALL authenticated users to Dashboard ---
+  // Redirect authenticated users to intended route or discover page
   useEffect(() => {
     if (isAuthenticated) {
       // If user came from a specific page (e.g. tried to visit /library), send them back there.
-      // Otherwise, send them to the Dashboard.
-      const from = location.state?.from?.pathname || '/dashboard';
+      // Otherwise, send them to the discover page.
+      const from = location.state?.from?.pathname || '/discover';
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, location.state]);
+
+  useEffect(() => {
+    if (!rootRef.current) return;
+
+    const ctx = gsap.context(() => {
+      gsap.from('[data-auth="container"]', {
+        opacity: 0,
+        y: 24,
+        duration: 0.6,
+        ease: 'power2.out',
+      });
+
+      gsap.from('[data-auth="hero"]', {
+        opacity: 0,
+        x: 24,
+        duration: 0.7,
+        ease: 'power2.out',
+        delay: 0.08,
+      });
+
+      if (formRef.current) {
+        gsap.from(formRef.current.querySelectorAll('[data-auth-field="true"]'), {
+          opacity: 0,
+          y: 14,
+          duration: 0.45,
+          ease: 'power2.out',
+          stagger: 0.06,
+          delay: 0.12,
+        });
+      }
+    }, rootRef);
+
+    return () => ctx.revert();
+  }, []);
 
   
   const handleClickShowPassword = () => {
@@ -84,10 +121,10 @@ export const LoginForm = () => {
       // `authAPI.login()` already returns the response body
       authLogin(response);
       
-      // --- FIX 2: Explicitly navigate to Dashboard on success ---
+      // Explicitly navigate on success
       // The useEffect above handles the state change, but this ensures 
       // the redirect happens immediately after the login action
-      navigate('/dashboard', { replace: true });
+      navigate('/discover', { replace: true });
 
     } catch (err) {
       // Extract error message from backend response
@@ -110,6 +147,7 @@ export const LoginForm = () => {
 
   return (
     <Box
+      ref={rootRef}
       sx={(theme) => ({
         minHeight: '100vh',
         display: 'flex',
@@ -117,17 +155,19 @@ export const LoginForm = () => {
         justifyContent: 'center',
         px: { xs: 2, sm: 3 },
         py: { xs: 4, sm: 6 },
-        backgroundColor: theme.palette.background.default,
+        backgroundColor: theme.palette.mode === 'dark' ? '#111827' : '#e9edf3',
         ...pageTransitionSx(theme),
       })}
     >
       <Container maxWidth="md">
         <Paper
+          data-auth="container"
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', md: '1.1fr 0.9fr' },
             overflow: 'hidden',
             borderRadius: 4,
+            bgcolor: (theme) => (theme.palette.mode === 'dark' ? '#1f2937' : '#f7f8fa'),
             boxShadow: (theme) =>
               `0 18px 45px rgba(15, 23, 42, 0.12), 0 0 0 1px ${theme.palette.divider}`,
           }}
@@ -151,8 +191,9 @@ export const LoginForm = () => {
                 </Alert>
               )}
 
-              <Stack component="form" spacing={2} onSubmit={handleSubmitForm} noValidate>
+              <Stack ref={formRef} component="form" spacing={2} onSubmit={handleSubmitForm} noValidate>
                 <TextField
+                  data-auth-field="true"
                   fullWidth
                   id="email"
                   label="Email Address"
@@ -179,6 +220,7 @@ export const LoginForm = () => {
                 />
 
                 <TextField
+                  data-auth-field="true"
                   fullWidth
                   id="password"
                   label="Password"
@@ -215,6 +257,7 @@ export const LoginForm = () => {
                 />
 
                 <Box
+                  data-auth-field="true"
                   sx={{
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -262,6 +305,7 @@ export const LoginForm = () => {
                 </Box>
 
                 <Button
+                  data-auth-field="true"
                   type="submit"
                   fullWidth
                   variant="contained"
@@ -295,6 +339,7 @@ export const LoginForm = () => {
           </Box>
 
           <Box
+            data-auth="hero"
             sx={(theme) => ({
               p: { xs: 3, sm: 4, md: 5 },
               borderTop: { xs: '1px solid', md: 'none' },
@@ -303,8 +348,7 @@ export const LoginForm = () => {
               display: 'flex',
               alignItems: 'stretch',
               justifyContent: 'center',
-              background: `radial-gradient(140% 140% at 0% 0%, ${theme.palette.primary.light}15, transparent 55%),
-                           radial-gradient(140% 140% at 100% 0%, ${theme.palette.secondary.light || '#e91e63'}10, transparent 55%)`,
+              background: theme.palette.mode === 'dark' ? '#1f2937' : '#f7f8fa',
             })}
           >
             <Box

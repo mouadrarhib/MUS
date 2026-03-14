@@ -6,6 +6,7 @@ import {
   Toolbar,
   Typography,
   IconButton,
+  Button,
   Box,
   Avatar,
   Menu,
@@ -56,6 +57,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
 
   const handleLogout = () => {
     handleMenuClose();
+    navigate('/', { replace: true });
     logout();
   };
 
@@ -152,6 +154,22 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
 
         {/* Spacer */}
         <Box sx={{ flexGrow: 1 }} />
+
+        <Button
+          onClick={() => navigate('/discover')}
+          variant="contained"
+          sx={{
+            mr: 1,
+            borderRadius: 999,
+            px: 2,
+            py: 0.7,
+            fontWeight: 700,
+            textTransform: 'none',
+            display: { xs: 'none', sm: 'inline-flex' },
+          }}
+        >
+          Discover Resources
+        </Button>
 
         {/* Theme Toggle Button */}
         <IconButton

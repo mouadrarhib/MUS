@@ -9,7 +9,8 @@ import {
   AdminPanelSettings,
   UploadFile,
   AccountBalanceWallet,
-  School
+  School,
+  AutoAwesome
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
@@ -24,6 +25,12 @@ const QuickActions = () => {
       icon: Add,
       color: 'primary',
       onClick: () => navigate(isAdmin ? '/dashboard/resources' : '/dashboard/uploads'),
+    },
+    {
+      label: 'Discover Resources',
+      icon: AutoAwesome,
+      color: 'info',
+      onClick: () => navigate('/discover'),
     },
     {
       label: 'Settings',

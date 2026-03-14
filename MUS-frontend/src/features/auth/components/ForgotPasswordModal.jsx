@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Box, Typography, Stepper, Step, StepLabel } from '@mui/material';
 import { Email as EmailIcon, Lock as LockIcon } from '@mui/icons-material';
 import authService from '@/services/authService'
 import { Modal, TextField, PrimaryButton, OutlinedButton, useNotification } from '../../../shared/components/ui';
 import { useForm } from 'react-hook-form';
+import gsap from 'gsap';
 
 
 /**
@@ -13,6 +14,7 @@ export const ForgotPasswordModal = ({ open, onClose }) => {
   const { showSuccess, showError } = useNotification();
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const contentRef = useRef(null);
   const {
     register,
     reset,
@@ -28,6 +30,15 @@ export const ForgotPasswordModal = ({ open, onClose }) => {
   });
 
   const steps = ['Enter Email', 'Reset Password'];
+
+  useEffect(() => {
+    if (!contentRef.current || !open) return;
+    gsap.fromTo(
+      contentRef.current,
+      { opacity: 0, y: 14 },
+      { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }
+    );
+  }, [activeStep, open]);
 
   const handleVerifyEmail = async () => {
     const valid = await trigger('email');
@@ -182,15 +193,23 @@ export const ForgotPasswordModal = ({ open, onClose }) => {
       title="Forgot Password"
       maxWidth="sm"
       closeOnBackdropClick={!loading}
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          bgcolor: (theme) => (theme.palette.mode === 'dark' ? '#1f2937' : '#f7f8fa'),
+          border: '1px solid',
+          borderColor: 'divider',
+        },
+      }}
     >
-      <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+      <Stepper activeStep={activeStep} sx={{ mb: 3 }}>
         {steps.map((label) => (
           <Step key={label}>
             <StepLabel>{label}</StepLabel>
           </Step>
         ))}
       </Stepper>
-      {renderStepContent()}
+      <Box ref={contentRef}>{renderStepContent()}</Box>
     </Modal>
   );
 };
