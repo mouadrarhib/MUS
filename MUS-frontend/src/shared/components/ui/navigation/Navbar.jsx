@@ -360,144 +360,266 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
             MenuListProps={{
               'aria-label': 'User menu',
               autoFocusItem: open,
+              sx: { p: 0 },
             }}
             PaperProps={{
               elevation: 0,
               sx: {
-                minWidth: 220,
+                minWidth: 280,
                 mt: 1.5,
-                borderRadius: 2.5,
+                borderRadius: 3,
                 border: '1px solid',
                 borderColor: (theme) =>
                   theme.palette.mode === 'dark'
                     ? 'rgba(255,255,255,0.08)'
-                    : 'rgba(0,0,0,0.08)',
-                backdropFilter: 'blur(16px)',
+                    : 'rgba(0,0,0,0.07)',
+                backdropFilter: 'blur(20px)',
                 bgcolor: (theme) =>
                   theme.palette.mode === 'dark'
-                    ? 'rgba(24,20,36,0.95)'
-                    : 'rgba(255,255,255,0.95)',
+                    ? 'rgba(22,18,34,0.96)'
+                    : 'rgba(255,255,255,0.97)',
                 boxShadow: (theme) =>
                   theme.palette.mode === 'dark'
-                    ? '0 8px 32px rgba(0,0,0,0.5)'
-                    : '0 8px 32px rgba(0,0,0,0.1)',
-                overflow: 'visible',
-                '&:before': {
-                  content: '""',
-                  display: 'block',
-                  position: 'absolute',
-                  top: 0,
-                  right: isArabic ? 'auto' : 14,
-                  left: isArabic ? 14 : 'auto',
-                  width: 10,
-                  height: 10,
-                  bgcolor: (theme) =>
-                    theme.palette.mode === 'dark'
-                      ? 'rgba(24,20,36,0.95)'
-                      : 'rgba(255,255,255,0.95)',
-                  transform: 'translateY(-50%) rotate(45deg)',
-                  zIndex: 0,
-                  borderLeft: '1px solid',
-                  borderTop: '1px solid',
-                  borderColor: (theme) =>
-                    theme.palette.mode === 'dark'
-                      ? 'rgba(255,255,255,0.08)'
-                      : 'rgba(0,0,0,0.08)',
-                },
+                    ? '0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)'
+                    : '0 12px 40px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.03)',
+                overflow: 'hidden',
               },
             }}
           >
-            {/* User Info Header */}
-            <Box sx={{ px: 2, py: 1.5 }}>
-              <Typography variant="body2" fontWeight={700}>
-                {user?.full_name || 'User'}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                {user?.email || 'No email'}
-              </Typography>
+            {/* Profile Card Header */}
+            <Box
+              sx={{
+                position: 'relative',
+                overflow: 'hidden',
+                px: 2.5,
+                pt: 2.5,
+                pb: 2,
+              }}
+            >
+              {/* Gradient background accent */}
               <Box
                 sx={{
-                  mt: 1,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 0.6,
-                  px: 1,
-                  py: 0.35,
-                  borderRadius: 1.5,
-                  bgcolor: (theme) => alpha(theme.palette.warning.main, 0.1),
-                  border: '1px solid',
-                  borderColor: (theme) => alpha(theme.palette.warning.main, 0.18),
-                  color: 'warning.dark',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 72,
+                  background: 'linear-gradient(135deg, #7c5cfc 0%, #3b82f6 60%, #10b981 100%)',
+                  opacity: (theme) => theme.palette.mode === 'dark' ? 0.2 : 0.1,
                 }}
-              >
-                <EmojiEvents sx={{ fontSize: 13 }} />
-                {userPoints} pts
+              />
+
+              <Box display="flex" alignItems="center" gap={1.5} position="relative" zIndex={1}>
+                <Avatar
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    background: 'linear-gradient(135deg, #7c5cfc 0%, #3b82f6 100%)',
+                    fontWeight: 800,
+                    fontSize: '1.15rem',
+                    border: '3px solid',
+                    borderColor: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(124,92,252,0.3)'
+                        : 'rgba(255,255,255,0.9)',
+                    boxShadow: '0 4px 14px rgba(124,92,252,0.35)',
+                  }}
+                >
+                  {user?.full_name?.charAt(0) || 'U'}
+                </Avatar>
+
+                <Box flex={1} minWidth={0}>
+                  <Typography
+                    variant="subtitle2"
+                    fontWeight={800}
+                    noWrap
+                    sx={{ fontSize: '0.92rem', lineHeight: 1.3 }}
+                  >
+                    {user?.full_name || 'User'}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    noWrap
+                    sx={{ display: 'block', fontSize: '0.76rem', mt: 0.15 }}
+                  >
+                    {user?.email || 'No email'}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Role & Points badges */}
+              <Box display="flex" gap={0.8} mt={1.5} position="relative" zIndex={1}>
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    px: 1,
+                    py: 0.35,
+                    borderRadius: 1.5,
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                    border: '1px solid',
+                    borderColor: (theme) => alpha(theme.palette.primary.main, 0.18),
+                    color: 'primary.main',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.4,
+                  }}
+                >
+                  <Person sx={{ fontSize: 12 }} />
+                  {primaryRole}
+                </Box>
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.4,
+                    px: 1,
+                    py: 0.35,
+                    borderRadius: 1.5,
+                    bgcolor: (theme) => alpha(theme.palette.warning.main, 0.1),
+                    border: '1px solid',
+                    borderColor: (theme) => alpha(theme.palette.warning.main, 0.18),
+                    color: 'warning.dark',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  <EmojiEvents sx={{ fontSize: 12 }} />
+                  {userPoints} pts
+                </Box>
               </Box>
             </Box>
 
-            <Divider sx={{ borderColor: (theme) =>
-              theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }} />
+            <Divider sx={{
+              borderColor: (theme) =>
+                theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+            }} />
 
-            {/* Menu Items */}
-            <MenuItem
-              onClick={handleProfile}
-              sx={{
-                py: 1.2,
-                px: 2,
-                mx: 0.5,
-                my: 0.3,
-                borderRadius: 1.5,
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <ListItemIcon>
-                <Person fontSize="small" />
-              </ListItemIcon>
-              {t('navbar.profile')}
-            </MenuItem>
-
-            <MenuItem
-              onClick={handleSettings}
-              sx={{
-                py: 1.2,
-                px: 2,
-                mx: 0.5,
-                my: 0.3,
-                borderRadius: 1.5,
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <ListItemIcon>
-                <Settings fontSize="small" />
-              </ListItemIcon>
-              {t('navbar.settings')}
-            </MenuItem>
-
-            <Divider sx={{ borderColor: (theme) =>
-              theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }} />
-
-            <MenuItem
-              onClick={handleLogout}
-              sx={{
-                py: 1.2,
-                px: 2,
-                mx: 0.5,
-                my: 0.3,
-                borderRadius: 1.5,
-                color: 'error.main',
-                transition: 'all 0.15s ease',
-                '&:hover': {
-                  bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+            {/* Navigation Items */}
+            <Box sx={{ py: 0.8, px: 0.8 }}>
+              {[
+                {
+                  icon: Person,
+                  label: t('navbar.profile'),
+                  description: 'View & edit your profile',
+                  onClick: handleProfile,
+                  color: '#7c5cfc',
                 },
-              }}
-            >
-              <ListItemIcon>
-                <Logout fontSize="small" color="error" />
-              </ListItemIcon>
-              {t('navbar.logout')}
-            </MenuItem>
+                {
+                  icon: Settings,
+                  label: t('navbar.settings'),
+                  description: 'Preferences & account',
+                  onClick: handleSettings,
+                  color: '#3b82f6',
+                },
+              ].map((item) => {
+                const ItemIcon = item.icon;
+                return (
+                  <MenuItem
+                    key={item.label}
+                    onClick={item.onClick}
+                    sx={{
+                      py: 1.2,
+                      px: 1.5,
+                      borderRadius: 2,
+                      mb: 0.3,
+                      gap: 1.5,
+                      transition: 'all 0.18s ease',
+                      '&:hover': {
+                        bgcolor: (theme) => alpha(item.color, theme.palette.mode === 'dark' ? 0.12 : 0.06),
+                        '& .menu-icon-box': {
+                          borderColor: alpha(item.color, 0.35),
+                          bgcolor: alpha(item.color, 0.15),
+                        },
+                      },
+                    }}
+                  >
+                    <Box
+                      className="menu-icon-box"
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: alpha(item.color, 0.08),
+                        border: '1px solid',
+                        borderColor: alpha(item.color, 0.15),
+                        transition: 'all 0.18s ease',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <ItemIcon sx={{ fontSize: 18, color: item.color }} />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.85rem', lineHeight: 1.2 }}>
+                        {item.label}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+                        {item.description}
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                );
+              })}
+            </Box>
+
+            <Divider sx={{
+              borderColor: (theme) =>
+                theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+            }} />
+
+            {/* Logout */}
+            <Box sx={{ py: 0.8, px: 0.8 }}>
+              <MenuItem
+                onClick={handleLogout}
+                sx={{
+                  py: 1.2,
+                  px: 1.5,
+                  borderRadius: 2,
+                  gap: 1.5,
+                  transition: 'all 0.18s ease',
+                  '&:hover': {
+                    bgcolor: (theme) => alpha(theme.palette.error.main, 0.07),
+                    '& .logout-icon-box': {
+                      borderColor: (theme) => alpha(theme.palette.error.main, 0.35),
+                      bgcolor: (theme) => alpha(theme.palette.error.main, 0.15),
+                    },
+                  },
+                }}
+              >
+                <Box
+                  className="logout-icon-box"
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+                    border: '1px solid',
+                    borderColor: (theme) => alpha(theme.palette.error.main, 0.15),
+                    transition: 'all 0.18s ease',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Logout sx={{ fontSize: 18, color: 'error.main' }} />
+                </Box>
+                <Box>
+                  <Typography variant="body2" fontWeight={700} color="error.main" sx={{ fontSize: '0.85rem', lineHeight: 1.2 }}>
+                    {t('navbar.logout')}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+                    Sign out of your account
+                  </Typography>
+                </Box>
+              </MenuItem>
+            </Box>
           </Menu>
         </Box>
       </Toolbar>
