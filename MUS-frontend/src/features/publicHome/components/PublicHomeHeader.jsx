@@ -15,7 +15,7 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
 
   const languageOptions = [
     { code: "en", label: "English" },
-    { code: "fr", label: "Francais" },
+    { code: "fr", label: "Français" },
     { code: "ar", label: "العربية" },
   ];
 
@@ -32,9 +32,21 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
         position: "sticky",
         top: 0,
         zIndex: 20,
-        bgcolor: (theme) => (theme.palette.mode === "dark" ? "#171424" : "#ffffff"),
+        backdropFilter: "blur(16px) saturate(1.6)",
+        WebkitBackdropFilter: "blur(16px) saturate(1.6)",
+        bgcolor: (theme) =>
+          theme.palette.mode === "dark"
+            ? "rgba(18,15,30,0.82)"
+            : "rgba(255,255,255,0.78)",
         borderBottom: "1px solid",
-        borderColor: (theme) => (theme.palette.mode === "dark" ? alpha("#fff", 0.08) : "divider"),
+        borderColor: (theme) =>
+          theme.palette.mode === "dark"
+            ? "rgba(255,255,255,0.06)"
+            : "rgba(0,0,0,0.06)",
+        boxShadow: (theme) =>
+          theme.palette.mode === "dark"
+            ? "0 1px 12px rgba(0,0,0,0.4)"
+            : "0 1px 12px rgba(0,0,0,0.04)",
       }}
       data-anim="nav"
     >
@@ -44,35 +56,56 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
           maxWidth: 1320,
           mx: "auto",
           px: { xs: 1.5, sm: 2.5, md: 3.5 },
-          height: 74,
+          height: 68,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
         }}
       >
-        <Stack direction="row" spacing={2.5} alignItems="center">
-          <IconButton size="small" sx={{ color: "text.primary" }}>
-            <Menu />
+        {/* Left: Hamburger + Logo + Nav links */}
+        <Stack direction="row" spacing={2} alignItems="center">
+          <IconButton
+            size="small"
+            sx={{
+              color: "text.primary",
+              border: "1px solid",
+              borderColor: (theme) =>
+                theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
+              borderRadius: 2,
+              p: 0.8,
+              transition: "all 0.2s ease",
+              "&:hover": {
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                borderColor: (theme) => alpha(theme.palette.primary.main, 0.3),
+              },
+            }}
+          >
+            <Menu sx={{ fontSize: 20 }} />
           </IconButton>
-          <Stack component={RouterLink} to="/" direction="row" spacing={1} alignItems="center" sx={{ textDecoration: "none" }}>
-            <Box component="img" src={logo} alt="MUS Logo" sx={{ height: 34, width: "auto", objectFit: "contain" }} />
-            <Typography variant="h5" fontWeight={800} sx={{ color: "text.primary", letterSpacing: "-0.01em" }}>
-              MUS
-            </Typography>
+
+          <Stack component={RouterLink} to="/" direction="row" alignItems="center" sx={{ textDecoration: "none" }}>
+            <Box component="img" src={logo} alt="MUS Logo" sx={{ height: 40, width: "auto", objectFit: "contain" }} />
           </Stack>
-          <Stack direction="row" spacing={3} sx={{ display: { xs: "none", md: "flex" } }}>
+
+          <Stack direction="row" spacing={0.5} sx={{ display: { xs: "none", md: "flex" } }}>
             {navLinks.map((link) => (
               <Typography
                 key={link.key || link.labelKey || link}
                 component={RouterLink}
                 to={link.key === "resources" ? "/discover" : "/"}
-                variant="body1"
+                variant="body2"
                 sx={{
-                  fontWeight: 700,
+                  fontWeight: 600,
                   color: "text.secondary",
                   textDecoration: "none",
-                  transition: "color 0.2s ease",
-                  "&:hover": { color: "primary.main" },
+                  px: 1.5,
+                  py: 0.6,
+                  borderRadius: 2,
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    color: "primary.main",
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+                  },
                 }}
               >
                 {t(link.labelKey || "", link.key || link)}
@@ -81,14 +114,29 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
           </Stack>
         </Stack>
 
-        <Stack direction="row" spacing={1} alignItems="center">
+        {/* Right: Theme toggle + Sign in + Language */}
+        <Stack direction="row" spacing={0.8} alignItems="center">
           <IconButton
             onClick={toggleTheme}
             aria-label={mode === "light" ? "Switch to dark mode" : "Switch to light mode"}
             size="small"
-            sx={{ color: "text.primary", bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1), border: "1px solid", borderColor: "divider", "&:hover": { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.18) } }}
+            sx={{
+              color: "text.primary",
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+              border: "1px solid",
+              borderColor: (theme) =>
+                theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
+              borderRadius: 2,
+              p: 0.8,
+              transition: "all 0.22s ease",
+              "&:hover": {
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.14),
+                borderColor: (theme) => alpha(theme.palette.primary.main, 0.3),
+                transform: "rotate(15deg)",
+              },
+            }}
           >
-            {mode === "light" ? <DarkMode fontSize="small" /> : <LightMode fontSize="small" />}
+            {mode === "light" ? <DarkMode sx={{ fontSize: 18 }} /> : <LightMode sx={{ fontSize: 18, color: "warning.main" }} />}
           </IconButton>
 
           <Button
@@ -96,14 +144,19 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
             to="/login"
             variant="contained"
             sx={{
-              borderRadius: 999,
-              px: 2.4,
-              py: 0.75,
-              fontWeight: 800,
+              borderRadius: 2,
+              px: 2.2,
+              py: 0.7,
+              fontWeight: 700,
               textTransform: "none",
-              bgcolor: "#44d62c",
-              color: "#fff",
-              "&:hover": { bgcolor: "#3ec427" },
+              fontSize: "0.85rem",
+              background: "linear-gradient(135deg, #44d62c 0%, #36b824 100%)",
+              boxShadow: "0 2px 8px rgba(68,214,44,0.3)",
+              border: "1px solid rgba(68,214,44,0.2)",
+              "&:hover": {
+                background: "linear-gradient(135deg, #3ec427 0%, #30a820 100%)",
+                boxShadow: "0 4px 14px rgba(68,214,44,0.4)",
+              },
             }}
           >
             {t("publicHome.header.signIn", "Sign in")}
@@ -112,17 +165,23 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
           <Button
             onClick={handleLanguageOpen}
             variant="outlined"
-            startIcon={<Language fontSize="small" />}
+            startIcon={<Language sx={{ fontSize: 16 }} />}
             sx={{
               minWidth: 0,
-              borderRadius: 999,
-              px: 1.35,
+              borderRadius: 2,
+              px: 1.2,
               py: 0.6,
               textTransform: "none",
               fontWeight: 700,
-              borderColor: "divider",
+              fontSize: "0.8rem",
+              borderColor: (theme) =>
+                theme.palette.mode === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
               color: "text.primary",
-              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+              transition: "all 0.2s ease",
+              "&:hover": {
+                borderColor: (theme) => alpha(theme.palette.primary.main, 0.4),
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+              },
             }}
           >
             {String(language || "en").toUpperCase()}
@@ -139,14 +198,30 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
               sx: {
                 mt: 1,
                 minWidth: 180,
-                borderRadius: 2,
+                borderRadius: 2.5,
                 border: "1px solid",
-                borderColor: "divider",
+                borderColor: (theme) =>
+                  theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
+                backdropFilter: "blur(16px)",
+                bgcolor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(24,20,36,0.95)"
+                    : "rgba(255,255,255,0.95)",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
               },
             }}
           >
             {languageOptions.map((option) => (
-              <MenuItem key={option.code} onClick={() => handleLanguageSelect(option.code)}>
+              <MenuItem
+                key={option.code}
+                onClick={() => handleLanguageSelect(option.code)}
+                sx={{
+                  borderRadius: 1.5,
+                  mx: 0.5,
+                  my: 0.2,
+                  transition: "all 0.15s ease",
+                }}
+              >
                 <ListItemIcon sx={{ minWidth: 26 }}>
                   {language === option.code ? <Check fontSize="small" color="primary" /> : null}
                 </ListItemIcon>

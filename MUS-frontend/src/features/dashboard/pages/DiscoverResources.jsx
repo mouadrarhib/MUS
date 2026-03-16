@@ -3,6 +3,8 @@ import {
   Box,
   Chip,
   Paper,
+  Snackbar,
+  Alert,
   Skeleton,
   Stack,
   ToggleButton,
@@ -10,13 +12,21 @@ import {
   Typography,
   alpha,
 } from '@mui/material';
-import { AutoAwesome, School, MenuBook } from '@mui/icons-material';
+import { AutoAwesome, School, MenuBook, Explore } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import DiscoverNavbar from '@/features/discover/components/DiscoverNavbar';
 import RecommendationResourceCard from '@/features/dashboard/components/RecommendationResourceCard';
 import resourcesService from '@/services/resourcesService';
 import personalizationService from '@/services/personalizationService';
+import favoritesService from '@/services/favoritesService';
+import { keyframes } from '@mui/system';
+
+/* ── subtle shine animation on the welcome header ── */
+const shimmer = keyframes`
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+`;
 
 const parseScore = (value) => {
   const num = Number(value);
@@ -58,6 +68,24 @@ const groupResources = (resources, keyGetter) => {
     .sort((a, b) => b.items.length - a.items.length || a.name.localeCompare(b.name));
 };
 
+/* ── Reusable card styling ── */
+const panelSx = (theme) => ({
+  borderRadius: 3.5,
+  border: '1px solid',
+  borderColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)',
+  background:
+    theme.palette.mode === 'dark'
+      ? 'linear-gradient(155deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)'
+      : 'linear-gradient(155deg, rgba(255,255,255,0.92) 0%, rgba(248,249,255,0.95) 100%)',
+  backdropFilter: 'blur(10px)',
+  boxShadow:
+    theme.palette.mode === 'dark'
+      ? '0 2px 20px rgba(0,0,0,0.3)'
+      : '0 4px 24px rgba(20,20,60,0.06)',
+  overflow: 'hidden',
+  position: 'relative',
+});
+
 const DiscoverResources = () => {
   const navigate = useNavigate();
   const { logout, user, isAuthenticated } = useAuth();
@@ -65,6 +93,10 @@ const DiscoverResources = () => {
   const [resources, setResources] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [view, setView] = useState('universities');
+  const [likedMap, setLikedMap] = useState({});
+  const [likeLoadingId, setLikeLoadingId] = useState(null);
+  const [downloadLoadingId, setDownloadLoadingId] = useState(null);
+  const [feedback, setFeedback] = useState({ open: false, severity: 'info', message: '' });
 
   useEffect(() => {
     let mounted = true;
@@ -98,6 +130,37 @@ const DiscoverResources = () => {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!isAuthenticated) {
+      setLikedMap({});
+      return () => {
+        mounted = false;
+      };
+    }
+
+    const loadFavorites = async () => {
+      try {
+        const favorites = await favoritesService.getAllFavorites();
+        if (!mounted) return;
+
+        const mapped = (Array.isArray(favorites) ? favorites : []).reduce((acc, fav) => {
+          const id = Number(fav?.resource_id || fav?.id || 0);
+          if (id > 0) acc[id] = true;
+          return acc;
+        }, {});
+        setLikedMap(mapped);
+      } catch {
+        if (mounted) setLikedMap({});
+      }
+    };
+
+    loadFavorites();
+    return () => {
+      mounted = false;
+    };
+  }, [isAuthenticated]);
 
   const rankedResources = useMemo(() => {
     const recommendationMap = new Map();
@@ -136,159 +199,315 @@ const DiscoverResources = () => {
     logout();
   };
 
+  const ensureAuthenticated = () => {
+    if (isAuthenticated) return true;
+    navigate('/login', { state: { from: { pathname: '/discover' } } });
+    return false;
+  };
+
+  const handleToggleLike = async (resourceId) => {
+    if (!resourceId || !ensureAuthenticated()) return;
+
+    try {
+      setLikeLoadingId(resourceId);
+      await favoritesService.toggleFavorite(resourceId);
+      setLikedMap((prev) => ({ ...prev, [resourceId]: !prev[resourceId] }));
+    } catch {
+      setFeedback({ open: true, severity: 'error', message: 'Failed to update favorite.' });
+    } finally {
+      setLikeLoadingId(null);
+    }
+  };
+
+  const handleDownload = async (resourceId) => {
+    if (!resourceId || !ensureAuthenticated()) return;
+
+    try {
+      setDownloadLoadingId(resourceId);
+      const result = await resourcesService.getResourceFileUrl(resourceId, { download: true });
+      const url = result?.download_url || result?.url;
+      if (!url) throw new Error('No download URL available');
+
+      window.open(url, '_blank', 'noopener,noreferrer');
+      try {
+        await resourcesService.recordDownload(resourceId);
+      } catch {
+        // silent analytics fail
+      }
+    } catch (error) {
+      const status = Number(error?.response?.status || 0);
+      if (status === 403) {
+        setFeedback({ open: true, severity: 'warning', message: 'This resource requires premium access to download.' });
+      } else {
+        setFeedback({ open: true, severity: 'error', message: 'Unable to download this resource now.' });
+      }
+    } finally {
+      setDownloadLoadingId(null);
+    }
+  };
+
   return (
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: (theme) => (theme.palette.mode === 'dark' ? '#120f1d' : '#f2f4f8'),
+        background: (theme) =>
+          theme.palette.mode === 'dark'
+            ? 'linear-gradient(160deg, #0f0c1d 0%, #120f20 55%, #0c101a 100%)'
+            : 'linear-gradient(160deg, #f0eeff 0%, #f2f4f8 55%, #edf2ff 100%)',
       }}
     >
       <DiscoverNavbar onLogout={handleLogout} isAuthenticated={isAuthenticated} />
 
-      <Box sx={{ width: '100%', maxWidth: 1320, mx: 'auto', px: { xs: 1.5, sm: 2.5, md: 3.5 }, py: { xs: 2.2, md: 3.2 } }}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: { xs: 2.2, md: 3 },
-            mb: 2.5,
-            borderRadius: 3.2,
-            border: '1px solid',
-            borderColor: (theme) => (theme.palette.mode === 'dark' ? alpha('#fff', 0.1) : alpha(theme.palette.primary.main, 0.16)),
-            background: (theme) =>
-              theme.palette.mode === 'dark'
-                ? 'linear-gradient(145deg, #231a39 0%, #19142a 100%)'
-                : 'linear-gradient(145deg, #ffffff 0%, #f8faff 100%)',
-          }}
-        >
-          <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ xs: 'flex-start', md: 'center' }} justifyContent="space-between" spacing={1.5}>
+      <Box sx={{ width: '100%', maxWidth: 1320, mx: 'auto', px: { xs: 1.5, sm: 2.5, md: 3.5 }, py: { xs: 2.5, md: 3.5 } }}>
+
+        {/* ─── Welcome header ─── */}
+        <Box sx={(theme) => ({ ...panelSx(theme), p: { xs: 2.5, md: 3 }, mb: 3 })}>
+          {/* Top accent gradient */}
+          <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #7c5cfc, #3b82f6, #10b981)' }} />
+
+          <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ xs: 'flex-start', md: 'center' }} justifyContent="space-between" spacing={2}>
             <Box>
-              <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: '0.12em', fontWeight: 700 }}>
-                Personalized Discovery
-              </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.8 }}>
+                <Box
+                  sx={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 1.5,
+                    background: 'linear-gradient(135deg, #7c5cfc, #3b82f6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Explore sx={{ fontSize: 16, color: '#fff' }} />
+                </Box>
+                <Typography
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: '0.72rem',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    color: '#7c5cfc',
+                  }}
+                >
+                  Personalized Discovery
+                </Typography>
+              </Stack>
+
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 800,
+                  mb: 0.5,
+                  fontSize: { xs: '1.3rem', md: '1.5rem' },
+                  color: (theme) => (theme.palette.mode === 'dark' ? '#f0ecff' : '#0d0b1a'),
+                }}
+              >
                 Welcome, {user?.full_name || 'Student'}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography
+                variant="body2"
+                sx={{ color: 'text.secondary', fontSize: '0.88rem' }}
+              >
                 Resources are ranked by recommendation score and grouped by academic context.
               </Typography>
             </Box>
+
             <ToggleButtonGroup
               size="small"
               value={view}
               exclusive
               onChange={(_, next) => next && setView(next)}
               sx={{
-                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                borderRadius: 999,
-                px: 0.6,
-                py: 0.4,
-                '& .MuiToggleButton-root': { border: 0, px: 1.5, borderRadius: 999, fontWeight: 700 },
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.07),
+                borderRadius: 2.5,
+                p: 0.4,
+                gap: 0.5,
+                '& .MuiToggleButton-root': {
+                  border: 0,
+                  px: 2,
+                  py: 0.6,
+                  borderRadius: '8px !important',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  textTransform: 'none',
+                  transition: 'all 0.2s ease',
+                  '&.Mui-selected': {
+                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(124,92,252,0.2)' : '#fff',
+                    boxShadow: (theme) => theme.palette.mode === 'dark' ? 'none' : '0 2px 8px rgba(0,0,0,0.06)',
+                    color: 'primary.main',
+                  },
+                },
               }}
             >
-              <ToggleButton value="universities">Universities</ToggleButton>
-              <ToggleButton value="modules">Modules</ToggleButton>
+              <ToggleButton value="universities">
+                <School sx={{ fontSize: 16, mr: 0.6 }} />
+                Universities
+              </ToggleButton>
+              <ToggleButton value="modules">
+                <MenuBook sx={{ fontSize: 16, mr: 0.6 }} />
+                Modules
+              </ToggleButton>
             </ToggleButtonGroup>
           </Stack>
-        </Paper>
+        </Box>
 
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            mb: 2.5,
-            borderRadius: 3,
-            border: '1px solid',
-            borderColor: 'divider',
-            background: (theme) =>
-              theme.palette.mode === 'dark'
-                ? 'linear-gradient(135deg, #1e192f 0%, #171224 100%)'
-                : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-          }}
-        >
-          <Box display="flex" alignItems="center" gap={1} mb={1.5}>
-            <AutoAwesome sx={{ fontSize: 18, color: 'primary.main' }} />
-            <Typography variant="subtitle2" fontWeight={700}>
-              Recommended For You
-            </Typography>
-          </Box>
-
-          {loading ? (
-            <Box sx={{ display: 'grid', gap: 1.25 }}>
-              {[...Array(3)].map((_, idx) => (
-                <Skeleton key={`rec-skeleton-${idx}`} variant="rounded" height={60} />
-              ))}
-            </Box>
-        ) : recommendations.length === 0 ? (
-          <Typography variant="caption" color="text.secondary">
-            No personalized recommendations yet. Add profile tags to improve matching.
-          </Typography>
-        ) : (
+        {/* ─── Recommended For You ─── */}
+        <Box sx={(theme) => ({ ...panelSx(theme), p: { xs: 2, md: 2.5 }, mb: 3 })}>
           <Box
             sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
-              gap: 1.2,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 2,
+              background: 'linear-gradient(90deg, #f59e0b 0%, #ec4899 100%)',
             }}
-          >
-            {recommendations.slice(0, 6).map((item, index) => {
-              return (
-                <RecommendationResourceCard
-                  key={`discover-recommendation-${item.resource_id || item.id}`}
-                  item={item}
-                  index={index}
-                  score={parseScore(item.score)}
-                  matchReasons={item.match_reasons}
-                  showScore
-                  showMatchReasons
-                />
-              );
-            })}
-          </Box>
-        )}
-      </Paper>
+          />
 
-        <Box sx={{ display: 'grid', gap: 1.4 }}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+            <Box
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: 1.5,
+                bgcolor: 'rgba(245,158,11,0.12)',
+                border: '1px solid rgba(245,158,11,0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <AutoAwesome sx={{ fontSize: 15, color: '#f59e0b' }} />
+            </Box>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.9rem' }}>
+              Recommended For You
+            </Typography>
+            {!loading && recommendations.length > 0 && (
+              <Chip
+                size="small"
+                label={`${recommendations.length} match${recommendations.length !== 1 ? 'es' : ''}`}
+                sx={{
+                  height: 20,
+                  fontSize: '0.66rem',
+                  fontWeight: 700,
+                  bgcolor: 'rgba(245,158,11,0.1)',
+                  color: '#f59e0b',
+                  border: '1px solid rgba(245,158,11,0.22)',
+                  '& .MuiChip-label': { px: 0.7 },
+                }}
+              />
+            )}
+          </Stack>
+
           {loading ? (
-            [...Array(5)].map((_, idx) => (
-              <Skeleton key={`group-skeleton-${idx}`} variant="rounded" height={92} />
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 1.5 }}>
+              {[...Array(4)].map((_, idx) => (
+                <Skeleton key={`rec-skeleton-${idx}`} variant="rounded" height={80} sx={{ borderRadius: 2.5 }} />
+              ))}
+            </Box>
+          ) : recommendations.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3, opacity: 0.7, fontSize: '0.88rem' }}>
+              No personalized recommendations yet. Add profile tags to improve matching.
+            </Typography>
+          ) : (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
+                gap: 1.5,
+              }}
+            >
+              {recommendations.slice(0, 6).map((item, index) => {
+                return (
+                  <RecommendationResourceCard
+                    key={`discover-recommendation-${item.resource_id || item.id}`}
+                    item={item}
+                    index={index}
+                    score={parseScore(item.score)}
+                    matchReasons={item.match_reasons}
+                    showScore
+                    showMatchReasons
+                    showActions
+                    isLiked={Boolean(likedMap[Number(item?.resource_id || item?.id || 0)])}
+                    likeLoading={likeLoadingId === Number(item?.resource_id || item?.id || 0)}
+                    downloadLoading={downloadLoadingId === Number(item?.resource_id || item?.id || 0)}
+                    onToggleLike={() => handleToggleLike(Number(item?.resource_id || item?.id || 0))}
+                    onDownload={() => handleDownload(Number(item?.resource_id || item?.id || 0))}
+                  />
+                );
+              })}
+            </Box>
+          )}
+        </Box>
+
+        {/* ─── Grouped resources ─── */}
+        <Box sx={{ display: 'grid', gap: 2 }}>
+          {loading ? (
+            [...Array(3)].map((_, idx) => (
+              <Skeleton key={`group-skeleton-${idx}`} variant="rounded" height={120} sx={{ borderRadius: 3 }} />
             ))
           ) : groupsToRender.length === 0 ? (
-            <Paper
-              elevation={0}
-              sx={{ p: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', textAlign: 'center' }}
+            <Box
+              sx={(theme) => ({
+                ...panelSx(theme),
+                p: 4,
+                textAlign: 'center',
+              })}
             >
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="text.secondary" sx={{ opacity: 0.7 }}>
                 No resources available yet.
               </Typography>
-            </Paper>
+            </Box>
           ) : (
             groupsToRender.map((group) => (
-              <Paper
+              <Box
                 key={`${view}-${group.name}`}
-                elevation={0}
-                sx={{
-                  p: 1.8,
-                  borderRadius: 3,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  background: (theme) =>
-                    theme.palette.mode === 'dark'
-                      ? 'linear-gradient(135deg, #1e192f 0%, #171224 100%)'
-                      : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-                }}
+                sx={(theme) => ({
+                  ...panelSx(theme),
+                  p: { xs: 2, md: 2.5 },
+                })}
               >
-                <Box display="flex" alignItems="center" gap={1} mb={1.1}>
-                  {view === 'modules' ? (
-                    <MenuBook sx={{ fontSize: 16, color: 'primary.main' }} />
-                  ) : (
-                    <School sx={{ fontSize: 16, color: 'primary.main' }} />
-                  )}
-                  <Typography variant="subtitle2" fontWeight={700} noWrap>
+                {/* Group header */}
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                  <Box
+                    sx={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 1.5,
+                      bgcolor: view === 'modules' ? 'rgba(59,130,246,0.1)' : 'rgba(124,92,252,0.1)',
+                      border: '1px solid',
+                      borderColor: view === 'modules' ? 'rgba(59,130,246,0.22)' : 'rgba(124,92,252,0.22)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {view === 'modules' ? (
+                      <MenuBook sx={{ fontSize: 14, color: '#3b82f6' }} />
+                    ) : (
+                      <School sx={{ fontSize: 14, color: '#7c5cfc' }} />
+                    )}
+                  </Box>
+                  <Typography variant="subtitle2" fontWeight={700} noWrap sx={{ fontSize: '0.9rem' }}>
                     {group.name}
                   </Typography>
-                  <Chip size="small" label={`${group.items.length} resources`} />
-                </Box>
+                  <Chip
+                    size="small"
+                    label={`${group.items.length}`}
+                    sx={{
+                      height: 20,
+                      minWidth: 28,
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                      color: 'primary.main',
+                      '& .MuiChip-label': { px: 0.6 },
+                    }}
+                  />
+                </Stack>
 
+                {/* Cards */}
                 <Box
                   sx={{
                     display: 'grid',
@@ -296,7 +515,7 @@ const DiscoverResources = () => {
                       xs: '1fr',
                       md: 'repeat(2, minmax(0, 1fr))',
                     },
-                    gap: 1.2,
+                    gap: 1.5,
                   }}
                 >
                   {group.items.slice(0, 8).map((resource, index) => {
@@ -305,15 +524,37 @@ const DiscoverResources = () => {
                         key={`${group.name}-${getResourceId(resource)}-${index}`}
                         item={resource}
                         index={index}
+                        showActions
+                        isLiked={Boolean(likedMap[getResourceId(resource)])}
+                        likeLoading={likeLoadingId === getResourceId(resource)}
+                        downloadLoading={downloadLoadingId === getResourceId(resource)}
+                        onToggleLike={() => handleToggleLike(getResourceId(resource))}
+                        onDownload={() => handleDownload(getResourceId(resource))}
                       />
                     );
                   })}
                 </Box>
-              </Paper>
+              </Box>
             ))
           )}
         </Box>
       </Box>
+
+      <Snackbar
+        open={feedback.open}
+        autoHideDuration={3200}
+        onClose={() => setFeedback((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setFeedback((prev) => ({ ...prev, open: false }))}
+          severity={feedback.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {feedback.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

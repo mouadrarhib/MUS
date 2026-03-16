@@ -662,26 +662,50 @@ const Overview = () => {
           <Paper
             elevation={0}
             sx={{
-              p: 2,
-              borderRadius: 3,
+              p: 2.5,
+              borderRadius: 3.5,
               border: '1px solid',
-              borderColor: 'divider',
+              borderColor: (theme) =>
+                theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)',
               background: (theme) => theme.palette.mode === 'dark'
-                ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-                : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                ? 'linear-gradient(155deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)'
+                : 'linear-gradient(155deg, rgba(255,255,255,0.92) 0%, rgba(248,249,255,0.95) 100%)',
+              backdropFilter: 'blur(10px)',
+              boxShadow: (theme) =>
+                theme.palette.mode === 'dark'
+                  ? '0 2px 20px rgba(0,0,0,0.3)'
+                  : '0 4px 24px rgba(20,20,60,0.06)',
+              overflow: 'hidden',
+              position: 'relative',
             }}
           >
-            <Box display="flex" alignItems="center" gap={1} mb={1.5}>
-              <School sx={{ fontSize: 18, color: 'primary.main' }} />
-              <Typography variant="subtitle2" fontWeight={700}>
+            {/* Top gradient accent */}
+            <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #f59e0b 0%, #ec4899 100%)' }} />
+
+            <Box display="flex" alignItems="center" gap={1} mb={2}>
+              <Box
+                sx={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 1.5,
+                  bgcolor: 'rgba(245,158,11,0.12)',
+                  border: '1px solid rgba(245,158,11,0.25)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <School sx={{ fontSize: 15, color: '#f59e0b' }} />
+              </Box>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.9rem' }}>
                 Recommended For You
               </Typography>
             </Box>
 
             {recommendationsLoading ? (
-              <Box sx={{ display: 'grid', gap: 1.25 }}>
-                {[...Array(3)].map((_, index) => (
-                  <Skeleton key={`recommendation-skeleton-${index}`} variant="rounded" height={62} />
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 1.5 }}>
+                {[...Array(4)].map((_, index) => (
+                  <Skeleton key={`recommendation-skeleton-${index}`} variant="rounded" height={80} sx={{ borderRadius: 2.5 }} />
                 ))}
               </Box>
             ) : recommendations.length === 0 ? (
@@ -689,7 +713,7 @@ const Overview = () => {
                 Add interest tags in your profile to improve recommendations.
               </Typography>
             ) : (
-              <Box sx={{ display: 'grid', gap: 1.25 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 1.5 }}>
                 {recommendations.map((item, index) => (
                   <RecommendationResourceCard
                     key={`recommendation-${item.resource_id || item.id}`}
