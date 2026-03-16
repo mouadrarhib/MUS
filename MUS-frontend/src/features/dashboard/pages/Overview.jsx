@@ -20,6 +20,7 @@ import {
 import StatsOverview from '../components/StatsOverview';
 import QuickActions from '../components/QuickActions';
 import { ResourceDonut, EngagementBars } from '../components/MiniChart';
+import RecommendationResourceCard from '../components/RecommendationResourceCard';
 
 import adminService from '@/services/adminService';
 import resourcesService from '@/services/resourcesService';
@@ -689,26 +690,16 @@ const Overview = () => {
               </Typography>
             ) : (
               <Box sx={{ display: 'grid', gap: 1.25 }}>
-                {recommendations.map((item) => (
-                  <Box
+                {recommendations.map((item, index) => (
+                  <RecommendationResourceCard
                     key={`recommendation-${item.resource_id || item.id}`}
-                    sx={{
-                      p: 1.25,
-                      borderRadius: 2,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                    }}
-                  >
-                    <Box display="flex" alignItems="center" justifyContent="space-between" gap={1} mb={0.5}>
-                      <Typography variant="body2" fontWeight={700} noWrap>
-                        {item.title}
-                      </Typography>
-                      <Chip size="small" label={`Score ${Number(item.score || 0).toFixed(1)}`} />
-                    </Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      {(item.match_reasons || []).slice(0, 2).join(' • ') || 'Personalized match'}
-                    </Typography>
-                  </Box>
+                    item={item}
+                    index={index}
+                    score={Number(item.score || 0)}
+                    matchReasons={item.match_reasons}
+                    showScore
+                    showMatchReasons
+                  />
                 ))}
               </Box>
             )}

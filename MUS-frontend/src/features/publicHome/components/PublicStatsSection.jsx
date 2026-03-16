@@ -1,12 +1,13 @@
-import { Box, Stack, Typography, alpha } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { Description, AccountBalance, Group } from "@mui/icons-material";
+import { useLanguage } from "@/app/providers/LanguageContext";
 
 const statsItems = [
   {
     count: 50,
     suffix: "M",
-    title: "Study resources",
-    chip: "1 new each second",
+    titleKey: "publicHome.stats.items.resources.title",
+    chipKey: "publicHome.stats.items.resources.chip",
     accentColor: "#7c5cfc",
     chipBg: "rgba(124,92,252,0.12)",
     chipBorder: "rgba(124,92,252,0.35)",
@@ -18,8 +19,8 @@ const statsItems = [
   {
     count: 120,
     suffix: "K",
-    title: "Institutions",
-    chip: "In 100+ countries",
+    titleKey: "publicHome.stats.items.institutions.title",
+    chipKey: "publicHome.stats.items.institutions.chip",
     accentColor: "#10b981",
     chipBg: "rgba(16,185,129,0.1)",
     chipBorder: "rgba(16,185,129,0.35)",
@@ -31,8 +32,8 @@ const statsItems = [
   {
     count: 60,
     suffix: "M",
-    title: "Users",
-    chip: "Active every month",
+    titleKey: "publicHome.stats.items.users.title",
+    chipKey: "publicHome.stats.items.users.chip",
     accentColor: "#f59e0b",
     chipBg: "rgba(245,158,11,0.1)",
     chipBorder: "rgba(245,158,11,0.35)",
@@ -43,8 +44,11 @@ const statsItems = [
   },
 ];
 
-const PublicStatsSection = () => (
-  <Box
+const PublicStatsSection = () => {
+  const { t } = useLanguage();
+
+  return (
+    <Box
     sx={{
       position: "relative",
       overflow: "hidden",
@@ -98,7 +102,7 @@ const PublicStatsSection = () => (
               theme.palette.mode === "dark" ? "#f7f5ff" : "#0d0b1a",
           }}
         >
-          Over 1 billion students helped, and counting
+          {t("publicHome.stats.title", "Over 1 billion students helped, and counting")}
         </Typography>
         <Typography
           sx={{
@@ -111,8 +115,10 @@ const PublicStatsSection = () => (
             lineHeight: 1.6,
           }}
         >
-          50K new study notes added every day, from the world's most active
-          student communities
+          {t(
+            "publicHome.stats.subtitle",
+            "50K new study notes added every day, from the world's most active student communities"
+          )}
         </Typography>
       </Stack>
 
@@ -130,7 +136,7 @@ const PublicStatsSection = () => (
       >
         {statsItems.map((item) => (
           <Box
-            key={item.title}
+            key={item.titleKey}
             data-stats-item
             sx={{
               position: "relative",
@@ -225,7 +231,7 @@ const PublicStatsSection = () => (
                     : "#1a1d2e",
               }}
             >
-              {item.title}
+              {t(item.titleKey, "")}
             </Typography>
 
             {/* Chip pill */}
@@ -258,13 +264,14 @@ const PublicStatsSection = () => (
                   flexShrink: 0,
                 }}
               />
-              {item.chip}
-            </Box>
+               {t(item.chipKey, "")}
+             </Box>
           </Box>
         ))}
       </Box>
     </Box>
   </Box>
-);
+  );
+};
 
 export default PublicStatsSection;

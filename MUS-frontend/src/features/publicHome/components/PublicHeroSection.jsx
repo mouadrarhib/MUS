@@ -1,8 +1,11 @@
 import { Box, Button, Paper, Stack, Typography, alpha } from "@mui/material";
 import { Search, KeyboardArrowDown } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
+import { useLanguage } from "@/app/providers/LanguageContext";
 
 const PublicHeroSection = ({ theme }) => {
+  const { t } = useLanguage();
+
   return (
     <Box
       sx={{
@@ -28,11 +31,11 @@ const PublicHeroSection = ({ theme }) => {
       <Box sx={{ width: "100%", px: { xs: 1.5, sm: 2, md: 3 }, position: "relative", zIndex: 1 }}>
         <Stack alignItems="center" spacing={2.2} sx={{ width: "100%", maxWidth: "none" }}>
           <Typography data-hero="title" variant="h2" textAlign="center" sx={{ color: "#fff", fontWeight: 800, letterSpacing: "-0.02em", fontSize: { xs: "2.2rem", md: "4rem" }, maxWidth: { md: "70%" } }}>
-            Grow smarter together
+            {t("publicHome.hero.title", "Grow smarter together")}
           </Typography>
 
           <Typography data-hero="subtitle" variant="h5" textAlign="center" sx={{ color: "rgba(255,255,255,0.92)", maxWidth: { md: "60%" } }}>
-            Find top-rated study notes from students taking the same courses as you.
+            {t("publicHome.hero.subtitle", "Find top-rated study notes from students taking the same courses as you.")}
           </Typography>
 
           <Paper
@@ -52,17 +55,17 @@ const PublicHeroSection = ({ theme }) => {
             }}
           >
             <Typography sx={{ color: "#6b7280", fontSize: { xs: "1rem", md: "1.05rem" } }}>
-              Search for courses, quizzes, or documents
+              {t("publicHome.hero.searchPlaceholder", "Search for courses, quizzes, or documents")}
             </Typography>
             <Search sx={{ color: "#4b5563" }} />
           </Paper>
 
           <Stack direction="row" spacing={1.2}>
             <Button component={RouterLink} to="/register" variant="contained" sx={{ borderRadius: 20, px: 3.5, fontWeight: 700 }}>
-              Register
+              {t("publicHome.hero.register", "Register")}
             </Button>
             <Button component={RouterLink} to="/login" variant="outlined" sx={{ borderRadius: 20, px: 3.5, color: "#fff", borderColor: "rgba(255,255,255,0.6)", "&:hover": { borderColor: "#fff" } }}>
-              Sign in
+              {t("publicHome.hero.signIn", "Sign in")}
             </Button>
           </Stack>
 

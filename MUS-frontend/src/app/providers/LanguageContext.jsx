@@ -67,6 +67,59 @@ const translations = {
         dateFormatDesc: 'Choose how dates are displayed',
       },
     },
+    publicHome: {
+      header: {
+        signIn: 'Sign in',
+        nav: {
+          university: 'University',
+          resources: 'Resources',
+        },
+      },
+      hero: {
+        title: 'Grow smarter together',
+        subtitle: 'Find top-rated study notes from students taking the same courses as you.',
+        searchPlaceholder: 'Search for courses, quizzes, or documents',
+        register: 'Register',
+        signIn: 'Sign in',
+      },
+      role: {
+        eyebrow: 'Platform Mission',
+        title: 'A single academic workspace for students, teachers, and university communities',
+        description:
+          'MUS helps learners find reliable resources, prepare effectively for exams, coordinate university clubs and events, access structured academic notes, and maintain clear communication with teachers.',
+        pillars: {
+          resources: {
+            title: 'Access verified academic resources',
+            description:
+              'Discover organized notes, summaries, and course documents contributed across faculties and filtered by academic context.',
+          },
+          exams: {
+            title: 'Strengthen exam preparation',
+            description:
+              'Use structured revision flows, practice quizzes, and exam-focused study plans to prepare with confidence.',
+          },
+          clubs: {
+            title: 'Coordinate clubs and events',
+            description:
+              'Support university clubs with better planning, event communication, and centralized updates for student participation.',
+          },
+          educators: {
+            title: 'Stay connected with educators',
+            description:
+              'Facilitate clear information flow between students and teachers through shared resources, announcements, and academic guidance.',
+          },
+        },
+      },
+      stats: {
+        title: 'Over 1 billion students helped, and counting',
+        subtitle: "50K new study notes added every day, from the world's most active student communities",
+        items: {
+          resources: { title: 'Study resources', chip: '1 new each second' },
+          institutions: { title: 'Institutions', chip: 'In 100+ countries' },
+          users: { title: 'Users', chip: 'Active every month' },
+        },
+      },
+    },
   },
   fr: {
     common: {
@@ -131,6 +184,59 @@ const translations = {
         dateFormatDesc: 'Choisissez le format d affichage des dates',
       },
     },
+    publicHome: {
+      header: {
+        signIn: 'Se connecter',
+        nav: {
+          university: 'Universite',
+          resources: 'Ressources',
+        },
+      },
+      hero: {
+        title: 'Progresser ensemble avec intelligence',
+        subtitle: 'Trouvez des notes de cours de haute qualite partagees par des etudiants suivant les memes modules que vous.',
+        searchPlaceholder: 'Rechercher des cours, quiz ou documents',
+        register: "S'inscrire",
+        signIn: 'Se connecter',
+      },
+      role: {
+        eyebrow: 'Mission de la plateforme',
+        title: 'Un espace academique unique pour les etudiants, les enseignants et les communautes universitaires',
+        description:
+          'MUS aide les apprenants a trouver des ressources fiables, mieux preparer les examens, organiser les clubs et evenements universitaires, acceder a des notes structurees et garder une communication claire avec les enseignants.',
+        pillars: {
+          resources: {
+            title: 'Acceder a des ressources academiques verifiees',
+            description:
+              'Decouvrez des notes, resumes et documents de cours structures selon le contexte academique.',
+          },
+          exams: {
+            title: 'Renforcer la preparation aux examens',
+            description:
+              'Utilisez des parcours de revision structures, des quiz pratiques et des plans de preparation axes sur les examens.',
+          },
+          clubs: {
+            title: 'Coordonner les clubs et evenements',
+            description:
+              'Aidez les clubs universitaires avec une meilleure planification, communication des evenements et suivi centralise.',
+          },
+          educators: {
+            title: 'Rester connecte aux enseignants',
+            description:
+              'Facilitez un flux d information clair entre etudiants et enseignants via ressources partagees et annonces academiques.',
+          },
+        },
+      },
+      stats: {
+        title: 'Plus d un milliard d etudiants accompagnes',
+        subtitle: '50K nouvelles notes ajoutees chaque jour par des communautes etudiantes tres actives',
+        items: {
+          resources: { title: 'Ressources d etude', chip: '1 nouvelle chaque seconde' },
+          institutions: { title: 'Institutions', chip: 'Dans plus de 100 pays' },
+          users: { title: 'Utilisateurs', chip: 'Actifs chaque mois' },
+        },
+      },
+    },
   },
   ar: {
     common: {
@@ -193,6 +299,59 @@ const translations = {
         timezoneDesc: 'حدد منطقتك الزمنية المحلية',
         dateFormat: 'تنسيق التاريخ',
         dateFormatDesc: 'اختر طريقة عرض التاريخ',
+      },
+    },
+    publicHome: {
+      header: {
+        signIn: 'تسجيل الدخول',
+        nav: {
+          university: 'الجامعة',
+          resources: 'الموارد',
+        },
+      },
+      hero: {
+        title: 'تطور بذكاء مع الاخرين',
+        subtitle: 'اعثر على افضل الملاحظات الدراسية من طلاب يدرسون نفس المقررات التي تدرسها.',
+        searchPlaceholder: 'ابحث عن المقررات او الاختبارات او المستندات',
+        register: 'انشاء حساب',
+        signIn: 'تسجيل الدخول',
+      },
+      role: {
+        eyebrow: 'رسالة المنصة',
+        title: 'مساحة اكاديمية موحدة للطلاب والاساتذة والمجتمعات الجامعية',
+        description:
+          'تساعد MUS الطلاب على العثور على موارد موثوقة، والاستعداد الفعال للامتحانات، وتنظيم الاندية والفعاليات الجامعية، والوصول الى ملاحظات اكاديمية منظمة، والحفاظ على تواصل واضح مع الاساتذة.',
+        pillars: {
+          resources: {
+            title: 'الوصول الى موارد اكاديمية موثوقة',
+            description:
+              'اكتشف ملاحظات وملخصات ووثائق دراسية منظمة حسب السياق الاكاديمي.',
+          },
+          exams: {
+            title: 'تعزيز الاستعداد للامتحانات',
+            description:
+              'استخدم خطط مراجعة منظمة واختبارات تدريبية وخطط دراسية موجهة للامتحان.',
+          },
+          clubs: {
+            title: 'تنسيق الاندية والفعاليات',
+            description:
+              'ادعم الاندية الجامعية عبر تخطيط افضل للفعاليات وتواصل اوضح وتحديثات مركزية.',
+          },
+          educators: {
+            title: 'البقاء على اتصال مع الاساتذة',
+            description:
+              'سهل تدفق المعلومات بين الطلاب والاساتذة عبر الموارد المشتركة والاعلانات والتوجيه الاكاديمي.',
+          },
+        },
+      },
+      stats: {
+        title: 'ساعدنا اكثر من مليار طالب وما زلنا مستمرين',
+        subtitle: 'يتم اضافة 50 الف ملاحظة دراسية يوميا من اكثر المجتمعات الطلابية نشاطا',
+        items: {
+          resources: { title: 'الموارد الدراسية', chip: 'مورد جديد كل ثانية' },
+          institutions: { title: 'المؤسسات', chip: 'في اكثر من 100 دولة' },
+          users: { title: 'المستخدمون', chip: 'نشطون كل شهر' },
+        },
       },
     },
   },

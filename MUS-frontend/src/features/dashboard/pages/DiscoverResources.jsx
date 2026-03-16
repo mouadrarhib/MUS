@@ -14,6 +14,7 @@ import { AutoAwesome, School, MenuBook } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import DiscoverNavbar from '@/features/discover/components/DiscoverNavbar';
+import RecommendationResourceCard from '@/features/dashboard/components/RecommendationResourceCard';
 import resourcesService from '@/services/resourcesService';
 import personalizationService from '@/services/personalizationService';
 
@@ -59,7 +60,7 @@ const groupResources = (resources, keyGetter) => {
 
 const DiscoverResources = () => {
   const navigate = useNavigate();
-  const { logout, user } = useAuth();
+  const { logout, user, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [resources, setResources] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
@@ -142,7 +143,7 @@ const DiscoverResources = () => {
         bgcolor: (theme) => (theme.palette.mode === 'dark' ? '#120f1d' : '#f2f4f8'),
       }}
     >
-      <DiscoverNavbar onLogout={handleLogout} />
+      <DiscoverNavbar onLogout={handleLogout} isAuthenticated={isAuthenticated} />
 
       <Box sx={{ width: '100%', maxWidth: 1320, mx: 'auto', px: { xs: 1.5, sm: 2.5, md: 3.5 }, py: { xs: 2.2, md: 3.2 } }}>
         <Paper
@@ -217,36 +218,34 @@ const DiscoverResources = () => {
                 <Skeleton key={`rec-skeleton-${idx}`} variant="rounded" height={60} />
               ))}
             </Box>
-          ) : recommendations.length === 0 ? (
-            <Typography variant="caption" color="text.secondary">
-              No personalized recommendations yet. Add profile tags to improve matching.
-            </Typography>
-          ) : (
-            <Box sx={{ display: 'grid', gap: 1.1 }}>
-              {recommendations.slice(0, 6).map((item) => (
-                <Box
+        ) : recommendations.length === 0 ? (
+          <Typography variant="caption" color="text.secondary">
+            No personalized recommendations yet. Add profile tags to improve matching.
+          </Typography>
+        ) : (
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
+              gap: 1.2,
+            }}
+          >
+            {recommendations.slice(0, 6).map((item, index) => {
+              return (
+                <RecommendationResourceCard
                   key={`discover-recommendation-${item.resource_id || item.id}`}
-                  sx={{
-                    p: 1.2,
-                    borderRadius: 2,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                  }}
-                >
-                  <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
-                    <Typography variant="body2" fontWeight={700} noWrap>
-                      {item.title}
-                    </Typography>
-                    <Chip size="small" label={`Score ${parseScore(item.score).toFixed(1)}`} />
-                  </Box>
-                  <Typography variant="caption" color="text.secondary">
-                    {(item.match_reasons || []).slice(0, 2).join(' • ') || 'Personalized match'}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          )}
-        </Paper>
+                  item={item}
+                  index={index}
+                  score={parseScore(item.score)}
+                  matchReasons={item.match_reasons}
+                  showScore
+                  showMatchReasons
+                />
+              );
+            })}
+          </Box>
+        )}
+      </Paper>
 
         <Box sx={{ display: 'grid', gap: 1.4 }}>
           {loading ? (
@@ -290,22 +289,25 @@ const DiscoverResources = () => {
                   <Chip size="small" label={`${group.items.length} resources`} />
                 </Box>
 
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  {group.items.map((resource) => (
-                    <Chip
-                      key={`${group.name}-${getResourceId(resource)}`}
-                      label={resource.title || resource.resource_title || 'Untitled resource'}
-                      variant="outlined"
-                      sx={{
-                        maxWidth: 320,
-                        '& .MuiChip-label': {
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        },
-                      }}
-                    />
-                  ))}
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: '1fr',
+                      md: 'repeat(2, minmax(0, 1fr))',
+                    },
+                    gap: 1.2,
+                  }}
+                >
+                  {group.items.slice(0, 8).map((resource, index) => {
+                    return (
+                      <RecommendationResourceCard
+                        key={`${group.name}-${getResourceId(resource)}-${index}`}
+                        item={resource}
+                        index={index}
+                      />
+                    );
+                  })}
                 </Box>
               </Paper>
             ))

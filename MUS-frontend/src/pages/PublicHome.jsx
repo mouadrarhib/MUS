@@ -6,7 +6,6 @@ import PublicHomeHeader from "@/features/publicHome/components/PublicHomeHeader"
 import PublicHeroSection from "@/features/publicHome/components/PublicHeroSection";
 import PublicRoleSection from "@/features/publicHome/components/PublicRoleSection";
 import PublicStatsSection from "@/features/publicHome/components/PublicStatsSection";
-import PublicFooterSection from "@/features/publicHome/components/PublicFooterSection";
 import { navLinks, musRolePillars } from "@/features/publicHome/data/content";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -145,7 +144,6 @@ const PublicHome = () => {
       <PublicHeroSection theme={theme} />
       <PublicRoleSection pillars={musRolePillars} />
       <PublicStatsSection />
-      <PublicFooterSection />
     </Box>
   );
 };

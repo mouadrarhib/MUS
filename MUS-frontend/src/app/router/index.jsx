@@ -51,14 +51,7 @@ const AppRouter = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        <Route
-          path="/discover"
-          element={
-            <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-              <DiscoverResourcesPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/discover" element={<DiscoverResourcesPage />} />
 
         {/* 3. Protected Dashboard Routes (The New Structure) */}
         <Route

@@ -1,6 +1,9 @@
 import { Quiz, Psychology, Groups, MenuBook, Event, School } from "@mui/icons-material";
 
-export const navLinks = ["University", "Resources"];
+export const navLinks = [
+  { key: "university", labelKey: "publicHome.header.nav.university" },
+  { key: "resources", labelKey: "publicHome.header.nav.resources" },
+];
 
 export const universityTags = [
   "Mohammed V University",
@@ -38,27 +41,23 @@ export const aiCards = [
 export const musRolePillars = [
   {
     icon: MenuBook,
-    title: "Access verified academic resources",
-    description:
-      "Discover organized notes, summaries, and course documents contributed across faculties and filtered by academic context.",
+    titleKey: "publicHome.role.pillars.resources.title",
+    descriptionKey: "publicHome.role.pillars.resources.description",
   },
   {
     icon: Quiz,
-    title: "Strengthen exam preparation",
-    description:
-      "Use MUS AI support to transform materials into structured revision flows, practice quizzes, and exam-focused study plans.",
+    titleKey: "publicHome.role.pillars.exams.title",
+    descriptionKey: "publicHome.role.pillars.exams.description",
   },
   {
     icon: Event,
-    title: "Coordinate clubs and events",
-    description:
-      "Support university clubs with better planning, event communication, and centralized updates for student participation.",
+    titleKey: "publicHome.role.pillars.clubs.title",
+    descriptionKey: "publicHome.role.pillars.clubs.description",
   },
   {
     icon: School,
-    title: "Stay connected with educators",
-    description:
-      "Facilitate clear information flow between students and teachers through shared resources, announcements, and academic guidance.",
+    titleKey: "publicHome.role.pillars.educators.title",
+    descriptionKey: "publicHome.role.pillars.educators.description",
   },
 ];
 

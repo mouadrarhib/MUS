@@ -2,8 +2,9 @@ import { Box, Button, IconButton, Stack, Typography, alpha } from '@mui/material
 import { Menu, LightMode, DarkMode } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 import { useThemeMode } from '@/app/providers/ThemeContext';
+import logo from '@/assets/images/logo.png';
 
-const DiscoverNavbar = ({ onLogout }) => {
+const DiscoverNavbar = ({ onLogout, isAuthenticated }) => {
   const { mode, toggleTheme } = useThemeMode();
 
   return (
@@ -33,20 +34,16 @@ const DiscoverNavbar = ({ onLogout }) => {
           <IconButton size="small" sx={{ color: 'text.primary' }}>
             <Menu />
           </IconButton>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Box
-              sx={{
-                width: 20,
-                height: 20,
-                borderRadius: 0.8,
-                bgcolor: 'primary.main',
-                transform: 'rotate(15deg)',
-                opacity: 0.95,
-              }}
-            />
-            <Typography variant="h5" fontWeight={800} sx={{ color: 'text.primary', letterSpacing: '-0.01em' }}>
-              MUS
-            </Typography>
+          <Stack
+            component={RouterLink}
+            to="/"
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ textDecoration: 'none' }}
+          >
+            <Box component="img" src={logo} alt="MUS Logo" sx={{ height: 34, width: 'auto', objectFit: 'contain' }} />
+            <Typography variant="h5" fontWeight={800} sx={{ color: 'text.primary', letterSpacing: '-0.01em' }}>MUS</Typography>
           </Stack>
           <Stack direction="row" spacing={3} sx={{ display: { xs: 'none', md: 'flex' } }}>
             <Typography variant="body1" sx={{ fontWeight: 700, color: 'text.secondary' }}>
@@ -74,33 +71,52 @@ const DiscoverNavbar = ({ onLogout }) => {
             {mode === 'light' ? <DarkMode fontSize="small" /> : <LightMode fontSize="small" />}
           </IconButton>
 
-          <Button
-            component={RouterLink}
-            to="/dashboard"
-            variant="contained"
-            sx={{
-              borderRadius: 999,
-              px: 2.4,
-              py: 0.75,
-              fontWeight: 800,
-              textTransform: 'none',
-            }}
-          >
-            Dashboard
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={onLogout}
-            sx={{
-              borderRadius: 999,
-              px: 2.2,
-              py: 0.7,
-              fontWeight: 700,
-              textTransform: 'none',
-            }}
-          >
-            Logout
-          </Button>
+          {isAuthenticated ? (
+            <>
+              <Button
+                component={RouterLink}
+                to="/dashboard"
+                variant="contained"
+                sx={{
+                  borderRadius: 999,
+                  px: 2.4,
+                  py: 0.75,
+                  fontWeight: 800,
+                  textTransform: 'none',
+                }}
+              >
+                Dashboard
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={onLogout}
+                sx={{
+                  borderRadius: 999,
+                  px: 2.2,
+                  py: 0.7,
+                  fontWeight: 700,
+                  textTransform: 'none',
+                }}
+              >
+                Logout
+              </Button>
+            </>
+          ) : (
+            <Button
+              component={RouterLink}
+              to="/login"
+              variant="contained"
+              sx={{
+                borderRadius: 999,
+                px: 2.4,
+                py: 0.75,
+                fontWeight: 800,
+                textTransform: 'none',
+              }}
+            >
+              Sign in
+            </Button>
+          )}
         </Stack>
       </Box>
     </Box>
