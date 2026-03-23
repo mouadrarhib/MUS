@@ -5,6 +5,10 @@ import {
   Paper,
   InputBase,
   IconButton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   Snackbar,
   Alert,
   Skeleton,
@@ -56,6 +60,20 @@ const getModuleName = (item) => {
   );
 };
 
+const getEducationalType = (item) => {
+  const raw = item?.educationalType || item?.educational_type || item?.resource_educational_type || '';
+  return String(raw || '').trim().toLowerCase() || 'other';
+};
+
+const formatTypeLabel = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized || normalized === 'all') return 'All Types';
+  if (normalized === 'notes') return 'Notes';
+  if (normalized === 'exam') return 'Exams';
+  if (normalized === 'course') return 'Courses';
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+};
+
 const groupResources = (resources, keyGetter) => {
   const groups = new Map();
 
@@ -96,6 +114,8 @@ const DiscoverResources = () => {
   const [resources, setResources] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [view, setView] = useState('universities');
+  const [selectedModule, setSelectedModule] = useState('all');
+  const [selectedType, setSelectedType] = useState('all');
   const [searchQuery, setSearchQuery] = useState(() => {
     const initialParams = new URLSearchParams(location.search);
     return initialParams.get('q') || '';
@@ -192,6 +212,22 @@ const DiscoverResources = () => {
 
   const query = deferredSearchQuery.trim().toLowerCase();
 
+  const availableModules = useMemo(() => {
+    const set = new Set();
+    rankedResources.forEach((item) => {
+      set.add(getModuleName(item));
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [rankedResources]);
+
+  const availableTypes = useMemo(() => {
+    const set = new Set();
+    rankedResources.forEach((item) => {
+      set.add(getEducationalType(item));
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [rankedResources]);
+
   const matchesSearch = (item) => {
     if (!query) return true;
 
@@ -216,14 +252,26 @@ const DiscoverResources = () => {
     return haystack.includes(query);
   };
 
+  const matchesFilters = (item) => {
+    if (selectedModule !== 'all' && getModuleName(item) !== selectedModule) {
+      return false;
+    }
+
+    if (selectedType !== 'all' && getEducationalType(item) !== selectedType) {
+      return false;
+    }
+
+    return true;
+  };
+
   const filteredRecommendations = useMemo(
-    () => recommendations.filter(matchesSearch),
-    [recommendations, query]
+    () => recommendations.filter((item) => matchesSearch(item) && matchesFilters(item)),
+    [recommendations, query, selectedModule, selectedType]
   );
 
   const filteredRankedResources = useMemo(
-    () => rankedResources.filter(matchesSearch),
-    [rankedResources, query]
+    () => rankedResources.filter((item) => matchesSearch(item) && matchesFilters(item)),
+    [rankedResources, query, selectedModule, selectedType]
   );
 
   const groupedByUniversity = useMemo(
@@ -427,6 +475,67 @@ const DiscoverResources = () => {
               <Close fontSize="small" />
             </IconButton>
           ) : null}
+        </Box>
+
+        <Box
+          sx={(theme) => ({
+            ...panelSx(theme),
+            mb: 3,
+            p: { xs: 1.2, md: 1.4 },
+          })}
+        >
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.2} alignItems={{ xs: 'stretch', md: 'center' }}>
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', md: 260 } }}>
+              <InputLabel id="discover-module-filter-label">Module</InputLabel>
+              <Select
+                labelId="discover-module-filter-label"
+                value={selectedModule}
+                label="Module"
+                onChange={(event) => setSelectedModule(event.target.value)}
+              >
+                <MenuItem value="all">All Modules</MenuItem>
+                {availableModules.map((module) => (
+                  <MenuItem key={module} value={module}>
+                    {module}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', md: 220 } }}>
+              <InputLabel id="discover-type-filter-label">Type</InputLabel>
+              <Select
+                labelId="discover-type-filter-label"
+                value={selectedType}
+                label="Type"
+                onChange={(event) => setSelectedType(event.target.value)}
+              >
+                <MenuItem value="all">All Types</MenuItem>
+                {availableTypes.map((typeValue) => (
+                  <MenuItem key={typeValue} value={typeValue}>
+                    {formatTypeLabel(typeValue)}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Stack direction="row" spacing={0.8} sx={{ ml: { md: 'auto' } }}>
+              {(selectedModule !== 'all' || selectedType !== 'all') && (
+                <Chip
+                  label="Reset filters"
+                  onClick={() => {
+                    setSelectedModule('all');
+                    setSelectedType('all');
+                  }}
+                  variant="outlined"
+                />
+              )}
+              <Chip
+                label={`${filteredRankedResources.length} results`}
+                sx={{ bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12), color: 'primary.main', fontWeight: 700 }}
+              />
+            </Stack>
+          </Stack>
         </Box>
 
         {/* ─── Recommended For You ─── */}
