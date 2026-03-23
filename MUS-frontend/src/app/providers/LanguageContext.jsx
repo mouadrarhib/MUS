@@ -119,6 +119,15 @@ const translations = {
           users: { title: 'Users', chip: 'Active every month' },
         },
       },
+      footer: {
+        description: 'MUS helps university communities discover trusted resources, learn faster, and collaborate with clarity.',
+        copyright: '© 2026 MUS. All rights reserved.',
+        links: {
+          discover: 'Discover',
+          signIn: 'Sign in',
+          register: 'Register',
+        },
+      },
     },
   },
   fr: {
@@ -236,6 +245,15 @@ const translations = {
           users: { title: 'Utilisateurs', chip: 'Actifs chaque mois' },
         },
       },
+      footer: {
+        description: 'MUS aide les communautes universitaires a trouver des ressources fiables, apprendre plus vite et collaborer clairement.',
+        copyright: '© 2026 MUS. Tous droits reserves.',
+        links: {
+          discover: 'Explorer',
+          signIn: 'Se connecter',
+          register: "S'inscrire",
+        },
+      },
     },
   },
   ar: {
@@ -351,6 +369,15 @@ const translations = {
           resources: { title: 'الموارد الدراسية', chip: 'مورد جديد كل ثانية' },
           institutions: { title: 'المؤسسات', chip: 'في اكثر من 100 دولة' },
           users: { title: 'المستخدمون', chip: 'نشطون كل شهر' },
+        },
+      },
+      footer: {
+        description: 'تساعد MUS المجتمعات الجامعية على اكتشاف موارد موثوقة والتعلم بشكل اسرع والتعاون بوضوح.',
+        copyright: '© 2026 MUS. جميع الحقوق محفوظة.',
+        links: {
+          discover: 'استكشاف',
+          signIn: 'تسجيل الدخول',
+          register: 'انشاء حساب',
         },
       },
     },

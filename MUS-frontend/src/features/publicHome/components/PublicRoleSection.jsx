@@ -1,5 +1,10 @@
+import { useEffect, useRef } from "react";
 import { Box, Stack, Typography } from "@mui/material";
 import { useLanguage } from "@/app/providers/LanguageContext";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger.js";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const ACCENT_COLORS = [
   { color: "#7c5cfc", bg: "rgba(124,92,252,0.10)", border: "rgba(124,92,252,0.22)" },
@@ -12,9 +17,36 @@ const ACCENT_COLORS = [
 
 const PublicRoleSection = ({ pillars = [] }) => {
   const { t } = useLanguage();
+  const sectionRef = useRef(null);
+
+  useEffect(() => {
+    if (!sectionRef.current) return;
+
+    const ctx = gsap.context(() => {
+      const cards = gsap.utils.toArray("[data-role-card]");
+      cards.forEach((card, index) => {
+        gsap.from(card, {
+          opacity: 0,
+          y: 28,
+          scale: 0.98,
+          duration: 0.55,
+          delay: index * 0.08,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: card,
+            start: "top 88%",
+            toggleActions: "play none none reverse",
+          },
+        });
+      });
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, []);
 
   return (
     <Box
+      ref={sectionRef}
       sx={{
         py: { xs: 8, md: 11 },
         px: { xs: 2, sm: 3, md: 4 },

@@ -6,6 +6,7 @@ import PublicHomeHeader from "@/features/publicHome/components/PublicHomeHeader"
 import PublicHeroSection from "@/features/publicHome/components/PublicHeroSection";
 import PublicRoleSection from "@/features/publicHome/components/PublicRoleSection";
 import PublicStatsSection from "@/features/publicHome/components/PublicStatsSection";
+import PublicFooterSection from "@/features/publicHome/components/PublicFooterSection";
 import { navLinks, musRolePillars } from "@/features/publicHome/data/content";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -59,20 +60,6 @@ const PublicHome = () => {
         duration: 0.55,
         ease: "power2.out",
         delay: 0.3,
-      });
-
-      gsap.from("[data-role-card]", {
-        opacity: 0,
-        y: 20,
-        scale: 0.98,
-        duration: 0.55,
-        ease: "power2.out",
-        stagger: 0.1,
-        scrollTrigger: {
-          trigger: "[data-role-section]",
-          start: "top 72%",
-          toggleActions: "play none none reverse",
-        },
       });
 
       gsap.utils.toArray("[data-reveal]").forEach((el) => {
@@ -144,6 +131,7 @@ const PublicHome = () => {
       <PublicHeroSection theme={theme} />
       <PublicRoleSection pillars={musRolePillars} />
       <PublicStatsSection />
+      <PublicFooterSection />
     </Box>
   );
 };
