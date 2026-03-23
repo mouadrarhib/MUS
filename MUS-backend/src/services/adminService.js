@@ -138,6 +138,34 @@ export const toggleUserStatus = async (userId, isActive) => {
  */
 export const getAdminDashboard = async () => {
   const stats = await getStudentsStatistics();
+
+  const [teacherStatsRows] = await sequelize.query(`
+    SELECT
+      COUNT(DISTINCT u.id)::BIGINT AS total_teachers,
+      COUNT(DISTINCT u.id) FILTER (WHERE u.is_active = true)::BIGINT AS active_teachers,
+      COUNT(DISTINCT u.id) FILTER (WHERE u.is_active = false)::BIGINT AS inactive_teachers,
+      COUNT(r.id)::BIGINT AS total_resources_by_teachers,
+      COUNT(r.id) FILTER (WHERE r.status = 'published')::BIGINT AS published_resources,
+      COUNT(r.id) FILTER (WHERE r.status = 'draft')::BIGINT AS draft_resources,
+      COUNT(r.id) FILTER (WHERE r.status = 'archived')::BIGINT AS archived_resources,
+      COUNT(r.id) FILTER (
+        WHERE r.created_at >= CURRENT_DATE - INTERVAL '7 days'
+      )::BIGINT AS resources_last_7_days,
+      COUNT(r.id) FILTER (
+        WHERE r.created_at >= CURRENT_DATE - INTERVAL '30 days'
+      )::BIGINT AS resources_last_30_days,
+      COUNT(DISTINCT u.id) FILTER (
+        WHERE u.created_at >= CURRENT_DATE - INTERVAL '7 days'
+      )::BIGINT AS new_teachers_last_7_days,
+      COUNT(DISTINCT u.id) FILTER (
+        WHERE u.created_at >= CURRENT_DATE - INTERVAL '30 days'
+      )::BIGINT AS new_teachers_last_30_days
+    FROM users u
+    INNER JOIN user_roles ur ON ur.user_id = u.id
+    INNER JOIN roles ro ON ro.id = ur.role_id
+    LEFT JOIN resources r ON r.created_by = u.id
+    WHERE ro.name = 'teacher'
+  `);
   
   // Ajouter d'autres statistiques si nécessaire
   const [globalStats] = await sequelize.query(`
@@ -191,6 +219,7 @@ export const getAdminDashboard = async () => {
   
   return {
     students: stats,
+    teachers: teacherStatsRows[0] || {},
     global: globalStats[0] || {},
     rewards: rewardsStats[0] || {},
     timestamp: new Date(),

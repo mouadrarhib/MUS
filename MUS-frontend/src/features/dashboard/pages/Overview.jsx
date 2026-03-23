@@ -246,6 +246,7 @@ const Overview = () => {
   }, [isAdmin]);
 
   const students = statsData?.data?.students || {};
+  const teachers = statsData?.data?.teachers || {};
   const globalStats = statsData?.data?.global || {};
   const rewardsStats = statsData?.data?.rewards || {};
 
@@ -254,6 +255,15 @@ const Overview = () => {
     totalStudents: parseInt(students.total_students) || 0,
     activeStudents: parseInt(students.active_students) || 0,
     inactiveStudents: parseInt(students.inactive_students) || 0,
+    totalTeachers: parseInt(teachers.total_teachers) || 0,
+    activeTeachers: parseInt(teachers.active_teachers) || 0,
+    inactiveTeachers: parseInt(teachers.inactive_teachers) || 0,
+    teacherResources: parseInt(teachers.total_resources_by_teachers) || 0,
+    teacherPublishedResources: parseInt(teachers.published_resources) || 0,
+    teacherDraftResources: parseInt(teachers.draft_resources) || 0,
+    teacherArchivedResources: parseInt(teachers.archived_resources) || 0,
+    teacherResourcesLast7Days: parseInt(teachers.resources_last_7_days) || 0,
+    teacherResourcesLast30Days: parseInt(teachers.resources_last_30_days) || 0,
     totalResources: parseInt(students.total_resources_by_students) || 0,
     publishedResources: parseInt(students.published_resources) || 0,
     draftResources: parseInt(students.draft_resources) || 0,
@@ -491,7 +501,7 @@ const Overview = () => {
           gridTemplateColumns: {
             xs: 'repeat(2, 1fr)',
             sm: 'repeat(2, 1fr)',
-            md: 'repeat(4, 1fr)',
+            md: isAdmin ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)',
           },
           gap: 2,
           mb: 3,
@@ -535,6 +545,21 @@ const Overview = () => {
                   icon={PersonAdd}
                   color="success"
                 />
+                <StatsOverview
+                  label="Total Teachers"
+                  value={stats.totalTeachers}
+                  change={stats.teacherResourcesLast7Days}
+                  changeLabel={`+${stats.teacherResourcesLast7Days} resources this week`}
+                  icon={School}
+                  color="secondary"
+                />
+                <StatsOverview
+                  label="Active Teachers"
+                  value={stats.activeTeachers}
+                  changeLabel={`${stats.inactiveTeachers} inactive`}
+                  icon={People}
+                  color="success"
+                />
               </>
             ) : (
               <>
@@ -556,7 +581,7 @@ const Overview = () => {
               </>
             )}
             <StatsOverview
-              label={isAdmin ? "Total Resources" : "Published Resources"}
+              label={isAdmin ? "Student Resources" : "Published Resources"}
               value={isAdmin ? stats.totalResources : myResourceStats.publishedResources}
               change={isAdmin ? stats.resourcesLast7Days : myResourceStats.pendingResources}
               changeLabel={
@@ -568,11 +593,15 @@ const Overview = () => {
               color="info"
             />
             <StatsOverview
-              label={isAdmin ? "Avg Rating" : "Avg Rating (Your Uploads)"}
-              value={(isAdmin ? stats.avgRating : myResourceStats.avgRating).toFixed(1)}
-              changeLabel={`${isAdmin ? stats.totalRatings : myResourceStats.totalRatings} ratings`}
-              icon={Star}
-              color="warning"
+              label={isAdmin ? "Teacher Resources" : "Avg Rating (Your Uploads)"}
+              value={isAdmin ? stats.teacherResources : myResourceStats.avgRating.toFixed(1)}
+              changeLabel={
+                isAdmin
+                  ? `${stats.teacherPublishedResources} published • ${stats.teacherDraftResources} drafts`
+                  : `${myResourceStats.totalRatings} ratings`
+              }
+              icon={isAdmin ? Article : Star}
+              color={isAdmin ? 'warning' : 'warning'}
             />
           </>
         )}
