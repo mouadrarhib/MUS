@@ -62,7 +62,9 @@ export const LoginForm = () => {
     if (isAuthenticated) {
       // If user came from a specific page (e.g. tried to visit /library), send them back there.
       // Otherwise, send them to the discover page.
-      const from = location.state?.from?.pathname || '/discover';
+      const fromPath = location.state?.from?.pathname || '/discover';
+      const fromSearch = location.state?.from?.search || '';
+      const from = `${fromPath}${fromSearch}`;
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, location.state]);
@@ -121,10 +123,9 @@ export const LoginForm = () => {
       // `authAPI.login()` already returns the response body
       authLogin(response);
       
-      // Explicitly navigate on success
-      // The useEffect above handles the state change, but this ensures 
-      // the redirect happens immediately after the login action
-      navigate('/discover', { replace: true });
+      const fromPath = location.state?.from?.pathname || '/discover';
+      const fromSearch = location.state?.from?.search || '';
+      navigate(`${fromPath}${fromSearch}`, { replace: true });
 
     } catch (err) {
       // Extract error message from backend response

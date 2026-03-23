@@ -81,6 +81,10 @@ const translations = {
         searchPlaceholder: 'Search for courses, quizzes, or documents',
         register: 'Register',
         signIn: 'Sign in',
+        authRequired: {
+          title: 'Sign in required',
+          description: 'To search and access resources, please sign in first. You can also create a new account.',
+        },
       },
       role: {
         eyebrow: 'Platform Mission',
@@ -207,6 +211,10 @@ const translations = {
         searchPlaceholder: 'Rechercher des cours, quiz ou documents',
         register: "S'inscrire",
         signIn: 'Se connecter',
+        authRequired: {
+          title: 'Connexion requise',
+          description: 'Pour rechercher et acceder aux ressources, veuillez vous connecter. Vous pouvez aussi creer un compte.',
+        },
       },
       role: {
         eyebrow: 'Mission de la plateforme',
@@ -333,6 +341,10 @@ const translations = {
         searchPlaceholder: 'ابحث عن المقررات او الاختبارات او المستندات',
         register: 'انشاء حساب',
         signIn: 'تسجيل الدخول',
+        authRequired: {
+          title: 'تسجيل الدخول مطلوب',
+          description: 'للبحث والوصول الى الموارد، يرجى تسجيل الدخول اولا. يمكنك ايضا انشاء حساب جديد.',
+        },
       },
       role: {
         eyebrow: 'رسالة المنصة',
