@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Chip,
   Paper,
+  InputBase,
+  IconButton,
   Snackbar,
   Alert,
   Skeleton,
@@ -12,8 +14,8 @@ import {
   Typography,
   alpha,
 } from '@mui/material';
-import { AutoAwesome, School, MenuBook, Explore } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { AutoAwesome, School, MenuBook, Explore, Search, Close } from '@mui/icons-material';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import DiscoverNavbar from '@/features/discover/components/DiscoverNavbar';
 import RecommendationResourceCard from '@/features/dashboard/components/RecommendationResourceCard';
@@ -88,15 +90,21 @@ const panelSx = (theme) => ({
 
 const DiscoverResources = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout, user, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [resources, setResources] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [view, setView] = useState('universities');
+  const [searchQuery, setSearchQuery] = useState(() => {
+    const initialParams = new URLSearchParams(location.search);
+    return initialParams.get('q') || '';
+  });
   const [likedMap, setLikedMap] = useState({});
   const [likeLoadingId, setLikeLoadingId] = useState(null);
   const [downloadLoadingId, setDownloadLoadingId] = useState(null);
   const [feedback, setFeedback] = useState({ open: false, severity: 'info', message: '' });
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   useEffect(() => {
     let mounted = true;
@@ -182,14 +190,50 @@ const DiscoverResources = () => {
     return sorted;
   }, [recommendations, resources]);
 
+  const query = deferredSearchQuery.trim().toLowerCase();
+
+  const matchesSearch = (item) => {
+    if (!query) return true;
+
+    const haystack = [
+      item?.title,
+      item?.resource_title,
+      item?.author?.name,
+      item?.author_name,
+      item?.created_by_name,
+      item?.creator_name,
+      item?.institution_name,
+      item?.author?.institution,
+      item?.module_title,
+      item?.academicContext?.moduleTitle,
+      item?.module_code,
+      item?.academicContext?.moduleCode,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    return haystack.includes(query);
+  };
+
+  const filteredRecommendations = useMemo(
+    () => recommendations.filter(matchesSearch),
+    [recommendations, query]
+  );
+
+  const filteredRankedResources = useMemo(
+    () => rankedResources.filter(matchesSearch),
+    [rankedResources, query]
+  );
+
   const groupedByUniversity = useMemo(
-    () => groupResources(rankedResources, getUniversityName),
-    [rankedResources]
+    () => groupResources(filteredRankedResources, getUniversityName),
+    [filteredRankedResources]
   );
 
   const groupedByModule = useMemo(
-    () => groupResources(rankedResources, getModuleName),
-    [rankedResources]
+    () => groupResources(filteredRankedResources, getModuleName),
+    [filteredRankedResources]
   );
 
   const groupsToRender = view === 'modules' ? groupedByModule : groupedByUniversity;
@@ -244,6 +288,10 @@ const DiscoverResources = () => {
     } finally {
       setDownloadLoadingId(null);
     }
+  };
+
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
   };
 
   return (
@@ -352,6 +400,35 @@ const DiscoverResources = () => {
           </Stack>
         </Box>
 
+        <Box
+          sx={(theme) => ({
+            ...panelSx(theme),
+            mb: 3,
+            p: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+          })}
+        >
+          <Search sx={{ ml: 0.75, color: 'text.secondary', fontSize: 20 }} />
+          <InputBase
+            value={searchQuery}
+            onChange={handleSearchChange}
+            placeholder="Search resources, authors, universities, or modules"
+            sx={{
+              flex: 1,
+              fontSize: '0.95rem',
+              px: 0.8,
+              color: 'text.primary',
+            }}
+          />
+          {searchQuery ? (
+            <IconButton size="small" onClick={() => setSearchQuery('')} sx={{ mr: 0.5 }}>
+              <Close fontSize="small" />
+            </IconButton>
+          ) : null}
+        </Box>
+
         {/* ─── Recommended For You ─── */}
         <Box sx={(theme) => ({ ...panelSx(theme), p: { xs: 2, md: 2.5 }, mb: 3 })}>
           <Box
@@ -383,10 +460,10 @@ const DiscoverResources = () => {
             <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.9rem' }}>
               Recommended For You
             </Typography>
-            {!loading && recommendations.length > 0 && (
+            {!loading && filteredRecommendations.length > 0 && (
               <Chip
                 size="small"
-                label={`${recommendations.length} match${recommendations.length !== 1 ? 'es' : ''}`}
+                label={`${filteredRecommendations.length} match${filteredRecommendations.length !== 1 ? 'es' : ''}`}
                 sx={{
                   height: 20,
                   fontSize: '0.66rem',
@@ -406,9 +483,11 @@ const DiscoverResources = () => {
                 <Skeleton key={`rec-skeleton-${idx}`} variant="rounded" height={80} sx={{ borderRadius: 2.5 }} />
               ))}
             </Box>
-          ) : recommendations.length === 0 ? (
+          ) : filteredRecommendations.length === 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3, opacity: 0.7, fontSize: '0.88rem' }}>
-              No personalized recommendations yet. Add profile tags to improve matching.
+              {query
+                ? 'No recommendations match your search.'
+                : 'No personalized recommendations yet. Add profile tags to improve matching.'}
             </Typography>
           ) : (
             <Box
@@ -418,7 +497,7 @@ const DiscoverResources = () => {
                 gap: 1.5,
               }}
             >
-              {recommendations.slice(0, 6).map((item, index) => {
+              {filteredRecommendations.slice(0, 6).map((item, index) => {
                 return (
                   <RecommendationResourceCard
                     key={`discover-recommendation-${item.resource_id || item.id}`}
@@ -456,7 +535,7 @@ const DiscoverResources = () => {
               })}
             >
               <Typography variant="body2" color="text.secondary" sx={{ opacity: 0.7 }}>
-                No resources available yet.
+                {query ? 'No resources match your search.' : 'No resources available yet.'}
               </Typography>
             </Box>
           ) : (

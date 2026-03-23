@@ -1,10 +1,19 @@
+import { useState } from "react";
 import { Box, Button, Paper, Stack, Typography, alpha } from "@mui/material";
 import { Search, KeyboardArrowDown } from "@mui/icons-material";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/app/providers/LanguageContext";
 
 const PublicHeroSection = ({ theme }) => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    navigate(query ? `/discover?q=${encodeURIComponent(query)}` : "/discover");
+  };
 
   return (
     <Box
@@ -40,6 +49,8 @@ const PublicHeroSection = ({ theme }) => {
 
           <Paper
             data-hero="search"
+            component="form"
+            onSubmit={handleSearchSubmit}
             elevation={0}
             sx={{
               mt: 1,
@@ -54,10 +65,27 @@ const PublicHeroSection = ({ theme }) => {
               justifyContent: "space-between",
             }}
           >
-            <Typography sx={{ color: "#6b7280", fontSize: { xs: "1rem", md: "1.05rem" } }}>
-              {t("publicHome.hero.searchPlaceholder", "Search for courses, quizzes, or documents")}
-            </Typography>
-            <Search sx={{ color: "#4b5563" }} />
+            <Box
+              component="input"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder={t("publicHome.hero.searchPlaceholder", "Search for courses, quizzes, or documents")}
+              sx={{
+                width: "100%",
+                border: 0,
+                outline: "none",
+                bgcolor: "transparent",
+                color: "#374151",
+                fontSize: { xs: "1rem", md: "1.05rem" },
+                fontFamily: "inherit",
+              }}
+            />
+            <Button
+              type="submit"
+              sx={{ minWidth: 0, p: 0.4, borderRadius: 2, color: "#4b5563" }}
+            >
+              <Search />
+            </Button>
           </Paper>
 
           <Stack direction="row" spacing={1.2}>
