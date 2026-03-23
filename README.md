@@ -4,6 +4,8 @@ MUS is a full-stack university platform for students, teachers, and administrato
 
 It combines academic resource sharing, moderation, role-based dashboards, personalization, membership-gated downloads, wallet/engagement analytics, and a modern public landing experience.
 
+Latest updates include a public Discover page (`/discover`), multilingual public home content (EN/FR/AR), and richer resource cards with like/download actions.
+
 ---
 
 ## What This Project Does
@@ -15,6 +17,8 @@ MUS helps university communities:
 - personalize recommendations by profile + tag preferences
 - manage premium access for protected downloads
 - track engagement with wallet points and analytics
+- browse recommended resources publicly without authentication
+- switch public experience language between English, French, and Arabic
 - support collaboration workflows with QA, notifications, and admin tooling
 
 ---
@@ -26,6 +30,7 @@ MUS helps university communities:
 - JWT-based auth (register, login, password reset)
 - Roles: `student`, `teacher`, `admin`
 - Role-aware route protection and dashboard navigation
+- Post-login default experience can route users to discovery while keeping dashboard overview intact
 
 ### 2) Academic Resource Platform
 
@@ -33,6 +38,7 @@ MUS helps university communities:
 - Resource metadata, tags, favorites, ratings
 - Resource detail dialogs and analytics
 - Published resources listing and advanced filtering/search
+- Discover cards include author, university, rating, favorite action, and download action
 
 ### 3) Moderation and Verification
 
@@ -44,6 +50,7 @@ MUS helps university communities:
 
 - Student preference tags
 - Recommendation APIs and dashboard integration
+- Shared recommendation card component used across Discover and Overview
 - Recommendation algorithm documentation in `docs/RECOMMENDATION_ALGORITHM.md`
 
 ### 5) Membership and Access Tiering
@@ -61,8 +68,16 @@ MUS helps university communities:
 ### 7) Public Experience (Landing)
 
 - Full-width animated public home page
-- Hero, role/mission section, stats, best resources/institutions, testimonials
+- Hero, role/mission section, and animated stats
+- Public home header supports language switching (EN/FR/AR)
 - Theme-aware sections (light/dark)
+
+### 8) Discover Experience (`/discover`)
+
+- Publicly accessible resource discovery page (no login required to view)
+- Recommendation + grouped listing by universities/modules
+- Professional resource cards with author, university, rating, like, and download
+- Navbar integrated with theme toggle and contextual actions for guest/authenticated users
 
 ---
 
@@ -273,6 +288,7 @@ Depending on enabled features, backend may also use:
 Main app routes include:
 
 - Public home: `/`
+- Public discover: `/discover`
 - Auth: `/login`, `/register`
 - Dashboard:
   - `/dashboard` (overview)
