@@ -25,9 +25,10 @@ import RecommendationResourceCard from '../components/RecommendationResourceCard
 import adminService from '@/services/adminService';
 import resourcesService from '@/services/resourcesService';
 import personalizationService from '@/services/personalizationService';
+import favoritesService from '@/services/favoritesService';
 
 const Overview = () => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isStudent } = useAuth();
   const [statsData, setStatsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [myResourceStats, setMyResourceStats] = useState({
@@ -52,6 +53,7 @@ const Overview = () => {
   const [rejectionsLoading, setRejectionsLoading] = useState(true);
   const [recommendations, setRecommendations] = useState([]);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+  const [likedResourcesCount, setLikedResourcesCount] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -110,6 +112,32 @@ const Overview = () => {
     };
 
     loadMyRejections();
+    return () => {
+      mounted = false;
+    };
+  }, [isAdmin]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    if (isAdmin) {
+      setLikedResourcesCount(0);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    const loadLikedResources = async () => {
+      try {
+        const rows = await favoritesService.getAllFavorites();
+        if (!mounted) return;
+        setLikedResourcesCount(Array.isArray(rows) ? rows.length : 0);
+      } catch {
+        if (mounted) setLikedResourcesCount(0);
+      }
+    };
+
+    loadLikedResources();
     return () => {
       mounted = false;
     };
@@ -490,35 +518,57 @@ const Overview = () => {
           ))
         ) : (
           <>
+            {isAdmin ? (
+              <>
+                <StatsOverview
+                  label="Total Students"
+                  value={stats.totalStudents}
+                  change={stats.newStudentsLast7Days}
+                  changeLabel={`+${stats.newStudentsLast7Days} this week`}
+                  icon={People}
+                  color="primary"
+                />
+                <StatsOverview
+                  label="Active Students"
+                  value={stats.activeStudents}
+                  changeLabel={`${stats.inactiveStudents} inactive`}
+                  icon={PersonAdd}
+                  color="success"
+                />
+              </>
+            ) : (
+              <>
+                <StatsOverview
+                  label={isStudent ? "Resources You Liked" : "Saved Resources"}
+                  value={likedResourcesCount}
+                  changeLabel="From your personal library"
+                  icon={Favorite}
+                  color="error"
+                />
+                <StatsOverview
+                  label="Resources You Uploaded"
+                  value={myResourceStats.totalResources}
+                  change={myResourceStats.resourcesLast30Days}
+                  changeLabel={`+${myResourceStats.resourcesLast30Days} in 30 days`}
+                  icon={Article}
+                  color="success"
+                />
+              </>
+            )}
             <StatsOverview
-              label="Total Students"
-              value={stats.totalStudents}
-              change={stats.newStudentsLast7Days}
-              changeLabel={`+${stats.newStudentsLast7Days} this week`}
-              icon={People}
-              color="primary"
-            />
-            <StatsOverview
-              label="Active Students"
-              value={stats.activeStudents}
-              changeLabel={`${stats.inactiveStudents} inactive`}
-              icon={PersonAdd}
-              color="success"
-            />
-            <StatsOverview
-              label="Total Resources"
-              value={isAdmin ? stats.totalResources : myResourceStats.totalResources}
-              change={isAdmin ? stats.resourcesLast7Days : myResourceStats.publishedResources}
+              label={isAdmin ? "Total Resources" : "Published Resources"}
+              value={isAdmin ? stats.totalResources : myResourceStats.publishedResources}
+              change={isAdmin ? stats.resourcesLast7Days : myResourceStats.pendingResources}
               changeLabel={
                 isAdmin
                   ? `+${stats.resourcesLast7Days} this week`
-                  : `${myResourceStats.publishedResources} published`
+                  : `${myResourceStats.pendingResources} pending review`
               }
               icon={Article}
               color="info"
             />
             <StatsOverview
-              label="Avg Rating"
+              label={isAdmin ? "Avg Rating" : "Avg Rating (Your Uploads)"}
               value={(isAdmin ? stats.avgRating : myResourceStats.avgRating).toFixed(1)}
               changeLabel={`${isAdmin ? stats.totalRatings : myResourceStats.totalRatings} ratings`}
               icon={Star}
@@ -558,23 +608,23 @@ const Overview = () => {
             >
               {[
                 {
-                  label: 'Favorites Received',
-                  value: myResourceStats.favoritesReceived,
-                  hint: `+${myResourceStats.favoritesLast7Days} in 7 days`,
+                  label: 'Resources You Liked',
+                  value: likedResourcesCount,
+                  hint: 'Saved in your personal library',
                   color: 'error',
                   icon: Favorite,
                 },
                 {
-                  label: 'Downloads Received',
-                  value: myResourceStats.downloadsReceived,
-                  hint: `+${myResourceStats.downloadsLast7Days} in 7 days`,
-                  color: 'primary',
-                  icon: CloudDownload,
-                },
-                {
-                  label: 'Resources Uploaded',
+                  label: 'Resources You Uploaded',
                   value: myResourceStats.totalResources,
                   hint: `+${myResourceStats.resourcesLast30Days} in 30 days`,
+                  color: 'primary',
+                  icon: Article,
+                },
+                {
+                  label: 'Published Resources',
+                  value: myResourceStats.publishedResources,
+                  hint: `${myResourceStats.pendingResources} pending review`,
                   color: 'info',
                   icon: Article,
                 },
