@@ -39,16 +39,16 @@ The system supports:
     <td align="center"><strong>Platform Stats</strong></td>
   </tr>
   <tr>
-    <td><img src="./Screenshots/Public Home/hero.png" alt="Hero" width="100%"/></td>
-    <td><img src="./Screenshots/Public Home/stats.png" alt="Stats" width="100%"/></td>
+    <td><img src="./Screenshots/Public%20Home/hero.png" alt="Hero" width="100%"/></td>
+    <td><img src="./Screenshots/Public%20Home/stats.png" alt="Stats" width="100%"/></td>
   </tr>
   <tr>
     <td align="center"><strong>Features & Info</strong></td>
     <td align="center"><strong>Footer</strong></td>
   </tr>
   <tr>
-    <td><img src="./Screenshots/Public Home/informations.png" alt="Informations" width="100%"/></td>
-    <td><img src="./Screenshots/Public Home/footer.png" alt="Footer" width="100%"/></td>
+    <td><img src="./Screenshots/Public%20Home/informations.png" alt="Informations" width="100%"/></td>
+    <td><img src="./Screenshots/Public%20Home/footer.png" alt="Footer" width="100%"/></td>
   </tr>
 </table>
 
@@ -77,30 +77,30 @@ The system supports:
     <td align="center"><strong>Overview (Alt)</strong></td>
   </tr>
   <tr>
-    <td><img src="./Screenshots/admin dash/overview.png" alt="Admin Overview" width="100%"/></td>
-    <td><img src="./Screenshots/admin dash/overview 2.png" alt="Admin Overview 2" width="100%"/></td>
+    <td><img src="./Screenshots/admin%20dash/overview.png" alt="Admin Overview" width="100%"/></td>
+    <td><img src="./Screenshots/admin%20dash/overview%202.png" alt="Admin Overview 2" width="100%"/></td>
   </tr>
   <tr>
     <td align="center"><strong>Users Management</strong></td>
     <td align="center"><strong>Resources Management</strong></td>
   </tr>
   <tr>
-    <td><img src="./Screenshots/admin dash/users.png" alt="Users" width="100%"/></td>
-    <td><img src="./Screenshots/admin dash/resources.png" alt="Resources" width="100%"/></td>
+    <td><img src="./Screenshots/admin%20dash/users.png" alt="Users" width="100%"/></td>
+    <td><img src="./Screenshots/admin%20dash/resources.png" alt="Resources" width="100%"/></td>
   </tr>
   <tr>
     <td align="center"><strong>Verification Queue</strong></td>
     <td align="center"><strong>Catalog Management</strong></td>
   </tr>
   <tr>
-    <td><img src="./Screenshots/admin dash/dashboard__verify_pending.png" alt="Verify" width="100%"/></td>
-    <td><img src="./Screenshots/admin dash/catalog.png" alt="Catalog" width="100%"/></td>
+    <td><img src="./Screenshots/admin%20dash/dashboard__verify_pending.png" alt="Verify" width="100%"/></td>
+    <td><img src="./Screenshots/admin%20dash/catalog.png" alt="Catalog" width="100%"/></td>
   </tr>
   <tr>
     <td align="center" colspan="2"><strong>Wallet & Analytics</strong></td>
   </tr>
   <tr>
-    <td colspan="2" align="center"><img src="./Screenshots/admin dash/wallet.png" alt="Wallet" width="50%"/></td>
+    <td colspan="2" align="center"><img src="./Screenshots/admin%20dash/wallet.png" alt="Wallet" width="50%"/></td>
   </tr>
 </table>
 
@@ -115,14 +115,14 @@ The system supports:
   </tr>
   <tr>
     <td><img src="./Screenshots/student/overview.png" alt="Student Overview" width="100%"/></td>
-    <td><img src="./Screenshots/student/my library.png" alt="My Library" width="100%"/></td>
+    <td><img src="./Screenshots/student/my%20library.png" alt="My Library" width="100%"/></td>
   </tr>
   <tr>
     <td align="center"><strong>My Uploads</strong></td>
     <td align="center"><strong>Wallet</strong></td>
   </tr>
   <tr>
-    <td><img src="./Screenshots/student/my uploads.png" alt="My Uploads" width="100%"/></td>
+    <td><img src="./Screenshots/student/my%20uploads.png" alt="My Uploads" width="100%"/></td>
     <td><img src="./Screenshots/student/wallet.png" alt="Student Wallet" width="100%"/></td>
   </tr>
   <tr>
@@ -131,7 +131,7 @@ The system supports:
   </tr>
   <tr>
     <td><img src="./Screenshots/student/settings.png" alt="Settings" width="100%"/></td>
-    <td><img src="./Screenshots/student/settings 2.png" alt="Settings 2" width="100%"/></td>
+    <td><img src="./Screenshots/student/settings%202.png" alt="Settings 2" width="100%"/></td>
   </tr>
 </table>
 
