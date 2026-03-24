@@ -1,177 +1,162 @@
-# MUS - Management University System
+<div align="center">
 
-MUS is a full-stack university platform for students, teachers, and administrators.
+# 🎓 MUS — Management University System
 
-It combines academic resource sharing, moderation, role-based dashboards, personalization, membership-gated downloads, wallet/engagement analytics, and a modern public landing experience.
+**A full-stack university platform for students, teachers, and administrators**
 
-Latest updates include a public Discover page (`/discover`), multilingual public home content (EN/FR/AR), and richer resource cards with like/download actions.
+[![Node.js](https://img.shields.io/badge/Node.js-20+-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Latest-4169E1?logo=postgresql&logoColor=white)](https://postgresql.org)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docker.com)
+[![License](https://img.shields.io/badge/License-Private-red)](./LICENSE)
 
----
-
-## What This Project Does
-
-MUS helps university communities:
-
-- discover and share academic resources (notes, exams, summaries, etc.)
-- moderate and verify content quality
-- personalize recommendations by profile + tag preferences
-- manage premium access for protected downloads
-- track engagement with wallet points and analytics
-- browse recommended resources publicly without authentication
-- switch public experience language between English, French, and Arabic
-- support collaboration workflows with QA, notifications, and admin tooling
+</div>
 
 ---
 
-## Core Capabilities
+## 📖 Overview
 
-### 1) Authentication and RBAC
+**MUS** is an all-in-one university management platform that brings together academic resource sharing, content moderation, role-based dashboards, and a rich public discovery experience — all under one roof.
 
-- JWT-based auth (register, login, password reset)
-- Roles: `student`, `teacher`, `admin`
-- Role-aware route protection and dashboard navigation
-- Post-login default experience can route users to discovery while keeping dashboard overview intact
+The system supports:
 
-### 2) Academic Resource Platform
-
-- Create/upload/manage resources
-- Resource metadata, tags, favorites, ratings
-- Resource detail dialogs and analytics
-- Published resources listing and advanced filtering/search
-- Discover cards include author, university, rating, favorite action, and download action
-
-### 3) Moderation and Verification
-
-- Admin verification workflow (`/dashboard/verify`)
-- Rejection tracking and moderation-safe status transitions
-- Additional confusion/reporting workflow support on backend
-
-### 4) Personalization and Recommendations
-
-- Student preference tags
-- Recommendation APIs and dashboard integration
-- Shared recommendation card component used across Discover and Overview
-- Recommendation algorithm documentation in `docs/RECOMMENDATION_ALGORITHM.md`
-
-### 5) Membership and Access Tiering
-
-- Membership plans and user assignments
-- Free vs premium resource access tier
-- Download/file URL gating enforced server-side
-
-### 6) Wallet and Engagement
-
-- Wallet event ledger and summary endpoints
-- Top resources/activity endpoints
-- Wallet UI page on dashboard
-
-### 7) Public Experience (Landing)
-
-- Full-width animated public home page
-- Hero, role/mission section, and animated stats
-- Public home header supports language switching (EN/FR/AR)
-- Theme-aware sections (light/dark)
-
-### 8) Discover Experience (`/discover`)
-
-- Publicly accessible resource discovery page (no login required to view)
-- Recommendation + grouped listing by universities/modules
-- Professional resource cards with author, university, rating, like, and download
-- Navbar integrated with theme toggle and contextual actions for guest/authenticated users
+- 🔍 **Public resource discovery** without requiring a login
+- 🌍 **Multilingual experience** (English, French, Arabic with RTL)
+- 🎯 **Personalized recommendations** based on user profile and tags
+- 💳 **Membership-gated downloads** and premium access tiers
+- 📊 **Wallet & engagement analytics** with real-time tracking
+- 🛡️ **Admin-driven moderation** with full verification workflows
 
 ---
 
-## Tech Stack
+## ✨ Core Capabilities
 
-### Frontend (`MUS-frontend`)
-
-- React 19 + Vite
-- Material UI (MUI) + Emotion
-- React Router
-- React Hook Form
-- GSAP (scroll and entrance animations)
-- Recharts (dashboard charts)
-- Axios
-
-### Backend (`MUS-backend`)
-
-- Node.js + Express
-- PostgreSQL + Sequelize
-- JWT authentication
-- Swagger (OpenAPI docs)
-- AWS S3 SDK (Cloudflare R2-compatible storage support)
-- Nodemailer (notification delivery)
-
-### Infrastructure
-
-- Docker + Docker Compose
+<table>
+<thead>
+<tr><th width="220px">Capability</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td>🔐 <strong>Authentication & RBAC</strong></td>
+  <td>JWT-based auth with register, login, and password reset. Roles: <code>student</code>, <code>teacher</code>, <code>admin</code>. Role-aware route protection and dashboard navigation.</td>
+</tr>
+<tr>
+  <td>📚 <strong>Academic Resources</strong></td>
+  <td>Upload, manage, and browse resources (notes, exams, summaries). Full metadata, tags, favorites, ratings, and search with advanced filtering.</td>
+</tr>
+<tr>
+  <td>🛡️ <strong>Moderation & Verification</strong></td>
+  <td>Admin verification workflow, rejection tracking, and moderation-safe status transitions. Confusion/reporting support on backend.</td>
+</tr>
+<tr>
+  <td>🎯 <strong>Personalization</strong></td>
+  <td>Student preference tags and recommendation APIs. Shared recommendation card used across Discover and Overview.</td>
+</tr>
+<tr>
+  <td>💳 <strong>Membership & Access</strong></td>
+  <td>Membership plans and user assignments. Free vs. premium resource tier with server-side download/file URL gating.</td>
+</tr>
+<tr>
+  <td>💰 <strong>Wallet & Engagement</strong></td>
+  <td>Wallet event ledger, summary endpoints, top resources/activity tracking, and a wallet UI page on the dashboard.</td>
+</tr>
+<tr>
+  <td>🌐 <strong>Public Landing</strong></td>
+  <td>Full-width animated public home page with hero, role/mission section, animated stats, and language switching (EN/FR/AR).</td>
+</tr>
+<tr>
+  <td>🔎 <strong>Discover Page</strong></td>
+  <td>Publicly accessible resource discovery at <code>/discover</code>. Grouped by universities/modules with author info, ratings, likes, and downloads.</td>
+</tr>
+</tbody>
+</table>
 
 ---
 
-## Repository Structure
+## 🏗️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 19, Vite, Material UI (MUI), Emotion, React Router, React Hook Form |
+| **Animations** | GSAP (scroll & entrance), Recharts (dashboard charts) |
+| **HTTP Client** | Axios |
+| **Backend** | Node.js, Express, Sequelize ORM |
+| **Database** | PostgreSQL |
+| **Auth** | JWT (cookie + Bearer token) |
+| **Storage** | Cloudflare R2 (AWS S3-compatible SDK) |
+| **Email** | Nodemailer (SMTP) |
+| **Docs** | Swagger / OpenAPI |
+| **Infrastructure** | Docker + Docker Compose |
+
+---
+
+## 📁 Repository Structure
 
 ```text
 MUS/
-|- MUS-frontend/                  # React app (public site + dashboard)
-|- MUS-backend/                   # Express API + services + routes
-|- Database/
-|  |- database_DDL.sql            # Base schema
-|  \- migrations/                # Incremental SQL migrations
-|- docs/
-|  \- RECOMMENDATION_ALGORITHM.md
-|- docker-compose.yml
-\- README.md
+├── MUS-frontend/          # React app — public site + dashboard
+├── MUS-backend/           # Express API — services, routes, models
+├── Database/
+│   ├── database_DDL.sql   # Base schema
+│   └── migrations/        # Incremental SQL migrations
+├── docs/
+│   └── RECOMMENDATION_ALGORITHM.md
+├── docker-compose.yml
+└── README.md
 ```
 
 ---
 
-## Important Backend Route Groups
+## 🗺️ API Route Groups
 
-Mounted in `MUS-backend/src/routes/index.js`:
+All routes are mounted in `MUS-backend/src/routes/index.js`:
 
-- `/api/auth`
-- `/api/resources`
-- `/api/institutions`, `/api/programs`, `/api/levels`, `/api/semesters`, `/api/modules`
-- `/api/ratings`, `/api/favorites`, `/api/tags`
-- `/api/memberships`
-- `/api/wallet`
-- `/api/personalization`
-- `/api/qa`
-- `/api/admin`
+| Prefix | Purpose |
+|---|---|
+| `/api/auth` | Registration, login, profile, password management |
+| `/api/resources` | Resource CRUD, uploads, search, file delivery |
+| `/api/institutions`, `/api/programs`, `/api/levels`, ... | Academic catalog entities |
+| `/api/ratings`, `/api/favorites`, `/api/tags` | Engagement features |
+| `/api/memberships` | Plans and user membership |
+| `/api/wallet` | Wallet summary and activity |
+| `/api/personalization` | Preferences and recommendations |
+| `/api/qa` | Q&A around resources and modules |
+| `/api/admin` | Admin-only operations |
 
-Swagger:
-
-- UI: `http://localhost:<PORT>/api/docs`
-- JSON: `http://localhost:<PORT>/api/docs.json`
+> **Swagger Docs:** `http://localhost:<PORT>/api/docs` · JSON: `http://localhost:<PORT>/api/docs.json`
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
-## Prerequisites
+### Prerequisites
 
 - Node.js 18+
 - npm
 - PostgreSQL
-- Docker (optional but recommended for containerized run)
+- Docker *(optional, for containerized run)*
 
-## 1) Local Development
+---
 
-### Step A: Database
+### Option 1 — Local Development
 
-1. Create a PostgreSQL database.
-2. Apply base schema:
-   - `Database/database_DDL.sql`
-3. Apply migrations from `Database/migrations/` that your environment needs.
+#### Step A: Database
 
-### Step B: Backend
+```bash
+# 1. Create a PostgreSQL database
+# 2. Apply base schema
+psql -d mus_db -f Database/database_DDL.sql
+# 3. Apply any needed migrations from Database/migrations/
+```
+
+#### Step B: Backend
 
 ```bash
 cd MUS-backend
 npm install
 ```
 
-Create `MUS-backend/.env` with at least:
+Create `MUS-backend/.env`:
 
 ```env
 PORT=5000
@@ -189,129 +174,156 @@ JWT_EXPIRES_IN=1h
 CLIENT_ORIGIN=http://localhost:5173,http://localhost:3000
 ```
 
-Run backend:
-
 ```bash
-npm run dev
+npm run dev     # development (nodemon)
+npm start       # production
 ```
 
-or:
-
-```bash
-npm start
-```
-
-### Step C: Frontend
+#### Step C: Frontend
 
 ```bash
 cd MUS-frontend
 npm install
 ```
 
-Create `MUS-frontend/.env` (optional but recommended):
+Create `MUS-frontend/.env`:
 
 ```env
 VITE_API_URL=http://localhost:5000
 ```
 
-Run frontend:
-
 ```bash
 npm run dev
 ```
 
-Frontend default dev URL: `http://localhost:5173`
+> Frontend runs at **`http://localhost:5173`**
 
 ---
 
-## 2) Docker Compose
-
-From repository root:
+### Option 2 — Docker Compose
 
 ```bash
 docker-compose up -d --build
 ```
 
-Based on current `docker-compose.yml`:
+| Service | URL |
+|---|---|
+| Frontend | `http://localhost:3000` |
+| Backend | `http://localhost:5001` |
 
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:5001`
-
-Notes:
-
-- Backend container reads env from `MUS-backend/.env`.
-- Frontend image uses `VITE_API_URL` build arg set to `http://localhost:5001`.
+> The backend container reads env from `MUS-backend/.env`.  
+> The frontend image uses `VITE_API_URL=http://localhost:5001` as a build arg.
 
 ---
 
-## Available Scripts
+## 📜 Available Scripts
 
-### Frontend (`MUS-frontend/package.json`)
+### Frontend
 
-- `npm run dev`
-- `npm run build`
-- `npm run preview`
-- `npm run lint`
+| Command | Description |
+|---|---|
+| `npm run dev` | Start the Vite dev server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview the production build |
+| `npm run lint` | Run ESLint |
 
-### Backend (`MUS-backend/package.json`)
+### Backend
 
-- `npm run dev` (nodemon)
-- `npm start`
-
----
-
-## Environment Variables (Extended)
-
-Depending on enabled features, backend may also use:
-
-- Notification/worker:
-  - `NOTIFICATION_RETRY_ENABLED`
-  - `NOTIFICATION_RETRY_INTERVAL_MS`
-  - `NOTIFICATION_RETRY_RUN_ON_START`
-  - `NOTIFICATION_RETRY_BATCH_SIZE`
-  - `NOTIFICATION_RETRY_MAX_ATTEMPTS`
-  - `NOTIFICATION_RETRY_BASE_DELAY_SECONDS`
-- Mail:
-  - `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`
-  - `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE`
-- Push gateway:
-  - `PUSH_GATEWAY_URL`, `PUSH_GATEWAY_TOKEN`
-- Storage (R2/S3-compatible):
-  - `R2_S3_ENDPOINT`, `R2_BUCKET`
-  - `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
-  - `R2_SIGNED_URL_TTL_SECONDS`, `R2_PUBLIC_BASE_URL`
+| Command | Description |
+|---|---|
+| `npm run dev` | Start with nodemon (auto-reload) |
+| `npm start` | Start with node |
 
 ---
 
-## Current Product Areas in Frontend
+## 🔧 Environment Variables (Extended)
 
-Main app routes include:
+The backend may also require these depending on enabled features:
 
-- Public home: `/`
-- Public discover: `/discover`
-- Auth: `/login`, `/register`
-- Dashboard:
-  - `/dashboard` (overview)
-  - `/dashboard/users` (admin)
-  - `/dashboard/resources` (admin)
-  - `/dashboard/library`
-  - `/dashboard/uploads`
-  - `/dashboard/wallet`
-  - `/dashboard/verify` (admin)
-  - `/dashboard/catalog` (admin)
-  - `/dashboard/profile`, `/dashboard/settings`
+<details>
+<summary>📬 Notifications & Worker</summary>
+
+```env
+NOTIFICATION_RETRY_ENABLED=
+NOTIFICATION_RETRY_INTERVAL_MS=
+NOTIFICATION_RETRY_RUN_ON_START=
+NOTIFICATION_RETRY_BATCH_SIZE=
+NOTIFICATION_RETRY_MAX_ATTEMPTS=
+NOTIFICATION_RETRY_BASE_DELAY_SECONDS=
+```
+
+</details>
+
+<details>
+<summary>📧 Mail (SMTP)</summary>
+
+```env
+SMTP_HOST=
+SMTP_PORT=
+SMTP_FROM=
+SMTP_USER=
+SMTP_PASS=
+SMTP_SECURE=
+```
+
+</details>
+
+<details>
+<summary>📢 Push Gateway</summary>
+
+```env
+PUSH_GATEWAY_URL=
+PUSH_GATEWAY_TOKEN=
+```
+
+</details>
+
+<details>
+<summary>☁️ Storage (Cloudflare R2 / S3)</summary>
+
+```env
+R2_S3_ENDPOINT=
+R2_BUCKET=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_SIGNED_URL_TTL_SECONDS=
+R2_PUBLIC_BASE_URL=
+```
+
+</details>
 
 ---
 
-## Development Notes
+## 🗂️ Frontend Routes
+
+| Route | Access | Description |
+|---|---|---|
+| `/` | Public | Animated landing page |
+| `/discover` | Public | Resource discovery (no login required) |
+| `/login`, `/register` | Public | Authentication flows |
+| `/dashboard` | Authenticated | Overview / home dashboard |
+| `/dashboard/library` | All roles | Personal resource library |
+| `/dashboard/uploads` | All roles | My uploaded resources |
+| `/dashboard/wallet` | All roles | Wallet and engagement |
+| `/dashboard/profile` | All roles | User profile |
+| `/dashboard/settings` | All roles | Account settings |
+| `/dashboard/users` | Admin only | User management |
+| `/dashboard/resources` | Admin only | Resource management |
+| `/dashboard/verify` | Admin only | Moderation queue |
+| `/dashboard/catalog` | Admin only | Academic catalog management |
+
+---
+
+## 📝 Development Notes
 
 - API client base URL is normalized in `MUS-frontend/src/services/api.js`.
 - Backend defaults to `PORT=5000` if not set.
-- Ensure `CLIENT_ORIGIN` allows the frontend URL you use.
-- For production, set strong JWT secrets and secure CORS/origin settings.
+- Ensure `CLIENT_ORIGIN` includes the frontend URL you're using.
+- For production: set strong JWT secrets and lock down CORS/origin settings.
+- Recommendation algorithm is documented in `docs/RECOMMENDATION_ALGORITHM.md`.
 
 ---
 
-## License
+## 📄 License
 
-This project is currently private/internal unless a license file is added explicitly.
+This project is **private/internal**. No open-source license is in effect unless explicitly added.
