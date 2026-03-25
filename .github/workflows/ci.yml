@@ -4,11 +4,15 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [mouad, haytham]
+    branches: [mouad, haytham, main]
 
 jobs:
-  build:
+  frontend-quality:
+    name: Frontend Quality
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: MUS-frontend
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -17,18 +21,51 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: MUS-frontend/package-lock.json
 
-      - name: Install backend dependencies
-        working-directory: MUS-backend
+      - name: Install dependencies
         run: npm ci
 
-      - name: Install frontend dependencies
-        working-directory: MUS-frontend
-        run: npm ci
+      - name: Lint frontend
+        run: npm run lint
 
       - name: Build frontend
-        working-directory: MUS-frontend
         run: npm run build
+
+  backend-quality:
+    name: Backend Quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: MUS-backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: MUS-backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint backend
+        run: npm run lint
+
+      - name: Run backend light smoke checks
+        run: npm run test:smoke
+
+  docker-build:
+    name: Docker Compose Build
+    runs-on: ubuntu-latest
+    needs: [frontend-quality, backend-quality]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Build Docker images with Compose
         run: docker compose build
