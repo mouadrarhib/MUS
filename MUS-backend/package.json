@@ -6,7 +6,17 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon index.js",
-    "start": "cross-env PORT=5001 node index.js"
+    "start": "cross-env PORT=5001 node index.js",
+    "lint": "eslint .",
+    "test:smoke:routes": "node --check index.js && node --check src/routes/index.js && node --check src/app.js",
+    "test:smoke:membership": "node scripts/testMembershipDownloadAccess.js",
+    "test:smoke:favorites": "node scripts/testFavoritesRoleAccess.js",
+    "test:smoke:qa": "node scripts/qa-e2e-check.mjs",
+    "test:smoke:confusion": "node scripts/confusion-e2e-check.mjs",
+    "test:smoke": "npm run test:smoke:routes",
+    "test:smoke:api": "npm run test:smoke:favorites && npm run test:smoke:membership",
+    "test:e2e": "npm run test:smoke:qa && npm run test:smoke:confusion",
+    "test": "npm run test:smoke"
   },
   "keywords": [],
   "author": "",
@@ -33,6 +43,9 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
     "nodemon": "^3.1.11"
   }
 }
