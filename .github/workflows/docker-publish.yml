@@ -23,7 +23,7 @@ jobs:
           tags: mus-backend:scan
 
       - name: Scan backend image with Trivy
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           image-ref: mus-backend:scan
           format: table
@@ -39,7 +39,7 @@ jobs:
           tags: mus-frontend:scan
 
       - name: Scan frontend image with Trivy
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           image-ref: mus-frontend:scan
           format: table
