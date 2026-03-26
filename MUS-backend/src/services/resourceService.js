@@ -33,6 +33,54 @@ const filterPublishedOnly = (resources = []) => resources.filter((resource) => i
 const parseCountRow = (row = null) => Number(row ? Object.values(row)[0] : 0) || 0;
 const normalizeAccessTier = (value) => (String(value || "free").toLowerCase() === "premium" ? "premium" : "free");
 
+const getPublishedResourcesWithModuleContext = async (educationalType = null) => {
+  const [results] = await sequelize.query(
+    `
+    SELECT
+      r.id,
+      r.title,
+      r.description,
+      r.status::text AS status,
+      r.url,
+      r.language,
+      r.license,
+      r.created_by,
+      u.full_name AS creator_name,
+      r.created_at,
+      r.updated_at,
+      r.educational_type::text AS educational_type,
+      r.format::text AS format,
+      r.resource_type_id,
+      module_ctx.module_id,
+      module_ctx.module_code,
+      module_ctx.module_title
+    FROM public.resources r
+    LEFT JOIN public.users u ON u.id = r.created_by
+    LEFT JOIN LATERAL (
+      SELECT
+        m.id AS module_id,
+        m.code AS module_code,
+        m.title AS module_title
+      FROM public.resource_module_map rmm
+      INNER JOIN public.modules m ON m.id = rmm.module_id
+      WHERE rmm.resource_id = r.id
+      ORDER BY rmm.created_at DESC NULLS LAST, m.id ASC
+      LIMIT 1
+    ) module_ctx ON TRUE
+    WHERE r.status = 'published'::resource_status
+      AND (:educational_type::text IS NULL OR r.educational_type::text = :educational_type::text)
+    ORDER BY r.created_at DESC
+    `,
+    {
+      replacements: {
+        educational_type: educationalType,
+      },
+    }
+  );
+
+  return results;
+};
+
 const parseMetadata = (metadata) => {
   if (!metadata) return {};
   if (typeof metadata === "object") return metadata;
@@ -267,10 +315,14 @@ export const getResourcesByStatus = async (status, actor = null) => {
 };
 
 export const getResourcesByEducationalType = async (educationalType, actor = null) => {
+  if (!isAdmin(actor?.roles || [])) {
+    return getPublishedResourcesWithModuleContext(educationalType);
+  }
+
   const [results] = await sequelize.query(SQL.RESOURCE.GET_BY_EDUCATIONAL_TYPE, {
     replacements: { educational_type: educationalType },
   });
-  return isAdmin(actor?.roles || []) ? results : filterPublishedOnly(results);
+  return results;
 };
 
 export const getResourcesByFormat = async (format, actor = null) => {
@@ -617,8 +669,7 @@ export const searchResourcesByMetadata = async (metadataKey, metadataValue, acto
 };
 
 export const getPublishedResources = async () => {
-  const [results] = await sequelize.query(SQL.RESOURCE.GET_PUBLISHED);
-  return results;
+  return getPublishedResourcesWithModuleContext();
 };
 
 export const countResourcesByStatus = async (status, actor = null) => {

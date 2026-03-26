@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { body, param } from "express-validator";
+import { body, param, query } from "express-validator";
 import {
   addModule,
   listModules,
@@ -21,6 +21,7 @@ import {
   getModuleStatisticsHandler,
   listModulesByResourceType,
   checkModuleExists,
+  listDiscoverModules,
 } from "../controllers/moduleController.js";
 import validateRequest from "./validateRequest.js";
 import authMiddleware, { optionalAuthMiddleware } from "../middleware/auth.js";
@@ -61,6 +62,8 @@ router.post(
 // GET ALL MODULES (with optional resource count)
 // ============================================================================
 router.get("/", listModules);
+
+router.get("/discover", listDiscoverModules);
 
 // ============================================================================
 // GET MODULES WITH RESOURCE COUNT
@@ -207,7 +210,10 @@ router.delete(
 router.get(
   "/:id/resources",
   optionalAuthMiddleware,
-  [param("id").isInt().withMessage("Valid module ID is required")],
+  [
+    param("id").isInt().withMessage("Valid module ID is required"),
+    query("educational_type").optional().isString().withMessage("Educational type must be a string"),
+  ],
   validateRequest,
   getModuleResourcesHandler
 );
@@ -215,7 +221,10 @@ router.get(
 router.get(
   "/:id/resources/count",
   optionalAuthMiddleware,
-  [param("id").isInt().withMessage("Valid module ID is required")],
+  [
+    param("id").isInt().withMessage("Valid module ID is required"),
+    query("educational_type").optional().isString().withMessage("Educational type must be a string"),
+  ],
   validateRequest,
   countModuleResourcesHandler
 );

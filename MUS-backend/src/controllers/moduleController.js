@@ -21,6 +21,7 @@ import {
   countModulesBySemester,
   getModuleStatistics,
   getModulesByResourceType,
+  getDiscoverModules,
 } from "../services/moduleService.js";
 
 /**
@@ -431,7 +432,8 @@ export const listModulesWithResourceCount = asyncHandler(async (req, res) => {
  */
 export const getModuleResourcesHandler = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const result = await getModuleResources(id, req.user || null);
+  const educationalType = String(req.query?.educational_type || "").trim() || null;
+  const result = await getModuleResources(id, req.user || null, educationalType);
   return successResponse(res, "Module resources retrieved successfully", result);
 });
 
@@ -456,8 +458,14 @@ export const getModuleResourcesHandler = asyncHandler(async (req, res) => {
  */
 export const countModuleResourcesHandler = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const result = await countModuleResources(id, req.user || null);
+  const educationalType = String(req.query?.educational_type || "").trim() || null;
+  const result = await countModuleResources(id, req.user || null, educationalType);
   return successResponse(res, "Resource count retrieved successfully", { count: result });
+});
+
+export const listDiscoverModules = asyncHandler(async (_req, res) => {
+  const result = await getDiscoverModules();
+  return successResponse(res, "Discover modules retrieved successfully", result);
 });
 
 /**
