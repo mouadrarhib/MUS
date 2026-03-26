@@ -13,9 +13,10 @@ export const moduleService = {
   checkModuleExists: (code, semester_id) => post(`${MODULES}/check-exists`, { code, semester_id }),
 
   searchModules: (searchTerm) => get(`${MODULES}/search/${encodeURIComponent(searchTerm)}`),
+  getDiscoverModules: () => get(`${MODULES}/discover`),
   getModulesWithResourceCount: () => get(`${MODULES}/with-resource-count`),
-  getModuleResources: (id) => get(`${MODULES}/${id}/resources`),
-  countModuleResources: (id) => get(`${MODULES}/${id}/resources/count`),
+  getModuleResources: (id, params = {}) => get(`${MODULES}/${id}/resources`, { params }),
+  countModuleResources: (id, params = {}) => get(`${MODULES}/${id}/resources/count`, { params }),
   getModuleHierarchy: (id) => get(`${MODULES}/${id}/hierarchy`),
   getModuleDetails: (id) => get(`${MODULES}/${id}/details`),
   getModulesBySemester: (semesterId) => get(`${MODULES}/semester/${semesterId}`),

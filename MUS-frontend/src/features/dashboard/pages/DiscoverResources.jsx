@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Chip,
@@ -24,6 +24,7 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import DiscoverNavbar from '@/features/discover/components/DiscoverNavbar';
 import RecommendationResourceCard from '@/features/dashboard/components/RecommendationResourceCard';
 import resourcesService from '@/services/resourcesService';
+import moduleService from '@/services/moduleService';
 import personalizationService from '@/services/personalizationService';
 import favoritesService from '@/services/favoritesService';
 import { keyframes } from '@mui/system';
@@ -40,6 +41,14 @@ const parseScore = (value) => {
 };
 
 const getResourceId = (item) => Number(item?.id || item?.resource_id || 0);
+
+const getModuleId = (item) => Number(item?.module_id || item?.academicContext?.moduleId || item?.moduleId || 0);
+
+const extractDataArray = (payload) => {
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload)) return payload;
+  return [];
+};
 
 const getUniversityName = (item) => {
   return (
@@ -110,9 +119,11 @@ const DiscoverResources = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, user, isAuthenticated } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(true);
+  const [loadingResources, setLoadingResources] = useState(true);
   const [resources, setResources] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
+  const [discoverModules, setDiscoverModules] = useState([]);
   const [view, setView] = useState('universities');
   const [selectedModule, setSelectedModule] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
@@ -125,15 +136,16 @@ const DiscoverResources = () => {
   const [downloadLoadingId, setDownloadLoadingId] = useState(null);
   const [feedback, setFeedback] = useState({ open: false, severity: 'info', message: '' });
   const deferredSearchQuery = useDeferredValue(searchQuery);
+  const resourcesCacheRef = useRef(new Map());
 
   useEffect(() => {
     let mounted = true;
 
     const loadData = async () => {
-      setLoading(true);
-      const [recommendedRes, resourcesRes] = await Promise.allSettled([
+      setLoadingRecommendations(true);
+      const [recommendedRes, discoverModulesRes] = await Promise.allSettled([
         personalizationService.getMyRecommendations(12),
-        resourcesService.listPublishedResources(),
+        moduleService.getDiscoverModules(),
       ]);
 
       if (!mounted) return;
@@ -144,13 +156,13 @@ const DiscoverResources = () => {
         setRecommendations([]);
       }
 
-      if (resourcesRes.status === 'fulfilled') {
-        setResources(Array.isArray(resourcesRes.value) ? resourcesRes.value : []);
+      if (discoverModulesRes.status === 'fulfilled') {
+        setDiscoverModules(extractDataArray(discoverModulesRes.value));
       } else {
-        setResources([]);
+        setDiscoverModules([]);
       }
 
-      setLoading(false);
+      setLoadingRecommendations(false);
     };
 
     loadData();
@@ -158,6 +170,50 @@ const DiscoverResources = () => {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadResources = async () => {
+      const cacheKey = `${selectedModule}|${selectedType}`;
+      const cached = resourcesCacheRef.current.get(cacheKey);
+      if (cached) {
+        setResources(cached);
+        setLoadingResources(false);
+        return;
+      }
+
+      setLoadingResources(true);
+      try {
+        let nextResources = [];
+
+        if (selectedModule === 'all') {
+          nextResources =
+            selectedType === 'all'
+              ? await resourcesService.listPublishedResources()
+              : await resourcesService.listResourcesByEducationalType(selectedType);
+        } else {
+          const params = selectedType === 'all' ? {} : { educational_type: selectedType };
+          const response = await moduleService.getModuleResources(selectedModule, params);
+          nextResources = extractDataArray(response);
+        }
+
+        const normalized = Array.isArray(nextResources) ? nextResources : [];
+        resourcesCacheRef.current.set(cacheKey, normalized);
+        if (mounted) setResources(normalized);
+      } catch {
+        if (mounted) setResources([]);
+      } finally {
+        if (mounted) setLoadingResources(false);
+      }
+    };
+
+    loadResources();
+
+    return () => {
+      mounted = false;
+    };
+  }, [selectedModule, selectedType]);
 
   useEffect(() => {
     let mounted = true;
@@ -212,13 +268,11 @@ const DiscoverResources = () => {
 
   const query = deferredSearchQuery.trim().toLowerCase();
 
-  const availableModules = useMemo(() => {
-    const set = new Set();
-    rankedResources.forEach((item) => {
-      set.add(getModuleName(item));
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [rankedResources]);
+  const selectedModuleLabel = useMemo(() => {
+    if (selectedModule === 'all') return null;
+    const match = discoverModules.find((moduleRow) => String(moduleRow?.id) === String(selectedModule));
+    return match?.title || match?.module_title || null;
+  }, [discoverModules, selectedModule]);
 
   const availableTypes = useMemo(() => {
     const set = new Set();
@@ -253,8 +307,15 @@ const DiscoverResources = () => {
   };
 
   const matchesFilters = (item) => {
-    if (selectedModule !== 'all' && getModuleName(item) !== selectedModule) {
-      return false;
+    if (selectedModule !== 'all') {
+      const itemModuleId = getModuleId(item);
+      if (itemModuleId > 0) {
+        if (String(itemModuleId) !== String(selectedModule)) return false;
+      } else if (selectedModuleLabel) {
+        if (getModuleName(item) !== selectedModuleLabel) return false;
+      } else {
+        return false;
+      }
     }
 
     if (selectedType !== 'all' && getEducationalType(item) !== selectedType) {
@@ -266,7 +327,7 @@ const DiscoverResources = () => {
 
   const filteredRecommendations = useMemo(
     () => recommendations.filter((item) => matchesSearch(item) && matchesFilters(item)),
-    [recommendations, query, selectedModule, selectedType]
+    [recommendations, query, selectedModule, selectedType, selectedModuleLabel]
   );
 
   const filteredRankedResources = useMemo(
@@ -494,9 +555,9 @@ const DiscoverResources = () => {
                 onChange={(event) => setSelectedModule(event.target.value)}
               >
                 <MenuItem value="all">All Modules</MenuItem>
-                {availableModules.map((module) => (
-                  <MenuItem key={module} value={module}>
-                    {module}
+                {discoverModules.map((module) => (
+                  <MenuItem key={module.id} value={String(module.id)}>
+                    {module.title}
                   </MenuItem>
                 ))}
               </Select>
@@ -569,7 +630,7 @@ const DiscoverResources = () => {
             <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.9rem' }}>
               Recommended For You
             </Typography>
-            {!loading && filteredRecommendations.length > 0 && (
+            {!loadingRecommendations && filteredRecommendations.length > 0 && (
               <Chip
                 size="small"
                 label={`${filteredRecommendations.length} match${filteredRecommendations.length !== 1 ? 'es' : ''}`}
@@ -586,7 +647,7 @@ const DiscoverResources = () => {
             )}
           </Stack>
 
-          {loading ? (
+          {loadingRecommendations ? (
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 1.5 }}>
               {[...Array(4)].map((_, idx) => (
                 <Skeleton key={`rec-skeleton-${idx}`} variant="rounded" height={80} sx={{ borderRadius: 2.5 }} />
@@ -631,7 +692,7 @@ const DiscoverResources = () => {
 
         {/* ─── Grouped resources ─── */}
         <Box sx={{ display: 'grid', gap: 2 }}>
-          {loading ? (
+          {loadingResources ? (
             [...Array(3)].map((_, idx) => (
               <Skeleton key={`group-skeleton-${idx}`} variant="rounded" height={120} sx={{ borderRadius: 3 }} />
             ))

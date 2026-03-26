@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Box, Chip, Rating, Stack, Typography, alpha, Button, IconButton, Tooltip } from '@mui/material';
 import {
   AccountBalanceOutlined,
@@ -328,4 +329,19 @@ const RecommendationResourceCard = ({
   );
 };
 
-export default RecommendationResourceCard;
+const areEqual = (prevProps, nextProps) => {
+  return (
+    prevProps.item === nextProps.item &&
+    prevProps.index === nextProps.index &&
+    prevProps.score === nextProps.score &&
+    prevProps.matchReasons === nextProps.matchReasons &&
+    prevProps.showScore === nextProps.showScore &&
+    prevProps.showMatchReasons === nextProps.showMatchReasons &&
+    prevProps.showActions === nextProps.showActions &&
+    prevProps.isLiked === nextProps.isLiked &&
+    prevProps.likeLoading === nextProps.likeLoading &&
+    prevProps.downloadLoading === nextProps.downloadLoading
+  );
+};
+
+export default memo(RecommendationResourceCard, areEqual);

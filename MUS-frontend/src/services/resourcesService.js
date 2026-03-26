@@ -73,6 +73,7 @@ const normalizeResource = (item) => {
       institution: item.institution_name || item.author?.institution,
     },
     academicContext: {
+      moduleId: item.module_id,
       moduleCode: item.module_code,
       moduleTitle: item.module_title,
       difficulty: item.difficulty,
