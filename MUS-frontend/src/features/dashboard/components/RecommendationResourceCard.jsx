@@ -50,6 +50,13 @@ const getTotalRatings = (item) => {
   return Number(found || 0);
 };
 
+const getFormatLabel = (item) => {
+  const raw = String(item?.format || item?.resource_format || '').trim().toLowerCase();
+  if (!raw) return 'FILE';
+  if (raw === 'powerpoint') return 'PPT';
+  return raw.toUpperCase();
+};
+
 /* ── Accent palette cycling ── */
 const ACCENT_COLORS = [
   { main: '#7c5cfc', bg: 'rgba(124,92,252,0.08)', border: 'rgba(124,92,252,0.18)' },
@@ -73,16 +80,19 @@ const RecommendationResourceCard = ({
   downloadLoading = false,
   onToggleLike,
   onDownload,
+  onOpenDetails,
 }) => {
   const title = item?.title || item?.resource_title || 'Untitled resource';
   const authorName = getAuthorName(item);
   const universityName = getUniversityName(item);
   const rating = getAverageRating(item);
   const ratingsCount = getTotalRatings(item);
+  const formatLabel = getFormatLabel(item);
   const accent = ACCENT_COLORS[index % ACCENT_COLORS.length];
 
   return (
     <Box
+      onClick={onOpenDetails ? () => onOpenDetails(item) : undefined}
       sx={{
         position: 'relative',
         p: { xs: 1.8, md: 2 },
@@ -97,6 +107,7 @@ const RecommendationResourceCard = ({
         transition: 'transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease',
         animation: `${fadeSlideUp} 400ms ease-out both`,
         animationDelay: `${Math.min(index, 9) * 65}ms`,
+        cursor: onOpenDetails ? 'pointer' : 'default',
         '&:hover': {
           transform: 'translateY(-3px)',
           borderColor: accent.border,
@@ -158,22 +169,38 @@ const RecommendationResourceCard = ({
             >
               {title}
             </Typography>
-            {showScore && (
+            <Stack direction="row" spacing={0.6} alignItems="center">
               <Chip
                 size="small"
-                label={`${Number(score || 0).toFixed(1)}%`}
+                label={formatLabel}
                 sx={{
                   height: 22,
-                  fontSize: '0.7rem',
+                  fontSize: '0.66rem',
                   fontWeight: 700,
-                  bgcolor: accent.bg,
-                  color: accent.main,
+                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                  color: 'primary.main',
                   border: '1px solid',
-                  borderColor: accent.border,
-                  '& .MuiChip-label': { px: 0.8 },
+                  borderColor: (theme) => alpha(theme.palette.primary.main, 0.22),
+                  '& .MuiChip-label': { px: 0.7 },
                 }}
               />
-            )}
+              {showScore && (
+                <Chip
+                  size="small"
+                  label={`${Number(score || 0).toFixed(1)}%`}
+                  sx={{
+                    height: 22,
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    bgcolor: accent.bg,
+                    color: accent.main,
+                    border: '1px solid',
+                    borderColor: accent.border,
+                    '& .MuiChip-label': { px: 0.8 },
+                  }}
+                />
+              )}
+            </Stack>
           </Box>
 
           {/* Author & University */}
@@ -268,7 +295,10 @@ const RecommendationResourceCard = ({
           <Tooltip title={isLiked ? 'Remove from favorites' : 'Add to favorites'}>
             <span>
               <IconButton
-                onClick={onToggleLike}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onToggleLike?.();
+                }}
                 disabled={likeLoading}
                 size="small"
                 sx={{
@@ -300,7 +330,10 @@ const RecommendationResourceCard = ({
           </Tooltip>
 
           <Button
-            onClick={onDownload}
+            onClick={(event) => {
+              event.stopPropagation();
+              onDownload?.();
+            }}
             disabled={downloadLoading}
             size="small"
             variant="outlined"

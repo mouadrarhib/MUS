@@ -23,6 +23,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import DiscoverNavbar from '@/features/discover/components/DiscoverNavbar';
 import RecommendationResourceCard from '@/features/dashboard/components/RecommendationResourceCard';
+import ResourceDetailsDialog from '@/features/resources/components/ResourceDetailsDialog';
 import resourcesService from '@/services/resourcesService';
 import moduleService from '@/services/moduleService';
 import personalizationService from '@/services/personalizationService';
@@ -48,6 +49,44 @@ const extractDataArray = (payload) => {
   if (Array.isArray(payload?.data)) return payload.data;
   if (Array.isArray(payload)) return payload;
   return [];
+};
+
+const toDiscoverDetailModel = (item) => {
+  const id = Number(item?.id || item?.resource_id || 0);
+  const title = item?.title || item?.resource_title || 'Untitled resource';
+  const description = item?.description || item?.resource_description || '';
+  const status = item?.status || item?.resource_status || 'published';
+  const educationalType = item?.educationalType || item?.educational_type || item?.resource_educational_type || 'other';
+  const format = item?.format || item?.resource_format || 'other';
+  const createdAt = item?.createdAt || item?.created_at || null;
+  const accessTier = item?.access_tier || item?.accessTier || 'free';
+
+  return {
+    ...item,
+    id,
+    title,
+    description,
+    status,
+    educationalType,
+    format,
+    createdAt,
+    access_tier: accessTier,
+    accessTier,
+    author: {
+      id: item?.author?.id || item?.created_by || item?.creator_id,
+      name: item?.author?.name || item?.creator_name || item?.created_by_name || item?.author_name,
+      role: item?.author?.role || item?.primary_role || item?.creator_primary_role,
+      institution: item?.author?.institution || item?.institution_name || item?.institution,
+    },
+    academicContext: {
+      moduleId: item?.academicContext?.moduleId || item?.module_id,
+      moduleCode: item?.academicContext?.moduleCode || item?.module_code,
+      moduleTitle: item?.academicContext?.moduleTitle || item?.module_title,
+      difficulty: item?.academicContext?.difficulty || item?.difficulty,
+      chapter: item?.academicContext?.chapter || item?.chapter,
+      examRelated: item?.academicContext?.examRelated || item?.exam_related,
+    },
+  };
 };
 
 const getUniversityName = (item) => {
@@ -134,9 +173,12 @@ const DiscoverResources = () => {
   const [likedMap, setLikedMap] = useState({});
   const [likeLoadingId, setLikeLoadingId] = useState(null);
   const [downloadLoadingId, setDownloadLoadingId] = useState(null);
+  const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
+  const [viewingResource, setViewingResource] = useState(null);
   const [feedback, setFeedback] = useState({ open: false, severity: 'info', message: '' });
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const resourcesCacheRef = useRef(new Map());
+  const detailsCacheRef = useRef(new Map());
 
   useEffect(() => {
     let mounted = true;
@@ -401,6 +443,64 @@ const DiscoverResources = () => {
 
   const handleSearchChange = (event) => {
     setSearchQuery(event.target.value);
+  };
+
+  const handleCloseDetailsDialog = () => {
+    setOpenDetailsDialog(false);
+    setViewingResource(null);
+  };
+
+  const handleOpenDetails = async (item) => {
+    const baseResource = toDiscoverDetailModel(item);
+    if (!baseResource?.id) return;
+
+    setViewingResource(baseResource);
+    setOpenDetailsDialog(true);
+
+    const cached = detailsCacheRef.current.get(baseResource.id);
+    if (cached) {
+      setViewingResource(cached);
+      return;
+    }
+
+    try {
+      const [resourceRes, statsRes, tagsRes] = await Promise.allSettled([
+        resourcesService.getResourceById(baseResource.id),
+        resourcesService.getResourceStatistics(baseResource.id),
+        resourcesService.getResourceTags(baseResource.id),
+      ]);
+
+      const detailed =
+        resourceRes.status === 'fulfilled' && resourceRes.value
+          ? {
+              ...toDiscoverDetailModel(resourceRes.value),
+              stats: statsRes.status === 'fulfilled' ? statsRes.value || {} : {},
+              tags: tagsRes.status === 'fulfilled' ? tagsRes.value || [] : [],
+            }
+          : {
+              ...baseResource,
+              stats: statsRes.status === 'fulfilled' ? statsRes.value || {} : {},
+              tags: tagsRes.status === 'fulfilled' ? tagsRes.value || [] : [],
+            };
+
+      detailsCacheRef.current.set(baseResource.id, detailed);
+      setViewingResource((prev) => (prev?.id === baseResource.id ? detailed : prev));
+    } catch {
+      // Keep base details when enrichment fails.
+    }
+  };
+
+  const handleOpenPreviewPage = (resource, resolvedPreviewUrl = '') => {
+    const id = Number(resource?.id || resource?.resource_id || 0);
+    if (!id) return;
+
+    navigate(`/discover/resources/${id}/preview`, {
+      state: {
+        resource,
+        previewUrl: resolvedPreviewUrl,
+        returnTo: `${location.pathname}${location.search}`,
+      },
+    });
   };
 
   return (
@@ -683,6 +783,7 @@ const DiscoverResources = () => {
                     downloadLoading={downloadLoadingId === Number(item?.resource_id || item?.id || 0)}
                     onToggleLike={() => handleToggleLike(Number(item?.resource_id || item?.id || 0))}
                     onDownload={() => handleDownload(Number(item?.resource_id || item?.id || 0))}
+                    onOpenDetails={handleOpenDetails}
                   />
                 );
               })}
@@ -779,6 +880,7 @@ const DiscoverResources = () => {
                         downloadLoading={downloadLoadingId === getResourceId(resource)}
                         onToggleLike={() => handleToggleLike(getResourceId(resource))}
                         onDownload={() => handleDownload(getResourceId(resource))}
+                        onOpenDetails={handleOpenDetails}
                       />
                     );
                   })}
@@ -804,6 +906,13 @@ const DiscoverResources = () => {
           {feedback.message}
         </Alert>
       </Snackbar>
+
+      <ResourceDetailsDialog
+        open={openDetailsDialog}
+        resource={viewingResource}
+        onClose={handleCloseDetailsDialog}
+        onOpenPreviewPage={handleOpenPreviewPage}
+      />
     </Box>
   );
 };

@@ -22,6 +22,7 @@ import {
   Person as PersonIcon,
   Business as BusinessIcon,
   AttachMoney as AttachMoneyIcon,
+  OpenInNew as OpenInNewIcon,
   Close,
   School as SchoolIcon,
   InsertDriveFile as FileIcon,
@@ -31,14 +32,53 @@ import { useEffect, useState } from 'react';
 import resourcesService from '@/services/resourcesService';
 import { AsyncButton } from '@/shared/components/ui';
 
-const ResourceDetailsDialog = ({ open, resource, onClose }) => {
+const ResourceDetailsDialog = ({ open, resource, onClose, onOpenPreviewPage }) => {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [previewError, setPreviewError] = useState('');
 
   useEffect(() => {
     if (open) {
       setDownloadError('');
     }
+  }, [open, resource?.id]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadPreviewUrl = async () => {
+      if (!open || !resource?.id) {
+        if (mounted) {
+          setPreviewUrl('');
+          setPreviewError('');
+          setPreviewLoading(false);
+        }
+        return;
+      }
+
+      setPreviewLoading(true);
+      setPreviewError('');
+      try {
+        const result = await resourcesService.getResourceFileUrl(resource.id);
+        const url = result?.url || result?.download_url || '';
+        if (mounted) setPreviewUrl(url);
+      } catch {
+        if (mounted) {
+          setPreviewUrl('');
+          setPreviewError('Preview is unavailable for this resource right now.');
+        }
+      } finally {
+        if (mounted) setPreviewLoading(false);
+      }
+    };
+
+    loadPreviewUrl();
+
+    return () => {
+      mounted = false;
+    };
   }, [open, resource?.id]);
 
   if (!resource) return null;
@@ -50,8 +90,8 @@ const ResourceDetailsDialog = ({ open, resource, onClose }) => {
     setDownloadError('');
 
     try {
-      const result = await resourcesService.getResourceFileUrl(resource.id);
-      const downloadUrl = result?.download_url;
+      const result = await resourcesService.getResourceFileUrl(resource.id, { download: true });
+      const downloadUrl = result?.download_url || result?.url;
 
       if (!downloadUrl) {
         throw new Error('No download URL is available for this resource');
@@ -73,6 +113,24 @@ const ResourceDetailsDialog = ({ open, resource, onClose }) => {
       }
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const normalizedFormat = String(resource?.format || '').trim().toLowerCase();
+  const isOfficeFormat = ['word', 'powerpoint', 'excel'].includes(normalizedFormat);
+  const officePreviewUrl = previewUrl
+    ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewUrl)}`
+    : '';
+
+  const handleOpenFile = () => {
+    const targetUrl = previewUrl || resource?.url;
+    if (!targetUrl) return;
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleOpenPreviewPage = () => {
+    if (typeof onOpenPreviewPage === 'function') {
+      onOpenPreviewPage(resource, previewUrl || resource?.url || '');
     }
   };
 
@@ -324,6 +382,56 @@ const ResourceDetailsDialog = ({ open, resource, onClose }) => {
           </Grid>
         </Box>
 
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" fontWeight="600" mb={1.5} display="flex" alignItems="center" gap={1}>
+            <FileIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+            Preview
+          </Typography>
+
+          <Box
+            sx={{
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+              minHeight: 180,
+              overflow: 'hidden',
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              p: 1,
+            }}
+          >
+            {previewLoading ? (
+              <Typography variant="caption" color="text.secondary">
+                Loading preview...
+              </Typography>
+            ) : previewError ? (
+              <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
+                {previewError}
+              </Typography>
+            ) : !previewUrl ? (
+              <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
+                No preview URL available. Use Open or Download.
+              </Typography>
+            ) : normalizedFormat === 'pdf' ? (
+              <Box component="iframe" src={previewUrl} title="PDF preview" sx={{ width: '100%', minHeight: 320, border: 0 }} />
+            ) : normalizedFormat === 'video' ? (
+              <Box component="video" src={previewUrl} controls sx={{ width: '100%', maxHeight: 360, borderRadius: 1 }} />
+            ) : normalizedFormat === 'audio' ? (
+              <Box component="audio" src={previewUrl} controls sx={{ width: '100%' }} />
+            ) : normalizedFormat === 'image' ? (
+              <Box component="img" src={previewUrl} alt={resource.title || 'Resource preview'} sx={{ maxWidth: '100%', maxHeight: 360, objectFit: 'contain' }} />
+            ) : isOfficeFormat ? (
+              <Box component="iframe" src={officePreviewUrl} title="Office preview" sx={{ width: '100%', minHeight: 320, border: 0 }} />
+            ) : (
+              <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
+                Inline preview is not supported for this format. Use Open or Download.
+              </Typography>
+            )}
+          </Box>
+        </Box>
+
         {/* Statistics Section */}
         {hasStats && (
           <>
@@ -519,6 +627,34 @@ const ResourceDetailsDialog = ({ open, resource, onClose }) => {
       </DialogContent>
 
       <DialogActions sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+        {typeof onOpenPreviewPage === 'function' ? (
+          <Button
+            onClick={handleOpenPreviewPage}
+            variant="contained"
+            disabled={downloading}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: 'none',
+            }}
+          >
+            Full Preview
+          </Button>
+        ) : null}
+        <Button
+          onClick={handleOpenFile}
+          variant="outlined"
+          disabled={(!previewUrl && !resource.url) || downloading}
+          startIcon={<OpenInNewIcon sx={{ fontSize: 18 }} />}
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 600,
+          }}
+        >
+          Open
+        </Button>
         <AsyncButton
           onClick={handleDownload}
           variant="outlined"
@@ -556,10 +692,12 @@ ResourceDetailsDialog.propTypes = {
   open: PropTypes.bool.isRequired,
   resource: PropTypes.object,
   onClose: PropTypes.func.isRequired,
+  onOpenPreviewPage: PropTypes.func,
 };
 
 ResourceDetailsDialog.defaultProps = {
   resource: null,
+  onOpenPreviewPage: null,
 };
 
 export default ResourceDetailsDialog;

@@ -16,6 +16,7 @@ const DashboardLayout = lazy(() => import('@/layouts/DashboardLayout'));
 // (Make sure to create src/features/dashboard/pages/Overview.jsx)
 const DashboardOverview = lazy(() => import('@/features/dashboard/pages/Overview'));
 const DiscoverResourcesPage = lazy(() => import('@/features/dashboard/pages/DiscoverResources'));
+const ResourcePreviewPage = lazy(() => import('@/features/discover/pages/ResourcePreviewPage'));
 const UsersPage = lazy(() => import('@/features/users/pages/Users'));
 const ResourcesPage = lazy(() => import('@/features/resources/pages/Resources'));
 const LibraryPage = lazy(() => import('@/features/library/pages/Library'));
@@ -52,6 +53,7 @@ const AppRouter = () => {
         <Route path="/register" element={<Register />} />
 
         <Route path="/discover" element={<DiscoverResourcesPage />} />
+        <Route path="/discover/resources/:id/preview" element={<ResourcePreviewPage />} />
 
         {/* 3. Protected Dashboard Routes (The New Structure) */}
         <Route
