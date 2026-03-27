@@ -1,5 +1,26 @@
 # Database Documentation
 
+> Professional schema and business-logic documentation for the MUS platform database.
+
+| Property | Value |
+|---|---|
+| Scope | Core schema, migrations, procedures, views |
+| Platform | PostgreSQL (`PL/pgSQL`, triggers, enums, JSONB) |
+| Audience | Backend developers, reviewers, recruiters |
+| Focus | Data model clarity + workflow understanding |
+
+## Quick Navigation
+
+- [1. System Overview](#1-system-overview)
+- [2. Entity-Relationship Overview](#2-entity-relationship-overview)
+- [3. Tables](#3-tables)
+- [4. Relationships](#4-relationships)
+- [5. Stored Procedures](#5-stored-procedures)
+- [6. Functions](#6-functions)
+- [7. Business Logic & Workflows](#7-business-logic--workflows)
+- [8. Data Flow Examples](#8-data-flow-examples)
+- [9. Improvements & Observations](#9-improvements--observations)
+
 ## 1. System Overview
 
 This database powers an educational resource-sharing platform with six main capabilities:
@@ -12,6 +33,15 @@ This database powers an educational resource-sharing platform with six main capa
 - **Communication and growth**: in-app notifications, external delivery tracking (email/push), membership tiers, and recommendations.
 
 The SQL implementation is PostgreSQL-oriented (PL/pgSQL, enums, triggers, JSONB, partial indexes) and places significant business logic inside database routines.
+
+### At a Glance
+
+| Area | Coverage |
+|---|---|
+| Data model | Identity, academic hierarchy, resources, engagement, notifications, memberships |
+| Routine style | Procedure-light, function-heavy (`sp_*`) architecture |
+| Workflow depth | Onboarding, moderation, rewards, case management, retry queueing |
+| Documentation level | Structured for both implementation and review contexts |
 
 ---
 
@@ -51,6 +81,14 @@ The SQL implementation is PostgreSQL-oriented (PL/pgSQL, enums, triggers, JSONB,
 
 > Format: **name | type | description**.  
 > Only key constraints and practical notes are listed to keep this recruiter/developer friendly.
+
+### Reading Guide
+
+| Marker | Meaning |
+|---|---|
+| Primary Key | Row uniqueness and identity anchor |
+| Foreign Keys | Referential links across entities |
+| Notes | Business constraints, indexing, or behavior highlights |
 
 ### Table: `domains`
 - **Description**: Top-level academic domains.
@@ -352,6 +390,17 @@ The schema uses mostly functions (`sp_*`) and a small number of true procedures.
 ## 6. Functions
 
 ### Grouped catalog
+
+| Function Group | Intent |
+|---|---|
+| Auth and identity | Secure account lifecycle and role-based access |
+| Academic master data | CRUD and hierarchy traversal for learning structure |
+| Resources and moderation | Publication, filtering, and quality control |
+| Engagement and rewards | Favorites/downloads/ratings and points accounting |
+| Tagging and personalization | Content labeling and personalized recommendation scoring |
+| Q&A and confusion support | Academic support, assignment, and resolution workflows |
+| Notification pipeline | In-app + external delivery with retry orchestration |
+| Membership/access tier | Premium entitlement and access checks |
 
 - **Auth and identity**: `sp_user_*`, `sp_role_*`, `sp_user_settings_*`, password/token helpers.
 - **Academic master data CRUD**: `sp_domain_*`, `sp_institution_type_*`, `sp_institution_*`, `sp_institution_program_*`, `sp_program_*`, `sp_level_*`, `sp_semester_*`, `sp_module_*`, `sp_student_profile_*`.
