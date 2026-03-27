@@ -35,7 +35,7 @@ import gsap from 'gsap';
 export const LoginForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login: authLogin, isAuthenticated } = useAuth(); // Removed hasRole as we redirect everyone
+  const { login: authLogin, isAuthenticated, isAdmin } = useAuth();
   const { login: apiLogin, loading, error: apiError } = useLogin();
   const { showError } = useNotification();
   
@@ -57,17 +57,30 @@ export const LoginForm = () => {
     },
   });
 
+  const resolveRedirectPath = (adminFallback = false) => {
+    const fromPath = location.state?.from?.pathname;
+    const fromSearch = location.state?.from?.search || '';
+    if (fromPath) return `${fromPath}${fromSearch}`;
+    return adminFallback ? '/dashboard' : '/discover';
+  };
+
+  const inferAdminFromLoginPayload = (payload) => {
+    const user = payload?.user || payload?.data?.user || payload?.data?.data?.user || null;
+    const rawRoles = user?.roles || user?.role || payload?.roles || payload?.role || [];
+    const roles = (Array.isArray(rawRoles) ? rawRoles : [rawRoles])
+      .filter(Boolean)
+      .map((role) => (typeof role === 'object' ? role?.name || role?.role || '' : String(role)))
+      .map((role) => String(role).toUpperCase())
+      .filter(Boolean);
+    return roles.some((role) => role.includes('ADMIN'));
+  };
+
   // Redirect authenticated users to intended route or discover page
   useEffect(() => {
     if (isAuthenticated) {
-      // If user came from a specific page (e.g. tried to visit /library), send them back there.
-      // Otherwise, send them to the discover page.
-      const fromPath = location.state?.from?.pathname || '/discover';
-      const fromSearch = location.state?.from?.search || '';
-      const from = `${fromPath}${fromSearch}`;
-      navigate(from, { replace: true });
+      navigate(resolveRedirectPath(isAdmin), { replace: true });
     }
-  }, [isAuthenticated, navigate, location.state]);
+  }, [isAuthenticated, isAdmin, navigate, location.state]);
 
   useEffect(() => {
     if (!rootRef.current) return;
@@ -122,10 +135,8 @@ export const LoginForm = () => {
 
       // `authAPI.login()` already returns the response body
       authLogin(response);
-      
-      const fromPath = location.state?.from?.pathname || '/discover';
-      const fromSearch = location.state?.from?.search || '';
-      navigate(`${fromPath}${fromSearch}`, { replace: true });
+
+      navigate(resolveRedirectPath(inferAdminFromLoginPayload(response)), { replace: true });
 
     } catch (err) {
       // Extract error message from backend response
