@@ -6,6 +6,8 @@ import { requireRole } from "../middleware/authorization.js";
 import {
   // User Overview Management
   getAllUsersOverviewHandler,
+  getUsersPointsOverviewHandler,
+  adjustUserPointsHandler,
   
   // Students Management
   getAllStudentsHandler,
@@ -70,6 +72,28 @@ router.get(
 
 // GET /admin/users/overview - Vue d'ensemble de tous les utilisateurs
 router.get("/users/overview", getAllUsersOverviewHandler);
+
+// GET /admin/users/points - Vue de gestion des points utilisateurs
+router.get(
+  "/users/points",
+  [query("include_admin").optional().isBoolean().withMessage("include_admin doit etre un booleen")],
+  validateRequest,
+  getUsersPointsOverviewHandler
+);
+
+// PATCH /admin/users/:userId/points - Ajuster les points d'un utilisateur
+router.patch(
+  "/users/:userId/points",
+  [
+    param("userId").isUUID().withMessage("ID utilisateur invalide"),
+    body("points_delta")
+      .isInt({ min: -100000, max: 100000 })
+      .withMessage("points_delta doit etre un entier entre -100000 et 100000"),
+    body("note").optional().isString().isLength({ max: 300 }).withMessage("note invalide"),
+  ],
+  validateRequest,
+  adjustUserPointsHandler
+);
 
 
 /**

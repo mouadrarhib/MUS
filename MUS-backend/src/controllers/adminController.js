@@ -3,6 +3,8 @@ import { successResponse } from "../helpers/response.js";
 import {
   // User Overview Management
   getAllUsersOverview,
+  getUsersPointsOverview,
+  adjustUserPoints,
   
   // Students Management
   getAllStudents,
@@ -64,6 +66,25 @@ export const getAllUsersOverviewHandler = asyncHandler(async (req, res) => {
     total: users.length,
     users,
   });
+});
+
+export const getUsersPointsOverviewHandler = asyncHandler(async (req, res) => {
+  const includeAdmin = String(req.query.include_admin || "false") === "true";
+  const users = await getUsersPointsOverview({ includeAdmin });
+
+  return successResponse(res, "Users points overview retrieved successfully", {
+    total: users.length,
+    users,
+  });
+});
+
+export const adjustUserPointsHandler = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { points_delta, note } = req.body;
+
+  const result = await adjustUserPoints(userId, Number(points_delta), note || null);
+
+  return successResponse(res, "User points updated successfully", result);
 });
 
 

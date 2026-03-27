@@ -19,6 +19,71 @@ export const getAllUsersOverview = async () => {
   return results;
 };
 
+/**
+ * Get users points management overview (non-admin users by default)
+ */
+export const getUsersPointsOverview = async ({ includeAdmin = false } = {}) => {
+  const [results] = await sequelize.query(
+    `
+    SELECT
+      u.id AS user_id,
+      u.full_name,
+      u.email,
+      u.is_active,
+      COALESCE(u.points, 0)::BIGINT AS points,
+      STRING_AGG(DISTINCT ro.name, ', ' ORDER BY ro.name) AS roles,
+      COUNT(DISTINCT r.id)::BIGINT AS total_resources_created,
+      COUNT(DISTINCT f.id)::BIGINT AS total_favorites_received,
+      MAX(r.created_at) AS latest_resource_created_at
+    FROM users u
+    INNER JOIN user_roles ur ON ur.user_id = u.id
+    INNER JOIN roles ro ON ro.id = ur.role_id
+    LEFT JOIN resources r ON r.created_by = u.id
+    LEFT JOIN favorites f ON f.resource_id = r.id
+    WHERE (:include_admin OR ro.name <> 'admin')
+    GROUP BY u.id, u.full_name, u.email, u.is_active, u.points
+    ORDER BY COALESCE(u.points, 0) DESC, u.full_name ASC
+    `,
+    {
+      replacements: { include_admin: includeAdmin },
+    }
+  );
+
+  return results;
+};
+
+/**
+ * Adjust user points (positive: pay/add points, negative: deduct points)
+ */
+export const adjustUserPoints = async (userId, pointsDelta, note = null) => {
+  const [rows] = await sequelize.query(
+    `
+    UPDATE users
+    SET
+      points = GREATEST(COALESCE(points, 0) + :points_delta, 0),
+      updated_at = NOW()
+    WHERE id = :user_id
+    RETURNING id AS user_id, full_name, email, COALESCE(points, 0)::BIGINT AS points, updated_at
+    `,
+    {
+      replacements: {
+        user_id: userId,
+        points_delta: Number(pointsDelta),
+      },
+    }
+  );
+
+  if (!rows.length) {
+    throw new AppError("Utilisateur introuvable", 404);
+  }
+
+  return {
+    ...rows[0],
+    points_delta: Number(pointsDelta),
+    note,
+  };
+};
+
 
 /**
  * ============================================================================
