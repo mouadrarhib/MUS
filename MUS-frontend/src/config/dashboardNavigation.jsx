@@ -3,8 +3,8 @@ import {
   School, 
   UploadFile, 
   AccountBalanceWallet, 
+  Paid,
   AdminPanelSettings,
-  Group,
   Description,
   Settings,
   AccountTree
@@ -45,9 +45,9 @@ export const DASHBOARD_NAVIGATION = [
     roles: ['ADMIN']
   },
   {
-    labelKey: 'nav.users',
+    labelKey: 'nav.pointsManagement',
     path: '/dashboard/users',
-    icon: <Group />,
+    icon: <Paid />,
     roles: ['ADMIN']
   },
   {
@@ -68,7 +68,7 @@ export const DASHBOARD_NAVIGATION = [
     labelKey: 'nav.wallet',
     path: '/dashboard/wallet',
     icon: <AccountBalanceWallet />,
-    roles: ['STUDENT', 'TEACHER', 'ADMIN']
+    roles: ['STUDENT', 'TEACHER']
   },
 
   // SETTINGS - Available to all
