@@ -581,7 +581,15 @@ export const checkEmail = asyncHandler(async (req, res) => {
  *         description: Reset token request accepted
  */
 export const forgotPassword = asyncHandler(async (req, res) => {
-  const { email } = req.body;
+  const { email, new_password, token } = req.body;
+
+  if (typeof new_password !== "undefined" || typeof token !== "undefined") {
+    throw new AppError(
+      "Use /auth/reset-password with { token, new_password } to complete password reset",
+      400
+    );
+  }
+
   const result = await requestPasswordReset(email, { ip: req.ip });
   return successResponse(res, "If the email exists, a reset token has been generated", result);
 });

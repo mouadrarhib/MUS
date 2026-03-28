@@ -10,6 +10,7 @@ const AUTH = {
   RESET_PASSWORD: "/auth/password/reset",
   FORGOT_PASSWORD: "/auth/password/forgot",
   CHECK_EMAIL: "/auth/email/check",
+  RESET_PASSWORD_WITH_TOKEN: "/auth/reset-password",
   UPDATE_PROFILE: "/auth/profile",
   TOGGLE_ACTIVE: "/auth/active",
   DELETE_USER: "/auth/me",
@@ -57,9 +58,14 @@ export const authService = {
 
   checkEmailExists: (email) => post(AUTH.CHECK_EMAIL, { email }),
 
-  forgotPassword: (email, newPassword) =>
+  forgotPassword: (email) =>
     post(AUTH.FORGOT_PASSWORD, {
       email,
+    }),
+
+  resetPasswordWithToken: (token, newPassword) =>
+    post(AUTH.RESET_PASSWORD_WITH_TOKEN, {
+      token,
       new_password: newPassword,
     }),
 
