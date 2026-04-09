@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Box, Button, IconButton, Stack, Typography, alpha, Menu as MuiMenu, MenuItem, ListItemIcon } from "@mui/material";
-import { Menu, Language, DarkMode, LightMode, Check } from "@mui/icons-material";
+import { Language, DarkMode, LightMode, Check } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
 import { useThemeMode } from "@/app/providers/ThemeContext";
 import { useLanguage } from "@/app/providers/LanguageContext";
@@ -62,27 +62,8 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
           justifyContent: "space-between",
         }}
       >
-        {/* Left: Hamburger + Logo + Nav links */}
+        {/* Left: Logo + Nav links */}
         <Stack direction="row" spacing={2} alignItems="center">
-          <IconButton
-            size="small"
-            sx={{
-              color: "text.primary",
-              border: "1px solid",
-              borderColor: (theme) =>
-                theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
-              borderRadius: 2,
-              p: 0.8,
-              transition: "all 0.2s ease",
-              "&:hover": {
-                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                borderColor: (theme) => alpha(theme.palette.primary.main, 0.3),
-              },
-            }}
-          >
-            <Menu sx={{ fontSize: 20 }} />
-          </IconButton>
-
           <Stack component={RouterLink} to="/" direction="row" alignItems="center" sx={{ textDecoration: "none" }}>
             <Box component="img" src={logo} alt="MUS Logo" sx={{ height: 40, width: "auto", objectFit: "contain" }} />
           </Stack>

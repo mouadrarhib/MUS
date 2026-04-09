@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import {
   Box,
   Button,
@@ -8,6 +8,7 @@ import {
   IconButton,
   FormControl,
   InputLabel,
+  LinearProgress,
   Select,
   MenuItem,
   Snackbar,
@@ -166,6 +167,11 @@ const DiscoverResources = ({ recommendationsOnly = false }) => {
   const [viewingResource, setViewingResource] = useState(null);
   const [feedback, setFeedback] = useState({ open: false, severity: 'info', message: '' });
   const deferredSearchQuery = useDeferredValue(searchQuery);
+  // Defer module + type filter changes so React can yield to the browser
+  // between the state update and the expensive re-group / re-filter work.
+  const deferredModule = useDeferredValue(selectedModule);
+  const deferredType = useDeferredValue(selectedType);
+  const [isPending, startTransition] = useTransition();
   const detailsCacheRef = useRef(new Map());
 
   useEffect(() => {
@@ -274,7 +280,8 @@ const DiscoverResources = ({ recommendationsOnly = false }) => {
     return sorted;
   }, [recommendations, resources]);
 
-  const query = deferredSearchQuery.trim().toLowerCase();
+
+
 
   const selectedModuleLabel = useMemo(() => {
     if (selectedModule === 'all') return null;
@@ -290,62 +297,75 @@ const DiscoverResources = ({ recommendationsOnly = false }) => {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [rankedResources]);
 
-  const matchesSearch = (item) => {
-    if (!query) return true;
+  // Stable query string from the deferred value
+  const query = useMemo(() => deferredSearchQuery.trim().toLowerCase(), [deferredSearchQuery]);
 
-    const haystack = [
-      item?.title,
-      item?.resource_title,
-      item?.author?.name,
-      item?.author_name,
-      item?.created_by_name,
-      item?.creator_name,
-      item?.institution_name,
-      item?.author?.institution,
-      item?.module_title,
-      item?.academicContext?.moduleTitle,
-      item?.module_code,
-      item?.academicContext?.moduleCode,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
+  // Memoized filter callbacks – stable references mean the useMemos below
+  // only recompute when their actual inputs change.
+  const matchesSearch = useCallback(
+    (item) => {
+      if (!query) return true;
+      const haystack = [
+        item?.title,
+        item?.resource_title,
+        item?.author?.name,
+        item?.author_name,
+        item?.created_by_name,
+        item?.creator_name,
+        item?.institution_name,
+        item?.author?.institution,
+        item?.module_title,
+        item?.academicContext?.moduleTitle,
+        item?.module_code,
+        item?.academicContext?.moduleCode,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(query);
+    },
+    [query]
+  );
 
-    return haystack.includes(query);
-  };
-
-  const matchesFilters = (item) => {
-    if (selectedModule !== 'all') {
-      const itemModuleId = getModuleId(item);
-      if (itemModuleId > 0) {
-        if (String(itemModuleId) !== String(selectedModule)) return false;
-      } else if (selectedModuleLabel) {
-        if (getModuleName(item) !== selectedModuleLabel) return false;
-      } else {
+  const matchesFilters = useCallback(
+    (item) => {
+      if (deferredModule !== 'all') {
+        const itemModuleId = getModuleId(item);
+        if (itemModuleId > 0) {
+          if (String(itemModuleId) !== String(deferredModule)) return false;
+        } else if (selectedModuleLabel) {
+          if (getModuleName(item) !== selectedModuleLabel) return false;
+        } else {
+          return false;
+        }
+      }
+      if (deferredType !== 'all' && getEducationalType(item) !== deferredType) {
         return false;
       }
-    }
-
-    if (selectedType !== 'all' && getEducationalType(item) !== selectedType) {
-      return false;
-    }
-
-    return true;
-  };
+      return true;
+    },
+    [deferredModule, deferredType, selectedModuleLabel]
+  );
 
   const filteredRecommendations = useMemo(
     () => recommendations.filter((item) => matchesSearch(item) && matchesFilters(item)),
-    [recommendations, query, selectedModule, selectedType, selectedModuleLabel]
+    // matchesSearch and matchesFilters are stable useCallback references
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [recommendations, matchesSearch, matchesFilters]
   );
 
   const discoverRecommendationPreviewCount = 4;
   const displayedRecommendations = recommendationsOnly
     ? filteredRecommendations
     : filteredRecommendations.slice(0, discoverRecommendationPreviewCount);
+  const hasActiveFilterSelection = selectedModule !== 'all' || selectedType !== 'all';
+  const hideRecommendationsSection =
+    hasActiveFilterSelection && !loadingRecommendations && filteredRecommendations.length === 0;
 
   const filteredRankedResources = useMemo(
     () => rankedResources.filter((item) => matchesSearch(item) && matchesFilters(item)),
-    [rankedResources, query, selectedModule, selectedType]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rankedResources, matchesSearch, matchesFilters]
   );
 
   const latestPublishedResources = useMemo(() => {
@@ -594,7 +614,7 @@ const DiscoverResources = ({ recommendationsOnly = false }) => {
                 labelId="discover-module-filter-label"
                 value={selectedModule}
                 label="Module"
-                onChange={(event) => setSelectedModule(event.target.value)}
+                onChange={(event) => startTransition(() => setSelectedModule(event.target.value))}
               >
                 <MenuItem value="all">All Modules</MenuItem>
                 {discoverModules.map((module) => (
@@ -611,7 +631,7 @@ const DiscoverResources = ({ recommendationsOnly = false }) => {
                 labelId="discover-type-filter-label"
                 value={selectedType}
                 label="Type"
-                onChange={(event) => setSelectedType(event.target.value)}
+                onChange={(event) => startTransition(() => setSelectedType(event.target.value))}
               >
                 <MenuItem value="all">All Types</MenuItem>
                 {availableTypes.map((typeValue) => (
@@ -626,23 +646,68 @@ const DiscoverResources = ({ recommendationsOnly = false }) => {
               {(selectedModule !== 'all' || selectedType !== 'all') && (
                 <Chip
                   label="Reset filters"
-                  onClick={() => {
-                    setSelectedModule('all');
-                    setSelectedType('all');
-                  }}
+                  onClick={() =>
+                    startTransition(() => {
+                      setSelectedModule('all');
+                      setSelectedType('all');
+                    })
+                  }
                   variant="outlined"
                 />
               )}
               <Chip
                 label={`${filteredRankedResources.length} results`}
-                sx={{ bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12), color: 'primary.main', fontWeight: 700 }}
+                sx={{
+                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+                  color: 'primary.main',
+                  fontWeight: 700,
+                  opacity: isPending ? 0.5 : 1,
+                  transition: 'opacity 0.15s ease',
+                }}
               />
             </Stack>
           </Stack>
         </Box>
 
+        {/* ─── Filter transition progress bar ─── */}
+        <Box
+          sx={{
+            height: 3,
+            borderRadius: 99,
+            overflow: 'hidden',
+            opacity: isPending ? 1 : 0,
+            transition: 'opacity 0.2s ease',
+            mb: 3,
+            mt: -2.5,
+          }}
+        >
+          <LinearProgress
+            sx={{
+              height: 3,
+              borderRadius: 99,
+              bgcolor: 'transparent',
+              '& .MuiLinearProgress-bar': {
+                background: 'linear-gradient(90deg, #7c5cfc, #3b82f6, #10b981)',
+                borderRadius: 99,
+              },
+            }}
+          />
+        </Box>
+
+        {/* ─── Results wrapper — dims while filter is pending ─── */}
+        <Box
+          sx={{
+            opacity: isPending ? 0.45 : 1,
+            pointerEvents: isPending ? 'none' : 'auto',
+            transition: 'opacity 0.2s ease',
+            display: 'grid',
+            gap: 0,
+          }}
+        >
+
         {/* ─── Recommended For You ─── */}
-        <Box sx={(theme) => ({ ...panelSx(theme), p: { xs: 2, md: 2.5 }, mb: 3 })}>
+        {!hideRecommendationsSection ? (
+          <Box sx={(theme) => ({ ...panelSx(theme), p: { xs: 2, md: 2.5 }, mb: 3 })}>
           <Box
             sx={{
               position: 'absolute',
@@ -740,7 +805,8 @@ const DiscoverResources = ({ recommendationsOnly = false }) => {
               })}
             </Box>
           )}
-        </Box>
+          </Box>
+        ) : null}
 
         {!recommendationsOnly ? (
           <Box sx={(theme) => ({ ...panelSx(theme), p: { xs: 2, md: 2.5 }, mb: 3 })}>
@@ -923,6 +989,9 @@ const DiscoverResources = ({ recommendationsOnly = false }) => {
           )}
           </Box>
         ) : null}
+
+        {/* close results wrapper */}
+        </Box>
       </Box>
 
       <Snackbar

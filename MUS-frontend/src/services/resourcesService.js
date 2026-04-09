@@ -9,6 +9,10 @@ let myResourcesInFlight = null;
 let myResourcesCache = null;
 let myResourcesCacheTs = 0;
 const RESOURCE_CACHE_TTL_MS = 5000;
+const PUBLISHED_CACHE_TTL_MS = 30_000; // published list is large & rarely mutates during a session
+let publishedResourcesInFlight = null;
+let publishedResourcesCache = null;
+let publishedResourcesCacheTs = 0;
 const resourceListInFlight = new Map();
 const resourceListCache = new Map();
 const tagListInFlight = new Map();
@@ -42,6 +46,9 @@ const clearResourceListCaches = () => {
   myResourcesInFlight = null;
   myResourcesCache = null;
   myResourcesCacheTs = 0;
+  publishedResourcesInFlight = null;
+  publishedResourcesCache = null;
+  publishedResourcesCacheTs = 0;
   myRejectionsInFlight.clear();
   myRejectionsCache.clear();
 };
@@ -358,9 +365,31 @@ export const resourcesService = {
     return { id: resourceId };
   },
 
-  listPublishedResources: async () => {
-    const response = await get(`${RESOURCE.ROOT}/published`);
-    return normalizeArray(extractDataArray(response));
+  listPublishedResources: async (options = {}) => {
+    const { force = false } = options;
+
+    // Return from cache if still fresh
+    if (!force && publishedResourcesCache && Date.now() - publishedResourcesCacheTs <= PUBLISHED_CACHE_TTL_MS) {
+      return publishedResourcesCache;
+    }
+
+    // Deduplicate concurrent in-flight requests (e.g. StrictMode double-invoke)
+    if (!force && publishedResourcesInFlight) {
+      return publishedResourcesInFlight;
+    }
+
+    publishedResourcesInFlight = get(`${RESOURCE.ROOT}/published`)
+      .then((response) => {
+        const data = normalizeArray(extractDataArray(response));
+        publishedResourcesCache = data;
+        publishedResourcesCacheTs = Date.now();
+        return data;
+      })
+      .finally(() => {
+        publishedResourcesInFlight = null;
+      });
+
+    return publishedResourcesInFlight;
   },
 
   listResourcesByStatus: async (status, options = {}) => {

@@ -1,7 +1,6 @@
 import { Quiz, Psychology, Groups, MenuBook, Event, School } from "@mui/icons-material";
 
 export const navLinks = [
-  { key: "university", labelKey: "publicHome.header.nav.university" },
   { key: "resources", labelKey: "publicHome.header.nav.resources" },
 ];
 
