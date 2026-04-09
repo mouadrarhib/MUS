@@ -41,6 +41,26 @@ import {
 
 const steps = ['Basic Information', 'Academic Context', 'Settings'];
 
+const EDUCATIONAL_TYPE_OPTIONS = [
+  { value: 'exam', label: 'Exam' },
+  { value: 'course', label: 'Course' },
+  { value: 'correction', label: 'Correction' },
+  { value: 'notes', label: 'Notes' },
+  { value: 'resume', label: 'Resume' },
+];
+
+const FORMAT_OPTIONS = [
+  { value: 'pdf', label: 'PDF' },
+  { value: 'video', label: 'Video' },
+  { value: 'powerpoint', label: 'PowerPoint' },
+  { value: 'word', label: 'Word' },
+  { value: 'excel', label: 'Excel' },
+  { value: 'image', label: 'Image' },
+  { value: 'audio', label: 'Audio' },
+  { value: 'zip', label: 'ZIP' },
+  { value: 'other', label: 'Other' },
+];
+
 const getDefaultValues = (resource) => ({
   title: resource?.title || '',
   description: resource?.description || '',
@@ -85,10 +105,6 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
     defaultValues: getDefaultValues(resource),
     shouldUnregister: false,
   });
-
-  const educationalType = watch('educationalType');
-  const format = watch('format');
-  const accessTier = watch('accessTier');
 
   useEffect(() => {
     reset(getDefaultValues(resource));
@@ -139,8 +155,30 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
       setSelectedFile(file);
       const extension = file.name.split('.').pop().toLowerCase();
       const formatMap = {
-        'pdf': 'pdf', 'mp4': 'video', 'avi': 'video', 'mov': 'video',
-        'ppt': 'powerpoint', 'pptx': 'powerpoint', 'doc': 'word', 'docx': 'word',
+        pdf: 'pdf',
+        mp4: 'video',
+        avi: 'video',
+        mov: 'video',
+        mkv: 'video',
+        webm: 'video',
+        ppt: 'powerpoint',
+        pptx: 'powerpoint',
+        doc: 'word',
+        docx: 'word',
+        xls: 'excel',
+        xlsx: 'excel',
+        csv: 'excel',
+        png: 'image',
+        jpg: 'image',
+        jpeg: 'image',
+        gif: 'image',
+        webp: 'image',
+        mp3: 'audio',
+        wav: 'audio',
+        ogg: 'audio',
+        zip: 'zip',
+        rar: 'zip',
+        '7z': 'zip',
       };
       if (formatMap[extension]) {
         setValue('format', formatMap[extension], { shouldDirty: true });
@@ -261,9 +299,11 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                             notched
                             sx={selectSurfaceSx}
                           >
-                            <MenuItem value="exam">Exam</MenuItem>
-                            <MenuItem value="course">Course</MenuItem>
-                            <MenuItem value="notes">Notes</MenuItem>
+                            {EDUCATIONAL_TYPE_OPTIONS.map((option) => (
+                              <MenuItem key={option.value} value={option.value}>
+                                {option.label}
+                              </MenuItem>
+                            ))}
                           </Select>
                         </FormControl>
                       )}
@@ -283,10 +323,11 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                             notched
                             sx={selectSurfaceSx}
                           >
-                            <MenuItem value="pdf">PDF</MenuItem>
-                            <MenuItem value="video">Video</MenuItem>
-                            <MenuItem value="powerpoint">PowerPoint</MenuItem>
-                            <MenuItem value="word">Word</MenuItem>
+                            {FORMAT_OPTIONS.map((option) => (
+                              <MenuItem key={option.value} value={option.value}>
+                                {option.label}
+                              </MenuItem>
+                            ))}
                           </Select>
                         </FormControl>
                       )}
@@ -407,12 +448,12 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                           ? `${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(1)} MB)`
                           : 'PDF, Word, PowerPoint, or Video'}
                       </Typography>
-                      <input
-                        type="file"
-                        hidden
-                        onChange={handleFileChange}
-                        accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4,.avi,.mov"
-                      />
+                       <input
+                         type="file"
+                         hidden
+                         onChange={handleFileChange}
+                         accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.mp4,.avi,.mov,.mkv,.webm,.png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.ogg,.zip,.rar,.7z"
+                       />
                     </Button>
                     {errors.file?.message && (
                       <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
@@ -703,25 +744,6 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
               <Typography variant="body2" color="text.secondary">
                 Add a resource that looks great and is easy to discover.
               </Typography>
-            </Box>
-            <Box display="flex" alignItems="center" gap={1} sx={{ mr: 2 }}>
-              <Chip
-                label={educationalType}
-                size="small"
-                sx={{ textTransform: 'capitalize', fontWeight: 600, fontSize: '0.7rem', height: 24 }}
-              />
-              <Chip
-                label={format}
-                size="small"
-                variant="outlined"
-                sx={{ textTransform: 'uppercase', fontWeight: 600, fontSize: '0.7rem', height: 24 }}
-              />
-              <Chip
-                label={accessTier}
-                size="small"
-                color={accessTier === 'premium' ? 'warning' : 'default'}
-                sx={{ textTransform: 'capitalize', fontWeight: 600, fontSize: '0.7rem', height: 24 }}
-              />
             </Box>
             {resource && (
               <Chip
