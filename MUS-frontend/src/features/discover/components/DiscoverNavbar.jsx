@@ -1,11 +1,17 @@
 import { Box, Button, IconButton, Stack, Typography, alpha } from '@mui/material';
 import { Menu, LightMode, DarkMode } from '@mui/icons-material';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useThemeMode } from '@/app/providers/ThemeContext';
 import logo from '@/assets/images/logo.png';
 
 const DiscoverNavbar = ({ onLogout, isAuthenticated }) => {
   const { mode, toggleTheme } = useThemeMode();
+  const location = useLocation();
+
+  const navItems = [
+    { label: 'Discover', to: '/discover', active: location.pathname === '/discover' },
+    { label: 'Recommendations', to: '/discover/recommendations', active: location.pathname === '/discover/recommendations' },
+  ];
 
   return (
     <Box
@@ -74,17 +80,21 @@ const DiscoverNavbar = ({ onLogout, isAuthenticated }) => {
           </Stack>
 
           <Stack direction="row" spacing={0.5} sx={{ display: { xs: 'none', md: 'flex' } }}>
-            {['Discover', 'Recommendations'].map((label) => (
+            {navItems.map((item) => (
               <Typography
-                key={label}
+                key={item.label}
                 variant="body2"
+                component={RouterLink}
+                to={item.to}
                 sx={{
                   fontWeight: 600,
-                  color: 'text.secondary',
+                  color: item.active ? 'primary.main' : 'text.secondary',
                   px: 1.5,
                   py: 0.6,
                   borderRadius: 2,
-                  cursor: 'default',
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                  bgcolor: (theme) => (item.active ? alpha(theme.palette.primary.main, 0.1) : 'transparent'),
                   transition: 'all 0.2s ease',
                   '&:hover': {
                     color: 'primary.main',
@@ -92,7 +102,7 @@ const DiscoverNavbar = ({ onLogout, isAuthenticated }) => {
                   },
                 }}
               >
-                {label}
+                {item.label}
               </Typography>
             ))}
           </Stack>

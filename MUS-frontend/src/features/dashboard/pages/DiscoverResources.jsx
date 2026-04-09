@@ -1,6 +1,7 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
+  Button,
   Chip,
   Paper,
   InputBase,
@@ -13,12 +14,10 @@ import {
   Alert,
   Skeleton,
   Stack,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography,
   alpha,
 } from '@mui/material';
-import { AutoAwesome, School, MenuBook, Explore, Search, Close, NewReleases } from '@mui/icons-material';
+import { AutoAwesome, MenuBook, Explore, Search, Close, NewReleases } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import DiscoverNavbar from '@/features/discover/components/DiscoverNavbar';
@@ -89,15 +88,6 @@ const toDiscoverDetailModel = (item) => {
   };
 };
 
-const getUniversityName = (item) => {
-  return (
-    item?.institution_name ||
-    item?.author?.institution ||
-    item?.institution ||
-    'Unknown university'
-  );
-};
-
 const getModuleName = (item) => {
   return (
     item?.module_title ||
@@ -154,7 +144,7 @@ const panelSx = (theme) => ({
   position: 'relative',
 });
 
-const DiscoverResources = () => {
+const DiscoverResources = ({ recommendationsOnly = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, user, isAuthenticated } = useAuth();
@@ -163,7 +153,6 @@ const DiscoverResources = () => {
   const [resources, setResources] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [discoverModules, setDiscoverModules] = useState([]);
-  const [view, setView] = useState('universities');
   const [selectedModule, setSelectedModule] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
   const [searchQuery, setSearchQuery] = useState(() => {
@@ -177,7 +166,6 @@ const DiscoverResources = () => {
   const [viewingResource, setViewingResource] = useState(null);
   const [feedback, setFeedback] = useState({ open: false, severity: 'info', message: '' });
   const deferredSearchQuery = useDeferredValue(searchQuery);
-  const resourcesCacheRef = useRef(new Map());
   const detailsCacheRef = useRef(new Map());
 
   useEffect(() => {
@@ -217,32 +205,10 @@ const DiscoverResources = () => {
     let mounted = true;
 
     const loadResources = async () => {
-      const cacheKey = `${selectedModule}|${selectedType}`;
-      const cached = resourcesCacheRef.current.get(cacheKey);
-      if (cached) {
-        setResources(cached);
-        setLoadingResources(false);
-        return;
-      }
-
       setLoadingResources(true);
       try {
-        let nextResources = [];
-
-        if (selectedModule === 'all') {
-          nextResources =
-            selectedType === 'all'
-              ? await resourcesService.listPublishedResources()
-              : await resourcesService.listResourcesByEducationalType(selectedType);
-        } else {
-          const params = selectedType === 'all' ? {} : { educational_type: selectedType };
-          const response = await moduleService.getModuleResources(selectedModule, params);
-          nextResources = extractDataArray(response);
-        }
-
-        const normalized = Array.isArray(nextResources) ? nextResources : [];
-        resourcesCacheRef.current.set(cacheKey, normalized);
-        if (mounted) setResources(normalized);
+        const nextResources = await resourcesService.listPublishedResources();
+        if (mounted) setResources(Array.isArray(nextResources) ? nextResources : []);
       } catch {
         if (mounted) setResources([]);
       } finally {
@@ -255,7 +221,7 @@ const DiscoverResources = () => {
     return () => {
       mounted = false;
     };
-  }, [selectedModule, selectedType]);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -372,14 +338,14 @@ const DiscoverResources = () => {
     [recommendations, query, selectedModule, selectedType, selectedModuleLabel]
   );
 
+  const discoverRecommendationPreviewCount = 4;
+  const displayedRecommendations = recommendationsOnly
+    ? filteredRecommendations
+    : filteredRecommendations.slice(0, discoverRecommendationPreviewCount);
+
   const filteredRankedResources = useMemo(
     () => rankedResources.filter((item) => matchesSearch(item) && matchesFilters(item)),
     [rankedResources, query, selectedModule, selectedType]
-  );
-
-  const groupedByUniversity = useMemo(
-    () => groupResources(filteredRankedResources, getUniversityName),
-    [filteredRankedResources]
   );
 
   const latestPublishedResources = useMemo(() => {
@@ -397,7 +363,7 @@ const DiscoverResources = () => {
     [filteredRankedResources]
   );
 
-  const groupsToRender = view === 'modules' ? groupedByModule : groupedByUniversity;
+  const groupsToRender = groupedByModule;
 
   const handleLogout = () => {
     navigate('/', { replace: true });
@@ -406,7 +372,7 @@ const DiscoverResources = () => {
 
   const ensureAuthenticated = () => {
     if (isAuthenticated) return true;
-    navigate('/login', { state: { from: { pathname: '/discover' } } });
+    navigate('/login', { state: { from: { pathname: location.pathname, search: location.search } } });
     return false;
   };
 
@@ -576,46 +542,12 @@ const DiscoverResources = () => {
                 variant="body2"
                 sx={{ color: 'text.secondary', fontSize: '0.88rem' }}
               >
-                Resources are ranked by recommendation score and grouped by academic context.
+                {recommendationsOnly
+                  ? 'Browse all your personalized recommendations in one place.'
+                  : 'Resources are ranked by recommendation score and grouped by academic context.'}
               </Typography>
             </Box>
 
-            <ToggleButtonGroup
-              size="small"
-              value={view}
-              exclusive
-              onChange={(_, next) => next && setView(next)}
-              sx={{
-                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.07),
-                borderRadius: 2.5,
-                p: 0.4,
-                gap: 0.5,
-                '& .MuiToggleButton-root': {
-                  border: 0,
-                  px: 2,
-                  py: 0.6,
-                  borderRadius: '8px !important',
-                  fontWeight: 700,
-                  fontSize: '0.82rem',
-                  textTransform: 'none',
-                  transition: 'all 0.2s ease',
-                  '&.Mui-selected': {
-                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(124,92,252,0.2)' : '#fff',
-                    boxShadow: (theme) => theme.palette.mode === 'dark' ? 'none' : '0 2px 8px rgba(0,0,0,0.06)',
-                    color: 'primary.main',
-                  },
-                },
-              }}
-            >
-              <ToggleButton value="universities">
-                <School sx={{ fontSize: 16, mr: 0.6 }} />
-                Universities
-              </ToggleButton>
-              <ToggleButton value="modules">
-                <MenuBook sx={{ fontSize: 16, mr: 0.6 }} />
-                Modules
-              </ToggleButton>
-            </ToggleButtonGroup>
           </Stack>
         </Box>
 
@@ -740,6 +672,15 @@ const DiscoverResources = () => {
             <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.9rem' }}>
               Recommended For You
             </Typography>
+            {!recommendationsOnly && !loadingRecommendations && filteredRecommendations.length > discoverRecommendationPreviewCount ? (
+              <Button
+                size="small"
+                onClick={() => navigate('/discover/recommendations')}
+                sx={{ textTransform: 'none', fontWeight: 700, ml: 'auto' }}
+              >
+                View more
+              </Button>
+            ) : null}
             {!loadingRecommendations && filteredRecommendations.length > 0 && (
               <Chip
                 size="small"
@@ -777,7 +718,7 @@ const DiscoverResources = () => {
                 gap: 1.5,
               }}
             >
-              {filteredRecommendations.slice(0, 6).map((item, index) => {
+              {displayedRecommendations.map((item, index) => {
                 return (
                   <RecommendationResourceCard
                     key={`discover-recommendation-${item.resource_id || item.id}`}
@@ -801,7 +742,8 @@ const DiscoverResources = () => {
           )}
         </Box>
 
-        <Box sx={(theme) => ({ ...panelSx(theme), p: { xs: 2, md: 2.5 }, mb: 3 })}>
+        {!recommendationsOnly ? (
+          <Box sx={(theme) => ({ ...panelSx(theme), p: { xs: 2, md: 2.5 }, mb: 3 })}>
           <Box
             sx={{
               position: 'absolute',
@@ -882,10 +824,12 @@ const DiscoverResources = () => {
               ))}
             </Box>
           )}
-        </Box>
+          </Box>
+        ) : null}
 
         {/* ─── Grouped resources ─── */}
-        <Box sx={{ display: 'grid', gap: 2 }}>
+        {!recommendationsOnly ? (
+          <Box sx={{ display: 'grid', gap: 2 }}>
           {loadingResources ? (
             [...Array(3)].map((_, idx) => (
               <Skeleton key={`group-skeleton-${idx}`} variant="rounded" height={120} sx={{ borderRadius: 3 }} />
@@ -905,7 +849,7 @@ const DiscoverResources = () => {
           ) : (
             groupsToRender.map((group) => (
               <Box
-                key={`${view}-${group.name}`}
+                key={`modules-${group.name}`}
                 sx={(theme) => ({
                   ...panelSx(theme),
                   p: { xs: 2, md: 2.5 },
@@ -918,19 +862,15 @@ const DiscoverResources = () => {
                       width: 28,
                       height: 28,
                       borderRadius: 1.5,
-                      bgcolor: view === 'modules' ? 'rgba(59,130,246,0.1)' : 'rgba(124,92,252,0.1)',
+                      bgcolor: 'rgba(59,130,246,0.1)',
                       border: '1px solid',
-                      borderColor: view === 'modules' ? 'rgba(59,130,246,0.22)' : 'rgba(124,92,252,0.22)',
+                      borderColor: 'rgba(59,130,246,0.22)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                   >
-                    {view === 'modules' ? (
-                      <MenuBook sx={{ fontSize: 14, color: '#3b82f6' }} />
-                    ) : (
-                      <School sx={{ fontSize: 14, color: '#7c5cfc' }} />
-                    )}
+                    <MenuBook sx={{ fontSize: 14, color: '#3b82f6' }} />
                   </Box>
                   <Typography variant="subtitle2" fontWeight={700} noWrap sx={{ fontSize: '0.9rem' }}>
                     {group.name}
@@ -981,7 +921,8 @@ const DiscoverResources = () => {
               </Box>
             ))
           )}
-        </Box>
+          </Box>
+        ) : null}
       </Box>
 
       <Snackbar
