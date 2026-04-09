@@ -2,6 +2,7 @@
 import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, alpha } from '@mui/material';
 import { useState, useEffect } from 'react';
 import { Add, Delete as DeleteIcon, Warning as WarningIcon, Article, ErrorOutline } from '@mui/icons-material';
+import { useLocation, useNavigate } from 'react-router-dom';
 import resourcesService from '@/services/resourcesService';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import ResourcesStatsCards from '../components/ResourcesStatsCards';
@@ -11,9 +12,42 @@ import ResourceDetailsDialog from '../components/ResourceDetailsDialog';
 import { AsyncButton, EmptyState, PageHeader } from '@/shared/components/ui';
 import { useLanguage } from '@/app/providers/LanguageContext';
 
+const toResourceDetailModel = (item) => {
+  if (!item) return null;
+
+  return {
+    ...item,
+    id: Number(item?.id || item?.resource_id || 0),
+    title: item?.title || item?.resource_title || 'Untitled resource',
+    description: item?.description || item?.resource_description || '',
+    status: item?.status || item?.resource_status || 'published',
+    educationalType: item?.educationalType || item?.educational_type || item?.resource_educational_type || 'other',
+    format: item?.format || item?.resource_format || 'other',
+    createdAt: item?.createdAt || item?.created_at || null,
+    access_tier: item?.access_tier || item?.accessTier || 'free',
+    accessTier: item?.access_tier || item?.accessTier || 'free',
+    author: {
+      id: item?.author?.id || item?.created_by || item?.creator_id,
+      name: item?.author?.name || item?.creator_name || item?.created_by_name || item?.author_name,
+      role: item?.author?.role || item?.primary_role || item?.creator_primary_role,
+      institution: item?.author?.institution || item?.institution_name || item?.institution,
+    },
+    academicContext: {
+      moduleId: item?.academicContext?.moduleId || item?.module_id,
+      moduleCode: item?.academicContext?.moduleCode || item?.module_code,
+      moduleTitle: item?.academicContext?.moduleTitle || item?.module_title,
+      difficulty: item?.academicContext?.difficulty || item?.difficulty,
+      chapter: item?.academicContext?.chapter || item?.chapter,
+      examRelated: item?.academicContext?.examRelated || item?.exam_related,
+    },
+  };
+};
+
 const Resources = () => {
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
@@ -89,9 +123,50 @@ const Resources = () => {
     setEditingResource(null);
   };
 
-  const handleViewResource = (resource) => {
-    setViewingResource(resource);
+  const handleViewResource = async (resource) => {
+    const baseResource = toResourceDetailModel(resource);
+    if (!baseResource?.id) return;
+
+    setViewingResource(baseResource);
     setOpenDetailsDialog(true);
+
+    try {
+      const [resourceRes, statsRes, tagsRes] = await Promise.allSettled([
+        resourcesService.getResourceById(baseResource.id),
+        resourcesService.getResourceStatistics(baseResource.id),
+        resourcesService.getResourceTags(baseResource.id),
+      ]);
+
+      const detailed =
+        resourceRes.status === 'fulfilled' && resourceRes.value
+          ? {
+              ...toResourceDetailModel(resourceRes.value),
+              stats: statsRes.status === 'fulfilled' ? statsRes.value || {} : {},
+              tags: tagsRes.status === 'fulfilled' ? tagsRes.value || [] : [],
+            }
+          : {
+              ...baseResource,
+              stats: statsRes.status === 'fulfilled' ? statsRes.value || {} : {},
+              tags: tagsRes.status === 'fulfilled' ? tagsRes.value || [] : [],
+            };
+
+      setViewingResource((prev) => (prev?.id === baseResource.id ? detailed : prev));
+    } catch {
+      // Keep base details when enrichment fails.
+    }
+  };
+
+  const handleOpenPreviewPage = (resource, resolvedPreviewUrl = '') => {
+    const id = Number(resource?.id || resource?.resource_id || 0);
+    if (!id) return;
+
+    navigate(`/discover/resources/${id}/preview`, {
+      state: {
+        resource,
+        previewUrl: resolvedPreviewUrl,
+        returnTo: `${location.pathname}${location.search}`,
+      },
+    });
   };
 
   const handleCloseDetailsDialog = () => {
@@ -279,6 +354,7 @@ const Resources = () => {
         open={openDetailsDialog}
         resource={viewingResource}
         onClose={handleCloseDetailsDialog}
+        onOpenPreviewPage={handleOpenPreviewPage}
       />
 
       {/* Delete Confirmation Dialog */}

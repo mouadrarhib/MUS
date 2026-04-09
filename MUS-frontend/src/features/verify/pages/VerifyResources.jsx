@@ -1,21 +1,58 @@
 // src/features/verify/pages/VerifyResources.jsx
-import { Box, Typography, alpha, Snackbar, Alert, Chip } from '@mui/material';
+import { Box, Snackbar, Alert, Chip } from '@mui/material';
 import { useState, useEffect } from 'react';
 import { AdminPanelSettings } from '@mui/icons-material';
+import { useLocation, useNavigate } from 'react-router-dom';
 import resourcesService from '@/services/resourcesService';
 import VerifyStatsCards from '../components/VerifyStatsCards';
 import VerifyResourcesTable from '../components/VerifyResourcesTable';
 import VerifyResourceDialog from '../components/VerifyResourceDialog';
+import ResourceDetailsDialog from '@/features/resources/components/ResourceDetailsDialog';
 import { PageHeader } from '@/shared/components/ui';
 import { useLanguage } from '@/app/providers/LanguageContext';
 
+const toResourceDetailModel = (item) => {
+  if (!item) return null;
+
+  return {
+    ...item,
+    id: Number(item?.id || item?.resource_id || 0),
+    title: item?.title || item?.resource_title || 'Untitled resource',
+    description: item?.description || item?.resource_description || '',
+    status: item?.status || item?.resource_status || 'pending',
+    educationalType: item?.educationalType || item?.educational_type || item?.resource_educational_type || 'other',
+    format: item?.format || item?.resource_format || 'other',
+    createdAt: item?.createdAt || item?.created_at || null,
+    access_tier: item?.access_tier || item?.accessTier || 'free',
+    accessTier: item?.access_tier || item?.accessTier || 'free',
+    author: {
+      id: item?.author?.id || item?.created_by || item?.creator_id,
+      name: item?.author?.name || item?.creator_name || item?.created_by_name || item?.author_name,
+      role: item?.author?.role || item?.primary_role || item?.creator_primary_role,
+      institution: item?.author?.institution || item?.institution_name || item?.institution,
+    },
+    academicContext: {
+      moduleId: item?.academicContext?.moduleId || item?.module_id,
+      moduleCode: item?.academicContext?.moduleCode || item?.module_code,
+      moduleTitle: item?.academicContext?.moduleTitle || item?.module_title,
+      difficulty: item?.academicContext?.difficulty || item?.difficulty,
+      chapter: item?.academicContext?.chapter || item?.chapter,
+      examRelated: item?.academicContext?.examRelated || item?.exam_related,
+    },
+  };
+};
+
 const VerifyResources = () => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedResource, setSelectedResource] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState('view'); // 'view', 'approve', 'reject'
+  const [dialogMode, setDialogMode] = useState('approve');
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [viewingResource, setViewingResource] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
@@ -48,10 +85,55 @@ const VerifyResources = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  const handleViewResource = (resource) => {
-    setSelectedResource(resource);
-    setDialogMode('view');
-    setDialogOpen(true);
+  const handleViewResource = async (resource) => {
+    const baseResource = toResourceDetailModel(resource);
+    if (!baseResource?.id) return;
+
+    setViewingResource(baseResource);
+    setDetailsOpen(true);
+
+    try {
+      const [resourceRes, statsRes, tagsRes] = await Promise.allSettled([
+        resourcesService.getResourceById(baseResource.id),
+        resourcesService.getResourceStatistics(baseResource.id),
+        resourcesService.getResourceTags(baseResource.id),
+      ]);
+
+      const detailed =
+        resourceRes.status === 'fulfilled' && resourceRes.value
+          ? {
+              ...toResourceDetailModel(resourceRes.value),
+              stats: statsRes.status === 'fulfilled' ? statsRes.value || {} : {},
+              tags: tagsRes.status === 'fulfilled' ? tagsRes.value || [] : [],
+            }
+          : {
+              ...baseResource,
+              stats: statsRes.status === 'fulfilled' ? statsRes.value || {} : {},
+              tags: tagsRes.status === 'fulfilled' ? tagsRes.value || [] : [],
+            };
+
+      setViewingResource((prev) => (prev?.id === baseResource.id ? detailed : prev));
+    } catch {
+      // Keep base details when enrichment fails.
+    }
+  };
+
+  const handleCloseDetailsDialog = () => {
+    setDetailsOpen(false);
+    setViewingResource(null);
+  };
+
+  const handleOpenPreviewPage = (resource, resolvedPreviewUrl = '') => {
+    const id = Number(resource?.id || resource?.resource_id || 0);
+    if (!id) return;
+
+    navigate(`/discover/resources/${id}/preview`, {
+      state: {
+        resource,
+        previewUrl: resolvedPreviewUrl,
+        returnTo: `${location.pathname}${location.search}`,
+      },
+    });
   };
 
   const handleApproveClick = (resource) => {
@@ -160,6 +242,13 @@ const VerifyResources = () => {
         onReject={handleRejectResource}
         onStartReject={() => setDialogMode('reject')}
         actionLoading={actionLoading}
+      />
+
+      <ResourceDetailsDialog
+        open={detailsOpen}
+        resource={viewingResource}
+        onClose={handleCloseDetailsDialog}
+        onOpenPreviewPage={handleOpenPreviewPage}
       />
 
       {/* Snackbar for notifications */}
