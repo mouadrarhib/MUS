@@ -18,7 +18,7 @@ import {
   Typography,
   alpha,
 } from '@mui/material';
-import { AutoAwesome, School, MenuBook, Explore, Search, Close } from '@mui/icons-material';
+import { AutoAwesome, School, MenuBook, Explore, Search, Close, NewReleases } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import DiscoverNavbar from '@/features/discover/components/DiscoverNavbar';
@@ -381,6 +381,16 @@ const DiscoverResources = () => {
     () => groupResources(filteredRankedResources, getUniversityName),
     [filteredRankedResources]
   );
+
+  const latestPublishedResources = useMemo(() => {
+    return [...filteredRankedResources]
+      .sort((a, b) => {
+        const tsA = new Date(a?.createdAt || a?.created_at || 0).getTime() || 0;
+        const tsB = new Date(b?.createdAt || b?.created_at || 0).getTime() || 0;
+        return tsB - tsA;
+      })
+      .slice(0, 6);
+  }, [filteredRankedResources]);
 
   const groupedByModule = useMemo(
     () => groupResources(filteredRankedResources, getModuleName),
@@ -787,6 +797,89 @@ const DiscoverResources = () => {
                   />
                 );
               })}
+            </Box>
+          )}
+        </Box>
+
+        <Box sx={(theme) => ({ ...panelSx(theme), p: { xs: 2, md: 2.5 }, mb: 3 })}>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 2,
+              background: 'linear-gradient(90deg, #06b6d4 0%, #3b82f6 100%)',
+            }}
+          />
+
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+            <Box
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: 1.5,
+                bgcolor: 'rgba(6,182,212,0.12)',
+                border: '1px solid rgba(6,182,212,0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <NewReleases sx={{ fontSize: 15, color: '#0891b2' }} />
+            </Box>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.9rem' }}>
+              Latest Published
+            </Typography>
+            {!loadingResources && latestPublishedResources.length > 0 && (
+              <Chip
+                size="small"
+                label={`${latestPublishedResources.length} recent`}
+                sx={{
+                  height: 20,
+                  fontSize: '0.66rem',
+                  fontWeight: 700,
+                  bgcolor: 'rgba(6,182,212,0.1)',
+                  color: '#0891b2',
+                  border: '1px solid rgba(6,182,212,0.22)',
+                  '& .MuiChip-label': { px: 0.7 },
+                }}
+              />
+            )}
+          </Stack>
+
+          {loadingResources ? (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 1.5 }}>
+              {[...Array(4)].map((_, idx) => (
+                <Skeleton key={`latest-skeleton-${idx}`} variant="rounded" height={80} sx={{ borderRadius: 2.5 }} />
+              ))}
+            </Box>
+          ) : latestPublishedResources.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3, opacity: 0.7, fontSize: '0.88rem' }}>
+              {query ? 'No recently published resources match your search.' : 'No recently published resources yet.'}
+            </Typography>
+          ) : (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
+                gap: 1.5,
+              }}
+            >
+              {latestPublishedResources.map((item, index) => (
+                <RecommendationResourceCard
+                  key={`latest-published-${item.resource_id || item.id || index}`}
+                  item={item}
+                  index={index}
+                  showActions
+                  isLiked={Boolean(likedMap[Number(item?.resource_id || item?.id || 0)])}
+                  likeLoading={likeLoadingId === Number(item?.resource_id || item?.id || 0)}
+                  downloadLoading={downloadLoadingId === Number(item?.resource_id || item?.id || 0)}
+                  onToggleLike={() => handleToggleLike(Number(item?.resource_id || item?.id || 0))}
+                  onDownload={() => handleDownload(Number(item?.resource_id || item?.id || 0))}
+                  onOpenDetails={handleOpenDetails}
+                />
+              ))}
             </Box>
           )}
         </Box>
