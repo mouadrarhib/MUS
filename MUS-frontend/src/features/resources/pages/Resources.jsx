@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Add, Delete as DeleteIcon, Warning as WarningIcon, Article, ErrorOutline } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import resourcesService from '@/services/resourcesService';
+import tagService from '@/services/tagService';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import ResourcesStatsCards from '../components/ResourcesStatsCards';
 import ResourcesTable from '../components/ResourcesTable';
@@ -70,7 +71,7 @@ const Resources = () => {
   const loadAvailableTags = async () => {
     setTagsLoading(true);
     try {
-      const tags = await resourcesService.listTags({ is_active: true, limit: 200 });
+      const tags = await tagService.listTags({ is_active: true, limit: 200 });
       setAvailableTags(Array.isArray(tags) ? tags : []);
     } catch (loadTagsError) {
       console.error('Error loading tags:', loadTagsError);

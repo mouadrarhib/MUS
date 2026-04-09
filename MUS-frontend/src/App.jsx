@@ -19,6 +19,7 @@ function App() {
       { match: '/discover', title: `Discover Resources - ${baseTitle}` },
       { match: '/dashboard/users', title: `${t('nav.pointsManagement')} - ${baseTitle}` },
       { match: '/dashboard/resources', title: `${t('pages.resources.title')} - ${baseTitle}` },
+      { match: '/dashboard/tags', title: `${t('pages.tags.title')} - ${baseTitle}` },
       { match: '/dashboard/library', title: `${t('pages.library.title')} - ${baseTitle}` },
       { match: '/dashboard/uploads', title: `${t('pages.uploads.title')} - ${baseTitle}` },
       { match: '/dashboard/wallet', title: `${t('nav.wallet')} - ${baseTitle}` },

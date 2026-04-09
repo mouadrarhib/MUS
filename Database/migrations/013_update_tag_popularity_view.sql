@@ -1,19 +1,4 @@
--- ============================================================================
--- TAGS VIEWS
--- ============================================================================
-
-CREATE OR REPLACE VIEW public.vw_resource_tags AS
-SELECT
-  rt.resource_id,
-  t.id AS tag_id,
-  t.name AS tag_name,
-  t.slug AS tag_slug,
-  t.category AS tag_category,
-  t.description AS tag_description,
-  t.is_active,
-  rt.created_at AS linked_at
-FROM public.resource_tags rt
-INNER JOIN public.tags t ON t.id = rt.tag_id;
+BEGIN;
 
 CREATE OR REPLACE VIEW public.vw_tags_popularity AS
 SELECT
@@ -53,3 +38,5 @@ LEFT JOIN (
   FROM public.user_tag_preferences utp
   GROUP BY utp.tag_id
 ) AS preference_usage ON preference_usage.tag_id = t.id;
+
+COMMIT;

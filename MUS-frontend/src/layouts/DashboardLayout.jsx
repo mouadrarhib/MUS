@@ -27,6 +27,10 @@ const DashboardLayout = () => {
   }, [isMobile]);
 
   const filteredNavigation = DASHBOARD_NAVIGATION.filter((item) => {
+    if (Array.isArray(item?.excludeRoles) && item.excludeRoles.length > 0 && hasAnyRole(item.excludeRoles)) {
+      return false;
+    }
+
     if (!Array.isArray(item?.roles) || item.roles.length === 0) {
       return true;
     }

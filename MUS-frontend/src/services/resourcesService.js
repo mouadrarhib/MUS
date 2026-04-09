@@ -1,4 +1,5 @@
 import { del, get, patch, post, put } from "@/services/http";
+import { invalidateTagCache } from "@/services/tagService";
 
 const RESOURCE = {
   ROOT: "/resources",
@@ -167,6 +168,8 @@ export const resourcesService = {
   replaceResourceTags: async (resourceId, tagIds = []) => {
     const normalized = Array.from(new Set((tagIds || []).map((v) => Number(v)).filter(Number.isFinite)));
     const response = await put(`/resources/${resourceId}/tags`, { tag_ids: normalized });
+    clearResourceListCaches();
+    invalidateTagCache();
     return Array.isArray(response?.data) ? response.data : [];
   },
 

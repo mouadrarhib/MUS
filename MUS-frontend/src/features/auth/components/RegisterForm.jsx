@@ -38,7 +38,7 @@ import institutionService from '@/services/institutionService';
 import institutionProgramService from '@/services/institutionProgramService';
 import levelService from '@/services/levelService';
 import semesterService from '@/services/semesterService';
-import resourcesService from '@/services/resourcesService';
+import tagService from '@/services/tagService';
 import gsap from 'gsap';
 
 export const RegisterForm = () => {
@@ -116,7 +116,7 @@ export const RegisterForm = () => {
     const loadTags = async () => {
       setCatalogLoading((prev) => ({ ...prev, tags: true }));
       try {
-        const tags = await resourcesService.listTags({ is_active: true, limit: 200 });
+        const tags = await tagService.listTags({ is_active: true, limit: 200 });
         setAvailableTags(Array.isArray(tags) ? tags : []);
       } catch {
         setAvailableTags([]);
@@ -590,7 +590,7 @@ export const RegisterForm = () => {
                   control={control}
                   rules={{
                     validate: (value) =>
-                      (Array.isArray(value) && value.length >= 3) || 'Select at least 3 interest tags',
+                      (!Array.isArray(value) || value.length === 0 || value.length >= 1) || 'Select at least 1 tag when adding interests',
                   }}
                   render={({ field }) => (
                     <Autocomplete
@@ -614,7 +614,7 @@ export const RegisterForm = () => {
                           label="Interest Tags"
                           placeholder="Choose your learning interests"
                           error={Boolean(errors.preferred_tag_ids)}
-                          helperText={errors.preferred_tag_ids?.message || 'Select tags to personalize your resource feed'}
+                          helperText={errors.preferred_tag_ids?.message || 'Optional: select one or more tags to personalize your resource feed'}
                         />
                       )}
                     />

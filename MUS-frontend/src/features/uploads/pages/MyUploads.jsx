@@ -2,6 +2,7 @@ import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActi
 import { useEffect, useState } from 'react';
 import { Add, Delete as DeleteIcon, Warning as WarningIcon, UploadFile, ErrorOutline, CloudUpload, GppBad as GppBadIcon } from '@mui/icons-material';
 import resourcesService from '@/services/resourcesService';
+import tagService from '@/services/tagService';
 import ResourcesStatsCards from '@/features/resources/components/ResourcesStatsCards';
 import ResourcesTable from '@/features/resources/components/ResourcesTable';
 import ResourceDialog from '@/features/resources/components/ResourceDialog';
@@ -49,7 +50,7 @@ const MyUploads = () => {
   const loadAvailableTags = async () => {
     setTagsLoading(true);
     try {
-      const tags = await resourcesService.listTags({ is_active: true, limit: 200 });
+      const tags = await tagService.listTags({ is_active: true, limit: 200 });
       setAvailableTags(Array.isArray(tags) ? tags : []);
     } catch (loadTagsError) {
       console.error('Error loading tags:', loadTagsError);

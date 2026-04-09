@@ -27,6 +27,7 @@ const SettingsPage = lazy(() => import('@/features/settings/pages/Settings'));
 const VerifyResourcesPage = lazy(() => import('@/features/verify/pages/VerifyResources'));
 const CatalogManagementPage = lazy(() => import('@/features/catalog/pages/CatalogManagement'));
 const WalletPage = lazy(() => import('@/features/wallet/pages/Wallet'));
+const TagsPage = lazy(() => import('@/features/tags/pages/Tags'));
 
 const LoadingFallback = () => (
   <Box
@@ -93,7 +94,7 @@ const AppRouter = () => {
           <Route
             path="library"
             element={
-              <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+              <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER']} blockedRoles={['ADMIN']}>
                 <LibraryPage />
               </ProtectedRoute>
             }
@@ -140,6 +141,15 @@ const AppRouter = () => {
             element={
               <ProtectedRoute requiredRoles={['ADMIN']}>
                 <CatalogManagementPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="tags"
+            element={
+              <ProtectedRoute requiredRoles={['ADMIN']}>
+                <TagsPage />
               </ProtectedRoute>
             }
           />

@@ -74,6 +74,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
     control,
     reset,
     watch,
+    getValues,
     setValue,
     handleSubmit,
     trigger,
@@ -82,6 +83,7 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
     formState: { errors },
   } = useForm({
     defaultValues: getDefaultValues(resource),
+    shouldUnregister: false,
   });
 
   const educationalType = watch('educationalType');
@@ -148,8 +150,11 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
   };
 
   const handleSave = async (data) => {
+    const currentValues = getValues();
     const dataToSave = {
+      ...currentValues,
       ...data,
+      tagIds: Array.isArray(currentValues?.tagIds) ? currentValues.tagIds : Array.isArray(data?.tagIds) ? data.tagIds : [],
       ...(resource && { id: resource.id }),
       ...(uploadMethod === 'file' && selectedFile && { file: selectedFile }),
     };

@@ -1,7 +1,10 @@
 // src/features/settings/pages/Settings.jsx
 import { useEffect, useState } from 'react';
 import {
+  Alert,
+  Autocomplete,
   Box,
+  CircularProgress,
   Typography,
   Paper,
   Switch,
@@ -45,17 +48,20 @@ import {
   Close,
   Warning,
   Check,
+  LocalOffer,
   Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { useThemeMode } from '@/app/providers/ThemeContext';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useLanguage } from '@/app/providers/LanguageContext';
 import userSettingsService from '@/services/userSettingsService';
+import personalizationService from '@/services/personalizationService';
+import tagService from '@/services/tagService';
 import { PageHeader } from '@/shared/components/ui';
 
 const Settings = () => {
   const { mode, toggleTheme } = useThemeMode();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { language, setLanguage: setAppLanguage, t } = useLanguage();
   
   // Theme & Appearance
@@ -80,6 +86,11 @@ const Settings = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
+  const [availableTags, setAvailableTags] = useState([]);
+  const [preferenceTags, setPreferenceTags] = useState([]);
+  const [tagPreferencesLoading, setTagPreferencesLoading] = useState(false);
+  const [tagPreferencesSaving, setTagPreferencesSaving] = useState(false);
+  const [tagPreferencesFeedback, setTagPreferencesFeedback] = useState({ type: '', message: '' });
 
   const applyFontSize = (size) => {
     localStorage.setItem('fontSize', size);
@@ -133,6 +144,40 @@ const Settings = () => {
 
     syncSettings();
   }, [user?.id]);
+
+  useEffect(() => {
+    const loadTagPreferences = async () => {
+      if (!user?.id || isAdmin) {
+        setAvailableTags([]);
+        setPreferenceTags([]);
+        setTagPreferencesFeedback({ type: '', message: '' });
+        return;
+      }
+
+      setTagPreferencesLoading(true);
+      setTagPreferencesFeedback({ type: '', message: '' });
+
+      try {
+        const [tagsCatalog, currentPreferences] = await Promise.all([
+          tagService.listTags({ is_active: true, limit: 200 }, { force: true }),
+          personalizationService.getMyTagPreferences(),
+        ]);
+
+        setAvailableTags(Array.isArray(tagsCatalog) ? tagsCatalog : []);
+        setPreferenceTags(Array.isArray(currentPreferences) ? currentPreferences : []);
+      } catch (error) {
+        console.error('Failed to load tag preferences:', error);
+        setTagPreferencesFeedback({
+          type: 'error',
+          message: 'We could not load your learning interests right now.',
+        });
+      } finally {
+        setTagPreferencesLoading(false);
+      }
+    };
+
+    loadTagPreferences();
+  }, [user?.id, isAdmin]);
 
   const persistNotifications = async (nextValues) => {
     if (!user?.id) return;
@@ -300,6 +345,57 @@ const Settings = () => {
       a.click();
       URL.revokeObjectURL(url);
     }, 1500);
+  };
+
+  const tagOptions = (() => {
+    const merged = [...availableTags, ...preferenceTags];
+    const seen = new Set();
+
+    return merged.filter((tag) => {
+      const id = Number(tag?.id || tag?.tag_id);
+      if (!Number.isFinite(id) || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  })();
+
+  const selectedPreferenceIds = preferenceTags
+    .map((tag) => Number(tag?.id || tag?.tag_id))
+    .filter(Number.isFinite);
+
+  const selectedPreferenceOptions = tagOptions.filter((tag) => selectedPreferenceIds.includes(Number(tag.id || tag.tag_id)));
+
+  const handleTagPreferencesChange = (_event, selected) => {
+    setPreferenceTags(Array.isArray(selected) ? selected : []);
+    setTagPreferencesFeedback({ type: '', message: '' });
+  };
+
+  const handleSaveTagPreferences = async () => {
+    const tagIds = preferenceTags
+      .map((tag) => Number(tag?.id || tag?.tag_id))
+      .filter(Number.isFinite);
+
+    setTagPreferencesSaving(true);
+    setTagPreferencesFeedback({ type: '', message: '' });
+
+    try {
+      const saved = await personalizationService.setMyTagPreferences(tagIds);
+      setPreferenceTags(Array.isArray(saved) ? saved : []);
+      setTagPreferencesFeedback({
+        type: 'success',
+        message: tagIds.length
+          ? 'Your learning interests were updated successfully.'
+          : 'Your learning interests were cleared successfully.',
+      });
+    } catch (error) {
+      console.error('Failed to save tag preferences:', error);
+      setTagPreferencesFeedback({
+        type: 'error',
+        message: error?.response?.data?.message || 'Failed to save your learning interests.',
+      });
+    } finally {
+      setTagPreferencesSaving(false);
+    }
   };
 
   const SettingSection = ({ icon, title, subtitle, color = 'primary', children }) => (
@@ -508,6 +604,98 @@ const Settings = () => {
           }
         />
       </SettingSection>
+
+      {!isAdmin ? (
+        <SettingSection
+          icon={<LocalOffer sx={{ fontSize: 24, color: 'white' }} />}
+          title="Learning Interests"
+          subtitle="Choose the tags that personalize recommendations and discovery across the platform"
+          color="secondary"
+        >
+          <Box sx={{ display: 'grid', gap: 2.25 }}>
+            {tagPreferencesFeedback.message ? (
+              <Alert severity={tagPreferencesFeedback.type || 'info'} sx={{ borderRadius: 2 }}>
+                {tagPreferencesFeedback.message}
+              </Alert>
+            ) : null}
+
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+              <Box>
+                <Typography variant="body1" fontWeight={600}>
+                  Preferred Tags
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Leave this empty, or choose one or more tags to improve your resource feed.
+                </Typography>
+              </Box>
+              <Chip
+                label={`${selectedPreferenceIds.length} selected`}
+                size="small"
+                color={selectedPreferenceIds.length >= 1 ? 'success' : 'default'}
+                variant={selectedPreferenceIds.length >= 1 ? 'filled' : 'outlined'}
+                sx={{ fontWeight: 600 }}
+              />
+            </Box>
+
+            <Autocomplete
+              multiple
+              options={tagOptions}
+              loading={tagPreferencesLoading}
+              value={selectedPreferenceOptions}
+              disableCloseOnSelect
+              filterSelectedOptions
+              isOptionEqualToValue={(option, value) => Number(option.id || option.tag_id) === Number(value.id || value.tag_id)}
+              getOptionLabel={(option) => option.name || option.tag_name || ''}
+              onChange={handleTagPreferencesChange}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => (
+                  <Chip
+                    {...getTagProps({ index })}
+                    key={`pref-tag-${option.id || option.tag_id}`}
+                    label={option.name || option.tag_name}
+                    color="secondary"
+                    variant="outlined"
+                    size="small"
+                    sx={{ fontWeight: 600 }}
+                  />
+                ))
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Interest Tags"
+                  placeholder="Choose your learning interests"
+                  helperText="These tags populate user_tag_preferences and help generate better recommendations."
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {tagPreferencesLoading ? <CircularProgress color="inherit" size={18} sx={{ mr: 1 }} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+            />
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, flexWrap: 'wrap' }}>
+              <Typography variant="caption" color="text.secondary">
+                Recommended tags for this platform include revision, practice, exam preparation, and module support themes.
+              </Typography>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={handleSaveTagPreferences}
+                disabled={tagPreferencesLoading || tagPreferencesSaving}
+                sx={{ textTransform: 'none', fontWeight: 600, boxShadow: 'none' }}
+              >
+                {tagPreferencesSaving ? 'Saving...' : 'Save Interests'}
+              </Button>
+            </Box>
+          </Box>
+        </SettingSection>
+      ) : null}
 
       {/* Privacy & Security */}
       <SettingSection

@@ -261,7 +261,11 @@ export const registerUser = async ({
   if (preferredTagIds.length > 0) {
     try {
       await setUserTagPreferences(createdUser.id, preferredTagIds);
-    } catch {
+    } catch (error) {
+      if (!["42883", "42P01"].includes(error?.original?.code)) {
+        throw error;
+      }
+
       // Preferences table/procedure may be unavailable before migration is applied.
     }
   }

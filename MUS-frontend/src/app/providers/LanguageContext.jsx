@@ -22,6 +22,7 @@ const translations = {
       users: 'Users',
       pointsManagement: 'Points Management',
       resources: 'Resources',
+      tags: 'Tags',
       academicCatalog: 'Academic Catalog',
       wallet: 'Wallet',
       preferences: 'Preferences',
@@ -35,6 +36,7 @@ const translations = {
     pages: {
       users: { title: 'Users', subtitle: 'Manage all platform users, roles and permissions', add: 'Add User' },
       resources: { title: 'Resources', subtitle: 'Manage educational resources, exams, courses and notes', add: 'Add Resource' },
+      tags: { title: 'Tags', subtitle: 'Manage discovery tags used across resources and personalization' },
       library: { title: 'My Library', subtitle: 'View and manage your favorite resources', label: 'Saved' },
       uploads: { title: 'My Uploads', subtitle: 'View and manage the resources you uploaded', add: 'Upload Resource' },
       verify: { title: 'Content Verification', subtitle: 'Review and approve resources submitted by students and teachers', pending: 'Pending' },
@@ -153,6 +155,7 @@ const translations = {
       users: 'Utilisateurs',
       pointsManagement: 'Gestion des points',
       resources: 'Ressources',
+      tags: 'Etiquettes',
       academicCatalog: 'Catalogue academique',
       wallet: 'Portefeuille',
       preferences: 'Preferences',
@@ -166,6 +169,7 @@ const translations = {
     pages: {
       users: { title: 'Utilisateurs', subtitle: 'Gerez les utilisateurs, roles et permissions', add: 'Ajouter un utilisateur' },
       resources: { title: 'Ressources', subtitle: 'Gerez les ressources educatives, examens, cours et notes', add: 'Ajouter une ressource' },
+      tags: { title: 'Etiquettes', subtitle: 'Gerez les etiquettes de decouverte utilisees pour les ressources et la personnalisation' },
       library: { title: 'Ma bibliotheque', subtitle: 'Consultez et gerez vos ressources favorites', label: 'Sauvegardees' },
       uploads: { title: 'Mes depots', subtitle: 'Consultez et gerez les ressources que vous avez publiees', add: 'Televerser une ressource' },
       verify: { title: 'Verification du contenu', subtitle: 'Examinez et approuvez les ressources soumises', pending: 'En attente' },
@@ -284,6 +288,7 @@ const translations = {
       users: 'المستخدمون',
       pointsManagement: 'ادارة النقاط',
       resources: 'الموارد',
+      tags: 'الوسوم',
       academicCatalog: 'الدليل الاكاديمي',
       wallet: 'المحفظة',
       preferences: 'التفضيلات',
@@ -297,6 +302,7 @@ const translations = {
     pages: {
       users: { title: 'المستخدمون', subtitle: 'ادارة المستخدمين والادوار والصلاحيات', add: 'اضافة مستخدم' },
       resources: { title: 'الموارد', subtitle: 'ادارة الموارد التعليمية والاختبارات والدروس والملاحظات', add: 'اضافة مورد' },
+      tags: { title: 'الوسوم', subtitle: 'ادارة وسوم الاكتشاف المستخدمة عبر الموارد والتخصيص' },
       library: { title: 'مكتبتي', subtitle: 'عرض وادارة الموارد المفضلة لديك', label: 'محفوظة' },
       uploads: { title: 'مرفوعاتي', subtitle: 'عرض وادارة الموارد التي قمت برفعها', add: 'رفع مورد' },
       verify: { title: 'مراجعة المحتوى', subtitle: 'مراجعة واعتماد الموارد المرسلة', pending: 'قيد الانتظار' },

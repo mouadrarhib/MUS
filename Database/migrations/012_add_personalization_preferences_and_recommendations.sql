@@ -32,6 +32,7 @@ RETURNS TABLE(
 )
 LANGUAGE plpgsql
 AS $function$
+#variable_conflict use_column
 DECLARE
   v_ids BIGINT[];
 BEGIN
@@ -76,6 +77,7 @@ RETURNS TABLE(
 )
 LANGUAGE plpgsql
 AS $function$
+#variable_conflict use_column
 BEGIN
   RETURN QUERY
   SELECT

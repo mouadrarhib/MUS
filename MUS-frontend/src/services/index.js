@@ -4,6 +4,7 @@ export { default as authService } from "@/services/authService";
 export { default as adminService } from "@/services/adminService";
 export { default as usersService } from "@/services/usersService";
 export { default as resourcesService } from "@/services/resourcesService";
+export { default as tagService } from "@/services/tagService";
 export { default as favoritesService } from "@/services/favoritesService";
 
 export { default as roleService } from "@/services/roleService";

@@ -6,6 +6,7 @@ import {
   Paid,
   AdminPanelSettings,
   Description,
+  LocalOffer,
   Settings,
   AccountTree
 } from '@mui/icons-material';
@@ -24,7 +25,8 @@ export const DASHBOARD_NAVIGATION = [
     labelKey: 'nav.myLibrary',
     path: '/dashboard/library',
     icon: <School />,
-    roles: ['STUDENT', 'TEACHER', 'ADMIN']
+    roles: ['STUDENT', 'TEACHER'],
+    excludeRoles: ['ADMIN']
   },
 
   // UPLOADS
@@ -54,6 +56,12 @@ export const DASHBOARD_NAVIGATION = [
     labelKey: 'nav.resources',
     path: '/dashboard/resources',
     icon: <Description />,
+    roles: ['ADMIN']
+  },
+  {
+    labelKey: 'nav.tags',
+    path: '/dashboard/tags',
+    icon: <LocalOffer />,
     roles: ['ADMIN']
   },
   {
