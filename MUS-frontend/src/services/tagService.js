@@ -21,7 +21,12 @@ export const normalizeTag = (item) => {
     category: item.category || item.tag_category || "topic",
     description: item.description || item.tag_description || "",
     is_active: typeof item.is_active === "boolean" ? item.is_active : true,
+    resource_usage_count: Number(item.resource_usage_count || item.resourceUsageCount || 0),
+    preference_usage_count: Number(item.preference_usage_count || item.preferenceUsageCount || 0),
     usage_count: Number(item.usage_count || item.usageCount || 0),
+    last_resource_used_at: item.last_resource_used_at || item.lastResourceUsedAt || null,
+    last_preference_used_at: item.last_preference_used_at || item.lastPreferenceUsedAt || null,
+    last_used_at: item.last_used_at || item.lastUsedAt || null,
   };
 };
 

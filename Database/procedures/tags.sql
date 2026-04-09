@@ -121,8 +121,13 @@ RETURNS TABLE(
   description TEXT,
   is_active BOOLEAN,
   usage_count BIGINT,
+  last_used_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ,
-  updated_at TIMESTAMPTZ
+  updated_at TIMESTAMPTZ,
+  resource_usage_count BIGINT,
+  preference_usage_count BIGINT,
+  last_resource_used_at TIMESTAMPTZ,
+  last_preference_used_at TIMESTAMPTZ
 )
 LANGUAGE plpgsql
 AS $$
@@ -136,8 +141,13 @@ BEGIN
     vtp.description,
     vtp.is_active,
     vtp.usage_count,
+    vtp.last_used_at,
     vtp.created_at,
-    vtp.updated_at
+    vtp.updated_at,
+    vtp.resource_usage_count,
+    vtp.preference_usage_count,
+    vtp.last_resource_used_at,
+    vtp.last_preference_used_at
   FROM public.vw_tags_popularity vtp
   WHERE (p_search_term IS NULL OR vtp.name ILIKE '%' || p_search_term || '%' OR vtp.slug ILIKE '%' || p_search_term || '%')
     AND (p_category IS NULL OR vtp.category = p_category)
@@ -347,13 +357,27 @@ RETURNS TABLE(
   slug TEXT,
   category TEXT,
   usage_count BIGINT,
-  last_used_at TIMESTAMPTZ
+  last_used_at TIMESTAMPTZ,
+  resource_usage_count BIGINT,
+  preference_usage_count BIGINT,
+  last_resource_used_at TIMESTAMPTZ,
+  last_preference_used_at TIMESTAMPTZ
 )
 LANGUAGE plpgsql
 AS $$
 BEGIN
   RETURN QUERY
-  SELECT vtp.id, vtp.name, vtp.slug, vtp.category, vtp.usage_count, vtp.last_used_at
+  SELECT
+    vtp.id,
+    vtp.name,
+    vtp.slug,
+    vtp.category,
+    vtp.usage_count,
+    vtp.last_used_at,
+    vtp.resource_usage_count,
+    vtp.preference_usage_count,
+    vtp.last_resource_used_at,
+    vtp.last_preference_used_at
   FROM public.vw_tags_popularity vtp
   WHERE vtp.is_active = TRUE
   ORDER BY vtp.usage_count DESC, vtp.last_used_at DESC NULLS LAST, vtp.name ASC

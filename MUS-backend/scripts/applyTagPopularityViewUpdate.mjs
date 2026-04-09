@@ -16,7 +16,7 @@ const client = new Client({
 });
 
 const sql = readFileSync(
-  new URL("../../Database/migrations/013_update_tag_popularity_view.sql", import.meta.url),
+  new URL("../../Database/migrations/014_add_tag_usage_breakdown.sql", import.meta.url),
   "utf8"
 );
 

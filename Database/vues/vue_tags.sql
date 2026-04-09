@@ -35,7 +35,11 @@ SELECT
     )
   END AS last_used_at,
   t.created_at,
-  t.updated_at
+  t.updated_at,
+  COALESCE(resource_usage.resource_usage_count, 0)::BIGINT AS resource_usage_count,
+  COALESCE(preference_usage.preference_usage_count, 0)::BIGINT AS preference_usage_count,
+  resource_usage.last_resource_used_at,
+  preference_usage.last_preference_used_at
 FROM public.tags t
 LEFT JOIN (
   SELECT
