@@ -225,7 +225,9 @@ const persistStorageColumns = async ({
 
 const resolveCreationStatus = (requestedStatus, roles = []) => {
   void requestedStatus;
-  void roles;
+  if (isAdmin(roles)) {
+    return "published";
+  }
   return "pending";
 };
 

@@ -562,9 +562,13 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                         fullWidth
                         size="small"
                         label="Publication Status"
-                        value="Pending (auto)"
+                        value={isAdmin ? 'Published (auto)' : 'Pending (auto)'}
                         InputProps={{ readOnly: true }}
-                        helperText="All new resources are submitted for admin review."
+                        helperText={
+                          isAdmin
+                            ? 'Admin-created resources are published automatically.'
+                            : 'All new resources are submitted for admin review.'
+                        }
                         sx={inputSurfaceSx}
                       />
                     )}
