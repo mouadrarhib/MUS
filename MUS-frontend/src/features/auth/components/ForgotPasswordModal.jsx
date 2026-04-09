@@ -19,17 +19,19 @@ export const ForgotPasswordModal = ({ open, onClose }) => {
     register,
     reset,
     getValues,
+    setValue,
     trigger,
     formState: { errors },
   } = useForm({
     defaultValues: {
       email: '',
+      resetToken: '',
       newPassword: '',
       confirmPassword: '',
     },
   });
 
-  const steps = ['Enter Email', 'Reset Password'];
+  const steps = ['Enter Email', 'Enter Token & Reset Password'];
 
   useEffect(() => {
     if (!contentRef.current || !open) return;
@@ -48,42 +50,36 @@ export const ForgotPasswordModal = ({ open, onClose }) => {
 
     setLoading(true);
     try {
-      // Check if email exists using the new API endpoint
-      const result = await authService.checkEmailExists(email);
-      
-      if (result.data?.exists) {
-        // Email exists, proceed to next step
-        setActiveStep(1);
-        showSuccess('Email verified. Please enter your new password.');
+      const result = await authService.forgotPassword(email);
+      const resetToken = result?.data?.reset_token;
+
+      if (resetToken) {
+        setValue('resetToken', resetToken, { shouldValidate: false });
+        showSuccess('Token de reinitialisation genere. Utilisez-le pour definir un nouveau mot de passe.');
       } else {
-        // Email doesn't exist
-        showError('Email not found. Please check and try again.');
+        showSuccess('Si l\'email existe, un token de reinitialisation a ete envoye.');
       }
+
+      setActiveStep(1);
     } catch (error) {
       const errorMessage = error.response?.data?.message || 
                          error.response?.data?.error || 
-                         'Failed to verify email. Please try again.';
-      
-      if (error.response?.status === 404) {
-        showError('Email not found. Please check and try again.');
-      } else {
-        showError(errorMessage);
-      }
+                         'Failed to request password reset. Please try again.';
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   const handleResetPassword = async () => {
-    const valid = await trigger(['newPassword', 'confirmPassword']);
+    const valid = await trigger(['resetToken', 'newPassword', 'confirmPassword']);
     if (!valid) return;
 
-    const { email, newPassword } = getValues();
+    const { resetToken, newPassword } = getValues();
 
     setLoading(true);
     try {
-      // Use the new forgot password endpoint that doesn't require authentication
-      await authService.forgotPassword(email, newPassword);
+      await authService.resetPasswordWithToken(String(resetToken || '').trim(), newPassword);
       showSuccess('Password reset successfully! Please login with your new password.');
       handleClose();
     } catch (error) {
@@ -98,7 +94,7 @@ export const ForgotPasswordModal = ({ open, onClose }) => {
 
   const handleClose = () => {
     setActiveStep(0);
-    reset({ email: '', newPassword: '', confirmPassword: '' });
+    reset({ email: '', resetToken: '', newPassword: '', confirmPassword: '' });
     onClose();
   };
 
@@ -139,8 +135,23 @@ export const ForgotPasswordModal = ({ open, onClose }) => {
         return (
           <Box sx={{ mt: 3 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Enter your new password. Make sure it's at least 8 characters long.
+              Enter the reset token, then set your new password.
             </Typography>
+            <TextField
+              fullWidth
+              label="Reset Token"
+              type="text"
+              {...register('resetToken', {
+                required: 'Reset token is required',
+                minLength: {
+                  value: 10,
+                  message: 'Reset token is invalid',
+                },
+              })}
+              error={Boolean(errors.resetToken)}
+              helperText={errors.resetToken?.message}
+              sx={{ mb: 2 }}
+            />
             <TextField
               fullWidth
               label="New Password"
