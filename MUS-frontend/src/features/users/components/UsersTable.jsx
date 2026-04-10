@@ -23,6 +23,7 @@ import {
   alpha,
   TextField,
   InputAdornment,
+  Tooltip,
 } from '@mui/material';
 import { Edit, Delete, Visibility, MoreVert, Search, People } from '@mui/icons-material';
 import PropTypes from 'prop-types';
@@ -86,6 +87,8 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
     if (!roles || typeof roles !== 'string') return 'N/A';
     return roles.split(',')[0].trim().toUpperCase();
   };
+
+  const isProtectedAdmin = (user) => String(user?.primary_role || '').toLowerCase() === 'admin';
 
   // Filter users by search
   const filteredUsers = users.filter(user => 
@@ -238,10 +241,10 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Chip
-                      label={getFirstRole(user.roles)}
-                      color={getRoleColor(user.roles)}
-                      size="small"
+                      <Chip
+                       label={(user.primary_role || getFirstRole(user.roles)).toString().toUpperCase()}
+                       color={getRoleColor(user.roles)}
+                       size="small"
                       sx={{ 
                         fontWeight: 600, 
                         fontSize: '0.65rem',
@@ -250,12 +253,17 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
                     />
                   </TableCell>
                   <TableCell>
-                    <Switch
-                      checked={user.is_active}
-                      onChange={() => onToggleStatus && onToggleStatus(user.user_id, !user.is_active)}
-                      color="success"
-                      size="small"
-                    />
+                     <Tooltip title={isProtectedAdmin(user) ? 'The unique admin cannot be deactivated' : ''}>
+                       <span>
+                         <Switch
+                           checked={user.is_active}
+                           onChange={() => onToggleStatus && onToggleStatus(user.user_id, !user.is_active)}
+                           color="success"
+                           size="small"
+                           disabled={isProtectedAdmin(user)}
+                         />
+                       </span>
+                     </Tooltip>
                   </TableCell>
                   <TableCell>
                     <Typography variant="caption" color="text.secondary">
@@ -267,10 +275,10 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleMenuOpen(e, user)}
-                      sx={{
+                     <IconButton
+                       size="small"
+                       onClick={(e) => handleMenuOpen(e, user)}
+                       sx={{
                         '&:hover': {
                           bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
                         },
@@ -337,11 +345,13 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
           </ListItemIcon>
           <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>Edit</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleDelete} sx={{ fontSize: '0.875rem' }}>
+        <MenuItem onClick={isProtectedAdmin(selectedUser) ? undefined : handleDelete} disabled={isProtectedAdmin(selectedUser)} sx={{ fontSize: '0.875rem' }}>
           <ListItemIcon>
             <Delete sx={{ fontSize: 18, color: 'error.main' }} />
           </ListItemIcon>
-          <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>Delete</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>
+            {isProtectedAdmin(selectedUser) ? 'Delete disabled' : 'Delete'}
+          </ListItemText>
         </MenuItem>
       </Menu>
     </Paper>

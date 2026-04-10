@@ -1,786 +1,404 @@
-import React, { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
+  Alert,
+  alpha,
   Box,
-  FormControlLabel,
-  Checkbox,
-  Typography,
-  Divider,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  FormHelperText,
+  Grid,
+  IconButton,
+  InputLabel,
   MenuItem,
   Select,
-  FormControl,
-  InputLabel,
-  FormHelperText,
-  Slide,
-  IconButton,
   Stack,
-  alpha,
-  useTheme,
+  Switch,
+  TextField,
+  Typography,
   useMediaQuery,
-  ListItemIcon,
-  ListItemText,
+  useTheme,
 } from "@mui/material";
-import Grid from '@mui/material/GridLegacy';
 import {
-  Close,
-  School as SchoolIcon,
-  Business as BusinessIcon,
-  Code as CodeIcon,
-  PersonAdd,
+  AdminPanelSettings,
   CheckCircle,
-  Assignment,
+  Close,
+  PersonAdd,
+  School,
 } from "@mui/icons-material";
-import PropTypes from "prop-types";
-import { useForm, Controller } from "react-hook-form";
-import { AsyncButton } from '@/shared/components/ui';
+import { Controller, useForm } from "react-hook-form";
+import { AsyncButton } from "@/shared/components/ui";
+import institutionProgramService from "@/services/institutionProgramService";
 
-// Sample universities
-const commonUniversities = [
-  { label: "Mohammed V University", city: "Rabat" },
-  { label: "Al Akhawayn University", city: "Ifrane" },
-  { label: "Cadi Ayyad University", city: "Marrakech" },
-  { label: "Sidi Mohamed Ben Abdellah University", city: "Fez" },
-  { label: "Hassan II University", city: "Casablanca" },
-  { label: "Hassan I University", city: "Settat" },
-  { label: "Abdelmalek Essaadi University", city: "Tangier" },
-  { label: "Sultan Moulay Slimane University", city: "Beni Mellal" },
-  { label: "Ibnou Zohr University", city: "Agadir" },
-  { label: "ENSEM Engineering School", city: "Casablanca" },
-  { label: "INPT Engineering School", city: "Rabat" },
-  { label: "ENSA Marrakech", city: "Marrakech" },
-];
-
-const institutionTypes = [
-  {
-    value: "Public University",
-    label: "Public University",
-    icon: <SchoolIcon fontSize="small" />,
+const roleMeta = {
+  student: {
+    label: "Student",
+    helper: "Learner account with academic profile support",
   },
-  {
-    value: "Private University",
-    label: "Private University",
-    icon: <BusinessIcon fontSize="small" />,
+  teacher: {
+    label: "Teacher",
+    helper: "Content contributor and academic referent",
   },
-  {
-    value: "Engineering School",
-    label: "Engineering School",
-    icon: <CodeIcon fontSize="small" />,
+  admin: {
+    label: "Admin",
+    helper: "Protected project administrator account",
   },
-  {
-    value: "Business School",
-    label: "Business School",
-    icon: <BusinessIcon fontSize="small" />,
-  },
-  { value: "Other", label: "Other", icon: <SchoolIcon fontSize="small" /> },
-];
-
-const userRoles = [
-  { value: "student", label: "Student", icon: "🎓" },
-  { value: "teacher", label: "Teacher", icon: "👨‍🏫" },
-  { value: "admin", label: "Admin", icon: "🔐" },
-];
-
-const Transition = React.forwardRef(function Transition(props, ref) {
-  return <Slide direction="up" ref={ref} {...props} />;
-});
-
-const getDefaultValues = (user) => {
-  let rolesArray = ["student"];
-  if (Array.isArray(user?.roles)) {
-    rolesArray = user.roles.map((r) => String(r).trim().toLowerCase()).filter(Boolean);
-  } else if (typeof user?.roles === "string") {
-    rolesArray = user.roles.split(",").map((r) => r.trim().toLowerCase()).filter(Boolean);
-  } else if (user?.role) {
-    rolesArray = [String(user.role).trim().toLowerCase()];
-  }
-
-  if (rolesArray.length === 0) {
-    rolesArray = ["student"];
-  }
-
-  return {
-    fullName: user?.full_name || "",
-    email: user?.email || "",
-    userRoles: rolesArray,
-    isActive: user?.is_active !== undefined ? user.is_active : true,
-    institutionName: user?.institution_name || "",
-    institutionCity: user?.institution_city || "",
-    institutionType: user?.institution_type || "",
-    programName: user?.program_name || "",
-    domainName: user?.domain_name || "",
-    currentSemesterName: user?.current_semester_name || "",
-    levelName: user?.current_level_name || "",
-  };
 };
 
-const UserDialog = ({ open, user, onClose, onSave, saving = false }) => {
+const getDefaultValues = (user) => ({
+  fullName: user?.full_name || "",
+  email: user?.email || "",
+  password: "",
+  roleName: user?.primary_role || (typeof user?.roles === "string" ? user.roles.split(",")[0].trim().toLowerCase() : "student"),
+  isActive: user?.is_active !== undefined ? Boolean(user.is_active) : true,
+  institutionId: user?.institution_id ? String(user.institution_id) : "",
+  programId: user?.program_id ? String(user.program_id) : "",
+  levelId: user?.current_level_id ? String(user.current_level_id) : "",
+  currentSemesterId: user?.current_semester_id ? String(user.current_semester_id) : "",
+});
+
+const UserDialog = ({
+  open,
+  user,
+  onClose,
+  onSave,
+  saving = false,
+  availableRoles = [],
+  allowAdminCreation = false,
+  institutions = [],
+  levels = [],
+  semesters = [],
+}) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const fullScreen = useMediaQuery(theme.breakpoints.down("md"));
+  const [programOptions, setProgramOptions] = useState([]);
+  const [programsLoading, setProgramsLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
 
   const {
-    register,
     control,
+    register,
     reset,
     watch,
-    getValues,
     setValue,
-    setError,
-    clearErrors,
     handleSubmit,
     formState: { errors },
   } = useForm({
     defaultValues: getDefaultValues(user),
   });
 
-  const selectedRoles = watch("userRoles") || [];
-  const isActive = watch("isActive");
+  const selectedRole = watch("roleName");
+  const selectedInstitutionId = watch("institutionId");
+  const selectedProgramId = watch("programId");
+  const selectedLevelId = watch("levelId");
 
   useEffect(() => {
     reset(getDefaultValues(user));
-    clearErrors();
-  }, [user, open, reset, clearErrors]);
+    setLoadError("");
+  }, [user, open, reset]);
 
-  const handleRoleChange = (role) => {
-    const currentRoles = getValues("userRoles") || [];
-    const nextRoles = currentRoles.includes(role)
-      ? currentRoles.filter((r) => r !== role)
-      : [...currentRoles, role];
-    setValue("userRoles", nextRoles, { shouldDirty: true });
-    clearErrors("userRoles");
-  };
+  useEffect(() => {
+    const loadPrograms = async () => {
+      if (!selectedInstitutionId || selectedRole !== "student") {
+        setProgramOptions([]);
+        return;
+      }
+
+      setProgramsLoading(true);
+      setLoadError("");
+      try {
+        const response = await institutionProgramService.getProgramsByInstitution(Number(selectedInstitutionId));
+        const programs = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [];
+        setProgramOptions(programs);
+      } catch (error) {
+        setProgramOptions([]);
+        setLoadError(error?.response?.data?.message || "Failed to load institution programs");
+      } finally {
+        setProgramsLoading(false);
+      }
+    };
+
+    loadPrograms();
+  }, [selectedInstitutionId, selectedRole]);
+
+  useEffect(() => {
+    setValue("programId", "");
+    setValue("levelId", "");
+    setValue("currentSemesterId", "");
+  }, [selectedInstitutionId, selectedRole, setValue]);
+
+  useEffect(() => {
+    setValue("levelId", "");
+    setValue("currentSemesterId", "");
+  }, [selectedProgramId, setValue]);
+
+  useEffect(() => {
+    setValue("currentSemesterId", "");
+  }, [selectedLevelId, setValue]);
+
+  const availableRoleOptions = useMemo(() => {
+    const allowedNames = user?.primary_role === "admin"
+      ? ["admin"]
+      : availableRoles
+          .map((role) => role.name)
+          .filter((name) => (name === "admin" ? allowAdminCreation : true));
+
+    return availableRoles.filter((role) => allowedNames.includes(role.name));
+  }, [availableRoles, user]);
+
+  const filteredLevels = useMemo(
+    () => levels.filter((level) => String(level.program_id || level.programId) === String(selectedProgramId)),
+    [levels, selectedProgramId]
+  );
+
+  const filteredSemesters = useMemo(
+    () => semesters.filter((semester) => String(semester.level_id || semester.levelId) === String(selectedLevelId)),
+    [semesters, selectedLevelId]
+  );
 
   const handleSave = handleSubmit(async (data) => {
-    if (!data.userRoles?.length) {
-      setError("userRoles", {
-        type: "manual",
-        message: "At least one role is required",
-      });
-      return;
-    }
+    const payload = {
+      full_name: data.fullName.trim(),
+      email: data.email.trim(),
+      role_name: data.roleName,
+      is_active: Boolean(data.isActive),
+      ...(user ? {} : { password: data.password }),
+      ...(data.roleName === "student" && data.institutionId && data.programId && data.levelId && data.currentSemesterId
+        ? {
+            institution_id: Number(data.institutionId),
+            program_id: Number(data.programId),
+            level_id: Number(data.levelId),
+            current_semester_id: Number(data.currentSemesterId),
+          }
+        : {}),
+    };
 
-    await onSave({
-      full_name: data.fullName,
-      email: data.email,
-      roles: data.userRoles.join(", "),
-      is_active: data.isActive,
-      institution_name: data.institutionName,
-      institution_city: data.institutionCity,
-      institution_type: data.institutionType,
-      program_name: data.programName,
-      domain_name: data.domainName,
-      current_semester_name: data.currentSemesterName,
-      current_level_name: data.levelName,
-      ...(user && { user_id: user.user_id }),
-    });
+    await onSave(payload);
   });
 
   return (
     <Dialog
       open={open}
-      onClose={onClose}
-      TransitionComponent={Transition}
-      maxWidth="md"
+      onClose={saving ? undefined : onClose}
       fullWidth
-      fullScreen={isMobile}
+      maxWidth="md"
+      fullScreen={fullScreen}
       PaperProps={{
         sx: {
           borderRadius: { xs: 0, sm: 3 },
-          boxShadow: theme.shadows[24],
-          maxHeight: "95vh",
+          overflow: "hidden",
         },
       }}
     >
-      {/* Header */}
-      <DialogTitle
-        sx={{
-          position: "relative",
-          p: 3,
-          pb: 2,
-          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
-          borderBottom: "1px solid",
-          borderColor: "divider",
-        }}
-      >
-        <Stack direction="row" alignItems="center" spacing={2}>
-          <Box
-            sx={{
-              width: 48,
-              height: 48,
-              borderRadius: 2,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              bgcolor: alpha(theme.palette.primary.main, 0.15),
-              color: "primary.main",
-            }}
-          >
-            <PersonAdd />
-          </Box>
-          <Box sx={{ flex: 1 }}>
-            <Typography
-              variant="h6"
-              component="div"
-              sx={{
-                fontWeight: 700,
-                color: "text.primary",
-              }}
-            >
-              {user ? "Edit User Profile" : "Create New User"}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {user
-                ? "Update user information and academic details"
-                : "Add a new user to the system"}
-            </Typography>
-          </Box>
-        </Stack>
-        <IconButton
-          onClick={onClose}
-          disabled={saving}
-          sx={{
-            position: "absolute",
-            right: 12,
-            top: 12,
-            color: "text.secondary",
-            transition: "all 0.2s ease",
-            "&:hover": {
-              bgcolor: alpha(theme.palette.error.main, 0.1),
-              color: "error.main",
-              transform: "rotate(90deg)",
-            },
-          }}
-        >
-          <Close />
-        </IconButton>
-      </DialogTitle>
-
-      <DialogContent sx={{ p: 0, overflowY: "auto" }}>
-        <Box sx={{ p: 4 }}>
-          <Stack spacing={4}>
-            {/* Basic Information Section */}
-            <Box>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 700,
-                  mb: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                }}
-              >
-                <PersonAdd sx={{ fontSize: 20 }} /> Personal Information
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Enter the user's basic information
-              </Typography>
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Full Name"
-                    {...register("fullName", {
-                      required: "Full name is required",
-                    })}
-                    error={!!errors.fullName}
-                    helperText={errors.fullName?.message}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        borderRadius: 2,
-                        "&:hover fieldset": {
-                          borderColor: "primary.main",
-                        },
-                        "&.Mui-focused fieldset": {
-                          borderColor: "primary.main",
-                          borderWidth: 2,
-                        },
-                      },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    type="email"
-                    {...register("email", {
-                      required: "Email is required",
-                      pattern: {
-                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                        message: "Invalid email format",
-                      },
-                    })}
-                    error={!!errors.email}
-                    helperText={errors.email?.message}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        borderRadius: 2,
-                        "&:hover fieldset": {
-                          borderColor: "primary.main",
-                        },
-                        "&.Mui-focused fieldset": {
-                          borderColor: "primary.main",
-                          borderWidth: 2,
-                        },
-                      },
-                    }}
-                  />
-                </Grid>
-              </Grid>
+      <DialogTitle sx={{ p: 0 }}>
+        <Box sx={{ px: 3, py: 2.6, background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.04)} 100%)`, borderBottom: "1px solid", borderColor: "divider", position: "relative" }}>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Box sx={{ width: 46, height: 46, borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", bgcolor: alpha(theme.palette.primary.main, 0.15), color: "primary.main" }}>
+              <PersonAdd />
             </Box>
-
-            <Divider />
-
-            {/* Role Selection Section */}
-            <Box>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 700,
-                  mb: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                }}
-              >
-                <Assignment sx={{ fontSize: 20 }} /> User Roles
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" fontWeight={800}>{user ? "Edit User" : "Create User"}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                {user ? "Update account status and role assignment" : "Create a new account with exactly one operational role"}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Select one or more roles for this user
-              </Typography>
-              {errors.userRoles && (
-                <FormHelperText error sx={{ mb: 2 }}>
-                  {errors.userRoles}
-                </FormHelperText>
-              )}
-              <Grid container spacing={2}>
-                {userRoles.map((role) => (
-                  <Grid item xs={12} key={role.value}>
-                    <Box
-                      onClick={() => handleRoleChange(role.value)}
-                      sx={{
-                        p: 2,
-                        borderRadius: 2,
-                        border: "2px solid",
-                        borderColor: selectedRoles.includes(role.value)
-                          ? "primary.main"
-                          : "divider",
-                        bgcolor: selectedRoles.includes(role.value)
-                          ? alpha(theme.palette.primary.main, 0.08)
-                          : "background.paper",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        "&:hover": {
-                          borderColor: "primary.main",
-                          bgcolor: alpha(theme.palette.primary.main, 0.05),
-                          transform: "translateY(-2px)",
-                          boxShadow: theme.shadows[4],
-                        },
-                      }}
-                    >
-                      <Stack direction="row" alignItems="center" spacing={1.5}>
-                        <Box
-                          sx={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 1.5,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            bgcolor: selectedRoles.includes(role.value)
-                              ? alpha(theme.palette.primary.main, 0.15)
-                              : alpha(theme.palette.text.primary, 0.05),
-                            fontSize: "1.2rem",
-                          }}
-                        >
-                          {role.icon}
-                        </Box>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                            {role.label}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {role.value === "admin"
-                              ? "Full access"
-                              : role.value === "teacher"
-                                ? "Content creator"
-                                : "Learner"}
-                          </Typography>
-                        </Box>
-                        {selectedRoles.includes(role.value) && (
-                          <CheckCircle
-                            sx={{ color: "primary.main", fontSize: 20 }}
-                          />
-                        )}
-                      </Stack>
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
-            </Box>
-
-            <Divider />
-
-            {/* Academic Information Section */}
-            {/* Academic Information Section */}
-            <Box>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 700,
-                  mb: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                }}
-              >
-                <SchoolIcon sx={{ fontSize: 20 }} /> Academic Information
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Add institution and academic details (optional for
-                teachers/admins)
-              </Typography>
-
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <FormControl fullWidth>
-                    <InputLabel id="institution-label">Institution</InputLabel>
-                    <Controller
-                      name="institutionName"
-                      control={control}
-                      render={({ field }) => (
-                        <Select
-                          {...field}
-                          labelId="institution-label"
-                          id="institution-select"
-                          label="Institution"
-                          onChange={(e) => {
-                            const selectedUni = commonUniversities.find((u) => u.label === e.target.value);
-                            field.onChange(e.target.value);
-                            setValue("institutionCity", selectedUni ? selectedUni.city : "", { shouldDirty: true });
-                          }}
-                          renderValue={(value) => {
-                            const selected = commonUniversities.find((u) => u.label === value);
-                            return selected ? (
-                              <Stack direction="row" alignItems="center" spacing={1.5}>
-                                <SchoolIcon fontSize="small" sx={{ color: "primary.main" }} />
-                                <Box>
-                                  <Typography variant="body2">{selected.label}</Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    📍 {selected.city}
-                                  </Typography>
-                                </Box>
-                              </Stack>
-                            ) : (
-                              <Typography color="text.secondary">Select institution</Typography>
-                            );
-                          }}
-                          sx={{
-                            borderRadius: 2,
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "divider",
-                            },
-                            "&:hover .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "primary.main",
-                            },
-                            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "primary.main",
-                              borderWidth: 2,
-                            },
-                          }}
-                          MenuProps={{
-                            PaperProps: {
-                              sx: {
-                                borderRadius: 2,
-                                mt: 1,
-                                maxHeight: 400,
-                                boxShadow: theme.shadows[8],
-                                "& .MuiMenuItem-root": {
-                                  borderRadius: 1,
-                                  mx: 1,
-                                  my: 0.5,
-                                  py: 1.5,
-                                  "&:hover": {
-                                    bgcolor: alpha(theme.palette.primary.main, 0.08),
-                                  },
-                                  "&.Mui-selected": {
-                                    bgcolor: alpha(theme.palette.primary.main, 0.12),
-                                    "&:hover": {
-                                      bgcolor: alpha(theme.palette.primary.main, 0.16),
-                                    },
-                                  },
-                                },
-                              },
-                            },
-                          }}
-                        >
-                          {commonUniversities.map((university) => (
-                            <MenuItem key={university.label} value={university.label}>
-                              <ListItemIcon sx={{ minWidth: 36 }}>
-                                <SchoolIcon fontSize="small" sx={{ color: "primary.main" }} />
-                              </ListItemIcon>
-                              <ListItemText
-                                primary={university.label}
-                                secondary={`📍 ${university.city}`}
-                                primaryTypographyProps={{
-                                  variant: "body2",
-                                  fontWeight: 500,
-                                }}
-                                secondaryTypographyProps={{
-                                  variant: "caption",
-                                }}
-                              />
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      )}
-                    />
-                    <FormHelperText>
-                      Select your educational institution
-                    </FormHelperText>
-                  </FormControl>
-                </Grid>
-
-                <Grid item xs={12}>
-                  <FormControl fullWidth>
-                    <InputLabel id="institution-type-label">
-                      Institution Type
-                    </InputLabel>
-                    <Controller
-                      name="institutionType"
-                      control={control}
-                      render={({ field }) => (
-                        <Select
-                          {...field}
-                          labelId="institution-type-label"
-                          id="institution-type-select"
-                          label="Institution Type"
-                          renderValue={(value) => {
-                            const selected = institutionTypes.find((t) => t.value === value);
-                            return selected ? (
-                              <Stack direction="row" alignItems="center" spacing={1.5}>
-                                {selected.icon}
-                                <Typography>{selected.label}</Typography>
-                              </Stack>
-                            ) : (
-                              <Typography color="text.secondary">Select institution type</Typography>
-                            );
-                          }}
-                          sx={{
-                            borderRadius: 2,
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "divider",
-                            },
-                            "&:hover .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "primary.main",
-                            },
-                            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "primary.main",
-                              borderWidth: 2,
-                            },
-                          }}
-                          MenuProps={{
-                            PaperProps: {
-                              sx: {
-                                borderRadius: 2,
-                                mt: 1,
-                                boxShadow: theme.shadows[8],
-                                "& .MuiMenuItem-root": {
-                                  borderRadius: 1,
-                                  mx: 1,
-                                  my: 0.5,
-                                  "&:hover": {
-                                    bgcolor: alpha(theme.palette.primary.main, 0.08),
-                                  },
-                                  "&.Mui-selected": {
-                                    bgcolor: alpha(theme.palette.primary.main, 0.12),
-                                    "&:hover": {
-                                      bgcolor: alpha(theme.palette.primary.main, 0.16),
-                                    },
-                                  },
-                                },
-                              },
-                            },
-                          }}
-                        >
-                          {institutionTypes.map((type) => (
-                            <MenuItem key={type.value} value={type.value}>
-                              <ListItemIcon sx={{ minWidth: 36 }}>{type.icon}</ListItemIcon>
-                              <ListItemText primary={type.label} />
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      )}
-                    />
-                    <FormHelperText>
-                      Select the type of educational institution
-                    </FormHelperText>
-                  </FormControl>
-                </Grid>
-              </Grid>
-
-              {selectedRoles.includes("student") && (
-                <Grid container spacing={3} sx={{ mt: 1 }}>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Program Name"
-                      {...register("programName")}
-                      placeholder="e.g., Computer Science"
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          borderRadius: 2,
-                        },
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Domain/Field"
-                      {...register("domainName")}
-                      placeholder="e.g., Software Engineering"
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          borderRadius: 2,
-                        },
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Current Semester"
-                      {...register("currentSemesterName")}
-                      placeholder="e.g., Fall 2026"
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          borderRadius: 2,
-                        },
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Level/Year"
-                      {...register("levelName")}
-                      placeholder="e.g., 3rd Year"
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          borderRadius: 2,
-                        },
-                      }}
-                    />
-                  </Grid>
-                </Grid>
-              )}
-            </Box>
-
-            <Divider />
-
-            {/* Status Section */}
-            <Box>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 700,
-                  mb: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                }}
-              >
-                <CheckCircle sx={{ fontSize: 20 }} /> Account Status
-              </Typography>
-              <FormControlLabel
-                control={
-                  <Controller
-                    name="isActive"
-                    control={control}
-                    render={({ field }) => (
-                      <Checkbox
-                        checked={!!field.value}
-                        onChange={(event) => field.onChange(event.target.checked)}
-                        sx={{
-                          color: "primary.main",
-                          "&.Mui-checked": {
-                            color: "primary.main",
-                          },
-                        }}
-                      />
-                    )}
-                  />
-                }
-                label={
-                  <Box>
-                    <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                      {isActive
-                        ? "Active Account"
-                        : "Inactive Account"}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {isActive
-                        ? "User can access the platform"
-                        : "User access is disabled"}
-                    </Typography>
-                  </Box>
-                }
-              />
             </Box>
           </Stack>
+          <IconButton onClick={onClose} disabled={saving} sx={{ position: "absolute", top: 12, right: 12 }}>
+            <Close />
+          </IconButton>
+        </Box>
+      </DialogTitle>
+
+      <DialogContent sx={{ p: 3, display: "grid", gap: 3 }}>
+        {loadError ? <Alert severity="error">{loadError}</Alert> : null}
+
+        {user?.primary_role === "admin" ? (
+          <Alert severity="info" icon={<AdminPanelSettings fontSize="inherit" />}>
+            This is the unique admin account. Its role is locked and cannot be changed.
+          </Alert>
+        ) : null}
+
+        <Box>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>Account Information</Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Full Name"
+                {...register("fullName", { required: "Full name is required" })}
+                error={!!errors.fullName}
+                helperText={errors.fullName?.message}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Email"
+                type="email"
+                {...register("email", {
+                  required: "Email is required",
+                  pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Invalid email format" },
+                })}
+                error={!!errors.email}
+                helperText={errors.email?.message}
+              />
+            </Grid>
+            {!user ? (
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Temporary Password"
+                  type="password"
+                  {...register("password", {
+                    required: "Password is required",
+                    minLength: { value: 8, message: "Password must be at least 8 characters" },
+                  })}
+                  error={!!errors.password}
+                  helperText={errors.password?.message || "The user can change it later from account settings"}
+                />
+              </Grid>
+            ) : null}
+          </Grid>
+        </Box>
+
+        <Box>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>Role Assignment</Typography>
+          <Controller
+            name="roleName"
+            control={control}
+            rules={{ required: "Role is required" }}
+            render={({ field }) => (
+              <FormControl fullWidth error={!!errors.roleName}>
+                <InputLabel>Role</InputLabel>
+                <Select {...field} label="Role" disabled={user?.primary_role === "admin"}>
+                  {availableRoleOptions.map((role) => (
+                    <MenuItem key={role.id} value={role.name}>
+                      <Box>
+                        <Typography variant="body2" fontWeight={700}>{roleMeta[role.name]?.label || role.name}</Typography>
+                        <Typography variant="caption" color="text.secondary">{roleMeta[role.name]?.helper || role.description}</Typography>
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+                <FormHelperText>{errors.roleName?.message || "Exactly one role is allowed for each user"}</FormHelperText>
+              </FormControl>
+            )}
+          />
+        </Box>
+
+        {!user && selectedRole === "student" ? (
+          <Box>
+            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>Student Academic Profile</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Controller
+                  name="institutionId"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth>
+                      <InputLabel>Institution</InputLabel>
+                      <Select {...field} label="Institution">
+                        {institutions.map((institution) => (
+                          <MenuItem key={institution.id} value={String(institution.id)}>{institution.name}</MenuItem>
+                        ))}
+                      </Select>
+                      <FormHelperText>Optional, but required if you want to create a student academic profile</FormHelperText>
+                    </FormControl>
+                  )}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Controller
+                  name="programId"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth disabled={!selectedInstitutionId || programsLoading}>
+                      <InputLabel>Program</InputLabel>
+                      <Select {...field} label="Program">
+                        {programOptions.map((program) => (
+                          <MenuItem key={program.id} value={String(program.id)}>{program.name}</MenuItem>
+                        ))}
+                      </Select>
+                      <FormHelperText>{selectedInstitutionId ? "Programs available for the selected institution" : "Choose an institution first"}</FormHelperText>
+                    </FormControl>
+                  )}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Controller
+                  name="levelId"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth disabled={!selectedProgramId}>
+                      <InputLabel>Level</InputLabel>
+                      <Select {...field} label="Level">
+                        {filteredLevels.map((level) => (
+                          <MenuItem key={level.id} value={String(level.id)}>{level.name}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  )}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Controller
+                  name="currentSemesterId"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth disabled={!selectedLevelId}>
+                      <InputLabel>Current Semester</InputLabel>
+                      <Select {...field} label="Current Semester">
+                        {filteredSemesters.map((semester) => (
+                          <MenuItem key={semester.id} value={String(semester.id)}>{semester.name}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  )}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        ) : null}
+
+        {user ? (
+          <Alert severity="info" icon={<School fontSize="inherit" />}>
+            Academic profile data is kept in the database and managed separately from this user administration form.
+          </Alert>
+        ) : null}
+
+        <Box>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>Account Status</Typography>
+          <Controller
+            name="isActive"
+            control={control}
+            render={({ field }) => (
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Switch checked={Boolean(field.value)} onChange={(event) => field.onChange(event.target.checked)} disabled={user?.primary_role === "admin"} color="success" />
+                <Box>
+                  <Typography variant="body2" fontWeight={700}>{field.value ? "Active account" : "Inactive account"}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {user?.primary_role === "admin" ? "The unique admin account must remain active." : "Inactive users cannot sign in."}
+                  </Typography>
+                </Box>
+                {field.value ? <CheckCircle sx={{ color: "success.main", fontSize: 18 }} /> : null}
+              </Stack>
+            )}
+          />
         </Box>
       </DialogContent>
 
-      {/* Footer */}
-      <DialogActions
-        sx={{
-          p: 3,
-          borderTop: "1px solid",
-          borderColor: "divider",
-          gap: 2,
-        }}
-      >
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          fullWidth
-          disabled={saving}
-          sx={{
-            borderRadius: 2,
-            textTransform: "none",
-            fontWeight: 600,
-            py: 1.5,
-            "&:hover": {
-              borderColor: "error.main",
-              color: "error.main",
-            },
-          }}
-        >
+      <DialogActions sx={{ p: 3, gap: 1.5, borderTop: "1px solid", borderColor: "divider" }}>
+        <Button onClick={onClose} variant="outlined" disabled={saving} sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}>
           Cancel
         </Button>
-        <AsyncButton
-          onClick={handleSave}
-          variant="contained"
-          fullWidth
-          loading={saving}
-          loadingText={user ? 'Saving...' : 'Creating...'}
-          sx={{
-            borderRadius: 2,
-            textTransform: "none",
-            fontWeight: 600,
-            py: 1.5,
-            boxShadow: "none",
-            "&:hover": {
-              boxShadow: theme.shadows[8],
-            },
-          }}
-        >
+        <AsyncButton onClick={handleSave} loading={saving} loadingText={user ? "Saving..." : "Creating..."} variant="contained" sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2 }}>
           {user ? "Save Changes" : "Create User"}
         </AsyncButton>
       </DialogActions>
@@ -794,11 +412,11 @@ UserDialog.propTypes = {
   onClose: PropTypes.func.isRequired,
   onSave: PropTypes.func.isRequired,
   saving: PropTypes.bool,
-};
-
-UserDialog.defaultProps = {
-  user: null,
-  saving: false,
+  availableRoles: PropTypes.array,
+  allowAdminCreation: PropTypes.bool,
+  institutions: PropTypes.array,
+  levels: PropTypes.array,
+  semesters: PropTypes.array,
 };
 
 export default UserDialog;

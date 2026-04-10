@@ -7,6 +7,7 @@ import {
   AdminPanelSettings,
   Description,
   LocalOffer,
+  People,
   Settings,
   AccountTree
 } from '@mui/icons-material';
@@ -47,8 +48,14 @@ export const DASHBOARD_NAVIGATION = [
     roles: ['ADMIN']
   },
   {
-    labelKey: 'nav.pointsManagement',
+    labelKey: 'nav.users',
     path: '/dashboard/users',
+    icon: <People />,
+    roles: ['ADMIN']
+  },
+  {
+    labelKey: 'nav.pointsManagement',
+    path: '/dashboard/points',
     icon: <Paid />,
     roles: ['ADMIN']
   },

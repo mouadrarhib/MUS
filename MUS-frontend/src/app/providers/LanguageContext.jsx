@@ -34,7 +34,8 @@ const translations = {
       logout: 'Logout',
     },
     pages: {
-      users: { title: 'Users', subtitle: 'Manage all platform users, roles and permissions', add: 'Add User' },
+      users: { title: 'Users', subtitle: 'Manage user accounts, status, and single-role assignments', add: 'Add User' },
+      points: { title: 'Points Management', subtitle: 'Review balances and adjust engagement points safely for each user' },
       resources: { title: 'Resources', subtitle: 'Manage educational resources, exams, courses and notes', add: 'Add Resource' },
       tags: { title: 'Tags', subtitle: 'Manage discovery tags used across resources and personalization' },
       library: { title: 'My Library', subtitle: 'View and manage your favorite resources', label: 'Saved' },
@@ -174,7 +175,8 @@ const translations = {
       logout: 'Deconnexion',
     },
     pages: {
-      users: { title: 'Utilisateurs', subtitle: 'Gerez les utilisateurs, roles et permissions', add: 'Ajouter un utilisateur' },
+      users: { title: 'Utilisateurs', subtitle: 'Gerez les comptes utilisateurs, le statut et le role unique', add: 'Ajouter un utilisateur' },
+      points: { title: 'Gestion des points', subtitle: 'Consultez les soldes et ajustez les points d engagement en toute securite' },
       resources: { title: 'Ressources', subtitle: 'Gerez les ressources educatives, examens, cours et notes', add: 'Ajouter une ressource' },
       tags: { title: 'Etiquettes', subtitle: 'Gerez les etiquettes de decouverte utilisees pour les ressources et la personnalisation' },
       library: { title: 'Ma bibliotheque', subtitle: 'Consultez et gerez vos ressources favorites', label: 'Sauvegardees' },
@@ -314,7 +316,8 @@ const translations = {
       logout: 'تسجيل الخروج',
     },
     pages: {
-      users: { title: 'المستخدمون', subtitle: 'ادارة المستخدمين والادوار والصلاحيات', add: 'اضافة مستخدم' },
+      users: { title: 'المستخدمون', subtitle: 'ادارة حسابات المستخدمين والحالة وتعيين دور واحد فقط', add: 'اضافة مستخدم' },
+      points: { title: 'ادارة النقاط', subtitle: 'مراجعة الارصدة وتعديل نقاط التفاعل لكل مستخدم بشكل آمن' },
       resources: { title: 'الموارد', subtitle: 'ادارة الموارد التعليمية والاختبارات والدروس والملاحظات', add: 'اضافة مورد' },
       tags: { title: 'الوسوم', subtitle: 'ادارة وسوم الاكتشاف المستخدمة عبر الموارد والتخصيص' },
       library: { title: 'مكتبتي', subtitle: 'عرض وادارة الموارد المفضلة لديك', label: 'محفوظة' },

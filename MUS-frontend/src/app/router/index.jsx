@@ -19,6 +19,7 @@ const DiscoverResourcesPage = lazy(() => import('@/features/dashboard/pages/Disc
 const RecommendationsPage = lazy(() => import('@/features/dashboard/pages/Recommendations'));
 const ResourcePreviewPage = lazy(() => import('@/features/discover/pages/ResourcePreviewPage'));
 const UsersPage = lazy(() => import('@/features/users/pages/Users'));
+const PointsManagementPage = lazy(() => import('@/features/points/pages/PointsManagement'));
 const ResourcesPage = lazy(() => import('@/features/resources/pages/Resources'));
 const LibraryPage = lazy(() => import('@/features/library/pages/Library'));
 const MyUploadsPage = lazy(() => import('@/features/uploads/pages/MyUploads'));
@@ -76,6 +77,15 @@ const AppRouter = () => {
             element={
               <ProtectedRoute requiredRoles={['ADMIN']}>
                 <UsersPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="points"
+            element={
+              <ProtectedRoute requiredRoles={['ADMIN']}>
+                <PointsManagementPage />
               </ProtectedRoute>
             }
           />

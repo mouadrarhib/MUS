@@ -1,139 +1,104 @@
 import { User, Role, UserRole, sequelize } from "../models/index.js";
 import AppError from "../helpers/appError.js";
 import { SQL } from "../snippets/index.js";
+import {
+  getRoleByIdStrict,
+  getUserRoleAssignments,
+  setUserSingleRole,
+  assertCanDeleteUser,
+  assertRoleTransitionAllowed,
+  normalizeRoleName,
+} from "./userRolePolicyService.js";
 
 /**
  * Assign role to user
  */
 export const assignRoleToUser = async (userId, roleId) => {
-  try {
-    await sequelize.query(SQL.USER_ROLE.ASSIGN, {
-      replacements: { user_id: userId, role_id: roleId },
-    });
-
-    return { message: "Role assigned to user successfully" };
-  } catch (error) {
-    // Procedure not found → fallback
-    if (error.original?.code !== "42883") {
-      // Unique violation (already assigned)
-      if (error.original?.code === "23505") {
-        throw new AppError("Role already assigned to user", 409);
-      }
-      throw error;
-    }
-  }
-
-  // ---------- Fallback (Sequelize) ----------
   const user = await User.findByPk(userId);
   if (!user) {
     throw new AppError("User not found", 404);
   }
 
-  const role = await Role.findByPk(roleId);
-  if (!role) {
-    throw new AppError("Role not found", 404);
-  }
+  await getRoleByIdStrict(roleId);
 
-  await UserRole.findOrCreate({
-    where: { user_id: userId, role_id: roleId },
+  return sequelize.transaction(async (transaction) => {
+    const result = await setUserSingleRole({ userId, roleId, transaction });
+    return { ...result, message: "User role set successfully" };
   });
-
-  return { message: "Role assigned to user successfully" };
 };
 
 /**
  * Get roles of a user
  */
 export const getUserRoles = async (userId) => {
-  try {
-    const [rows] = await sequelize.query(SQL.USER_ROLE.GET_BY_USER, {
-      replacements: { user_id: userId },
-    });
-    return rows;
-  } catch (error) {
-    if (error.original?.code !== "42883") {
-      throw error;
-    }
-  }
-
-  // ---------- Fallback ----------
-  const user = await User.findByPk(userId, {
-    include: [{ model: Role, through: { attributes: [] } }],
-  });
-
+  const user = await User.findByPk(userId);
   if (!user) {
     throw new AppError("User not found", 404);
   }
 
-  return user.Roles;
+  const assignments = await getUserRoleAssignments(userId);
+  return assignments.map((assignment) => assignment.role);
 };
 
 /**
  * Update user role (replace role)
  */
 export const updateUserRole = async (userId, oldRoleId, newRoleId) => {
-  try {
-    await sequelize.query(SQL.USER_ROLE.UPDATE, {
-      replacements: {
-        user_id: userId,
-        old_role_id: oldRoleId,
-        new_role_id: newRoleId,
-      },
+  const user = await User.findByPk(userId);
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  return sequelize.transaction(async (transaction) => {
+    const assignments = await getUserRoleAssignments(userId, transaction);
+    const currentAssignment = assignments[0] || null;
+
+    if (!currentAssignment) {
+      throw new AppError("User does not have a role assigned", 404);
+    }
+
+    if (Number(currentAssignment.role_id) !== Number(oldRoleId)) {
+      throw new AppError("User does not have this role", 409);
+    }
+
+    const nextRole = await getRoleByIdStrict(newRoleId, transaction);
+    await assertRoleTransitionAllowed({
+      currentRoleName: currentAssignment.role_name,
+      nextRoleName: nextRole.name,
+      userId,
+      transaction,
     });
 
-    return { message: "User role updated successfully" };
-  } catch (error) {
-    if (error.original?.code !== "42883") {
-      throw error;
-    }
-  }
-
-  // ---------- Fallback ----------
-  const userRole = await UserRole.findOne({
-    where: { user_id: userId, role_id: oldRoleId },
+    const result = await setUserSingleRole({ userId, roleId: newRoleId, transaction });
+    return { ...result, message: "User role updated successfully" };
   });
-
-  if (!userRole) {
-    throw new AppError("User does not have this role", 404);
-  }
-
-  const newRole = await Role.findByPk(newRoleId);
-  if (!newRole) {
-    throw new AppError("New role not found", 404);
-  }
-
-  userRole.role_id = newRoleId;
-  await userRole.save();
-
-  return { message: "User role updated successfully" };
 };
 
 /**
  * Remove role from user
  */
 export const removeRoleFromUser = async (userId, roleId) => {
-  try {
-    await sequelize.query(SQL.USER_ROLE.REMOVE, {
-      replacements: { user_id: userId, role_id: roleId },
+  return sequelize.transaction(async (transaction) => {
+    const assignments = await getUserRoleAssignments(userId, transaction);
+    const matchingAssignment = assignments.find((assignment) => Number(assignment.role_id) === Number(roleId));
+
+    if (!matchingAssignment) {
+      throw new AppError("User does not have this role", 404);
+    }
+
+    if (assignments.length <= 1) {
+      throw new AppError("A user must always keep exactly one role", 400);
+    }
+
+    if (normalizeRoleName(matchingAssignment.role_name) === "admin") {
+      throw new AppError("The unique admin role cannot be removed", 403);
+    }
+
+    await UserRole.destroy({
+      where: { user_id: userId, role_id: roleId },
+      transaction,
     });
 
     return { message: "Role removed from user successfully" };
-  } catch (error) {
-    if (error.original?.code !== "42883") {
-      throw error;
-    }
-  }
-
-  // ---------- Fallback ----------
-  const userRole = await UserRole.findOne({
-    where: { user_id: userId, role_id: roleId },
   });
-
-  if (!userRole) {
-    throw new AppError("User does not have this role", 404);
-  }
-
-  await userRole.destroy();
-
-  return { message: "Role removed from user successfully" };
 };

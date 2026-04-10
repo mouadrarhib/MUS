@@ -1,6 +1,7 @@
 import { sequelize } from "../models/index.js";
 import { SQL } from "../snippets/index.js";
 import AppError from "../helpers/appError.js";
+import { assertCanChangeUserActiveState } from "./userRolePolicyService.js";
 
 
 /**
@@ -33,7 +34,13 @@ export const getUsersPointsOverview = async ({ includeAdmin = false } = {}) => {
       COALESCE(u.points, 0)::BIGINT AS points,
       STRING_AGG(DISTINCT ro.name, ', ' ORDER BY ro.name) AS roles,
       COUNT(DISTINCT r.id)::BIGINT AS total_resources_created,
-      COUNT(DISTINCT f.id)::BIGINT AS total_favorites_received,
+      COUNT(
+        DISTINCT CASE
+          WHEN f.user_id IS NOT NULL AND f.resource_id IS NOT NULL
+            THEN CONCAT(f.user_id::text, ':', f.resource_id::text)
+          ELSE NULL
+        END
+      )::BIGINT AS total_favorites_received,
       MAX(r.created_at) AS latest_resource_created_at
     FROM users u
     INNER JOIN user_roles ur ON ur.user_id = u.id
@@ -185,6 +192,8 @@ export const searchStudents = async (searchTerm) => {
  * Activer/Désactiver un utilisateur
  */
 export const toggleUserStatus = async (userId, isActive) => {
+  await assertCanChangeUserActiveState(userId, Boolean(isActive));
+
   await sequelize.query(SQL.USER.SET_ACTIVE, {
     replacements: { id: userId, is_active: isActive },
   });

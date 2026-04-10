@@ -1,5 +1,6 @@
 import asyncHandler from "../helpers/asyncHandler.js";
 import { successResponse } from "../helpers/response.js";
+import { createUserByAdmin } from "../services/authService.js";
 import {
   // User Overview Management
   getAllUsersOverview,
@@ -85,6 +86,34 @@ export const adjustUserPointsHandler = asyncHandler(async (req, res) => {
   const result = await adjustUserPoints(userId, Number(points_delta), note || null);
 
   return successResponse(res, "User points updated successfully", result);
+});
+
+export const createAdminManagedUserHandler = asyncHandler(async (req, res) => {
+  const {
+    email,
+    password,
+    full_name,
+    role_name,
+    institution_id,
+    program_id,
+    level_id,
+    current_semester_id,
+    preferred_tag_ids,
+  } = req.body;
+
+  const result = await createUserByAdmin({
+    email,
+    password,
+    full_name,
+    role_name,
+    institution_id,
+    program_id,
+    level_id,
+    current_semester_id,
+    preferred_tag_ids,
+  });
+
+  return successResponse(res, "User created successfully", result, 201);
 });
 
 

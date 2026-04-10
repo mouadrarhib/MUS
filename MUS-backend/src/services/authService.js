@@ -6,6 +6,15 @@ import { SQL } from "../snippets/index.js";
 import crypto from "crypto";
 import { getCurrentMembershipForUser } from "./membershipService.js";
 import { normalizeTagIds, setUserTagPreferences } from "./personalizationService.js";
+import {
+  assertCanChangeUserActiveState,
+  assertCanCreateUserWithRole,
+  assertCanDeleteUser,
+  getRoleByNameStrict,
+  getUserSingleRole,
+  normalizeRoleName,
+  setUserSingleRole,
+} from "./userRolePolicyService.js";
 
 const DEFAULT_ROLE = "student";
 
@@ -41,19 +50,12 @@ const withMembership = async (userLike) => {
 };
 
 const getRolesForUser = async (userId, transaction) => {
-  const roles = await Role.findAll({
-    include: [
-      {
-        model: User,
-        where: { id: userId },
-        attributes: [],
-        through: { attributes: [] },
-      },
-    ],
-    attributes: ["name"],
-    transaction,
-  });
-  return roles.map((role) => role.name);
+  const assignment = await getUserSingleRole(userId, transaction);
+  if (!assignment?.role_name) {
+    throw new AppError("User has no assigned role", 409);
+  }
+
+  return [normalizeRoleName(assignment.role_name)];
 };
 
 const ensureStudentRole = async (transaction) => {
@@ -66,6 +68,11 @@ const ensureStudentRole = async (transaction) => {
     transaction,
   });
   return role;
+};
+
+const ensureAssignableRole = async (roleName, transaction) => {
+  const normalizedRoleName = await assertCanCreateUserWithRole(roleName, transaction);
+  return getRoleByNameStrict(normalizedRoleName, transaction);
 };
 
 const getUserByEmail = async (email, transaction) => {
@@ -123,6 +130,9 @@ export const registerUser = async ({
   level_id: rawLevelId,
   current_semester_id: rawSemesterId,
   preferred_tag_ids: rawPreferredTagIds,
+  role_name: rawRoleName,
+  allow_direct_role = false,
+  include_token = true,
 }) => {
   const hasAnyAcademicField = [rawInstitutionId, rawProgramId, rawLevelId, rawSemesterId].some(
     (value) => value !== undefined && value !== null && String(value).trim() !== ""
@@ -133,6 +143,8 @@ export const registerUser = async ({
   const level_id = rawLevelId != null ? Number(rawLevelId) : null;
   const current_semester_id = rawSemesterId != null ? Number(rawSemesterId) : null;
   const preferredTagIds = normalizeTagIds(rawPreferredTagIds || []);
+  const requestedRoleName = normalizeRoleName(rawRoleName || DEFAULT_ROLE);
+  const desiredRoleName = allow_direct_role ? requestedRoleName : DEFAULT_ROLE;
 
   const shouldCreateStudentProfile = hasAnyAcademicField;
 
@@ -248,10 +260,13 @@ export const registerUser = async ({
       }
     }
 
-    const studentRole = await ensureStudentRole(transaction);
-    await UserRole.findOrCreate({
-      where: { user_id: userInstance.id, role_id: studentRole.id },
-      defaults: { assigned_at: new Date() },
+    const roleToAssign = desiredRoleName === DEFAULT_ROLE
+      ? await ensureStudentRole(transaction)
+      : await ensureAssignableRole(desiredRoleName, transaction);
+
+    await setUserSingleRole({
+      userId: userInstance.id,
+      roleId: roleToAssign.id,
       transaction,
     });
 
@@ -271,7 +286,7 @@ export const registerUser = async ({
   }
 
   const roles = await getRolesForUser(createdUser.id);
-  const token = generateToken({ sub: createdUser.id, roles });
+  const token = include_token ? generateToken({ sub: createdUser.id, roles }) : null;
 
   const normalizedUser = await withMembership(sanitizeUser(createdUser));
   return {
@@ -568,6 +583,8 @@ export const updateProfile = async (userId, full_name) => {
 };
 
 export const setActive = async (userId, isActive) => {
+  await assertCanChangeUserActiveState(userId, Boolean(isActive));
+
   try {
     await sequelize.query(SQL.USER.SET_ACTIVE, {
       replacements: { id: userId, is_active: isActive },
@@ -585,6 +602,8 @@ export const setActive = async (userId, isActive) => {
 };
 
 export const deleteUser = async (userId) => {
+  await assertCanDeleteUser(userId);
+
   try {
     await sequelize.query(SQL.USER.DELETE, { replacements: { id: userId } });
   } catch (error) {
@@ -600,6 +619,16 @@ export const deleteUser = async (userId) => {
 };
 
 export const deleteUserById = async (userId) => deleteUser(userId);
+
+export const createUserByAdmin = async (payload) => {
+  const result = await registerUser({
+    ...payload,
+    allow_direct_role: true,
+    include_token: false,
+  });
+
+  return { user: result.user };
+};
 
 export const updateUserById = async (userId, { email, full_name, is_active }) => {
   let updatedUser = null;

@@ -1,8 +1,12 @@
 import authService from "@/services/authService";
-import { get, patch } from "@/services/http";
+import { get, patch, post } from "@/services/http";
+import roleService from "@/services/roleService";
+import userRoleService from "@/services/userRoleService";
 
 const ADMIN = {
+  CREATE_USER: "/admin/users",
   USERS_OVERVIEW: "/admin/users/overview",
+  USERS_POINTS: "/admin/users/points",
   STUDENTS_SEARCH: "/admin/students/search",
   TOGGLE_STATUS: "/admin/users",
 };
@@ -16,6 +20,29 @@ let usersOverviewCache = {
 
 const clearUsersOverviewCache = () => {
   usersOverviewCache = { ts: 0, data: null };
+};
+
+const normalizeRoleName = (value) => String(value || "").trim().toLowerCase();
+
+const normalizeRole = (role) => {
+  if (!role) return null;
+  return {
+    ...role,
+    id: Number(role.id),
+    name: normalizeRoleName(role.name),
+  };
+};
+
+const toRolesArray = (payload) => {
+  const roles = payload?.data;
+  if (Array.isArray(roles)) return roles.map(normalizeRole).filter(Boolean);
+  return [];
+};
+
+const toUserRolesArray = (payload) => {
+  const roles = payload?.data;
+  if (Array.isArray(roles)) return roles.map(normalizeRole).filter(Boolean);
+  return [];
 };
 
 const normalizeUser = (item) => {
@@ -33,6 +60,10 @@ const normalizeUser = (item) => {
     full_name: item.full_name || item.name,
     user_created_at: item.user_created_at || item.created_at || item.createdAt,
     roles: rolesValue,
+    primary_role: normalizeRoleName(Array.isArray(item.roles) ? item.roles[0] : String(rolesValue || "").split(",")[0]),
+    points: Number(item.points || 0),
+    total_resources_created: Number(item.total_resources_created || 0),
+    total_favorites_received: Number(item.total_favorites_received || 0),
   };
 };
 
@@ -88,11 +119,54 @@ export const usersService = {
   },
 
   createUser: async (userData) => {
-    const fullName = userData.full_name || userData.fullName || "New User";
-    const password = userData.password || "TempPass123!";
-    const response = await authService.register(userData.email, password, fullName);
+    const response = await post(ADMIN.CREATE_USER, {
+      email: userData.email,
+      password: userData.password,
+      full_name: userData.full_name || userData.fullName || "New User",
+      role_name: normalizeRoleName(userData.role_name || userData.primary_role || userData.role),
+      ...(userData.institution_id ? { institution_id: Number(userData.institution_id) } : {}),
+      ...(userData.program_id ? { program_id: Number(userData.program_id) } : {}),
+      ...(userData.level_id ? { level_id: Number(userData.level_id) } : {}),
+      ...(userData.current_semester_id ? { current_semester_id: Number(userData.current_semester_id) } : {}),
+      ...(Array.isArray(userData.preferred_tag_ids) ? { preferred_tag_ids: userData.preferred_tag_ids } : {}),
+    });
     clearUsersOverviewCache();
     return normalizeUser(response?.data?.user || response?.data || null);
+  },
+
+  createAdminManagedUser: (userData) => usersService.createUser(userData),
+
+  getAllRoles: async () => {
+    const response = await roleService.getAllRoles();
+    return toRolesArray(response);
+  },
+
+  getUserRoles: async (userId) => {
+    const response = await userRoleService.getUserRoles(userId);
+    return toUserRolesArray(response);
+  },
+
+  syncSingleRole: async (userId, nextRoleName) => {
+    const [rolesCatalog, currentRoles] = await Promise.all([
+      usersService.getAllRoles(),
+      usersService.getUserRoles(userId),
+    ]);
+
+    const targetRole = rolesCatalog.find((role) => normalizeRoleName(role.name) === normalizeRoleName(nextRoleName));
+    if (!targetRole) {
+      throw new Error("Target role not found");
+    }
+
+    const currentRole = currentRoles[0] || null;
+    if (currentRole && Number(currentRole.id) === Number(targetRole.id)) {
+      return currentRole;
+    }
+
+    if (!currentRole) {
+      return userRoleService.assignUserRole(userId, Number(targetRole.id));
+    }
+
+    return userRoleService.updateUserRole(userId, Number(currentRole.id), Number(targetRole.id));
   },
 
   toggleUserStatus: async (userId, isActive) => {
@@ -101,6 +175,23 @@ export const usersService = {
     });
     clearUsersOverviewCache();
     return response?.data || null;
+  },
+
+  getUsersPointsOverview: async ({ includeAdmin = false } = {}) => {
+    const response = await get(ADMIN.USERS_POINTS, {
+      params: { include_admin: includeAdmin },
+    });
+    const users = response?.data?.users;
+    return Array.isArray(users) ? users.map(normalizeUser) : [];
+  },
+
+  adjustUserPoints: async (userId, { points_delta, note }) => {
+    const response = await patch(`${ADMIN.TOGGLE_STATUS}/${userId}/points`, {
+      points_delta,
+      note,
+    });
+    clearUsersOverviewCache();
+    return response?.data || response || null;
   },
 
   getUserCountByRole: async () => {

@@ -8,6 +8,7 @@ import {
   getAllUsersOverviewHandler,
   getUsersPointsOverviewHandler,
   adjustUserPointsHandler,
+  createAdminManagedUserHandler,
   
   // Students Management
   getAllStudentsHandler,
@@ -72,6 +73,38 @@ router.get(
 
 // GET /admin/users/overview - Vue d'ensemble de tous les utilisateurs
 router.get("/users/overview", getAllUsersOverviewHandler);
+
+// POST /admin/users - Creer un utilisateur avec un role unique
+router.post(
+  "/users",
+  [
+    body("email").isEmail().withMessage("Valid email is required"),
+    body("password").isLength({ min: 8 }).withMessage("Password must be at least 8 characters"),
+    body("full_name").optional().isString().withMessage("full_name must be a string"),
+    body("role_name").isIn(["student", "teacher", "admin"]).withMessage("role_name must be student, teacher, or admin"),
+    body("institution_id").optional().isInt({ min: 1 }).withMessage("Valid institution ID is required"),
+    body("program_id").optional().isInt({ min: 1 }).withMessage("Valid program ID is required"),
+    body("level_id").optional().isInt({ min: 1 }).withMessage("Valid level ID is required"),
+    body("current_semester_id").optional().isInt({ min: 1 }).withMessage("Valid current semester ID is required"),
+    body("preferred_tag_ids").optional().isArray().withMessage("preferred_tag_ids must be an array"),
+    body("preferred_tag_ids.*").optional().isInt({ min: 1 }).withMessage("Each preferred tag id must be a positive integer"),
+    body().custom((payload) => {
+      const fields = [
+        payload?.institution_id,
+        payload?.program_id,
+        payload?.level_id,
+        payload?.current_semester_id,
+      ];
+      const provided = fields.filter((value) => value !== undefined && value !== null && String(value).trim() !== "");
+      if (provided.length > 0 && provided.length < fields.length) {
+        throw new Error("Institution, program, level, and current semester must all be provided together");
+      }
+      return true;
+    }),
+  ],
+  validateRequest,
+  createAdminManagedUserHandler
+);
 
 // GET /admin/users/points - Vue de gestion des points utilisateurs
 router.get(
