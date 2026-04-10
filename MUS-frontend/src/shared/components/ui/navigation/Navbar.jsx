@@ -101,6 +101,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
 
   const primaryRole = getPrimaryRole();
   const userPoints = Number(user?.points || 0);
+  const showContributorPoints = primaryRole !== 'ADMIN';
 
   return (
     <AppBar
@@ -305,26 +306,28 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
                 >
                   {primaryRole}
                 </Box>
-                <Box
-                  component="span"
-                  sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 0.35,
-                    px: 0.8,
-                    py: 0.2,
-                    borderRadius: 1,
-                    bgcolor: (theme) => alpha(theme.palette.warning.main, 0.12),
-                    border: '1px solid',
-                    borderColor: (theme) => alpha(theme.palette.warning.main, 0.18),
-                    color: 'warning.dark',
-                    fontSize: '0.62rem',
-                    fontWeight: 700,
-                  }}
-                >
-                  <EmojiEvents sx={{ fontSize: 10 }} />
-                  {userPoints}
-                </Box>
+                {showContributorPoints ? (
+                  <Box
+                    component="span"
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.35,
+                      px: 0.8,
+                      py: 0.2,
+                      borderRadius: 1,
+                      bgcolor: (theme) => alpha(theme.palette.warning.main, 0.12),
+                      border: '1px solid',
+                      borderColor: (theme) => alpha(theme.palette.warning.main, 0.18),
+                      color: 'warning.dark',
+                      fontSize: '0.62rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    <EmojiEvents sx={{ fontSize: 10 }} />
+                    {userPoints}
+                  </Box>
+                ) : null}
               </Box>
             </Box>
 

@@ -5,6 +5,7 @@ import {
   // User Overview Management
   getAllUsersOverview,
   getUsersPointsOverview,
+  getContributorRewardsAnalytics,
   adjustUserPoints,
   
   // Students Management
@@ -77,6 +78,12 @@ export const getUsersPointsOverviewHandler = asyncHandler(async (req, res) => {
     total: users.length,
     users,
   });
+});
+
+export const getContributorRewardsAnalyticsHandler = asyncHandler(async (_req, res) => {
+  const result = await getContributorRewardsAnalytics();
+
+  return successResponse(res, "Contributor rewards analytics retrieved successfully", result);
 });
 
 export const adjustUserPointsHandler = asyncHandler(async (req, res) => {

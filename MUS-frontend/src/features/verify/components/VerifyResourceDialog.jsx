@@ -313,13 +313,6 @@ const VerifyResourceDialog = ({
               variant="outlined"
               sx={{ fontSize: '0.65rem', height: 22 }}
             />
-            <Chip
-              label={`${resource.pricePoints || 0} pts`}
-              size="small"
-              color="success"
-              variant="outlined"
-              sx={{ fontSize: '0.65rem', height: 22 }}
-            />
           </Box>
 
           {/* Quick Info Row */}
@@ -334,14 +327,6 @@ const VerifyResourceDialog = ({
                   day: 'numeric',
                 }),
                 'info'
-              )}
-            </Grid>
-            <Grid item xs={4}>
-              {renderInfoCard(
-                <AttachMoneyIcon sx={{ fontSize: 16 }} />,
-                'Price',
-                `${resource.pricePoints || 0} points`,
-                'success'
               )}
             </Grid>
             <Grid item xs={4}>

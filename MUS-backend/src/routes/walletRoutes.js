@@ -12,7 +12,7 @@ import {
 const router = Router();
 
 router.use(authMiddleware);
-router.use(requireRole("student", "teacher", "admin"));
+router.use(requireRole("student", "teacher"));
 
 router.get("/me/summary", getMyWalletSummaryHandler);
 

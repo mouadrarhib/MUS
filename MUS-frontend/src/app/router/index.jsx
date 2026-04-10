@@ -123,7 +123,7 @@ const AppRouter = () => {
           <Route
             path="wallet"
             element={
-              <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+              <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER']} blockedRoles={['ADMIN']}>
                 <WalletPage />
               </ProtectedRoute>
             }

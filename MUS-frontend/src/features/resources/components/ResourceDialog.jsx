@@ -69,7 +69,6 @@ const getDefaultValues = (resource) => ({
   accessTier: resource?.access_tier || resource?.accessTier || 'free',
   status: resource?.status || 'pending',
   url: resource?.url || '',
-  pricePoints: Number(resource?.pricePoints || 0),
   academicContext: {
     moduleCode: resource?.academicContext?.moduleCode || '',
     moduleTitle: resource?.academicContext?.moduleTitle || '',
@@ -638,25 +637,6 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                           </Select>
                         </FormControl>
                       )}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Price Points"
-                      type="number"
-                      {...register('pricePoints', {
-                        valueAsNumber: true,
-                        setValueAs: (value) => {
-                          const parsed = Number(value);
-                          return Number.isFinite(parsed) ? Math.max(parsed, 0) : 0;
-                        },
-                      })}
-                      inputProps={{ min: 0 }}
-                      InputLabelProps={{ shrink: true }}
-                      helperText="Set to 0 for free"
-                      sx={inputSurfaceSx}
                     />
                   </Grid>
                 </Grid>

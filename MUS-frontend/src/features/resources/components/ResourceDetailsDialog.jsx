@@ -365,14 +365,6 @@ const ResourceDetailsDialog = ({ open, resource, onClose, onOpenPreviewPage }) =
             </Grid>
             <Grid item xs={4}>
               {renderInfoCard(
-                <AttachMoneyIcon sx={{ fontSize: 16 }} />,
-                'Price',
-                `${resource.pricePoints || 0} pts`,
-                'success'
-              )}
-            </Grid>
-            <Grid item xs={4}>
-              {renderInfoCard(
                 <DescriptionIcon sx={{ fontSize: 16 }} />,
                 'Format',
                 resource.format?.toUpperCase(),

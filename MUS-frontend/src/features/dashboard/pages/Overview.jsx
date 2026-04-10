@@ -339,18 +339,20 @@ const Overview = () => {
               <Typography variant="body2" color="text.secondary">
                 Platform overview and quick stats
               </Typography>
-              <Chip
-                icon={<EmojiEvents sx={{ fontSize: 14 }} />}
-                label={`${Number(user?.points || 0)} points`}
-                size="small"
-                sx={{
-                  mt: 1,
-                  borderRadius: 2,
-                  bgcolor: (theme) => alpha(theme.palette.warning.main, 0.14),
-                  color: 'warning.dark',
-                  fontWeight: 700,
-                }}
-              />
+              {!isAdmin ? (
+                <Chip
+                  icon={<EmojiEvents sx={{ fontSize: 14 }} />}
+                  label={`${Number(user?.points || 0)} points`}
+                  size="small"
+                  sx={{
+                    mt: 1,
+                    borderRadius: 2,
+                    bgcolor: (theme) => alpha(theme.palette.warning.main, 0.14),
+                    color: 'warning.dark',
+                    fontWeight: 700,
+                  }}
+                />
+              ) : null}
             </>
           )}
         </Box>
@@ -995,7 +997,7 @@ const Overview = () => {
                   color: 'warning',
                 },
                 {
-                  label: 'Top Points Student',
+                  label: 'Top Contributor',
                   value: `${stats.rewards.topPointsStudentName} (${stats.rewards.topPointsValue})`,
                   icon: People,
                   color: 'info',

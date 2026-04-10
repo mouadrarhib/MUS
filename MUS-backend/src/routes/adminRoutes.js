@@ -7,6 +7,7 @@ import {
   // User Overview Management
   getAllUsersOverviewHandler,
   getUsersPointsOverviewHandler,
+  getContributorRewardsAnalyticsHandler,
   adjustUserPointsHandler,
   createAdminManagedUserHandler,
   
@@ -113,6 +114,9 @@ router.get(
   validateRequest,
   getUsersPointsOverviewHandler
 );
+
+// GET /admin/rewards/analytics - Vue analytique des recompenses contributeurs
+router.get("/rewards/analytics", getContributorRewardsAnalyticsHandler);
 
 // PATCH /admin/users/:userId/points - Ajuster les points d'un utilisateur
 router.patch(

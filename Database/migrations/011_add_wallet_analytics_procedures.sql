@@ -54,6 +54,7 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     v_owner_id UUID;
+    v_owner_role TEXT;
     v_already_downloaded BOOLEAN;
 BEGIN
     SELECT created_by INTO v_owner_id
@@ -63,6 +64,14 @@ BEGIN
     IF v_owner_id IS NULL THEN
         RAISE EXCEPTION 'Resource with ID % not found', p_resource_id;
     END IF;
+
+    SELECT lower(r.name)
+    INTO v_owner_role
+    FROM public.user_roles ur
+    INNER JOIN public.roles r ON r.id = ur.role_id
+    WHERE ur.user_id = v_owner_id
+    ORDER BY ur.assigned_at ASC, ur.role_id ASC
+    LIMIT 1;
 
     SELECT EXISTS(
         SELECT 1 FROM public.resource_downloads
@@ -79,7 +88,7 @@ BEGIN
         INSERT INTO public.resource_downloads (user_id, resource_id)
         VALUES (p_user_id, p_resource_id);
 
-        IF v_owner_id != p_user_id THEN
+        IF v_owner_id != p_user_id AND v_owner_role IN ('student', 'teacher') THEN
             UPDATE public.users
             SET points = COALESCE(points, 0) + 10
             WHERE id = v_owner_id;
@@ -104,7 +113,7 @@ BEGIN
 
             RETURN QUERY SELECT TRUE, 'Download recorded and points awarded'::TEXT, 10;
         ELSE
-            RETURN QUERY SELECT TRUE, 'Download recorded (self-download, no points)'::TEXT, 0;
+            RETURN QUERY SELECT TRUE, 'Download recorded (no contributor reward applied)'::TEXT, 0;
         END IF;
     END IF;
 END;
@@ -121,8 +130,10 @@ RETURNS TABLE(
 )
 LANGUAGE plpgsql
 AS $$
+#variable_conflict use_column
 DECLARE
     v_owner_id UUID;
+    v_owner_role TEXT;
     v_inserted_rows INTEGER;
 BEGIN
     SELECT created_by INTO v_owner_id
@@ -133,6 +144,14 @@ BEGIN
         RAISE EXCEPTION 'Resource with ID % does not exist', p_resource_id;
     END IF;
 
+    SELECT lower(r.name)
+    INTO v_owner_role
+    FROM public.user_roles ur
+    INNER JOIN public.roles r ON r.id = ur.role_id
+    WHERE ur.user_id = v_owner_id
+    ORDER BY ur.assigned_at ASC, ur.role_id ASC
+    LIMIT 1;
+
     INSERT INTO public.favorites (user_id, resource_id, created_at)
     VALUES (p_user_id, p_resource_id, NOW())
     ON CONFLICT (user_id, resource_id) DO NOTHING;
@@ -140,7 +159,7 @@ BEGIN
     GET DIAGNOSTICS v_inserted_rows = ROW_COUNT;
 
     IF v_inserted_rows > 0 THEN
-        IF v_owner_id != p_user_id THEN
+        IF v_owner_id != p_user_id AND v_owner_role IN ('student', 'teacher') THEN
             UPDATE public.users
             SET points = COALESCE(points, 0) + 2
             WHERE id = v_owner_id;
@@ -182,13 +201,25 @@ CREATE OR REPLACE FUNCTION public.sp_favorite_remove(
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS $$
+#variable_conflict use_column
 DECLARE
     v_owner_id UUID;
+    v_owner_role TEXT;
     v_deleted_count INTEGER;
 BEGIN
     SELECT created_by INTO v_owner_id
     FROM public.resources
     WHERE id = p_resource_id;
+
+    IF v_owner_id IS NOT NULL THEN
+        SELECT lower(r.name)
+        INTO v_owner_role
+        FROM public.user_roles ur
+        INNER JOIN public.roles r ON r.id = ur.role_id
+        WHERE ur.user_id = v_owner_id
+        ORDER BY ur.assigned_at ASC, ur.role_id ASC
+        LIMIT 1;
+    END IF;
 
     DELETE FROM public.favorites
     WHERE user_id = p_user_id AND resource_id = p_resource_id;
@@ -196,7 +227,7 @@ BEGIN
     GET DIAGNOSTICS v_deleted_count = ROW_COUNT;
 
     IF v_deleted_count > 0 THEN
-        IF v_owner_id IS NOT NULL AND v_owner_id != p_user_id THEN
+        IF v_owner_id IS NOT NULL AND v_owner_id != p_user_id AND v_owner_role IN ('student', 'teacher') THEN
             UPDATE public.users
             SET points = GREATEST(0, COALESCE(points, 0) - 2)
             WHERE id = v_owner_id;

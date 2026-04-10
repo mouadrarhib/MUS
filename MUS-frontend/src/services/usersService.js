@@ -52,7 +52,13 @@ const normalizeUser = (item) => {
     ? item.roles.join(",")
     : Array.isArray(item.user_roles)
       ? item.user_roles.join(",")
-      : item.roles || item.user_roles || "";
+      : item.roles || item.user_roles || item.role_name || item.primary_role || "";
+
+  const primaryRole = normalizeRoleName(
+    item.primary_role
+      || item.role_name
+      || (Array.isArray(item.roles) ? item.roles[0] : String(rolesValue || "").split(",")[0])
+  );
 
   return {
     ...item,
@@ -60,10 +66,14 @@ const normalizeUser = (item) => {
     full_name: item.full_name || item.name,
     user_created_at: item.user_created_at || item.created_at || item.createdAt,
     roles: rolesValue,
-    primary_role: normalizeRoleName(Array.isArray(item.roles) ? item.roles[0] : String(rolesValue || "").split(",")[0]),
+    primary_role: primaryRole,
     points: Number(item.points || 0),
     total_resources_created: Number(item.total_resources_created || 0),
     total_favorites_received: Number(item.total_favorites_received || 0),
+    total_points_from_events: Number(item.total_points_from_events || 0),
+    points_from_downloads: Number(item.points_from_downloads || 0),
+    points_from_favorites: Number(item.points_from_favorites || 0),
+    points_last_30_days: Number(item.points_last_30_days || 0),
   };
 };
 
@@ -183,6 +193,17 @@ export const usersService = {
     });
     const users = response?.data?.users;
     return Array.isArray(users) ? users.map(normalizeUser) : [];
+  },
+
+  getRewardsAnalytics: async () => {
+    const response = await get('/admin/rewards/analytics');
+    return {
+      overview: response?.data?.overview || {},
+      contributors: Array.isArray(response?.data?.contributors) ? response.data.contributors.map(normalizeUser) : [],
+      top_resources: Array.isArray(response?.data?.top_resources) ? response.data.top_resources : [],
+      recent_activity: Array.isArray(response?.data?.recent_activity) ? response.data.recent_activity : [],
+      generated_at: response?.data?.generated_at || null,
+    };
   },
 
   adjustUserPoints: async (userId, { points_delta, note }) => {

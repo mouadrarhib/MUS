@@ -32,7 +32,7 @@ import ChangePasswordDialog from '@/features/profile/components/ChangePasswordDi
 
 const Profile = () => {
   const { t } = useLanguage();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -286,11 +286,13 @@ const Profile = () => {
               label="Full Name"
               value={user?.full_name}
             />
-            <InfoItem
-              icon={<EmojiEvents sx={{ fontSize: 20 }} />}
-              label="Points"
-              value={Number(user?.points || 0)}
-            />
+            {!isAdmin ? (
+              <InfoItem
+                icon={<EmojiEvents sx={{ fontSize: 20 }} />}
+                label="Points"
+                value={Number(user?.points || 0)}
+              />
+            ) : null}
             <InfoItem
               icon={<Email sx={{ fontSize: 20 }} />}
               label="Email Address"
