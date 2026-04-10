@@ -70,6 +70,15 @@ const eventLabelMap = {
   favorite_removed_penalty: 'Favorite removed',
 };
 
+const formatDateTime = (value) => {
+  if (!value) return 'Unavailable';
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return 'Unavailable';
+  }
+};
+
 const PointsManagement = () => {
   const { t } = useLanguage();
   const { showError } = useNotification();
@@ -122,6 +131,12 @@ const PointsManagement = () => {
         ]}
       />
 
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', md: 'center' }} sx={{ mb: 2 }}>
+        <Chip label={`${roleCounts.student} students`} size="small" color="info" variant="outlined" />
+        <Chip label={`${roleCounts.teacher} teachers`} size="small" color="warning" variant="outlined" />
+        <Chip label={`Report generated ${formatDateTime(analytics.generated_at)}`} size="small" variant="outlined" />
+      </Stack>
+
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3 }}>
         <StatCard
           label="Contributors"
@@ -131,23 +146,23 @@ const PointsManagement = () => {
           color="#7c5cfc"
         />
         <StatCard
-          label="Reward Points"
+          label="Automated Reward Points"
           value={Number(analytics.overview?.total_points_from_events || 0)}
-          hint={`${Number(analytics.overview?.points_last_30_days || 0)} points generated in the last 30 days`}
+          hint={`${Number(analytics.overview?.points_last_7_days || 0)} points in the last 7 days, ${Number(analytics.overview?.points_last_30_days || 0)} in the last 30 days`}
           icon={TrendingUp}
           color="#10b981"
         />
         <StatCard
-          label="Downloads"
+          label="Contributor Downloads"
           value={Number(analytics.overview?.total_downloads || 0)}
-          hint={`${Number(analytics.overview?.downloads_last_30_days || 0)} downloads recorded in the last 30 days`}
+          hint={`${Number(analytics.overview?.downloads_last_7_days || 0)} in 7 days, ${Number(analytics.overview?.downloads_last_30_days || 0)} in 30 days`}
           icon={Download}
           color="#3b82f6"
         />
         <StatCard
-          label="Favorites"
+          label="Contributor Favorites"
           value={Number(analytics.overview?.total_favorites || 0)}
-          hint={`${Number(analytics.overview?.favorites_last_30_days || 0)} active favorites across resources`}
+          hint={`${Number(analytics.overview?.favorites_last_7_days || 0)} new in 7 days, ${Number(analytics.overview?.favorites_last_30_days || 0)} in 30 days`}
           icon={Favorite}
           color="#ec4899"
         />
@@ -158,7 +173,7 @@ const PointsManagement = () => {
           <Box>
             <Typography variant="subtitle1" fontWeight={700}>Contributor Rewards</Typography>
             <Typography variant="caption" color="text.secondary">
-              Read-only analytics based on automated download and favorite reward events.
+              Read-only reporting based on automated download and favorite reward events for student and teacher contributors.
             </Typography>
           </Box>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }}>
@@ -184,16 +199,16 @@ const PointsManagement = () => {
         <TableContainer>
           <Table size="small">
             <TableHead>
-              <TableRow sx={{ bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04) }}>
-                <TableCell>Contributor</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell>Current Points</TableCell>
-                <TableCell>Resources</TableCell>
-                <TableCell>Downloads</TableCell>
-                <TableCell>Favorites</TableCell>
-                <TableCell>30-Day Trend</TableCell>
-                <TableCell>Status</TableCell>
-              </TableRow>
+                <TableRow sx={{ bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04) }}>
+                  <TableCell>Contributor</TableCell>
+                  <TableCell>Role</TableCell>
+                  <TableCell>Lifetime Points</TableCell>
+                  <TableCell>Published / Total Resources</TableCell>
+                  <TableCell>Downloads Received</TableCell>
+                  <TableCell>Favorites Received</TableCell>
+                  <TableCell>30-Day Net Change</TableCell>
+                  <TableCell>Status</TableCell>
+                </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
@@ -219,11 +234,11 @@ const PointsManagement = () => {
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" fontWeight={800}>{contributor.points}</Typography>
-                    <Typography variant="caption" color="text.secondary">{contributor.total_points_from_events} total from events</Typography>
+                    <Typography variant="caption" color="text.secondary">{contributor.points_from_downloads} from downloads / {contributor.points_from_favorites} from favorites</Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2">{contributor.total_resources_created}</Typography>
-                    <Typography variant="caption" color="text.secondary">{contributor.published_resources} published</Typography>
+                    <Typography variant="body2">{contributor.published_resources} published</Typography>
+                    <Typography variant="caption" color="text.secondary">{contributor.total_resources_created} total resources</Typography>
                   </TableCell>
                   <TableCell>{contributor.total_downloads_received}</TableCell>
                   <TableCell>{contributor.total_favorites_received}</TableCell>
@@ -247,7 +262,7 @@ const PointsManagement = () => {
         <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
           <Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
             <Typography variant="subtitle1" fontWeight={700}>Top Reward-Earning Resources</Typography>
-            <Typography variant="caption" color="text.secondary">Ranked by automated contributor reward events.</Typography>
+            <Typography variant="caption" color="text.secondary">Ranked by automated contributor reward events, then by downloads and favorites received.</Typography>
           </Box>
           <TableContainer>
             <Table size="small">
@@ -257,7 +272,7 @@ const PointsManagement = () => {
                   <TableCell>Owner</TableCell>
                   <TableCell>Downloads</TableCell>
                   <TableCell>Favorites</TableCell>
-                  <TableCell>Total Points</TableCell>
+                  <TableCell>Reward Breakdown</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -287,7 +302,7 @@ const PointsManagement = () => {
                     <TableCell>{resource.favorites_count}</TableCell>
                     <TableCell>
                       <Typography variant="body2" fontWeight={800}>{resource.points_total}</Typography>
-                      <Typography variant="caption" color="text.secondary">{resource.points_from_downloads} download / {resource.points_from_favorites} favorite</Typography>
+                      <Typography variant="caption" color="text.secondary">{resource.points_from_downloads} download points / {resource.points_from_favorites} favorite points</Typography>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -299,7 +314,7 @@ const PointsManagement = () => {
         <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
           <Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
             <Typography variant="subtitle1" fontWeight={700}>Recent Reward Activity</Typography>
-            <Typography variant="caption" color="text.secondary">Latest automated reward events recorded in the wallet ledger.</Typography>
+            <Typography variant="caption" color="text.secondary">Latest automated reward ledger activity for contributor-owned resources.</Typography>
           </Box>
           <Box sx={{ p: 2, display: 'grid', gap: 1.2 }}>
             {loading ? (
@@ -334,7 +349,7 @@ const PointsManagement = () => {
                     Resource: {event.resource_title || 'Unknown resource'}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    Actor: {event.actor_name || 'System'} · {event.occurred_at ? new Date(event.occurred_at).toLocaleString() : 'Unknown time'}
+                    Actor: {event.actor_name || 'System'} · Recorded {formatDateTime(event.occurred_at)}
                   </Typography>
                 </Box>
               );
