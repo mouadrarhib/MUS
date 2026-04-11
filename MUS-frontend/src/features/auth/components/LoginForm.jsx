@@ -35,7 +35,7 @@ import gsap from 'gsap';
 export const LoginForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login: authLogin, isAuthenticated, isAdmin } = useAuth();
+  const { login: authLogin, isAuthenticated, isAdmin, loading: authLoading } = useAuth();
   const { login: apiLogin, loading, error: apiError } = useLogin();
   const { showError } = useNotification();
   
@@ -77,10 +77,10 @@ export const LoginForm = () => {
 
   // Redirect authenticated users to intended route or discover page
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!authLoading && isAuthenticated) {
       navigate(resolveRedirectPath(isAdmin), { replace: true });
     }
-  }, [isAuthenticated, isAdmin, navigate, location.state]);
+  }, [authLoading, isAuthenticated, isAdmin, navigate, location.state]);
 
   useEffect(() => {
     if (!rootRef.current) return;

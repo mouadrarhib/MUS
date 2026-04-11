@@ -143,7 +143,11 @@ export const AuthProvider = ({ children }) => {
         setUser(parsedUser);
         setIsAuthenticated(true);
         apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-        await refreshProfile();
+
+        const refreshedProfile = await refreshProfile();
+        if (!refreshedProfile) {
+          logout();
+        }
       } catch (_error) {
         if (mounted) {
           logout();
