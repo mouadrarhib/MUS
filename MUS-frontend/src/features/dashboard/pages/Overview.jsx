@@ -58,6 +58,14 @@ const Overview = () => {
   useEffect(() => {
     let mounted = true;
 
+    if (!isAdmin) {
+      setStatsData(null);
+      setLoading(false);
+      return () => {
+        mounted = false;
+      };
+    }
+
     const loadDashboard = async () => {
       setLoading(true);
       try {
@@ -80,7 +88,7 @@ const Overview = () => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     let mounted = true;

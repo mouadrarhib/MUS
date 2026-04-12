@@ -57,11 +57,16 @@ import { useLanguage } from '@/app/providers/LanguageContext';
 import userSettingsService from '@/services/userSettingsService';
 import personalizationService from '@/services/personalizationService';
 import tagService from '@/services/tagService';
+import institutionService from '@/services/institutionService';
+import institutionProgramService from '@/services/institutionProgramService';
+import levelService from '@/services/levelService';
+import semesterService from '@/services/semesterService';
+import studentProfileService from '@/services/studentProfileService';
 import { PageHeader } from '@/shared/components/ui';
 
 const Settings = () => {
   const { mode, toggleTheme } = useThemeMode();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isStudent, refreshProfile } = useAuth();
   const { language, setLanguage: setAppLanguage, t } = useLanguage();
   
   // Theme & Appearance
@@ -91,6 +96,88 @@ const Settings = () => {
   const [tagPreferencesLoading, setTagPreferencesLoading] = useState(false);
   const [tagPreferencesSaving, setTagPreferencesSaving] = useState(false);
   const [tagPreferencesFeedback, setTagPreferencesFeedback] = useState({ type: '', message: '' });
+  const [academicLoading, setAcademicLoading] = useState(false);
+  const [academicSaving, setAcademicSaving] = useState(false);
+  const [academicFeedback, setAcademicFeedback] = useState({ type: '', message: '' });
+  const [academicCatalogLoading, setAcademicCatalogLoading] = useState({
+    institutions: false,
+    programs: false,
+    levels: false,
+    semesters: false,
+  });
+  const [academicInstitutions, setAcademicInstitutions] = useState([]);
+  const [academicPrograms, setAcademicPrograms] = useState([]);
+  const [academicLevels, setAcademicLevels] = useState([]);
+  const [academicSemesters, setAcademicSemesters] = useState([]);
+  const [academicInstitutionId, setAcademicInstitutionId] = useState('');
+  const [academicProgramId, setAcademicProgramId] = useState('');
+  const [academicLevelId, setAcademicLevelId] = useState('');
+  const [academicSemesterId, setAcademicSemesterId] = useState('');
+
+  const toList = (response) => {
+    const payload = response?.data ?? response;
+    return Array.isArray(payload) ? payload : [];
+  };
+
+  const loadProgramsForInstitution = async (institutionId) => {
+    if (!institutionId) {
+      setAcademicPrograms([]);
+      return [];
+    }
+
+    setAcademicCatalogLoading((prev) => ({ ...prev, programs: true }));
+    try {
+      const response = await institutionProgramService.getProgramsByInstitution(institutionId);
+      const list = toList(response);
+      setAcademicPrograms(list);
+      return list;
+    } catch {
+      setAcademicPrograms([]);
+      return [];
+    } finally {
+      setAcademicCatalogLoading((prev) => ({ ...prev, programs: false }));
+    }
+  };
+
+  const loadLevelsForProgram = async (programId) => {
+    if (!programId) {
+      setAcademicLevels([]);
+      return [];
+    }
+
+    setAcademicCatalogLoading((prev) => ({ ...prev, levels: true }));
+    try {
+      const response = await levelService.getLevelsByProgram(programId);
+      const list = toList(response);
+      setAcademicLevels(list);
+      return list;
+    } catch {
+      setAcademicLevels([]);
+      return [];
+    } finally {
+      setAcademicCatalogLoading((prev) => ({ ...prev, levels: false }));
+    }
+  };
+
+  const loadSemestersForLevel = async (levelId) => {
+    if (!levelId) {
+      setAcademicSemesters([]);
+      return [];
+    }
+
+    setAcademicCatalogLoading((prev) => ({ ...prev, semesters: true }));
+    try {
+      const response = await semesterService.getSemestersByLevel(levelId);
+      const list = toList(response);
+      setAcademicSemesters(list);
+      return list;
+    } catch {
+      setAcademicSemesters([]);
+      return [];
+    } finally {
+      setAcademicCatalogLoading((prev) => ({ ...prev, semesters: false }));
+    }
+  };
 
   const applyFontSize = (size) => {
     localStorage.setItem('fontSize', size);
@@ -178,6 +265,161 @@ const Settings = () => {
 
     loadTagPreferences();
   }, [user?.id, isAdmin]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadAcademicInformation = async () => {
+      if (!user?.id || !isStudent) {
+        setAcademicInstitutions([]);
+        setAcademicPrograms([]);
+        setAcademicLevels([]);
+        setAcademicSemesters([]);
+        setAcademicInstitutionId('');
+        setAcademicProgramId('');
+        setAcademicLevelId('');
+        setAcademicSemesterId('');
+        setAcademicFeedback({ type: '', message: '' });
+        return;
+      }
+
+      setAcademicLoading(true);
+      setAcademicFeedback({ type: '', message: '' });
+      setAcademicCatalogLoading((prev) => ({ ...prev, institutions: true }));
+
+      try {
+        const [institutionsResponse, profileResponse] = await Promise.all([
+          institutionService.getAllInstitutions(),
+          studentProfileService
+            .getStudentProfileFullDetails(user.id)
+            .catch(() => studentProfileService.getStudentProfileByUserId(user.id)),
+        ]);
+
+        if (!mounted) return;
+
+        const institutions = toList(institutionsResponse);
+        const profile = profileResponse?.data ?? profileResponse ?? {};
+
+        const institutionId = String(profile?.institution_id || '');
+        const programId = String(profile?.program_id || '');
+        const semesterId = String(profile?.current_semester_id || profile?.semester_id || '');
+
+        let levelId = String(profile?.level_id || profile?.current_level_id || '');
+        if (!levelId && semesterId) {
+          try {
+            const semesterDetails = await semesterService.getSemesterById(semesterId);
+            const semester = semesterDetails?.data ?? semesterDetails ?? {};
+            levelId = String(semester?.level_id || '');
+          } catch {
+            levelId = '';
+          }
+        }
+
+        setAcademicInstitutions(institutions);
+        setAcademicInstitutionId(institutionId);
+        setAcademicProgramId(programId);
+        setAcademicLevelId(levelId);
+        setAcademicSemesterId(semesterId);
+
+        if (institutionId) {
+          await loadProgramsForInstitution(institutionId);
+        }
+        if (programId) {
+          await loadLevelsForProgram(programId);
+        }
+        if (levelId) {
+          await loadSemestersForLevel(levelId);
+        }
+      } catch {
+        if (!mounted) return;
+        setAcademicFeedback({
+          type: 'error',
+          message: 'Failed to load your academic information.',
+        });
+      } finally {
+        if (!mounted) return;
+        setAcademicCatalogLoading((prev) => ({ ...prev, institutions: false }));
+        setAcademicLoading(false);
+      }
+    };
+
+    loadAcademicInformation();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id, isStudent]);
+
+  const handleAcademicInstitutionChange = async (value) => {
+    setAcademicInstitutionId(value);
+    setAcademicProgramId('');
+    setAcademicLevelId('');
+    setAcademicSemesterId('');
+    setAcademicPrograms([]);
+    setAcademicLevels([]);
+    setAcademicSemesters([]);
+    setAcademicFeedback({ type: '', message: '' });
+    await loadProgramsForInstitution(value);
+  };
+
+  const handleAcademicProgramChange = async (value) => {
+    setAcademicProgramId(value);
+    setAcademicLevelId('');
+    setAcademicSemesterId('');
+    setAcademicLevels([]);
+    setAcademicSemesters([]);
+    setAcademicFeedback({ type: '', message: '' });
+    await loadLevelsForProgram(value);
+  };
+
+  const handleAcademicLevelChange = async (value) => {
+    setAcademicLevelId(value);
+    setAcademicSemesterId('');
+    setAcademicSemesters([]);
+    setAcademicFeedback({ type: '', message: '' });
+    await loadSemestersForLevel(value);
+  };
+
+  const handleAcademicSemesterChange = (value) => {
+    setAcademicSemesterId(value);
+    setAcademicFeedback({ type: '', message: '' });
+  };
+
+  const handleSaveAcademicInformation = async () => {
+    if (!user?.id || !isStudent) return;
+
+    if (!academicInstitutionId || !academicProgramId || !academicSemesterId) {
+      setAcademicFeedback({
+        type: 'error',
+        message: 'Please select institution, program, and semester before saving.',
+      });
+      return;
+    }
+
+    setAcademicSaving(true);
+    setAcademicFeedback({ type: '', message: '' });
+    try {
+      await studentProfileService.updateStudentProfile(user.id, {
+        institution_id: Number(academicInstitutionId),
+        program_id: Number(academicProgramId),
+        current_semester_id: Number(academicSemesterId),
+      });
+
+      await refreshProfile();
+
+      setAcademicFeedback({
+        type: 'success',
+        message: 'Academic information updated successfully.',
+      });
+    } catch (error) {
+      setAcademicFeedback({
+        type: 'error',
+        message: error?.response?.data?.message || 'Failed to update academic information.',
+      });
+    } finally {
+      setAcademicSaving(false);
+    }
+  };
 
   const persistNotifications = async (nextValues) => {
     if (!user?.id) return;
@@ -691,6 +933,112 @@ const Settings = () => {
                 sx={{ textTransform: 'none', fontWeight: 600, boxShadow: 'none' }}
               >
                 {tagPreferencesSaving ? 'Saving...' : 'Save Interests'}
+              </Button>
+            </Box>
+          </Box>
+        </SettingSection>
+      ) : null}
+
+      {isStudent ? (
+        <SettingSection
+          icon={<ManageAccounts sx={{ fontSize: 24, color: 'white' }} />}
+          title="Academic Information"
+          subtitle="Update your institution, program, and current semester"
+          color="success"
+        >
+          <Box sx={{ display: 'grid', gap: 2.25 }}>
+            {academicFeedback.message ? (
+              <Alert severity={academicFeedback.type || 'info'} sx={{ borderRadius: 2 }}>
+                {academicFeedback.message}
+              </Alert>
+            ) : null}
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1.5 }}>
+              <FormControl fullWidth disabled={academicLoading || academicCatalogLoading.institutions}>
+                <Select
+                  value={academicInstitutionId}
+                  displayEmpty
+                  onChange={(e) => handleAcademicInstitutionChange(String(e.target.value || ''))}
+                  sx={{ borderRadius: 2 }}
+                >
+                  <MenuItem value="">
+                    <em>Select Institution</em>
+                  </MenuItem>
+                  {academicInstitutions.map((institution) => (
+                    <MenuItem key={institution.id} value={String(institution.id)}>
+                      {institution.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth disabled={!academicInstitutionId || academicCatalogLoading.programs}>
+                <Select
+                  value={academicProgramId}
+                  displayEmpty
+                  onChange={(e) => handleAcademicProgramChange(String(e.target.value || ''))}
+                  sx={{ borderRadius: 2 }}
+                >
+                  <MenuItem value="">
+                    <em>{academicInstitutionId ? 'Select Program' : 'Select institution first'}</em>
+                  </MenuItem>
+                  {academicPrograms.map((program) => (
+                    <MenuItem key={program.id || program.program_id} value={String(program.id || program.program_id)}>
+                      {program.name || program.program_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth disabled={!academicProgramId || academicCatalogLoading.levels}>
+                <Select
+                  value={academicLevelId}
+                  displayEmpty
+                  onChange={(e) => handleAcademicLevelChange(String(e.target.value || ''))}
+                  sx={{ borderRadius: 2 }}
+                >
+                  <MenuItem value="">
+                    <em>{academicProgramId ? 'Select Level' : 'Select program first'}</em>
+                  </MenuItem>
+                  {academicLevels.map((level) => (
+                    <MenuItem key={level.id} value={String(level.id)}>
+                      {level.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth disabled={!academicLevelId || academicCatalogLoading.semesters}>
+                <Select
+                  value={academicSemesterId}
+                  displayEmpty
+                  onChange={(e) => handleAcademicSemesterChange(String(e.target.value || ''))}
+                  sx={{ borderRadius: 2 }}
+                >
+                  <MenuItem value="">
+                    <em>{academicLevelId ? 'Select Semester' : 'Select level first'}</em>
+                  </MenuItem>
+                  {academicSemesters.map((semester) => (
+                    <MenuItem key={semester.id} value={String(semester.id)}>
+                      {semester.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, flexWrap: 'wrap' }}>
+              <Typography variant="caption" color="text.secondary">
+                Keep this section up to date to improve your recommendations and module matching.
+              </Typography>
+              <Button
+                variant="contained"
+                color="success"
+                onClick={handleSaveAcademicInformation}
+                disabled={academicLoading || academicSaving || !academicInstitutionId || !academicProgramId || !academicSemesterId}
+                sx={{ textTransform: 'none', fontWeight: 600, boxShadow: 'none' }}
+              >
+                {academicSaving ? 'Saving...' : 'Save Academic Info'}
               </Button>
             </Box>
           </Box>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import {
   Box,
   Button,
@@ -143,6 +143,140 @@ const sortByOrderThenName = (items = []) =>
     return String(a?.name || "").localeCompare(String(b?.name || ""), undefined, { sensitivity: "base" });
   });
 
+/* ───────────────────────────────────────────── BreadcrumbFlow */
+const BreadcrumbFlow = ({ steps }) => (
+  <Box
+    sx={{
+      display: "flex",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 0.5,
+      py: 1.4,
+      px: 2,
+      borderRadius: 2.5,
+      border: "1px solid",
+      borderColor: (theme) =>
+        theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)",
+      bgcolor: (theme) =>
+        theme.palette.mode === "dark" ? "rgba(255,255,255,0.02)" : "rgba(248,250,255,0.85)",
+    }}
+  >
+    {steps.map((step, index) => (
+      <Box key={step.label} display="flex" alignItems="center" gap={0.5}>
+        {index > 0 && (
+          <Box
+            sx={{
+              width: 16,
+              height: 16,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "text.disabled",
+              fontSize: "0.7rem",
+              userSelect: "none",
+            }}
+          >
+            ›
+          </Box>
+        )}
+        <Box
+          onClick={step.onReset}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0.6,
+            px: 1.1,
+            py: 0.4,
+            borderRadius: 10,
+            border: "1px solid",
+            borderColor: step.active ? alpha(step.color, 0.45) : (theme) =>
+              theme.palette.mode === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+            bgcolor: step.active ? alpha(step.color, 0.1) : "transparent",
+            cursor: step.active && step.onReset ? "pointer" : "default",
+            transition: "all 0.18s ease",
+            "&:hover": step.active && step.onReset ? {
+              bgcolor: alpha(step.color, 0.18),
+              borderColor: alpha(step.color, 0.6),
+            } : {},
+          }}
+        >
+          {step.icon && (
+            <step.icon
+              sx={{
+                fontSize: 11,
+                color: step.active ? step.color : "text.disabled",
+                flexShrink: 0,
+              }}
+            />
+          )}
+          <Typography
+            variant="caption"
+            sx={{
+              fontSize: "0.71rem",
+              fontWeight: step.active ? 700 : 500,
+              color: step.active ? step.color : "text.disabled",
+              whiteSpace: "nowrap",
+              lineHeight: 1,
+            }}
+          >
+            {step.label}:{" "}
+            <Box component="span" sx={{ fontWeight: step.value ? 800 : 500 }}>
+              {step.value || "—"}
+            </Box>
+          </Typography>
+        </Box>
+      </Box>
+    ))}
+  </Box>
+);
+
+/* ───────────────────────────────────────────── InterPanelConnector */
+const InterPanelConnector = ({ active, color }) => (
+  <Box
+    sx={{
+      display: { xs: "none", lg: "flex" },
+      alignItems: "center",
+      justifyContent: "center",
+      alignSelf: "center",
+      mt: "52px",
+      flexShrink: 0,
+    }}
+  >
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 0,
+        opacity: active ? 1 : 0.22,
+        transition: "opacity 0.35s ease",
+      }}
+    >
+      <Box
+        sx={{
+          width: 18,
+          height: 2,
+          borderRadius: 2,
+          bgcolor: active ? color : "text.disabled",
+          transition: "background 0.35s ease",
+        }}
+      />
+      <Box
+        component="span"
+        sx={{
+          fontSize: "0.85rem",
+          color: active ? color : "text.disabled",
+          lineHeight: 1,
+          transition: "color 0.35s ease",
+          ml: "-1px",
+        }}
+      >
+        ›
+      </Box>
+    </Box>
+  </Box>
+);
+
+/* ───────────────────────────────────────────── HierarchyPanel */
 const HierarchyPanel = ({
   title,
   subtitle,
@@ -166,79 +300,155 @@ const HierarchyPanel = ({
     sx={{
       borderRadius: 3,
       border: "1px solid",
-      borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
-      bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.85)",
+      borderColor: (theme) =>
+        theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)",
+      bgcolor: (theme) =>
+        theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.92)",
       overflow: "hidden",
       minHeight: 290,
+      position: "relative",
+      transition: "box-shadow 0.25s ease",
+      "&:hover": {
+        boxShadow: (theme) =>
+          theme.palette.mode === "dark"
+            ? `0 0 0 1px ${alpha(color, 0.22)}, 0 8px 32px ${alpha(color, 0.08)}`
+            : `0 0 0 1px ${alpha(color, 0.18)}, 0 8px 28px ${alpha(color, 0.07)}`,
+      },
     }}
   >
+    {/* Top gradient accent bar */}
+    <Box
+      sx={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 3,
+        background: `linear-gradient(90deg, ${color} 0%, ${alpha(color, 0.45)} 100%)`,
+        opacity: disabled ? 0.3 : 1,
+        transition: "opacity 0.25s ease",
+      }}
+    />
+
+    {/* Header */}
     <Box
       sx={{
         px: 2,
-        py: 1.6,
+        py: 1.5,
+        pt: 2.2,
         borderBottom: "1px solid",
-        borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
+        borderColor: (theme) =>
+          theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)",
         display: "flex",
-        alignItems: "flex-start",
+        alignItems: "center",
         justifyContent: "space-between",
-        gap: 1.5,
+        gap: 1,
       }}
     >
-      <Box display="flex" gap={1.2} alignItems="flex-start">
+      {/* Left side: icon + text — can shrink */}
+      <Box display="flex" gap={1} alignItems="center" sx={{ minWidth: 0, overflow: "hidden" }}>
         <Box
           sx={{
             width: 32,
             height: 32,
-            borderRadius: 1.8,
-            bgcolor: alpha(color, 0.12),
+            borderRadius: 2,
+            background: `linear-gradient(135deg, ${alpha(color, 0.18)} 0%, ${alpha(color, 0.08)} 100%)`,
             border: "1px solid",
-            borderColor: alpha(color, 0.22),
+            borderColor: alpha(color, 0.25),
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
+            boxShadow: `0 2px 8px ${alpha(color, 0.12)}`,
           }}
         >
-          <Icon sx={{ fontSize: 17, color }} />
+          <Icon sx={{ fontSize: 16, color }} />
         </Box>
-        <Box>
-          <Typography variant="subtitle2" fontWeight={800} sx={{ lineHeight: 1.2 }}>
-            {title}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.72rem" }}>
+
+        {/* Text block — truncates when space runs out */}
+        <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+          <Box display="flex" alignItems="center" gap={0.6} sx={{ minWidth: 0 }}>
+            <Typography
+              variant="subtitle2"
+              fontWeight={800}
+              noWrap
+              sx={{ lineHeight: 1.2, fontSize: "0.82rem", minWidth: 0 }}
+            >
+              {title}
+            </Typography>
+            {!disabled && items.length > 0 && (
+              <Box
+                sx={{
+                  px: 0.65,
+                  py: 0.12,
+                  borderRadius: 10,
+                  bgcolor: alpha(color, 0.12),
+                  border: "1px solid",
+                  borderColor: alpha(color, 0.25),
+                  lineHeight: 1,
+                  flexShrink: 0,
+                }}
+              >
+                <Typography sx={{ fontSize: "0.62rem", fontWeight: 800, color, lineHeight: 1 }}>
+                  {items.length}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            noWrap
+            sx={{ fontSize: "0.68rem", opacity: 0.75, display: "block" }}
+          >
             {subtitle}
           </Typography>
         </Box>
       </Box>
 
+      {/* Right side: add button — never shrinks */}
       {onCreate ? (
-        <Button
-          size="small"
-          variant="contained"
-          startIcon={<Add sx={{ fontSize: 16 }} />}
-          onClick={onCreate}
-          disabled={disabled}
-          sx={{
-            borderRadius: 2,
-            px: 1.4,
-            py: 0.55,
-            minWidth: 0,
-            textTransform: "none",
-            fontWeight: 700,
-            fontSize: "0.73rem",
-            background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)`,
-            boxShadow: `0 2px 8px ${alpha(color, 0.22)}`,
-            whiteSpace: "nowrap",
-          }}
-        >
-          {addLabel}
-        </Button>
+        <Tooltip title={addLabel}>
+          <span>
+            <IconButton
+              size="small"
+              onClick={onCreate}
+              disabled={disabled}
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: 1.6,
+                flexShrink: 0,
+                background: disabled
+                  ? undefined
+                  : `linear-gradient(135deg, ${color} 0%, ${alpha(color, 0.8)} 100%)`,
+                color: "#fff",
+                boxShadow: disabled ? "none" : `0 2px 8px ${alpha(color, 0.3)}`,
+                transition: "all 0.2s ease",
+                "&:hover": {
+                  boxShadow: `0 4px 14px ${alpha(color, 0.45)}`,
+                  transform: "translateY(-1px)",
+                },
+                "&.Mui-disabled": {
+                  background: (theme) =>
+                    theme.palette.mode === "dark"
+                      ? "rgba(255,255,255,0.08)"
+                      : "rgba(0,0,0,0.08)",
+                  color: "text.disabled",
+                },
+              }}
+            >
+              <Add sx={{ fontSize: 15 }} />
+            </IconButton>
+          </span>
+        </Tooltip>
       ) : null}
     </Box>
 
-    <Box sx={{ p: 1.2, display: "grid", gap: 1 }}>
+    {/* Items list */}
+    <Box sx={{ p: 1.2, display: "grid", gap: 0.85, maxHeight: 380, overflowY: "auto" }}>
       {disabled ? (
-        <EmptyState message={disabledMessage} />
+        <EmptyState message={disabledMessage} dimmed />
       ) : items.length === 0 ? (
         <EmptyState message={emptyMessage} />
       ) : (
@@ -251,32 +461,80 @@ const HierarchyPanel = ({
               key={`${title}-${itemId}`}
               onClick={() => onSelect?.(item)}
               sx={{
-                p: 1.35,
-                borderRadius: 2.2,
+                pl: selected ? 1.6 : 1.35,
+                pr: 1.35,
+                py: 1.2,
+                borderRadius: 2,
                 border: "1px solid",
-                borderColor: selected ? alpha(color, 0.55) : (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
-                bgcolor: selected ? alpha(color, 0.12) : (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.78)",
+                borderColor: selected
+                  ? alpha(color, 0.5)
+                  : (theme) =>
+                      theme.palette.mode === "dark"
+                        ? "rgba(255,255,255,0.07)"
+                        : "rgba(0,0,0,0.07)",
+                bgcolor: selected
+                  ? alpha(color, 0.1)
+                  : (theme) =>
+                      theme.palette.mode === "dark"
+                        ? "rgba(255,255,255,0.02)"
+                        : "rgba(255,255,255,0.75)",
+                position: "relative",
+                overflow: "hidden",
                 transition: "all 0.18s ease",
                 cursor: onSelect ? "pointer" : "default",
-                '&:hover': {
-                  borderColor: alpha(color, 0.35),
-                  bgcolor: alpha(color, 0.08),
+                "&:hover": {
+                  borderColor: alpha(color, 0.38),
+                  bgcolor: alpha(color, 0.07),
+                  transform: "translateY(-1px)",
+                  boxShadow: `0 3px 12px ${alpha(color, 0.1)}`,
                 },
               }}
             >
-              <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap={1}>
+              {/* Left color stripe for selected */}
+              {selected && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: 3,
+                    borderRadius: "2px 0 0 2px",
+                    background: `linear-gradient(180deg, ${color} 0%, ${alpha(color, 0.55)} 100%)`,
+                  }}
+                />
+              )}
+
+              <Box
+                display="flex"
+                alignItems="flex-start"
+                justifyContent="space-between"
+                gap={1}
+              >
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="body2" fontWeight={700} sx={{ fontSize: "0.86rem" }}>
+                  <Typography
+                    variant="body2"
+                    fontWeight={selected ? 800 : 700}
+                    sx={{
+                      fontSize: "0.84rem",
+                      color: selected ? color : "text.primary",
+                      lineHeight: 1.3,
+                    }}
+                  >
                     {getPrimaryLabel(item)}
                   </Typography>
                   {getSecondaryLabel ? (
-                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.3, fontSize: "0.72rem" }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: "block", mt: 0.25, fontSize: "0.70rem", opacity: 0.75 }}
+                    >
                       {getSecondaryLabel(item)}
                     </Typography>
                   ) : null}
                 </Box>
 
-                <Box display="flex" gap={0.5} flexShrink={0}>
+                <Box display="flex" gap={0.4} flexShrink={0}>
                   {onEdit ? (
                     <ActionButton
                       icon={Edit}
@@ -318,67 +576,110 @@ const StatCard = ({ label, count, icon: Icon, color, loading }) => (
       borderRadius: 2.5,
       border: "1px solid",
       borderColor: alpha(color, 0.2),
-      bgcolor: alpha(color, 0.05),
+      bgcolor: alpha(color, 0.04),
       display: "flex",
       alignItems: "center",
       gap: 1.5,
-      transition: "all 0.2s ease",
+      position: "relative",
+      overflow: "hidden",
+      transition: "all 0.22s ease",
       "&:hover": {
-        borderColor: alpha(color, 0.35),
-        bgcolor: alpha(color, 0.09),
-        transform: "translateY(-1px)",
+        borderColor: alpha(color, 0.4),
+        bgcolor: alpha(color, 0.08),
+        transform: "translateY(-2px)",
+        boxShadow: `0 6px 20px ${alpha(color, 0.12)}`,
+      },
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 2,
+        background: `linear-gradient(90deg, ${color} 0%, ${alpha(color, 0.4)} 100%)`,
       },
     }}
   >
     <Box
       sx={{
-        width: 38,
-        height: 38,
+        width: 40,
+        height: 40,
         borderRadius: 2,
-        bgcolor: alpha(color, 0.12),
+        background: `linear-gradient(135deg, ${alpha(color, 0.18)} 0%, ${alpha(color, 0.08)} 100%)`,
         border: "1px solid",
         borderColor: alpha(color, 0.22),
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
+        boxShadow: `0 2px 8px ${alpha(color, 0.1)}`,
       }}
     >
-      <Icon sx={{ fontSize: 19, color }} />
+      <Icon sx={{ fontSize: 20, color }} />
     </Box>
     <Box>
       {loading ? (
         <Skeleton width={40} height={24} />
       ) : (
-        <Typography variant="h6" fontWeight={800} sx={{ lineHeight: 1.1, fontSize: "1.15rem", color }}>
+        <Typography
+          variant="h6"
+          fontWeight={800}
+          sx={{
+            lineHeight: 1.1,
+            fontSize: "1.18rem",
+            color,
+            "@keyframes countPulse": {
+              "0%": { opacity: 0, transform: "translateY(4px)" },
+              "100%": { opacity: 1, transform: "translateY(0)" },
+            },
+            animation: "countPulse 0.4s ease forwards",
+          }}
+        >
           {count}
         </Typography>
       )}
-      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.72rem", fontWeight: 600 }}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ fontSize: "0.71rem", fontWeight: 600, opacity: 0.85 }}
+      >
         {label}
       </Typography>
     </Box>
   </Box>
 );
 
-const EmptyState = ({ message }) => (
-  <Box sx={{ textAlign: "center", py: 6 }}>
+const EmptyState = ({ message, dimmed = false }) => (
+  <Box
+    sx={{
+      textAlign: "center",
+      py: 5,
+      opacity: dimmed ? 0.45 : 1,
+      transition: "opacity 0.25s ease",
+    }}
+  >
     <Box
       sx={{
-        width: 56,
-        height: 56,
+        width: 48,
+        height: 48,
         borderRadius: "50%",
         bgcolor: (theme) => alpha(theme.palette.text.secondary, 0.06),
+        border: "1px dashed",
+        borderColor: (theme) => alpha(theme.palette.text.secondary, 0.15),
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         mx: "auto",
-        mb: 1.5,
+        mb: 1.2,
       }}
     >
-      <InfoOutlined sx={{ fontSize: 26, color: "text.secondary", opacity: 0.5 }} />
+      <InfoOutlined sx={{ fontSize: 22, color: "text.secondary", opacity: 0.4 }} />
     </Box>
-    <Typography variant="body2" color="text.secondary" sx={{ opacity: 0.7 }}>
+    <Typography
+      variant="body2"
+      color="text.secondary"
+      sx={{ fontSize: "0.78rem", opacity: 0.65, maxWidth: 160, mx: "auto", lineHeight: 1.5 }}
+    >
       {message}
     </Typography>
   </Box>
@@ -392,21 +693,22 @@ const ActionButton = ({ icon: Icon, label, color = "primary", onClick, disabled 
         onClick={onClick}
         disabled={disabled}
         sx={{
-          width: 30,
-          height: 30,
-          borderRadius: 1.5,
+          width: 28,
+          height: 28,
+          borderRadius: 1.4,
           border: "1px solid",
-          borderColor: (theme) => alpha(theme.palette[color]?.main || color, 0.2),
-          bgcolor: (theme) => alpha(theme.palette[color]?.main || color, 0.05),
+          borderColor: (theme) => alpha(theme.palette[color]?.main || color, 0.18),
+          bgcolor: (theme) => alpha(theme.palette[color]?.main || color, 0.04),
           color: `${color}.main`,
           transition: "all 0.18s ease",
           "&:hover": {
-            borderColor: (theme) => alpha(theme.palette[color]?.main || color, 0.45),
+            borderColor: (theme) => alpha(theme.palette[color]?.main || color, 0.5),
             bgcolor: (theme) => alpha(theme.palette[color]?.main || color, 0.12),
+            transform: "scale(1.08)",
           },
         }}
       >
-        <Icon sx={{ fontSize: 15 }} />
+        <Icon sx={{ fontSize: 14 }} />
       </IconButton>
     </span>
   </Tooltip>
@@ -424,6 +726,8 @@ const CatalogManagement = () => {
   const [submitting, setSubmitting]           = useState(false);
   const [error, setError]                     = useState("");
   const [search, setSearch]                   = useState("");
+  const [isSearchPending, startSearchTransition] = useTransition();
+  const deferredSearch = useDeferredValue(search);
 
   const [institutionTypes, setInstitutionTypes] = useState([]);
   const [domains, setDomains]                   = useState([]);
@@ -473,6 +777,7 @@ const CatalogManagement = () => {
   const selectedMappingProgramId     = watchMapping("programId") || "";
   const watchedDialogProgramId = watch("program_id") || "";
   const watchedDialogLevelId = watch("level_id") || "";
+  const normalizedSearch = useMemo(() => deferredSearch.trim().toLowerCase(), [deferredSearch]);
 
   const domainNameById = useMemo(() => {
     const map = new Map();
@@ -1053,8 +1358,16 @@ const CatalogManagement = () => {
   /* ─── Table renderer ────────────────────────────────── */
   const renderCrudTable = (type, rows, columns) => {
     const tabMeta  = TAB_META[type];
-    const filtered = search
-      ? rows.filter((r) => Object.values(r).some((v) => String(v ?? "").toLowerCase().includes(search.toLowerCase())))
+    const searchableKeys = columns.map((column) => column.key);
+    const filtered = normalizedSearch
+      ? rows.filter((row) => {
+          if (String(row?.id ?? "").toLowerCase().includes(normalizedSearch)) return true;
+
+          return searchableKeys.some((key) => {
+            const value = row?.[key];
+            return String(value ?? "").toLowerCase().includes(normalizedSearch);
+          });
+        })
       : rows;
 
     return (
@@ -1126,7 +1439,7 @@ const CatalogManagement = () => {
               ) : filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={columns.length + 1} sx={{ border: 0 }}>
-                    <EmptyState message={search ? `No results for "${search}"` : "No entries yet. Click Add to create one."} />
+                    <EmptyState message={normalizedSearch ? `No results for "${search}"` : "No entries yet. Click Add to create one."} />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -1222,313 +1535,760 @@ const CatalogManagement = () => {
     if (activeTab === TAB_KEYS.HIERARCHY_EXPLORER)
       return (
         <Box display="grid" gap={2.5}>
+          {/* ─── Academic Hierarchy Explorer ─── */}
           <Box
             sx={{
-              p: 2.4,
-              borderRadius: 3,
+              borderRadius: 3.5,
               border: "1px solid",
-              borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
-              bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.85)",
+              borderColor: (theme) =>
+                theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)",
+              bgcolor: (theme) =>
+                theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.92)",
+              overflow: "hidden",
+              position: "relative",
+              transition: "box-shadow 0.25s ease",
+              "&:hover": {
+                boxShadow: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "0 8px 40px rgba(96,165,250,0.06)"
+                    : "0 8px 40px rgba(96,165,250,0.05)",
+              },
             }}
           >
-            <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 0.6 }}>
-              Academic Hierarchy Explorer
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Navigate the academic structure from domains to modules, then create or update entities directly in context.
-            </Typography>
+            {/* Top gradient accent */}
+            <Box
+              sx={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 3,
+                background: "linear-gradient(90deg, #60a5fa 0%, #3b82f6 40%, rgba(96,165,250,0.3) 100%)",
+              }}
+            />
 
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1.6 }}>
-              <Chip label={selectedDomain ? `Domain: ${selectedDomain.name}` : "No domain selected"} size="small" color={selectedDomain ? "primary" : "default"} variant={selectedDomain ? "filled" : "outlined"} />
-              <Chip label={selectedProgram ? `Program: ${selectedProgram.name}` : "No program selected"} size="small" color={selectedProgram ? "success" : "default"} variant={selectedProgram ? "filled" : "outlined"} />
-              <Chip label={selectedLevel ? `Level: ${selectedLevel.name}` : "No level selected"} size="small" sx={{ bgcolor: selectedLevel ? alpha("#14b8a6", 0.12) : undefined, color: selectedLevel ? "#14b8a6" : undefined }} variant={selectedLevel ? "filled" : "outlined"} />
-              <Chip label={selectedSemester ? `Semester: ${selectedSemester.name}` : "No semester selected"} size="small" sx={{ bgcolor: selectedSemester ? alpha("#f97316", 0.12) : undefined, color: selectedSemester ? "#f97316" : undefined }} variant={selectedSemester ? "filled" : "outlined"} />
-              <Chip label={`${filteredHierarchyPrograms.length} programs`} size="small" variant="outlined" />
-              <Chip label={`${filteredHierarchyLevels.length} levels`} size="small" variant="outlined" />
-              <Chip label={`${filteredHierarchySemesters.length} semesters`} size="small" variant="outlined" />
-              <Chip label={`${filteredHierarchyModules.length} modules`} size="small" variant="outlined" />
-            </Box>
-
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "repeat(5, minmax(0, 1fr))" }, gap: 1.5, mt: 2.2 }}>
-              <HierarchyPanel
-                title="Domains"
-                subtitle={`${domains.length} available`}
-                icon={AccountTree}
-                color="#3b82f6"
-                items={domains}
-                selectedId={selectedDomainId}
-                onSelect={(item) => setSelectedDomainId(String(item.id))}
-                onCreate={() => openCreateDialog(TAB_KEYS.DOMAINS)}
-                onEdit={(item) => openEditDialog(TAB_KEYS.DOMAINS, item)}
-                onDelete={(item) => handleDelete(TAB_KEYS.DOMAINS, item)}
-                getPrimaryLabel={(item) => item.name}
-                getSecondaryLabel={(item) => `${programCountByDomain.get(String(item.id)) || 0} program(s)`}
-                emptyMessage="No domains created yet."
-                addLabel="Add Domain"
-                submitting={submitting}
-              />
-
-              <HierarchyPanel
-                title="Programs"
-                subtitle={selectedDomainId ? `${filteredHierarchyPrograms.length} in selected domain` : "Select a domain first"}
-                icon={School}
-                color="#10b981"
-                items={filteredHierarchyPrograms}
-                selectedId={selectedProgramId}
-                onSelect={(item) => setSelectedProgramId(String(item.id))}
-                onCreate={() => openCreateDialog(TAB_KEYS.PROGRAMS, { domain_id: String(selectedDomainId) })}
-                onEdit={(item) => openEditDialog(TAB_KEYS.PROGRAMS, item)}
-                onDelete={(item) => handleDelete(TAB_KEYS.PROGRAMS, item)}
-                getPrimaryLabel={(item) => item.name}
-                getSecondaryLabel={(item) => `${domainNameById.get(String(item.domain_id || item.domainId)) || "Domain"} · ${levelCountByProgram.get(String(item.id)) || 0} level(s)`}
-                emptyMessage="No programs found under this domain."
-                disabled={!selectedDomainId}
-                disabledMessage="Select a domain to manage programs."
-                addLabel="Add Program"
-                submitting={submitting}
-              />
-
-              <HierarchyPanel
-                title="Levels"
-                subtitle={selectedProgramId ? `${filteredHierarchyLevels.length} in selected program` : "Select a program first"}
-                icon={Layers}
-                color="#14b8a6"
-                items={filteredHierarchyLevels}
-                selectedId={selectedLevelId}
-                onSelect={(item) => setSelectedLevelId(String(item.id))}
-                onCreate={() => openCreateDialog(TAB_KEYS.LEVELS, { program_id: String(selectedProgramId) })}
-                onEdit={(item) => openEditDialog(TAB_KEYS.LEVELS, item)}
-                onDelete={(item) => handleDelete(TAB_KEYS.LEVELS, item)}
-                getPrimaryLabel={(item) => item.name}
-                getSecondaryLabel={(item) => `Order ${item.sort_order || item.sortOrder || 1} · ${semesterCountByLevel.get(String(item.id)) || 0} semester(s)`}
-                emptyMessage="No levels found under this program."
-                disabled={!selectedProgramId}
-                disabledMessage="Select a program to manage levels."
-                addLabel="Add Level"
-                submitting={submitting}
-              />
-
-              <HierarchyPanel
-                title="Semesters"
-                subtitle={selectedLevelId ? `${filteredHierarchySemesters.length} in selected level` : "Select a level first"}
-                icon={CalendarMonth}
-                color="#f97316"
-                items={filteredHierarchySemesters}
-                selectedId={selectedSemesterId}
-                onSelect={(item) => setSelectedSemesterId(String(item.id))}
-                onCreate={() => openCreateDialog(TAB_KEYS.SEMESTERS, { level_id: String(selectedLevelId) })}
-                onEdit={(item) => openEditDialog(TAB_KEYS.SEMESTERS, item)}
-                onDelete={(item) => handleDelete(TAB_KEYS.SEMESTERS, item)}
-                getPrimaryLabel={(item) => item.name}
-                getSecondaryLabel={(item) => `Order ${item.sort_order || item.sortOrder || 1} · ${moduleCountBySemester.get(String(item.id)) || 0} module(s)`}
-                emptyMessage="No semesters found under this level."
-                disabled={!selectedLevelId}
-                disabledMessage="Select a level to manage semesters."
-                addLabel="Add Semester"
-                submitting={submitting}
-              />
-
-              <HierarchyPanel
-                title="Modules"
-                subtitle={selectedSemesterId ? `${filteredHierarchyModules.length} in selected semester` : "Select a semester first"}
-                icon={MenuBook}
-                color="#eab308"
-                items={filteredHierarchyModules}
-                selectedId={null}
-                onSelect={null}
-                onCreate={() => openCreateDialog(TAB_KEYS.MODULES, { semester_id: String(selectedSemesterId) })}
-                onEdit={(item) => openEditDialog(TAB_KEYS.MODULES, item)}
-                onDelete={(item) => handleDelete(TAB_KEYS.MODULES, item)}
-                getPrimaryLabel={(item) => item.title}
-                getSecondaryLabel={(item) => item.code || "Module code"}
-                emptyMessage="No modules found under this semester."
-                disabled={!selectedSemesterId}
-                disabledMessage="Select a semester to manage modules."
-                addLabel="Add Module"
-                submitting={submitting}
-              />
-            </Box>
-          </Box>
-
-          <Box
-            sx={{
-              p: 2.4,
-              borderRadius: 3,
-              border: "1px solid",
-              borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
-              bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.85)",
-            }}
-          >
-            <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 0.6 }}>
-              Institution Mapping Explorer
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Manage institution types, institutions, and the programs linked to each institution.
-            </Typography>
-
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1.6 }}>
-              <Chip label={selectedInstitutionType ? `Type: ${selectedInstitutionType.name}` : "No institution type selected"} size="small" color={selectedInstitutionType ? "secondary" : "default"} variant={selectedInstitutionType ? "filled" : "outlined"} />
-              <Chip label={selectedExplorerInstitution ? `Institution: ${selectedExplorerInstitution.name}` : "No institution selected"} size="small" sx={{ bgcolor: selectedExplorerInstitution ? alpha("#f59e0b", 0.12) : undefined, color: selectedExplorerInstitution ? "#f59e0b" : undefined }} variant={selectedExplorerInstitution ? "filled" : "outlined"} />
-              <Chip label={`${filteredInstitutionsByType.length} institutions`} size="small" variant="outlined" />
-              <Chip label={`${institutionPrograms.length} linked programs`} size="small" variant="outlined" />
-            </Box>
-
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.15fr)" }, gap: 1.5, mt: 2.2 }}>
-              <HierarchyPanel
-                title="Institution Types"
-                subtitle={`${institutionTypes.length} available`}
-                icon={Category}
-                color="#7c5cfc"
-                items={institutionTypes}
-                selectedId={selectedInstitutionTypeId}
-                onSelect={(item) => setSelectedInstitutionTypeId(String(item.id))}
-                onCreate={() => openCreateDialog(TAB_KEYS.INSTITUTION_TYPES)}
-                onEdit={(item) => openEditDialog(TAB_KEYS.INSTITUTION_TYPES, item)}
-                onDelete={(item) => handleDelete(TAB_KEYS.INSTITUTION_TYPES, item)}
-                getPrimaryLabel={(item) => item.name}
-                getSecondaryLabel={(item) => `${institutionCountByType.get(String(item.id)) || 0} institution(s)`}
-                emptyMessage="No institution types created yet."
-                addLabel="Add Type"
-                submitting={submitting}
-              />
-
-              <HierarchyPanel
-                title="Institutions"
-                subtitle={selectedInstitutionTypeId ? `${filteredInstitutionsByType.length} in selected type` : "Select a type first"}
-                icon={Apartment}
-                color="#f59e0b"
-                items={filteredInstitutionsByType}
-                selectedId={selectedExplorerInstitutionId}
-                onSelect={(item) => setSelectedExplorerInstitutionId(String(item.id))}
-                onCreate={() => openCreateDialog(TAB_KEYS.INSTITUTIONS, { institution_type_id: String(selectedInstitutionTypeId) })}
-                onEdit={(item) => openEditDialog(TAB_KEYS.INSTITUTIONS, item)}
-                onDelete={(item) => handleDelete(TAB_KEYS.INSTITUTIONS, item)}
-                getPrimaryLabel={(item) => item.name}
-                getSecondaryLabel={(item) => [item.city, item.country].filter(Boolean).join(", ") || "Location not set"}
-                emptyMessage="No institutions found for this type."
-                disabled={!selectedInstitutionTypeId}
-                disabledMessage="Select an institution type to manage institutions."
-                addLabel="Add Institution"
-                submitting={submitting}
-              />
-
-              <Box
-                sx={{
-                  borderRadius: 3,
-                  border: "1px solid",
-                  borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
-                  bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.85)",
-                  overflow: "hidden",
-                }}
-              >
-                <Box sx={{ px: 2, py: 1.6, borderBottom: "1px solid", borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)" }}>
-                  <Box display="flex" alignItems="center" gap={1.2}>
-                    <Box sx={{ width: 32, height: 32, borderRadius: 1.8, bgcolor: alpha("#ec4899", 0.12), border: "1px solid", borderColor: alpha("#ec4899", 0.22), display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Link sx={{ fontSize: 17, color: "#ec4899" }} />
-                    </Box>
-                    <Box>
-                      <Typography variant="subtitle2" fontWeight={800}>Program Links</Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.72rem" }}>
-                        {selectedExplorerInstitutionId ? `Programs linked to ${institutionNameById.get(String(selectedExplorerInstitutionId)) || "selected institution"}` : "Select an institution to manage program links"}
-                      </Typography>
-                    </Box>
+            <Box sx={{ px: 2.8, pt: 3, pb: 2.2 }}>
+              {/* Section header */}
+              <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap={2} mb={2}>
+                <Box display="flex" alignItems="center" gap={1.5}>
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2.2,
+                      background: "linear-gradient(135deg, rgba(96,165,250,0.2) 0%, rgba(59,130,246,0.1) 100%)",
+                      border: "1px solid",
+                      borderColor: alpha("#60a5fa", 0.3),
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      boxShadow: "0 2px 12px rgba(96,165,250,0.15)",
+                    }}
+                  >
+                    <Hub sx={{ fontSize: 20, color: "#60a5fa" }} />
+                  </Box>
+                  <Box>
+                    <Typography
+                      variant="subtitle1"
+                      fontWeight={900}
+                      sx={{
+                        lineHeight: 1.2,
+                        fontSize: "1.05rem",
+                        background: "linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                        backgroundClip: "text",
+                      }}
+                    >
+                      Academic Hierarchy Explorer
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8rem", mt: 0.2 }}>
+                      Navigate from domains to modules — create and manage entities in context
+                    </Typography>
                   </Box>
                 </Box>
 
-                <Box sx={{ p: 2, display: "grid", gap: 1.4 }}>
-                  {!selectedExplorerInstitutionId ? (
-                    <EmptyState message="Select an institution to view and manage linked programs." />
-                  ) : (
-                    <>
-                      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr auto" }, gap: 1.2, alignItems: "flex-start" }}>
-                        <FormControl fullWidth size="small">
-                          <InputLabel>Program</InputLabel>
-                          <Select
-                            value={explorerMappingProgramId}
-                            label="Program"
-                            onChange={(event) => setExplorerMappingProgramId(String(event.target.value))}
-                            sx={{ borderRadius: 2 }}
-                          >
-                            {availableProgramsForSelectedInstitution.map((program) => (
-                              <MenuItem key={program.id} value={String(program.id)}>{program.name}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                        <Button
-                          variant="contained"
-                          startIcon={<Add />}
-                          onClick={handleAddExplorerMapping}
-                          disabled={!explorerMappingProgramId || submitting}
+                {/* Step indicators */}
+                <Box
+                  sx={{
+                    display: { xs: "none", md: "flex" },
+                    alignItems: "center",
+                    gap: 0.6,
+                    flexShrink: 0,
+                  }}
+                >
+                  {[
+                    { color: "#3b82f6", active: true },
+                    { color: "#10b981", active: !!selectedDomainId },
+                    { color: "#14b8a6", active: !!selectedProgramId },
+                    { color: "#f97316", active: !!selectedLevelId },
+                    { color: "#eab308", active: !!selectedSemesterId },
+                  ].map((step, i) => (
+                    <Box
+                      key={i}
+                      sx={{
+                        width: step.active ? 20 : 8,
+                        height: 8,
+                        borderRadius: 4,
+                        bgcolor: step.active ? step.color : alpha(step.color, 0.2),
+                        border: "1px solid",
+                        borderColor: step.active ? step.color : alpha(step.color, 0.3),
+                        transition: "all 0.35s ease",
+                        boxShadow: step.active ? `0 0 8px ${alpha(step.color, 0.4)}` : "none",
+                      }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+
+              {/* Breadcrumb flow */}
+              <BreadcrumbFlow
+                steps={[
+                  {
+                    label: "Domain",
+                    value: selectedDomain?.name || null,
+                    color: "#3b82f6",
+                    icon: AccountTree,
+                    active: !!selectedDomainId,
+                    onReset: selectedDomainId ? () => {
+                      setSelectedDomainId("");
+                      setSelectedProgramId("");
+                      setSelectedLevelId("");
+                      setSelectedSemesterId("");
+                    } : null,
+                  },
+                  {
+                    label: "Program",
+                    value: selectedProgram?.name || null,
+                    color: "#10b981",
+                    icon: School,
+                    active: !!selectedProgramId,
+                    onReset: selectedProgramId ? () => {
+                      setSelectedProgramId("");
+                      setSelectedLevelId("");
+                      setSelectedSemesterId("");
+                    } : null,
+                  },
+                  {
+                    label: "Level",
+                    value: selectedLevel?.name || null,
+                    color: "#14b8a6",
+                    icon: Layers,
+                    active: !!selectedLevelId,
+                    onReset: selectedLevelId ? () => {
+                      setSelectedLevelId("");
+                      setSelectedSemesterId("");
+                    } : null,
+                  },
+                  {
+                    label: "Semester",
+                    value: selectedSemester?.name || null,
+                    color: "#f97316",
+                    icon: CalendarMonth,
+                    active: !!selectedSemesterId,
+                    onReset: selectedSemesterId ? () => setSelectedSemesterId("") : null,
+                  },
+                  {
+                    label: "Modules",
+                    value: selectedSemesterId ? `${filteredHierarchyModules.length}` : null,
+                    color: "#eab308",
+                    icon: MenuBook,
+                    active: !!selectedSemesterId,
+                    onReset: null,
+                  },
+                ]}
+              />
+
+              {/* Panel grid with connectors */}
+              <Box
+                sx={{
+                  display: { xs: "grid", lg: "flex" },
+                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                  gap: 1.5,
+                  mt: 2.2,
+                  alignItems: "stretch",
+                }}
+              >
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <HierarchyPanel
+                    title="Domains"
+                    subtitle={`${domains.length} available`}
+                    icon={AccountTree}
+                    color="#3b82f6"
+                    items={domains}
+                    selectedId={selectedDomainId}
+                    onSelect={(item) => setSelectedDomainId(String(item.id))}
+                    onCreate={() => openCreateDialog(TAB_KEYS.DOMAINS)}
+                    onEdit={(item) => openEditDialog(TAB_KEYS.DOMAINS, item)}
+                    onDelete={(item) => handleDelete(TAB_KEYS.DOMAINS, item)}
+                    getPrimaryLabel={(item) => item.name}
+                    getSecondaryLabel={(item) => `${programCountByDomain.get(String(item.id)) || 0} program(s)`}
+                    emptyMessage="No domains created yet."
+                    addLabel="Add Domain"
+                    submitting={submitting}
+                  />
+                </Box>
+
+                <InterPanelConnector active={!!selectedDomainId} color="#10b981" />
+
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <HierarchyPanel
+                    title="Programs"
+                    subtitle={selectedDomainId ? `${filteredHierarchyPrograms.length} in selected domain` : "Select a domain first"}
+                    icon={School}
+                    color="#10b981"
+                    items={filteredHierarchyPrograms}
+                    selectedId={selectedProgramId}
+                    onSelect={(item) => setSelectedProgramId(String(item.id))}
+                    onCreate={() => openCreateDialog(TAB_KEYS.PROGRAMS, { domain_id: String(selectedDomainId) })}
+                    onEdit={(item) => openEditDialog(TAB_KEYS.PROGRAMS, item)}
+                    onDelete={(item) => handleDelete(TAB_KEYS.PROGRAMS, item)}
+                    getPrimaryLabel={(item) => item.name}
+                    getSecondaryLabel={(item) => `${domainNameById.get(String(item.domain_id || item.domainId)) || "Domain"} · ${levelCountByProgram.get(String(item.id)) || 0} level(s)`}
+                    emptyMessage="No programs found under this domain."
+                    disabled={!selectedDomainId}
+                    disabledMessage="Select a domain to manage programs."
+                    addLabel="Add Program"
+                    submitting={submitting}
+                  />
+                </Box>
+
+                <InterPanelConnector active={!!selectedProgramId} color="#14b8a6" />
+
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <HierarchyPanel
+                    title="Levels"
+                    subtitle={selectedProgramId ? `${filteredHierarchyLevels.length} in selected program` : "Select a program first"}
+                    icon={Layers}
+                    color="#14b8a6"
+                    items={filteredHierarchyLevels}
+                    selectedId={selectedLevelId}
+                    onSelect={(item) => setSelectedLevelId(String(item.id))}
+                    onCreate={() => openCreateDialog(TAB_KEYS.LEVELS, { program_id: String(selectedProgramId) })}
+                    onEdit={(item) => openEditDialog(TAB_KEYS.LEVELS, item)}
+                    onDelete={(item) => handleDelete(TAB_KEYS.LEVELS, item)}
+                    getPrimaryLabel={(item) => item.name}
+                    getSecondaryLabel={(item) => `Order ${item.sort_order || item.sortOrder || 1} · ${semesterCountByLevel.get(String(item.id)) || 0} semester(s)`}
+                    emptyMessage="No levels found under this program."
+                    disabled={!selectedProgramId}
+                    disabledMessage="Select a program to manage levels."
+                    addLabel="Add Level"
+                    submitting={submitting}
+                  />
+                </Box>
+
+                <InterPanelConnector active={!!selectedLevelId} color="#f97316" />
+
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <HierarchyPanel
+                    title="Semesters"
+                    subtitle={selectedLevelId ? `${filteredHierarchySemesters.length} in selected level` : "Select a level first"}
+                    icon={CalendarMonth}
+                    color="#f97316"
+                    items={filteredHierarchySemesters}
+                    selectedId={selectedSemesterId}
+                    onSelect={(item) => setSelectedSemesterId(String(item.id))}
+                    onCreate={() => openCreateDialog(TAB_KEYS.SEMESTERS, { level_id: String(selectedLevelId) })}
+                    onEdit={(item) => openEditDialog(TAB_KEYS.SEMESTERS, item)}
+                    onDelete={(item) => handleDelete(TAB_KEYS.SEMESTERS, item)}
+                    getPrimaryLabel={(item) => item.name}
+                    getSecondaryLabel={(item) => `Order ${item.sort_order || item.sortOrder || 1} · ${moduleCountBySemester.get(String(item.id)) || 0} module(s)`}
+                    emptyMessage="No semesters found under this level."
+                    disabled={!selectedLevelId}
+                    disabledMessage="Select a level to manage semesters."
+                    addLabel="Add Semester"
+                    submitting={submitting}
+                  />
+                </Box>
+
+                <InterPanelConnector active={!!selectedSemesterId} color="#eab308" />
+
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <HierarchyPanel
+                    title="Modules"
+                    subtitle={selectedSemesterId ? `${filteredHierarchyModules.length} in selected semester` : "Select a semester first"}
+                    icon={MenuBook}
+                    color="#eab308"
+                    items={filteredHierarchyModules}
+                    selectedId={null}
+                    onSelect={null}
+                    onCreate={() => openCreateDialog(TAB_KEYS.MODULES, { semester_id: String(selectedSemesterId) })}
+                    onEdit={(item) => openEditDialog(TAB_KEYS.MODULES, item)}
+                    onDelete={(item) => handleDelete(TAB_KEYS.MODULES, item)}
+                    getPrimaryLabel={(item) => item.title}
+                    getSecondaryLabel={(item) => item.code || "Module code"}
+                    emptyMessage="No modules found under this semester."
+                    disabled={!selectedSemesterId}
+                    disabledMessage="Select a semester to manage modules."
+                    addLabel="Add Module"
+                    submitting={submitting}
+                  />
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+
+          {/* ─── Institution Mapping Explorer ─── */}
+          <Box
+            sx={{
+              borderRadius: 3.5,
+              border: "1px solid",
+              borderColor: (theme) =>
+                theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)",
+              bgcolor: (theme) =>
+                theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.92)",
+              overflow: "hidden",
+              position: "relative",
+              transition: "box-shadow 0.25s ease",
+              "&:hover": {
+                boxShadow: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "0 8px 40px rgba(236,72,153,0.06)"
+                    : "0 8px 40px rgba(236,72,153,0.05)",
+              },
+            }}
+          >
+            {/* Top gradient accent */}
+            <Box
+              sx={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 3,
+                background: "linear-gradient(90deg, #ec4899 0%, #f59e0b 50%, rgba(236,72,153,0.3) 100%)",
+              }}
+            />
+
+            <Box sx={{ px: 2.8, pt: 3, pb: 2.2 }}>
+              {/* Section header */}
+              <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap={2} mb={2}>
+                <Box display="flex" alignItems="center" gap={1.5}>
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2.2,
+                      background: "linear-gradient(135deg, rgba(236,72,153,0.2) 0%, rgba(245,158,11,0.1) 100%)",
+                      border: "1px solid",
+                      borderColor: alpha("#ec4899", 0.3),
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      boxShadow: "0 2px 12px rgba(236,72,153,0.15)",
+                    }}
+                  >
+                    <Link sx={{ fontSize: 20, color: "#ec4899" }} />
+                  </Box>
+                  <Box>
+                    <Typography
+                      variant="subtitle1"
+                      fontWeight={900}
+                      sx={{
+                        lineHeight: 1.2,
+                        fontSize: "1.05rem",
+                        background: "linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                        backgroundClip: "text",
+                      }}
+                    >
+                      Institution Mapping Explorer
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8rem", mt: 0.2 }}>
+                      Manage institution types, institutions, and the programs linked to each institution
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Step indicators */}
+                <Box
+                  sx={{
+                    display: { xs: "none", md: "flex" },
+                    alignItems: "center",
+                    gap: 0.6,
+                    flexShrink: 0,
+                  }}
+                >
+                  {[
+                    { color: "#7c5cfc", active: true },
+                    { color: "#f59e0b", active: !!selectedInstitutionTypeId },
+                    { color: "#ec4899", active: !!selectedExplorerInstitutionId },
+                  ].map((step, i) => (
+                    <Box
+                      key={i}
+                      sx={{
+                        width: step.active ? 20 : 8,
+                        height: 8,
+                        borderRadius: 4,
+                        bgcolor: step.active ? step.color : alpha(step.color, 0.2),
+                        border: "1px solid",
+                        borderColor: step.active ? step.color : alpha(step.color, 0.3),
+                        transition: "all 0.35s ease",
+                        boxShadow: step.active ? `0 0 8px ${alpha(step.color, 0.4)}` : "none",
+                      }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+
+              {/* Breadcrumb flow */}
+              <BreadcrumbFlow
+                steps={[
+                  {
+                    label: "Type",
+                    value: selectedInstitutionType?.name || null,
+                    color: "#7c5cfc",
+                    icon: Category,
+                    active: !!selectedInstitutionTypeId,
+                    onReset: selectedInstitutionTypeId ? () => {
+                      setSelectedInstitutionTypeId("");
+                      setSelectedExplorerInstitutionId("");
+                      setExplorerMappingProgramId("");
+                    } : null,
+                  },
+                  {
+                    label: "Institution",
+                    value: selectedExplorerInstitution?.name || null,
+                    color: "#f59e0b",
+                    icon: Apartment,
+                    active: !!selectedExplorerInstitutionId,
+                    onReset: selectedExplorerInstitutionId ? () => {
+                      setSelectedExplorerInstitutionId("");
+                      setExplorerMappingProgramId("");
+                    } : null,
+                  },
+                  {
+                    label: "Linked Programs",
+                    value: selectedExplorerInstitutionId ? `${institutionPrograms.length}` : null,
+                    color: "#ec4899",
+                    icon: Link,
+                    active: !!selectedExplorerInstitutionId,
+                    onReset: null,
+                  },
+                ]}
+              />
+
+              {/* Panel grid with connectors */}
+              <Box
+                sx={{
+                  display: { xs: "grid", lg: "flex" },
+                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                  gap: 1.5,
+                  mt: 2.2,
+                  alignItems: "stretch",
+                }}
+              >
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <HierarchyPanel
+                    title="Institution Types"
+                    subtitle={`${institutionTypes.length} available`}
+                    icon={Category}
+                    color="#7c5cfc"
+                    items={institutionTypes}
+                    selectedId={selectedInstitutionTypeId}
+                    onSelect={(item) => setSelectedInstitutionTypeId(String(item.id))}
+                    onCreate={() => openCreateDialog(TAB_KEYS.INSTITUTION_TYPES)}
+                    onEdit={(item) => openEditDialog(TAB_KEYS.INSTITUTION_TYPES, item)}
+                    onDelete={(item) => handleDelete(TAB_KEYS.INSTITUTION_TYPES, item)}
+                    getPrimaryLabel={(item) => item.name}
+                    getSecondaryLabel={(item) => `${institutionCountByType.get(String(item.id)) || 0} institution(s)`}
+                    emptyMessage="No institution types created yet."
+                    addLabel="Add Type"
+                    submitting={submitting}
+                  />
+                </Box>
+
+                <InterPanelConnector active={!!selectedInstitutionTypeId} color="#f59e0b" />
+
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <HierarchyPanel
+                    title="Institutions"
+                    subtitle={selectedInstitutionTypeId ? `${filteredInstitutionsByType.length} in selected type` : "Select a type first"}
+                    icon={Apartment}
+                    color="#f59e0b"
+                    items={filteredInstitutionsByType}
+                    selectedId={selectedExplorerInstitutionId}
+                    onSelect={(item) => setSelectedExplorerInstitutionId(String(item.id))}
+                    onCreate={() => openCreateDialog(TAB_KEYS.INSTITUTIONS, { institution_type_id: String(selectedInstitutionTypeId) })}
+                    onEdit={(item) => openEditDialog(TAB_KEYS.INSTITUTIONS, item)}
+                    onDelete={(item) => handleDelete(TAB_KEYS.INSTITUTIONS, item)}
+                    getPrimaryLabel={(item) => item.name}
+                    getSecondaryLabel={(item) => [item.city, item.country].filter(Boolean).join(", ") || "Location not set"}
+                    emptyMessage="No institutions found for this type."
+                    disabled={!selectedInstitutionTypeId}
+                    disabledMessage="Select an institution type to manage institutions."
+                    addLabel="Add Institution"
+                    submitting={submitting}
+                  />
+                </Box>
+
+                <InterPanelConnector active={!!selectedExplorerInstitutionId} color="#ec4899" />
+
+                {/* Program Links panel — upgraded */}
+                <Box
+                  sx={{
+                    flex: 1.15,
+                    minWidth: 0,
+                    borderRadius: 3,
+                    border: "1px solid",
+                    borderColor: (theme) =>
+                      selectedExplorerInstitutionId
+                        ? alpha("#ec4899", 0.3)
+                        : theme.palette.mode === "dark"
+                        ? "rgba(255,255,255,0.08)"
+                        : "rgba(0,0,0,0.07)",
+                    bgcolor: (theme) =>
+                      theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.92)",
+                    overflow: "hidden",
+                    minHeight: 290,
+                    position: "relative",
+                    transition: "all 0.25s ease",
+                    boxShadow: selectedExplorerInstitutionId
+                      ? `0 0 0 1px ${alpha("#ec4899", 0.15)}, 0 8px 28px ${alpha("#ec4899", 0.07)}`
+                      : "none",
+                  }}
+                >
+                  {/* Top gradient accent */}
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: 3,
+                      background: "linear-gradient(90deg, #ec4899 0%, rgba(236,72,153,0.4) 100%)",
+                      opacity: selectedExplorerInstitutionId ? 1 : 0.3,
+                      transition: "opacity 0.25s ease",
+                    }}
+                  />
+
+                  {/* Header */}
+                  <Box
+                    sx={{
+                      px: 2,
+                      py: 1.7,
+                      pt: 2.2,
+                      borderBottom: "1px solid",
+                      borderColor: (theme) =>
+                        theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)",
+                    }}
+                  >
+                    <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap={1}>
+                      <Box display="flex" gap={1.2} alignItems="flex-start">
+                        <Box
                           sx={{
+                            width: 34,
+                            height: 34,
                             borderRadius: 2,
-                            textTransform: "none",
-                            fontWeight: 700,
-                            height: 40,
-                            px: 2.25,
-                            background: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
-                            boxShadow: "0 2px 8px rgba(236,72,153,0.25)",
-                            "&:hover": { boxShadow: "0 4px 14px rgba(236,72,153,0.38)" },
+                            background: `linear-gradient(135deg, ${alpha("#ec4899", 0.18)} 0%, ${alpha("#ec4899", 0.08)} 100%)`,
+                            border: "1px solid",
+                            borderColor: alpha("#ec4899", 0.25),
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                            boxShadow: `0 2px 8px ${alpha("#ec4899", 0.12)}`,
                           }}
                         >
-                          Add Mapping
-                        </Button>
-                      </Box>
-
-                      <Box sx={{ display: "grid", gap: 1 }}>
-                        {mappingLoading ? (
-                          [...Array(2)].map((_, index) => (
-                            <Skeleton key={`mapping-skeleton-${index}`} variant="rounded" height={54} sx={{ borderRadius: 2 }} />
-                          ))
-                        ) : institutionPrograms.length === 0 ? (
-                          <EmptyState message="No programs are linked to this institution yet." />
-                        ) : (
-                          institutionPrograms.map((program) => {
-                            const resolvedProgramId = program.id || program.program_id;
-                            const resolvedProgram = programById.get(String(resolvedProgramId));
-
-                            return (
+                          <Link sx={{ fontSize: 17, color: "#ec4899" }} />
+                        </Box>
+                        <Box>
+                          <Box display="flex" alignItems="center" gap={0.8}>
+                            <Typography variant="subtitle2" fontWeight={800} sx={{ lineHeight: 1.2, fontSize: "0.84rem" }}>
+                              Program Links
+                            </Typography>
+                            {selectedExplorerInstitutionId && !mappingLoading && institutionPrograms.length > 0 && (
                               <Box
-                                key={`mapped-program-${resolvedProgramId}`}
                                 sx={{
-                                  p: 1.35,
-                                  borderRadius: 2.2,
+                                  px: 0.7,
+                                  py: 0.15,
+                                  borderRadius: 10,
+                                  bgcolor: alpha("#ec4899", 0.12),
                                   border: "1px solid",
-                                  borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
-                                  bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.78)",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "space-between",
-                                  gap: 1,
+                                  borderColor: alpha("#ec4899", 0.25),
                                 }}
                               >
-                                <Box>
-                                  <Typography variant="body2" fontWeight={700}>
-                                    {program.name || resolvedProgram?.name || "—"}
-                                  </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    {domainNameById.get(String(resolvedProgram?.domain_id || resolvedProgram?.domainId)) || "Program mapping"}
-                                  </Typography>
-                                </Box>
-                                <ActionButton
-                                  icon={Delete}
-                                  label="Remove mapping"
-                                  color="error"
-                                  disabled={submitting}
-                                  onClick={() => handleRemoveExplorerMapping(resolvedProgramId)}
-                                />
+                                <Typography sx={{ fontSize: "0.64rem", fontWeight: 800, color: "#ec4899", lineHeight: 1 }}>
+                                  {institutionPrograms.length}
+                                </Typography>
                               </Box>
-                            );
-                          })
-                        )}
+                            )}
+                          </Box>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ fontSize: "0.70rem", opacity: 0.8, display: "block" }}
+                          >
+                            {selectedExplorerInstitutionId
+                              ? `Linked to ${institutionNameById.get(String(selectedExplorerInstitutionId)) || "institution"}`
+                              : "Select an institution to manage links"}
+                          </Typography>
+                        </Box>
                       </Box>
-                    </>
-                  )}
+                    </Box>
+                  </Box>
+
+                  {/* Body */}
+                  <Box sx={{ p: 1.8, display: "grid", gap: 1.4 }}>
+                    {!selectedExplorerInstitutionId ? (
+                      <EmptyState message="Select an institution to view and manage linked programs." dimmed />
+                    ) : (
+                      <>
+                        {/* Add mapping row */}
+                        <Box
+                          sx={{
+                            display: "grid",
+                            gridTemplateColumns: { xs: "1fr", sm: "1fr auto" },
+                            gap: 1,
+                            alignItems: "center",
+                            p: 1.4,
+                            borderRadius: 2.5,
+                            border: "1px solid",
+                            borderColor: (theme) =>
+                              theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : alpha("#ec4899", 0.12),
+                            bgcolor: (theme) =>
+                              theme.palette.mode === "dark"
+                                ? "rgba(255,255,255,0.02)"
+                                : alpha("#ec4899", 0.03),
+                          }}
+                        >
+                          <FormControl fullWidth size="small">
+                            <InputLabel sx={{ fontSize: "0.82rem" }}>Add a Program</InputLabel>
+                            <Select
+                              value={explorerMappingProgramId}
+                              label="Add a Program"
+                              onChange={(event) => setExplorerMappingProgramId(String(event.target.value))}
+                              sx={{ borderRadius: 2, fontSize: "0.85rem" }}
+                            >
+                              {availableProgramsForSelectedInstitution.length === 0 ? (
+                                <MenuItem disabled value="">
+                                  <Typography variant="caption" color="text.secondary">
+                                    All programs already linked
+                                  </Typography>
+                                </MenuItem>
+                              ) : (
+                                availableProgramsForSelectedInstitution.map((program) => (
+                                  <MenuItem key={program.id} value={String(program.id)}>
+                                    {program.name}
+                                  </MenuItem>
+                                ))
+                              )}
+                            </Select>
+                          </FormControl>
+                          <Button
+                            variant="contained"
+                            startIcon={<Add sx={{ fontSize: 15 }} />}
+                            onClick={handleAddExplorerMapping}
+                            disabled={!explorerMappingProgramId || submitting}
+                            sx={{
+                              borderRadius: 2,
+                              textTransform: "none",
+                              fontWeight: 700,
+                              fontSize: "0.82rem",
+                              height: 40,
+                              px: 2,
+                              background: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
+                              boxShadow: "0 2px 8px rgba(236,72,153,0.25)",
+                              whiteSpace: "nowrap",
+                              transition: "all 0.2s ease",
+                              "&:hover": {
+                                boxShadow: "0 4px 14px rgba(236,72,153,0.4)",
+                                transform: "translateY(-1px)",
+                              },
+                              "&:disabled": { background: "rgba(0,0,0,0.12)" },
+                            }}
+                          >
+                            Link
+                          </Button>
+                        </Box>
+
+                        {/* Linked programs list */}
+                        <Box sx={{ display: "grid", gap: 0.85 }}>
+                          {mappingLoading ? (
+                            [...Array(2)].map((_, index) => (
+                              <Skeleton key={`mapping-skeleton-${index}`} variant="rounded" height={56} sx={{ borderRadius: 2 }} />
+                            ))
+                          ) : institutionPrograms.length === 0 ? (
+                            <EmptyState message="No programs are linked to this institution yet." />
+                          ) : (
+                            institutionPrograms.map((program) => {
+                              const resolvedProgramId = program.id || program.program_id;
+                              const resolvedProgram = programById.get(String(resolvedProgramId));
+
+                              return (
+                                <Box
+                                  key={`mapped-program-${resolvedProgramId}`}
+                                  sx={{
+                                    pl: 1.6,
+                                    pr: 1.35,
+                                    py: 1.2,
+                                    borderRadius: 2,
+                                    border: "1px solid",
+                                    borderColor: alpha("#ec4899", 0.2),
+                                    bgcolor: (theme) =>
+                                      theme.palette.mode === "dark"
+                                        ? "rgba(255,255,255,0.02)"
+                                        : alpha("#ec4899", 0.03),
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    gap: 1,
+                                    position: "relative",
+                                    overflow: "hidden",
+                                    transition: "all 0.18s ease",
+                                    "&:hover": {
+                                      borderColor: alpha("#ec4899", 0.4),
+                                      bgcolor: alpha("#ec4899", 0.06),
+                                      transform: "translateY(-1px)",
+                                      boxShadow: `0 3px 12px ${alpha("#ec4899", 0.1)}`,
+                                    },
+                                  }}
+                                >
+                                  {/* Left stripe */}
+                                  <Box
+                                    sx={{
+                                      position: "absolute",
+                                      left: 0,
+                                      top: 0,
+                                      bottom: 0,
+                                      width: 3,
+                                      borderRadius: "2px 0 0 2px",
+                                      background: `linear-gradient(180deg, #ec4899 0%, ${alpha("#ec4899", 0.5)} 100%)`,
+                                    }}
+                                  />
+                                  <Box>
+                                    <Typography variant="body2" fontWeight={700} sx={{ fontSize: "0.84rem", color: "#ec4899" }}>
+                                      {program.name || resolvedProgram?.name || "—"}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.70rem", opacity: 0.75 }}>
+                                      {domainNameById.get(String(resolvedProgram?.domain_id || resolvedProgram?.domainId)) || "Program mapping"}
+                                    </Typography>
+                                  </Box>
+                                  <ActionButton
+                                    icon={Delete}
+                                    label="Remove mapping"
+                                    color="error"
+                                    disabled={submitting}
+                                    onClick={() => handleRemoveExplorerMapping(resolvedProgramId)}
+                                  />
+                                </Box>
+                              );
+                            })
+                          )}
+                        </Box>
+                      </>
+                    )}
+                  </Box>
                 </Box>
               </Box>
             </Box>
           </Box>
         </Box>
       );
+
 
     if (activeTab === TAB_KEYS.INSTITUTION_TYPES)
       return renderCrudTable(TAB_KEYS.INSTITUTION_TYPES, institutionTypes, [{ key: "name", label: "Name" }]);
@@ -2170,7 +2930,12 @@ const CatalogManagement = () => {
             size="small"
             placeholder="Search…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              const nextValue = e.target.value;
+              startSearchTransition(() => {
+                setSearch(nextValue);
+              });
+            }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -2181,6 +2946,11 @@ const CatalogManagement = () => {
             }}
             sx={{ width: { xs: "100%", sm: 280 } }}
           />
+          {isSearchPending ? (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.8, display: "block" }}>
+              Filtering...
+            </Typography>
+          ) : null}
         </Box>
       )}
 
