@@ -25,17 +25,6 @@ import DiscoverNavbar from '@/features/discover/components/DiscoverNavbar';
 import RecommendationResourceCard from '@/features/dashboard/components/RecommendationResourceCard';
 import ResourceDetailsDialog from '@/features/resources/components/ResourceDetailsDialog';
 import resourcesService from '@/services/resourcesService';
-import moduleService from '@/services/moduleService';
-import personalizationService from '@/services/personalizationService';
-import favoritesService from '@/services/favoritesService';
-import { keyframes } from '@mui/system';
-
-/* ── subtle shine animation on the welcome header ── */
-const shimmer = keyframes`
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-`;
-
 const parseScore = (value) => {
   const num = Number(value);
   return Number.isFinite(num) ? num : 0;
@@ -44,12 +33,6 @@ const parseScore = (value) => {
 const getResourceId = (item) => Number(item?.id || item?.resource_id || 0);
 
 const getModuleId = (item) => Number(item?.module_id || item?.academicContext?.moduleId || item?.moduleId || 0);
-
-const extractDataArray = (payload) => {
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload)) return payload;
-  return [];
-};
 
 const toDiscoverDetailModel = (item) => {
   const id = Number(item?.id || item?.resource_id || 0);
@@ -166,6 +149,7 @@ const DiscoverResources = ({ recommendationsOnly = false }) => {
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
   const [viewingResource, setViewingResource] = useState(null);
   const [feedback, setFeedback] = useState({ open: false, severity: 'info', message: '' });
+  const [showHeavySections, setShowHeavySections] = useState(false);
   const deferredSearchQuery = useDeferredValue(searchQuery);
   // Defer module + type filter changes so React can yield to the browser
   // between the state update and the expensive re-group / re-filter work.
@@ -175,86 +159,78 @@ const DiscoverResources = ({ recommendationsOnly = false }) => {
   const detailsCacheRef = useRef(new Map());
 
   useEffect(() => {
-    let mounted = true;
+    let timeoutId = null;
+    let idleId = null;
 
-    const loadData = async () => {
-      setLoadingRecommendations(true);
-      const [recommendedRes, discoverModulesRes] = await Promise.allSettled([
-        personalizationService.getMyRecommendations(12),
-        moduleService.getDiscoverModules(),
-      ]);
+    setShowHeavySections(false);
 
-      if (!mounted) return;
+    const enableHeavySections = () => setShowHeavySections(true);
 
-      if (recommendedRes.status === 'fulfilled') {
-        setRecommendations(Array.isArray(recommendedRes.value) ? recommendedRes.value : []);
-      } else {
-        setRecommendations([]);
-      }
-
-      if (discoverModulesRes.status === 'fulfilled') {
-        setDiscoverModules(extractDataArray(discoverModulesRes.value));
-      } else {
-        setDiscoverModules([]);
-      }
-
-      setLoadingRecommendations(false);
-    };
-
-    loadData();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const loadResources = async () => {
-      setLoadingResources(true);
-      try {
-        const nextResources = await resourcesService.listPublishedResources();
-        if (mounted) setResources(Array.isArray(nextResources) ? nextResources : []);
-      } catch {
-        if (mounted) setResources([]);
-      } finally {
-        if (mounted) setLoadingResources(false);
-      }
-    };
-
-    loadResources();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-    if (!isAuthenticated) {
-      setLikedMap({});
-      return () => {
-        mounted = false;
-      };
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+      idleId = window.requestIdleCallback(enableHeavySections, { timeout: 1200 });
+    } else {
+      timeoutId = window.setTimeout(enableHeavySections, 300);
     }
 
-    const loadFavorites = async () => {
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      if (idleId && typeof window !== 'undefined' && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleId);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadDiscoverBootstrap = async () => {
+      if (!isAuthenticated) {
+        setRecommendations([]);
+        setDiscoverModules([]);
+        setResources([]);
+        setLikedMap({});
+        setLoadingRecommendations(false);
+        setLoadingResources(false);
+        return;
+      }
+
+      setLoadingRecommendations(true);
+      setLoadingResources(true);
+
       try {
-        const favorites = await favoritesService.getAllFavorites();
+        const bootstrap = await resourcesService.getDiscoverBootstrap({
+          recommendationLimit: 12,
+          resourcesLimit: 80,
+        });
+
         if (!mounted) return;
 
-        const mapped = (Array.isArray(favorites) ? favorites : []).reduce((acc, fav) => {
+        setRecommendations(Array.isArray(bootstrap?.recommendations) ? bootstrap.recommendations : []);
+        setDiscoverModules(Array.isArray(bootstrap?.discover_modules) ? bootstrap.discover_modules : []);
+        setResources(Array.isArray(bootstrap?.published_resources) ? bootstrap.published_resources : []);
+
+        const mapped = (Array.isArray(bootstrap?.favorites) ? bootstrap.favorites : []).reduce((acc, fav) => {
           const id = Number(fav?.resource_id || fav?.id || 0);
           if (id > 0) acc[id] = true;
           return acc;
         }, {});
         setLikedMap(mapped);
       } catch {
-        if (mounted) setLikedMap({});
+        if (!mounted) return;
+        setRecommendations([]);
+        setDiscoverModules([]);
+        setResources([]);
+        setLikedMap({});
+      } finally {
+        if (mounted) {
+          setLoadingRecommendations(false);
+          setLoadingResources(false);
+        }
       }
     };
 
-    loadFavorites();
+    loadDiscoverBootstrap();
+
     return () => {
       mounted = false;
     };
@@ -378,10 +354,10 @@ const DiscoverResources = ({ recommendationsOnly = false }) => {
       .slice(0, 6);
   }, [filteredRankedResources]);
 
-  const groupedByModule = useMemo(
-    () => groupResources(filteredRankedResources, getModuleName),
-    [filteredRankedResources]
-  );
+  const groupedByModule = useMemo(() => {
+    if (!showHeavySections) return [];
+    return groupResources(filteredRankedResources, getModuleName);
+  }, [filteredRankedResources, showHeavySections]);
 
   const groupsToRender = groupedByModule;
 
@@ -894,7 +870,7 @@ const DiscoverResources = ({ recommendationsOnly = false }) => {
         ) : null}
 
         {/* ─── Grouped resources ─── */}
-        {!recommendationsOnly ? (
+        {!recommendationsOnly && showHeavySections ? (
           <Box sx={{ display: 'grid', gap: 2 }}>
           {loadingResources ? (
             [...Array(3)].map((_, idx) => (
@@ -987,6 +963,14 @@ const DiscoverResources = ({ recommendationsOnly = false }) => {
               </Box>
             ))
           )}
+          </Box>
+        ) : null}
+
+        {!recommendationsOnly && !showHeavySections && !loadingResources ? (
+          <Box sx={{ display: 'grid', gap: 2 }}>
+            {[...Array(2)].map((_, idx) => (
+              <Skeleton key={`deferred-group-skeleton-${idx}`} variant="rounded" height={120} sx={{ borderRadius: 3 }} />
+            ))}
           </Box>
         ) : null}
 

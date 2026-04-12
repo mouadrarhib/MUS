@@ -24,6 +24,7 @@ import {
   advancedSearchResourcesHandler,
   searchResourcesByMetadataHandler,
   listPublishedResources,
+  getDiscoverBootstrapHandler,
   countResourcesByStatusHandler,
   countResourcesByEducationalTypeHandler,
   countResourcesByFormatHandler,
@@ -227,6 +228,16 @@ router.get(
 );
 
 router.get("/published", listPublishedResources);
+router.get(
+  "/discover/bootstrap",
+  authMiddleware,
+  [
+    query("recommendation_limit").optional().isInt({ min: 1, max: 100 }),
+    query("resources_limit").optional().isInt({ min: 1, max: 500 }),
+  ],
+  validateRequest,
+  getDiscoverBootstrapHandler
+);
 router.get("/with-ratings", listResourcesWithRatings);
 router.get("/statuses", listResourceStatuses);
 router.get("/educational-types", listResourceEducationalTypes);

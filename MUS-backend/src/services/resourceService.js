@@ -674,6 +674,28 @@ export const getPublishedResources = async () => {
   return getPublishedResourcesWithModuleContext();
 };
 
+const toArray = (value) => (Array.isArray(value) ? value : []);
+
+export const getDiscoverBootstrapData = async ({ userId, recommendationLimit = 12, resourcesLimit = 200 }) => {
+  const [rows] = await sequelize.query(SQL.DISCOVER.BOOTSTRAP, {
+    replacements: {
+      user_id: userId,
+      recommendation_limit: recommendationLimit,
+      resources_limit: resourcesLimit,
+    },
+  });
+
+  const row = rows?.[0] || {};
+  return {
+    generated_at: row.generated_at || null,
+    published_resources: toArray(row.published_resources),
+    discover_modules: toArray(row.discover_modules),
+    recommendations: toArray(row.recommendations),
+    favorites: toArray(row.favorites),
+    meta: row.meta && typeof row.meta === "object" ? row.meta : {},
+  };
+};
+
 export const countResourcesByStatus = async (status, actor = null) => {
   const requestedStatus = normalizeStatus(status);
   const admin = isAdmin(actor?.roles || []);

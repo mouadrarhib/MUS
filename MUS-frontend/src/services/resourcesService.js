@@ -11,9 +11,13 @@ let myResourcesCache = null;
 let myResourcesCacheTs = 0;
 const RESOURCE_CACHE_TTL_MS = 5000;
 const PUBLISHED_CACHE_TTL_MS = 30_000; // published list is large & rarely mutates during a session
+const DISCOVER_BOOTSTRAP_CACHE_TTL_MS = 20_000;
 let publishedResourcesInFlight = null;
 let publishedResourcesCache = null;
 let publishedResourcesCacheTs = 0;
+let discoverBootstrapInFlight = null;
+let discoverBootstrapCache = null;
+let discoverBootstrapCacheTs = 0;
 const resourceListInFlight = new Map();
 const resourceListCache = new Map();
 const tagListInFlight = new Map();
@@ -50,6 +54,9 @@ const clearResourceListCaches = () => {
   publishedResourcesInFlight = null;
   publishedResourcesCache = null;
   publishedResourcesCacheTs = 0;
+  discoverBootstrapInFlight = null;
+  discoverBootstrapCache = null;
+  discoverBootstrapCacheTs = 0;
   myRejectionsInFlight.clear();
   myRejectionsCache.clear();
 };
@@ -393,6 +400,46 @@ export const resourcesService = {
       });
 
     return publishedResourcesInFlight;
+  },
+
+  getDiscoverBootstrap: async (params = {}, options = {}) => {
+    const { recommendationLimit = 12, resourcesLimit = 80 } = params;
+    const { force = false } = options;
+
+    if (!force && discoverBootstrapCache && Date.now() - discoverBootstrapCacheTs <= DISCOVER_BOOTSTRAP_CACHE_TTL_MS) {
+      return discoverBootstrapCache;
+    }
+
+    if (!force && discoverBootstrapInFlight) {
+      return discoverBootstrapInFlight;
+    }
+
+    discoverBootstrapInFlight = get(`${RESOURCE.ROOT}/discover/bootstrap`, {
+      params: {
+        recommendation_limit: recommendationLimit,
+        resources_limit: resourcesLimit,
+      },
+    })
+      .then((response) => {
+        const payload = response?.data || {};
+        const normalized = {
+          generated_at: payload?.generated_at || null,
+          published_resources: normalizeArray(payload?.published_resources),
+          discover_modules: Array.isArray(payload?.discover_modules) ? payload.discover_modules : [],
+          recommendations: Array.isArray(payload?.recommendations) ? payload.recommendations : [],
+          favorites: Array.isArray(payload?.favorites) ? payload.favorites : [],
+          meta: payload?.meta && typeof payload.meta === "object" ? payload.meta : {},
+        };
+
+        discoverBootstrapCache = normalized;
+        discoverBootstrapCacheTs = Date.now();
+        return normalized;
+      })
+      .finally(() => {
+        discoverBootstrapInFlight = null;
+      });
+
+    return discoverBootstrapInFlight;
   },
 
   listResourcesByStatus: async (status, options = {}) => {

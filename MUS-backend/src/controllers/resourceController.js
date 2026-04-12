@@ -23,6 +23,7 @@ import {
   advancedSearchResources,
   searchResourcesByMetadata,
   getPublishedResources,
+  getDiscoverBootstrapData,
   countResourcesByStatus,
   countResourcesByEducationalType,
   countResourcesByFormat,
@@ -936,6 +937,19 @@ export const searchResourcesByMetadataHandler = asyncHandler(async (req, res) =>
 export const listPublishedResources = asyncHandler(async (req, res) => {
   const result = await getPublishedResources();
   return successResponse(res, "Ressources publiees recuperees avec succes", result);
+});
+
+export const getDiscoverBootstrapHandler = asyncHandler(async (req, res) => {
+  const recommendationLimit = Math.min(Math.max(Number(req.query?.recommendation_limit || 12), 1), 100);
+  const resourcesLimit = Math.min(Math.max(Number(req.query?.resources_limit || 200), 1), 500);
+
+  const result = await getDiscoverBootstrapData({
+    userId: req.user.id,
+    recommendationLimit,
+    resourcesLimit,
+  });
+
+  return successResponse(res, "Discover bootstrap retrieved successfully", result);
 });
 
 /**

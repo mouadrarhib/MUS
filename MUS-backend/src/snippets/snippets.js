@@ -251,6 +251,10 @@ export const SQL = {
     GET_FOR_USER: `SELECT * FROM public.sp_recommendation_get_for_user(:user_id, :limit_value)`,
   },
 
+  DISCOVER: {
+    BOOTSTRAP: `SELECT * FROM public.sp_discover_bootstrap(:user_id, :recommendation_limit, :resources_limit)`,
+  },
+
   ROLE: {
     CREATE: `SELECT * FROM public.sp_role_create(:name, :description)`,
 
