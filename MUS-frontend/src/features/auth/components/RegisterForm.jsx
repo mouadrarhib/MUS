@@ -31,7 +31,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import logo from '@/assets/images/logo.png';
-import { useRegister } from '../hooks/useAuthHooks';
+import { useRegister } from '@/features/auth/hooks/useAuthHooks';
 import { pageTransitionSx } from '@/styles/motion';
 import { useForm, Controller } from 'react-hook-form';
 import institutionService from '@/services/institutionService';

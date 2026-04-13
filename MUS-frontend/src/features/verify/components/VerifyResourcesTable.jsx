@@ -1,7 +1,6 @@
 // src/features/verify/components/VerifyResourcesTable.jsx
 import React from 'react';
 import {
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -10,19 +9,13 @@ import {
   TableRow,
   Chip,
   Box,
-  CircularProgress,
   IconButton,
-  TablePagination,
   Typography,
-  TextField,
-  InputAdornment,
-  Button,
   Tooltip,
   Avatar,
   alpha,
 } from '@mui/material';
 import { 
-  Search, 
   PendingActions,
   CheckCircle,
   Cancel,
@@ -30,6 +23,7 @@ import {
   Person,
 } from '@mui/icons-material';
 import PropTypes from 'prop-types';
+import { DataTableShell } from '@/shared/components/ui';
 
 const VerifyResourcesTable = ({ 
   resources, 
@@ -78,111 +72,41 @@ const VerifyResourcesTable = ({
   };
 
   // Filter resources by search
-  const filteredResources = resources.filter(resource =>
-    resource.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resource.author?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resource.academicContext?.moduleCode?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const paginatedResources = filteredResources.slice(
-    page * rowsPerPage, 
-    page * rowsPerPage + rowsPerPage
-  );
-
-  if (loading) {
-    return (
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: 3,
-          border: '1px solid',
-          borderColor: 'divider',
-          background: (theme) => theme.palette.mode === 'dark' 
-            ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-            : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-        }}
-      >
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-          <CircularProgress size={32} />
-        </Box>
-      </Paper>
+  const filteredResources = React.useMemo(() => {
+    const q = searchTerm.toLowerCase();
+    return resources.filter(
+      (resource) =>
+        resource.title?.toLowerCase().includes(q) ||
+        resource.author?.name?.toLowerCase().includes(q) ||
+        resource.academicContext?.moduleCode?.toLowerCase().includes(q)
     );
-  }
+  }, [resources, searchTerm]);
+
+  const paginatedResources = React.useMemo(
+    () => filteredResources.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [filteredResources, page, rowsPerPage]
+  );
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: 3,
-        border: '1px solid',
-        borderColor: 'divider',
-        background: (theme) => theme.palette.mode === 'dark' 
-          ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-          : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-        overflow: 'hidden',
+    <DataTableShell
+      icon={PendingActions}
+      title="Pending Verification"
+      subtitle={`${filteredResources.length} resources awaiting review`}
+      accentColor="warning"
+      searchPlaceholder="Search by title, author, module..."
+      searchValue={searchTerm}
+      onSearchChange={(e) => setSearchTerm(e.target.value)}
+      searchMinWidth={280}
+      loading={loading}
+      pagination={{
+        count: filteredResources.length,
+        page,
+        onPageChange: handleChangePage,
+        rowsPerPage,
+        onRowsPerPageChange: handleChangeRowsPerPage,
+        rowsPerPageOptions: [5, 10, 25],
       }}
     >
-      {/* Header */}
-      <Box
-        sx={{
-          px: 3,
-          py: 2,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 2,
-          background: (theme) => alpha(theme.palette.warning.main, 0.02),
-        }}
-      >
-        <Box display="flex" alignItems="center" gap={1.5}>
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: (theme) => alpha(theme.palette.warning.main, 0.1),
-            }}
-          >
-            <PendingActions sx={{ fontSize: 20, color: 'warning.main' }} />
-          </Box>
-          <Box>
-            <Typography variant="subtitle1" fontWeight="600">
-              Pending Verification
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {filteredResources.length} resources awaiting review
-            </Typography>
-          </Box>
-        </Box>
-        <TextField
-          size="small"
-          placeholder="Search by title, author, module..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search sx={{ fontSize: 18, color: 'text.secondary' }} />
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            minWidth: 280,
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2,
-              fontSize: '0.875rem',
-            },
-          }}
-        />
-      </Box>
-
-      {/* Table */}
       <TableContainer sx={{ overflowX: 'hidden' }}>
         <Table size="small" sx={{ tableLayout: 'fixed' }}>
           <TableHead>
@@ -365,24 +289,7 @@ const VerifyResourcesTable = ({
           </TableBody>
         </Table>
       </TableContainer>
-      
-      <TablePagination
-        component="div"
-        count={filteredResources.length}
-        page={page}
-        onPageChange={handleChangePage}
-        rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-        rowsPerPageOptions={[5, 10, 25]}
-        sx={{
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-            fontSize: '0.75rem',
-          },
-        }}
-      />
-    </Paper>
+    </DataTableShell>
   );
 };
 
@@ -398,4 +305,4 @@ VerifyResourcesTable.defaultProps = {
   loading: false,
 };
 
-export default VerifyResourcesTable;
+export default React.memo(VerifyResourcesTable);

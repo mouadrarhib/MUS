@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import "./App.css";
-import AppRouter from "./app/router";
-import { useLanguage } from "./app/providers/LanguageContext";
+import AppRouter from "@/app/router";
+import { useLanguage } from "@/app/providers/LanguageContext";
 
 function App() {
   const location = useLocation();

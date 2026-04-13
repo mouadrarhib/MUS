@@ -14,7 +14,7 @@ import {
   alpha,
   Divider,
 } from '@mui/material';
-import Grid from '@mui/material/GridLegacy';
+import Grid from '@mui/material/Grid';
 import {
   Description as DescriptionIcon,
   Code as CodeIcon,
@@ -33,7 +33,7 @@ import {
 } from '@mui/icons-material';
 import PropTypes from 'prop-types';
 import { useEffect, useState } from 'react';
-import { AsyncButton } from '@/shared/components/ui';
+import { AsyncButton, DialogSectionTitle, InfoFieldCard } from '@/shared/components/ui';
 import resourcesService from '@/services/resourcesService';
 
 const VerifyResourceDialog = ({ 
@@ -105,42 +105,7 @@ const VerifyResourceDialog = ({
   };
 
   const renderInfoCard = (icon, label, value, color = 'primary') => (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 1.5,
-        p: 1.5,
-        borderRadius: 2,
-        bgcolor: (theme) => alpha(theme.palette[color].main, 0.04),
-        border: '1px solid',
-        borderColor: (theme) => alpha(theme.palette[color].main, 0.1),
-      }}
-    >
-      <Box 
-        sx={{ 
-          color: `${color}.main`, 
-          mt: 0.25,
-          width: 32,
-          height: 32,
-          borderRadius: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: (theme) => alpha(theme.palette[color].main, 0.1),
-        }}
-      >
-        {icon}
-      </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.65rem' }}>
-          {label}
-        </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap>
-          {value || 'N/A'}
-        </Typography>
-      </Box>
-    </Box>
+    <InfoFieldCard icon={icon} label={label} value={value} color={color} />
   );
 
   const hasAcademicContext = resource.academicContext && (
@@ -343,10 +308,7 @@ const VerifyResourceDialog = ({
         {/* Academic Context Section */}
         {hasAcademicContext && (
           <>
-            <Typography variant="subtitle2" fontWeight="600" mb={1.5} display="flex" alignItems="center" gap={1}>
-              <SchoolIcon sx={{ fontSize: 18, color: 'primary.main' }} />
-              Academic Information
-            </Typography>
+            <DialogSectionTitle icon={<SchoolIcon sx={{ fontSize: 18, color: 'primary.main' }} />} title="Academic Information" />
 
             <Grid container spacing={1.5} sx={{ mb: 3 }}>
               {resource.academicContext.moduleCode && (
@@ -450,10 +412,7 @@ const VerifyResourceDialog = ({
         {/* Author Section */}
         {resource.author && (
           <>
-            <Typography variant="subtitle2" fontWeight="600" mb={1.5} display="flex" alignItems="center" gap={1}>
-              <PersonIcon sx={{ fontSize: 18, color: 'info.main' }} />
-              Author Information
-            </Typography>
+            <DialogSectionTitle icon={<PersonIcon sx={{ fontSize: 18, color: 'info.main' }} />} title="Author Information" />
 
             <Grid container spacing={1.5} sx={{ mb: mode === 'reject' ? 3 : 0 }}>
               <Grid item xs={6}>
@@ -492,10 +451,7 @@ const VerifyResourceDialog = ({
         {mode === 'reject' && (
           <>
             <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" fontWeight="600" mb={1.5} display="flex" alignItems="center" gap={1}>
-              <Cancel sx={{ fontSize: 18, color: 'error.main' }} />
-              Rejection Reason
-            </Typography>
+            <DialogSectionTitle icon={<Cancel sx={{ fontSize: 18, color: 'error.main' }} />} title="Rejection Reason" />
             <TextField
               fullWidth
               multiline

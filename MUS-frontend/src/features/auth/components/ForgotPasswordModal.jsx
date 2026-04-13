@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Box, Typography, Stepper, Step, StepLabel } from '@mui/material';
 import { Email as EmailIcon, Lock as LockIcon } from '@mui/icons-material';
 import authService from '@/services/authService'
-import { Modal, TextField, PrimaryButton, OutlinedButton, useNotification } from '../../../shared/components/ui';
+import { Modal, TextField, PrimaryButton, OutlinedButton, useNotification } from '@/shared/components/ui';
 import { useForm } from 'react-hook-form';
 import gsap from 'gsap';
 

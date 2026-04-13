@@ -1,56 +1,26 @@
 // src/features/resources/pages/Resources.jsx
 import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, alpha } from '@mui/material';
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Add, Delete as DeleteIcon, Warning as WarningIcon, Article, ErrorOutline } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import resourcesService from '@/services/resourcesService';
 import tagService from '@/services/tagService';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import ResourcesStatsCards from '../components/ResourcesStatsCards';
-import ResourcesTable from '../components/ResourcesTable';
-import ResourceDialog from '../components/ResourceDialog';
-import ResourceDetailsDialog from '../components/ResourceDetailsDialog';
+import ResourcesStatsCards from '@/features/resources/components/ResourcesStatsCards';
+import ResourcesTable from '@/features/resources/components/ResourcesTable';
+import ResourceDialog from '@/features/resources/components/ResourceDialog';
+import ResourceDetailsDialog from '@/features/resources/components/ResourceDetailsDialog';
+import { toResourceDetailModel } from '@/entities/resource/mappers/resourceViewModel';
 import { AsyncButton, EmptyState, PageHeader } from '@/shared/components/ui';
 import { useLanguage } from '@/app/providers/LanguageContext';
-
-const toResourceDetailModel = (item) => {
-  if (!item) return null;
-
-  return {
-    ...item,
-    id: Number(item?.id || item?.resource_id || 0),
-    title: item?.title || item?.resource_title || 'Untitled resource',
-    description: item?.description || item?.resource_description || '',
-    status: item?.status || item?.resource_status || 'published',
-    educationalType: item?.educationalType || item?.educational_type || item?.resource_educational_type || 'other',
-    format: item?.format || item?.resource_format || 'other',
-    createdAt: item?.createdAt || item?.created_at || null,
-    access_tier: item?.access_tier || item?.accessTier || 'free',
-    accessTier: item?.access_tier || item?.accessTier || 'free',
-    author: {
-      id: item?.author?.id || item?.created_by || item?.creator_id,
-      name: item?.author?.name || item?.creator_name || item?.created_by_name || item?.author_name,
-      role: item?.author?.role || item?.primary_role || item?.creator_primary_role,
-      institution: item?.author?.institution || item?.institution_name || item?.institution,
-    },
-    academicContext: {
-      moduleId: item?.academicContext?.moduleId || item?.module_id,
-      moduleCode: item?.academicContext?.moduleCode || item?.module_code,
-      moduleTitle: item?.academicContext?.moduleTitle || item?.module_title,
-      difficulty: item?.academicContext?.difficulty || item?.difficulty,
-      chapter: item?.academicContext?.chapter || item?.chapter,
-      examRelated: item?.academicContext?.examRelated || item?.exam_related,
-    },
-  };
-};
 
 const Resources = () => {
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
-  const [resources, setResources] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
   const [editingResource, setEditingResource] = useState(null);
@@ -60,28 +30,8 @@ const Resources = () => {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [availableTags, setAvailableTags] = useState([]);
-  const [tagsLoading, setTagsLoading] = useState(false);
 
-  useEffect(() => {
-    loadResources();
-    loadAvailableTags();
-  }, [isAdmin]);
-
-  const loadAvailableTags = async () => {
-    setTagsLoading(true);
-    try {
-      const tags = await tagService.listTags({ is_active: true, limit: 200 });
-      setAvailableTags(Array.isArray(tags) ? tags : []);
-    } catch (loadTagsError) {
-      console.error('Error loading tags:', loadTagsError);
-      setAvailableTags([]);
-    } finally {
-      setTagsLoading(false);
-    }
-  };
-
-  const hydrateResourcesWithTags = async (items) => {
+  const hydrateResourcesWithTags = useCallback(async (items) => {
     const list = Array.isArray(items) ? items : [];
     if (!list.length) return list;
 
@@ -90,39 +40,50 @@ const Resources = () => {
       ...resource,
       tags: Array.isArray(tagMap?.[resource.id]) ? tagMap[resource.id] : [],
     }));
-  };
+  }, []);
 
-  const loadResources = async () => {
-    setLoading(true);
-    setError('');
-    try {
+  const {
+    data: resources = [],
+    isLoading: loading,
+    isError: hasResourcesLoadError,
+    error: resourcesLoadError,
+    refetch: refetchResources,
+  } = useQuery({
+    queryKey: ['resources', isAdmin ? 'all' : 'mine'],
+    queryFn: async () => {
       const data = isAdmin
         ? await resourcesService.getAllResources()
         : await resourcesService.getMyResources();
-      const withTags = await hydrateResourcesWithTags(data);
-      setResources(withTags);
-    } catch (error) {
-      console.error('Error loading resources:', error);
-      setError('We could not load resources right now. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return hydrateResourcesWithTags(data);
+    },
+  });
 
-  const handleOpenDialog = () => {
+  const {
+    data: availableTags = [],
+    isLoading: tagsLoading,
+  } = useQuery({
+    queryKey: ['tags', 'active-catalog'],
+    queryFn: async () => {
+      const tags = await tagService.listTags({ is_active: true, limit: 200 });
+      return Array.isArray(tags) ? tags : [];
+    },
+    staleTime: 300000,
+  });
+
+  const handleOpenDialog = useCallback(() => {
     setEditingResource(null);
     setOpenDialog(true);
-  };
+  }, []);
 
-  const handleEditResource = (resource) => {
+  const handleEditResource = useCallback((resource) => {
     setEditingResource(resource);
     setOpenDialog(true);
-  };
+  }, []);
 
-  const handleCloseDialog = () => {
+  const handleCloseDialog = useCallback(() => {
     setOpenDialog(false);
     setEditingResource(null);
-  };
+  }, []);
 
   const handleViewResource = async (resource) => {
     const baseResource = toResourceDetailModel(resource);
@@ -157,7 +118,7 @@ const Resources = () => {
     }
   };
 
-  const handleOpenPreviewPage = (resource, resolvedPreviewUrl = '') => {
+  const handleOpenPreviewPage = useCallback((resource, resolvedPreviewUrl = '') => {
     const id = Number(resource?.id || resource?.resource_id || 0);
     if (!id) return;
 
@@ -168,12 +129,12 @@ const Resources = () => {
         returnTo: `${location.pathname}${location.search}`,
       },
     });
-  };
+  }, [location.pathname, location.search, navigate]);
 
-  const handleCloseDetailsDialog = () => {
+  const handleCloseDetailsDialog = useCallback(() => {
     setOpenDetailsDialog(false);
     setViewingResource(null);
-  };
+  }, []);
 
   const handleSaveResource = async (resourceData) => {
     setSaving(true);
@@ -222,7 +183,7 @@ const Resources = () => {
           console.log('[Resources] URL attached to resource', { resourceId: createdResource.id, url: payload.url });
         }
       }
-      await loadResources();
+      await queryClient.invalidateQueries({ queryKey: ['resources'] });
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving resource:', error);
@@ -239,18 +200,18 @@ const Resources = () => {
     }
   };
 
-  const handleDeleteResource = async (resourceId) => {
+  const handleDeleteResource = useCallback(async (resourceId) => {
     const resourceToDeleteObj = resources.find(r => r.id === resourceId);
     setResourceToDelete(resourceToDeleteObj);
     setOpenDeleteConfirm(true);
-  };
+  }, [resources]);
 
   const handleConfirmDelete = async () => {
     if (!resourceToDelete) return;
     setDeleting(true);
     try {
       await resourcesService.deleteResource(resourceToDelete.id);
-      await loadResources();
+      await queryClient.invalidateQueries({ queryKey: ['resources'] });
       setOpenDeleteConfirm(false);
       setResourceToDelete(null);
     } catch (error) {
@@ -260,13 +221,16 @@ const Resources = () => {
     }
   };
 
-  const handleCancelDelete = () => {
+  const handleCancelDelete = useCallback(() => {
     setOpenDeleteConfirm(false);
     setResourceToDelete(null);
-  };
+  }, []);
 
-  const publishedResources = resources.filter(r => r.status === 'published').length;
-  const draftResources = resources.filter(r => r.status === 'draft').length;
+  const publishedResources = useMemo(() => resources.filter((r) => r.status === 'published').length, [resources]);
+  const draftResources = useMemo(() => resources.filter((r) => r.status === 'draft').length, [resources]);
+  const displayError = hasResourcesLoadError
+    ? resourcesLoadError?.message || 'We could not load resources right now. Please try again.'
+    : error;
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -313,13 +277,13 @@ const Resources = () => {
       </Box>
 
       {/* Resources Table */}
-      {error && !loading ? (
+      {displayError && !loading ? (
         <EmptyState
           icon={ErrorOutline}
           title="Resources unavailable"
-          description={error}
+          description={displayError}
           actionLabel="Retry"
-          onAction={loadResources}
+          onAction={refetchResources}
         />
       ) : resources.length === 0 && !loading ? (
         <EmptyState

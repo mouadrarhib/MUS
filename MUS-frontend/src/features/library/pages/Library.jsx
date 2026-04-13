@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Delete as DeleteIcon, Warning as WarningIcon, Favorite, ErrorOutline, LibraryBooks } from '@mui/icons-material';
 import favoritesService from '@/services/favoritesService';
-import LibraryStatsCards from '../components/LibraryStatsCards';
-import FavoritesTable from '../components/FavoritesTable';
-import FavoriteDetailsDialog from '../components/FavoriteDetailsDialog';
+import LibraryStatsCards from '@/features/library/components/LibraryStatsCards';
+import FavoritesTable from '@/features/library/components/FavoritesTable';
+import FavoriteDetailsDialog from '@/features/library/components/FavoriteDetailsDialog';
 import { EmptyState, PageHeader } from '@/shared/components/ui';
 import { useLanguage } from '@/app/providers/LanguageContext';
 

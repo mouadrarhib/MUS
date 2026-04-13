@@ -1,7 +1,6 @@
 // src/features/users/components/UsersTable.jsx
 import React from 'react';
 import {
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -17,16 +16,14 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  TablePagination,
   Typography,
   Switch,
   alpha,
-  TextField,
-  InputAdornment,
   Tooltip,
 } from '@mui/material';
-import { Edit, Delete, Visibility, MoreVert, Search, People } from '@mui/icons-material';
+import { Edit, Delete, Visibility, MoreVert, People } from '@mui/icons-material';
 import PropTypes from 'prop-types';
+import { DataTableShell } from '@/shared/components/ui';
 
 const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -91,107 +88,39 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
   const isProtectedAdmin = (user) => String(user?.primary_role || '').toLowerCase() === 'admin';
 
   // Filter users by search
-  const filteredUsers = users.filter(user => 
-    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = React.useMemo(() => {
+    const q = searchTerm.toLowerCase();
+    return users.filter((user) =>
+      user.full_name?.toLowerCase().includes(q) ||
+      user.email?.toLowerCase().includes(q)
+    );
+  }, [users, searchTerm]);
+
+  const paginatedUsers = React.useMemo(
+    () => filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [filteredUsers, page, rowsPerPage]
   );
 
-  const paginatedUsers = filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
-  if (loading) {
-    return (
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: 3,
-          border: '1px solid',
-          borderColor: 'divider',
-          background: (theme) => theme.palette.mode === 'dark' 
-            ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-            : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-        }}
-      >
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-          <CircularProgress size={32} />
-        </Box>
-      </Paper>
-    );
-  }
-
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: 3,
-        border: '1px solid',
-        borderColor: 'divider',
-        background: (theme) => theme.palette.mode === 'dark' 
-          ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-          : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Header */}
-      <Box
-        sx={{
-          px: 3,
-          py: 2,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 2,
-          background: (theme) => alpha(theme.palette.primary.main, 0.02),
+    <>
+      <DataTableShell
+        icon={People}
+        title="All Users"
+        subtitle={`${filteredUsers.length} users found`}
+        accentColor="primary"
+        searchPlaceholder="Search users..."
+        searchValue={searchTerm}
+        onSearchChange={(e) => setSearchTerm(e.target.value)}
+        loading={loading}
+        pagination={{
+          count: filteredUsers.length,
+          page,
+          onPageChange: handleChangePage,
+          rowsPerPage,
+          onRowsPerPageChange: handleChangeRowsPerPage,
+          rowsPerPageOptions: [5, 10, 25],
         }}
       >
-        <Box display="flex" alignItems="center" gap={1.5}>
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: (theme) => alpha(theme.palette.primary.main, 0.1),
-            }}
-          >
-            <People sx={{ fontSize: 20, color: 'primary.main' }} />
-          </Box>
-          <Box>
-            <Typography variant="subtitle1" fontWeight="600">
-              All Users
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {filteredUsers.length} users found
-            </Typography>
-          </Box>
-        </Box>
-        <TextField
-          size="small"
-          placeholder="Search users..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search sx={{ fontSize: 18, color: 'text.secondary' }} />
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            minWidth: 200,
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2,
-              fontSize: '0.875rem',
-            },
-          }}
-        />
-      </Box>
-
-      {/* Table */}
       <TableContainer>
         <Table size="small">
           <TableHead>
@@ -301,24 +230,7 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
           </TableBody>
         </Table>
       </TableContainer>
-      
-      <TablePagination
-        component="div"
-        count={filteredUsers.length}
-        page={page}
-        onPageChange={handleChangePage}
-        rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-        rowsPerPageOptions={[5, 10, 25]}
-        sx={{
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-            fontSize: '0.75rem',
-          },
-        }}
-      />
-
+      </DataTableShell>
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
@@ -354,7 +266,7 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
           </ListItemText>
         </MenuItem>
       </Menu>
-    </Paper>
+    </>
   );
 };
 
@@ -371,4 +283,4 @@ UsersTable.defaultProps = {
   loading: false,
 };
 
-export default UsersTable;
+export default React.memo(UsersTable);

@@ -6,10 +6,10 @@ import usersService from '@/services/usersService';
 import institutionService from '@/services/institutionService';
 import levelService from '@/services/levelService';
 import semesterService from '@/services/semesterService';
-import UsersStatsCards from '../components/UsersStatsCards';
-import UsersTable from '../components/UsersTable';
-import UserDialog from '../components/UserDialog';
-import UserDetailsDialog from '../components/UserDetailsDialog';
+import UsersStatsCards from '@/features/users/components/UsersStatsCards';
+import UsersTable from '@/features/users/components/UsersTable';
+import UserDialog from '@/features/users/components/UserDialog';
+import UserDetailsDialog from '@/features/users/components/UserDetailsDialog';
 import { ConfirmDialog, PageHeader, useNotification } from '@/shared/components/ui';
 import { useLanguage } from '@/app/providers/LanguageContext';
 

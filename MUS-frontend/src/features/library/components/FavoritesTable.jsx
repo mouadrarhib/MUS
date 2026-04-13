@@ -1,7 +1,6 @@
 // src/features/library/components/FavoritesTable.jsx
 import React from 'react';
 import {
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -16,21 +15,17 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  TablePagination,
   Typography,
-  TextField,
-  InputAdornment,
   alpha,
 } from '@mui/material';
 import { 
   Visibility, 
   MoreVert, 
-  Search, 
   Favorite,
   Delete,
-  Download,
 } from '@mui/icons-material';
 import PropTypes from 'prop-types';
+import { DataTableShell } from '@/shared/components/ui';
 
 const FavoritesTable = ({ favorites, loading, onView, onRemove }) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -97,107 +92,40 @@ const FavoritesTable = ({ favorites, loading, onView, onRemove }) => {
   };
 
   // Filter favorites by search
-  const filteredFavorites = favorites.filter(favorite =>
-    favorite.resource_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    favorite.resource_description?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredFavorites = React.useMemo(() => {
+    const q = searchTerm.toLowerCase();
+    return favorites.filter(
+      (favorite) =>
+        favorite.resource_title?.toLowerCase().includes(q) ||
+        favorite.resource_description?.toLowerCase().includes(q)
+    );
+  }, [favorites, searchTerm]);
+
+  const paginatedFavorites = React.useMemo(
+    () => filteredFavorites.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [filteredFavorites, page, rowsPerPage]
   );
 
-  const paginatedFavorites = filteredFavorites.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
-  if (loading) {
-    return (
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: 3,
-          border: '1px solid',
-          borderColor: 'divider',
-          background: (theme) => theme.palette.mode === 'dark' 
-            ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-            : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-        }}
-      >
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-          <CircularProgress size={32} />
-        </Box>
-      </Paper>
-    );
-  }
-
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: 3,
-        border: '1px solid',
-        borderColor: 'divider',
-        background: (theme) => theme.palette.mode === 'dark' 
-          ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-          : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Header */}
-      <Box
-        sx={{
-          px: 3,
-          py: 2,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 2,
-          background: (theme) => alpha(theme.palette.error.main, 0.02),
+    <>
+      <DataTableShell
+        icon={Favorite}
+        title="My Favorites"
+        subtitle={`${filteredFavorites.length} resources saved`}
+        accentColor="error"
+        searchPlaceholder="Search favorites..."
+        searchValue={searchTerm}
+        onSearchChange={(e) => setSearchTerm(e.target.value)}
+        loading={loading}
+        pagination={{
+          count: filteredFavorites.length,
+          page,
+          onPageChange: handleChangePage,
+          rowsPerPage,
+          onRowsPerPageChange: handleChangeRowsPerPage,
+          rowsPerPageOptions: [5, 10, 25],
         }}
       >
-        <Box display="flex" alignItems="center" gap={1.5}>
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: (theme) => alpha(theme.palette.error.main, 0.1),
-            }}
-          >
-            <Favorite sx={{ fontSize: 20, color: 'error.main' }} />
-          </Box>
-          <Box>
-            <Typography variant="subtitle1" fontWeight="600">
-              My Favorites
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {filteredFavorites.length} resources saved
-            </Typography>
-          </Box>
-        </Box>
-        <TextField
-          size="small"
-          placeholder="Search favorites..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search sx={{ fontSize: 18, color: 'text.secondary' }} />
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            minWidth: 200,
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2,
-              fontSize: '0.875rem',
-            },
-          }}
-        />
-      </Box>
-
-      {/* Table */}
       <TableContainer sx={{ overflowX: 'hidden' }}>
         <Table size="small" sx={{ tableLayout: 'fixed' }}>
           <TableHead>
@@ -299,24 +227,7 @@ const FavoritesTable = ({ favorites, loading, onView, onRemove }) => {
           </TableBody>
         </Table>
       </TableContainer>
-      
-      <TablePagination
-        component="div"
-        count={filteredFavorites.length}
-        page={page}
-        onPageChange={handleChangePage}
-        rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-        rowsPerPageOptions={[5, 10, 25]}
-        sx={{
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-            fontSize: '0.75rem',
-          },
-        }}
-      />
-
+      </DataTableShell>
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
@@ -344,7 +255,7 @@ const FavoritesTable = ({ favorites, loading, onView, onRemove }) => {
           <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>Remove</ListItemText>
         </MenuItem>
       </Menu>
-    </Paper>
+    </>
   );
 };
 
@@ -359,4 +270,4 @@ FavoritesTable.defaultProps = {
   loading: false,
 };
 
-export default FavoritesTable;
+export default React.memo(FavoritesTable);

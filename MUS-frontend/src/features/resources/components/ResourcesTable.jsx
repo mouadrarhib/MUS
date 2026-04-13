@@ -1,7 +1,6 @@
 // src/features/resources/components/ResourcesTable.jsx
 import React from 'react';
 import {
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -16,14 +15,12 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  TablePagination,
   Typography,
-  TextField,
-  InputAdornment,
   alpha,
 } from '@mui/material';
-import { Edit, Delete, Visibility, MoreVert, Search, Article } from '@mui/icons-material';
+import { Edit, Delete, Visibility, MoreVert, Article } from '@mui/icons-material';
 import PropTypes from 'prop-types';
+import { DataTableShell } from '@/shared/components/ui';
 
 const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -85,110 +82,42 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
   };
 
   // Filter resources by search
-  const filteredResources = resources.filter(resource =>
-    resource.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resource.author?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (Array.isArray(resource.tags)
-      ? resource.tags.some((tag) => String(tag.name || tag.tag_name || '').toLowerCase().includes(searchTerm.toLowerCase()))
-      : false)
+  const filteredResources = React.useMemo(() => {
+    const q = searchTerm.toLowerCase();
+    return resources.filter((resource) =>
+      resource.title?.toLowerCase().includes(q) ||
+      resource.author?.name?.toLowerCase().includes(q) ||
+      (Array.isArray(resource.tags)
+        ? resource.tags.some((tag) => String(tag.name || tag.tag_name || '').toLowerCase().includes(q))
+        : false)
+    );
+  }, [resources, searchTerm]);
+
+  const paginatedResources = React.useMemo(
+    () => filteredResources.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [filteredResources, page, rowsPerPage]
   );
 
-  const paginatedResources = filteredResources.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
-  if (loading) {
-    return (
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: 3,
-          border: '1px solid',
-          borderColor: 'divider',
-          background: (theme) => theme.palette.mode === 'dark' 
-            ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-            : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-        }}
-      >
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-          <CircularProgress size={32} />
-        </Box>
-      </Paper>
-    );
-  }
-
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: 3,
-        border: '1px solid',
-        borderColor: 'divider',
-        background: (theme) => theme.palette.mode === 'dark' 
-          ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-          : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Header */}
-      <Box
-        sx={{
-          px: 3,
-          py: 2,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 2,
-          background: (theme) => alpha(theme.palette.primary.main, 0.02),
+    <>
+      <DataTableShell
+        icon={Article}
+        title="All Resources"
+        subtitle={`${filteredResources.length} resources found`}
+        accentColor="primary"
+        searchPlaceholder="Search resources..."
+        searchValue={searchTerm}
+        onSearchChange={(e) => setSearchTerm(e.target.value)}
+        loading={loading}
+        pagination={{
+          count: filteredResources.length,
+          page,
+          onPageChange: handleChangePage,
+          rowsPerPage,
+          onRowsPerPageChange: handleChangeRowsPerPage,
+          rowsPerPageOptions: [5, 10, 25],
         }}
       >
-        <Box display="flex" alignItems="center" gap={1.5}>
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: (theme) => alpha(theme.palette.primary.main, 0.1),
-            }}
-          >
-            <Article sx={{ fontSize: 20, color: 'primary.main' }} />
-          </Box>
-          <Box>
-            <Typography variant="subtitle1" fontWeight="600">
-              All Resources
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {filteredResources.length} resources found
-            </Typography>
-          </Box>
-        </Box>
-        <TextField
-          size="small"
-          placeholder="Search resources..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search sx={{ fontSize: 18, color: 'text.secondary' }} />
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            minWidth: 200,
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2,
-              fontSize: '0.875rem',
-            },
-          }}
-        />
-      </Box>
-
-      {/* Table */}
       <TableContainer sx={{ overflowX: 'hidden' }}>
         <Table size="small" sx={{ tableLayout: 'fixed' }}>
           <TableHead>
@@ -296,24 +225,7 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
           </TableBody>
         </Table>
       </TableContainer>
-      
-      <TablePagination
-        component="div"
-        count={filteredResources.length}
-        page={page}
-        onPageChange={handleChangePage}
-        rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-        rowsPerPageOptions={[5, 10, 25]}
-        sx={{
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-            fontSize: '0.75rem',
-          },
-        }}
-      />
-
+      </DataTableShell>
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
@@ -347,7 +259,7 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
           <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>Delete</ListItemText>
         </MenuItem>
       </Menu>
-    </Paper>
+    </>
   );
 };
 
@@ -363,4 +275,4 @@ ResourcesTable.defaultProps = {
   loading: false,
 };
 
-export default ResourcesTable;
+export default React.memo(ResourcesTable);

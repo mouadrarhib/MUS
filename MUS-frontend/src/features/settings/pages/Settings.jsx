@@ -6,20 +6,13 @@ import {
   Box,
   CircularProgress,
   Typography,
-  Paper,
   Switch,
   Button,
   Select,
   MenuItem,
   FormControl,
   Divider,
-  alpha,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
-  IconButton,
   Chip,
   Slider,
   ToggleButton,
@@ -45,8 +38,6 @@ import {
   Delete,
   Download,
   Link,
-  Close,
-  Warning,
   Check,
   LocalOffer,
   Settings as SettingsIcon,
@@ -63,6 +54,8 @@ import levelService from '@/services/levelService';
 import semesterService from '@/services/semesterService';
 import studentProfileService from '@/services/studentProfileService';
 import { PageHeader } from '@/shared/components/ui';
+import { SettingSection, SettingRow } from '@/features/settings/components/SettingLayout';
+import DeleteAccountDialog from '@/features/settings/components/DeleteAccountDialog';
 
 const Settings = () => {
   const { mode, toggleTheme } = useThemeMode();
@@ -337,9 +330,10 @@ const Settings = () => {
           message: 'Failed to load your academic information.',
         });
       } finally {
-        if (!mounted) return;
-        setAcademicCatalogLoading((prev) => ({ ...prev, institutions: false }));
-        setAcademicLoading(false);
+        if (mounted) {
+          setAcademicCatalogLoading((prev) => ({ ...prev, institutions: false }));
+          setAcademicLoading(false);
+        }
       }
     };
 
@@ -639,97 +633,6 @@ const Settings = () => {
       setTagPreferencesSaving(false);
     }
   };
-
-  const SettingSection = ({ icon, title, subtitle, color = 'primary', children }) => (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: 3,
-        border: '1px solid',
-        borderColor: 'divider',
-        overflow: 'hidden',
-        mb: 3,
-      }}
-    >
-      <Box
-        sx={{
-          px: 3,
-          py: 2.5,
-          background: (theme) => `linear-gradient(135deg, ${alpha(theme.palette[color].main, 0.08)} 0%, ${alpha(theme.palette[color].main, 0.02)} 100%)`,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box
-            sx={{
-              width: 44,
-              height: 44,
-              borderRadius: 2.5,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: (theme) => `linear-gradient(135deg, ${theme.palette[color].main} 0%, ${theme.palette[color].dark} 100%)`,
-              boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette[color].main, 0.3)}`,
-            }}
-          >
-            {icon}
-          </Box>
-          <Box>
-            <Typography variant="h6" fontWeight={700}>
-              {title}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {subtitle}
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
-      <Box sx={{ p: 3 }}>
-        {children}
-      </Box>
-    </Paper>
-  );
-
-  const SettingRow = ({ icon, title, description, action, noBorder }) => (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        py: 2,
-        borderBottom: noBorder ? 'none' : '1px solid',
-        borderColor: 'divider',
-        gap: 2,
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
-        <Box
-          sx={{
-            width: 40,
-            height: 40,
-            borderRadius: 2,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-            color: 'primary.main',
-          }}
-        >
-          {icon}
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="body1" fontWeight={600}>
-            {title}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {description}
-          </Typography>
-        </Box>
-      </Box>
-      {action}
-    </Box>
-  );
 
   return (
     <Box sx={{ width: '100%', minHeight: '100%' }}>
@@ -1235,140 +1138,15 @@ const Settings = () => {
         />
       </SettingSection>
 
-      {/* Delete Account Dialog */}
-      <Dialog
+      <DeleteAccountDialog
         open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: 3, overflow: 'hidden' }
+        confirmText={deleteConfirmText}
+        onConfirmTextChange={setDeleteConfirmText}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setDeleteConfirmText('');
         }}
-      >
-        <DialogTitle sx={{ p: 0, position: 'relative' }}>
-          <Box
-            sx={{
-              px: 3,
-              py: 2.5,
-              background: (theme) => `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.08)} 0%, ${alpha(theme.palette.error.main, 0.02)} 100%)`,
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
-            <Box display="flex" alignItems="center" gap={2}>
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 2.5,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: (theme) => `linear-gradient(135deg, ${theme.palette.error.main} 0%, ${theme.palette.error.dark} 100%)`,
-                  boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.error.main, 0.3)}`,
-                }}
-              >
-                <Warning sx={{ fontSize: 24, color: 'white' }} />
-              </Box>
-              <Box>
-                <Typography variant="h6" fontWeight={700}>
-                  Delete Account
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  This action cannot be undone
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-          <IconButton
-            onClick={() => setDeleteDialogOpen(false)}
-            sx={{ 
-              position: 'absolute', 
-              right: 12, 
-              top: 12, 
-              color: 'text.secondary',
-              bgcolor: (theme) => alpha(theme.palette.action.active, 0.04),
-              '&:hover': {
-                bgcolor: (theme) => alpha(theme.palette.action.active, 0.08),
-              }
-            }}
-          >
-            <Close sx={{ fontSize: 20 }} />
-          </IconButton>
-        </DialogTitle>
-
-        <DialogContent sx={{ p: 3 }}>
-          <Box
-            sx={{
-              p: 2,
-              mb: 3,
-              borderRadius: 2,
-              bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
-              border: '1px solid',
-              borderColor: (theme) => alpha(theme.palette.error.main, 0.2),
-            }}
-          >
-            <Typography variant="body2" color="error.main" fontWeight={500}>
-              Warning: Deleting your account will permanently remove all your data, including your profile, resources, and activity history. This action cannot be reversed.
-            </Typography>
-          </Box>
-
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            To confirm deletion, please type <strong>DELETE</strong> below:
-          </Typography>
-
-          <TextField
-            fullWidth
-            placeholder="Type DELETE to confirm"
-            value={deleteConfirmText}
-            onChange={(e) => setDeleteConfirmText(e.target.value)}
-            sx={{ 
-              '& .MuiOutlinedInput-root': { 
-                borderRadius: 2,
-                bgcolor: (theme) => alpha(theme.palette.action.active, 0.02),
-              } 
-            }}
-          />
-        </DialogContent>
-
-        <DialogActions 
-          sx={{ 
-            px: 3, 
-            py: 2.5, 
-            borderTop: '1px solid', 
-            borderColor: 'divider',
-            bgcolor: (theme) => alpha(theme.palette.action.active, 0.02),
-            gap: 1.5,
-          }}
-        >
-          <Button
-            onClick={() => {
-              setDeleteDialogOpen(false);
-              setDeleteConfirmText('');
-            }}
-            variant="outlined"
-            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, px: 3 }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            disabled={deleteConfirmText !== 'DELETE'}
-            startIcon={<Delete sx={{ fontSize: 18 }} />}
-            sx={{ 
-              borderRadius: 2, 
-              textTransform: 'none', 
-              fontWeight: 600, 
-              boxShadow: 'none',
-              px: 3,
-              '&:hover': { boxShadow: 'none' },
-            }}
-          >
-            Delete My Account
-          </Button>
-        </DialogActions>
-      </Dialog>
+      />
     </Box>
   );
 };

@@ -4,8 +4,8 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { GlobalStyles } from '@mui/material';
 import { lightTheme, darkTheme } from '@/styles/theme';
 import { AuthProvider } from '@/features/auth/context/AuthContext';
-import { ThemeContext } from './ThemeContext';
-import { LanguageProvider } from './LanguageContext';
+import { ThemeContext } from '@/app/providers/ThemeContext';
+import { LanguageProvider } from '@/app/providers/LanguageContext';
 import PropTypes from 'prop-types';
 
 const ThemeProviderComponent = ({ children }) => {
