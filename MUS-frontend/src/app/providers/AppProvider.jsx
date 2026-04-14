@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { GlobalStyles } from '@mui/material';
@@ -17,23 +17,30 @@ const ThemeProviderComponent = ({ children }) => {
     return mode === 'light' ? lightTheme : darkTheme;
   }, [mode]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
+    document.documentElement.classList.add('theme-switching');
     setMode((prevMode) => {
       const newMode = prevMode === 'light' ? 'dark' : 'light';
       localStorage.setItem('themeMode', newMode);
-      document.documentElement.setAttribute('data-theme', newMode);
       return newMode;
     });
-  };
+
+    window.setTimeout(() => {
+      document.documentElement.classList.remove('theme-switching');
+    }, 180);
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', mode);
   }, [mode]);
 
-  const value = {
-    mode,
-    toggleTheme,
-  };
+  const value = useMemo(
+    () => ({
+      mode,
+      toggleTheme,
+    }),
+    [mode, toggleTheme]
+  );
 
   return (
     <ThemeContext.Provider value={value}>

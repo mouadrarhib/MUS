@@ -131,7 +131,7 @@ const QuickActions = () => {
                   border: '1px solid',
                   borderColor: 'divider',
                   bgcolor: (theme) => alpha(theme.palette[action.color].main, 0.04),
-                  transition: 'all 0.2s ease',
+                  transition: 'border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease',
                   '&:hover': {
                     borderColor: `${action.color}.main`,
                     bgcolor: (theme) => alpha(theme.palette[action.color].main, 0.1),

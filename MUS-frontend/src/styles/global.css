@@ -18,6 +18,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
 /* Scroll bar personnalisée */
 ::-webkit-scrollbar {
   width: 8px;

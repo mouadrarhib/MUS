@@ -20,7 +20,7 @@ const StatsOverview = ({ label, value, change, changeLabel, icon: Icon, color = 
         background: theme.palette.mode === 'dark'
           ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
           : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-        transition: 'all 0.2s ease',
+        transition: 'border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease',
         position: 'relative',
         overflow: 'hidden',
         '&:hover': {

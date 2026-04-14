@@ -102,7 +102,6 @@ const RecommendationResourceCard = ({
           theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
         bgcolor: (theme) =>
           theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)',
-        backdropFilter: 'blur(6px)',
         overflow: 'hidden',
         transition: 'transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease',
         animation: `${fadeSlideUp} 400ms ease-out both`,
@@ -313,7 +312,7 @@ const RecommendationResourceCard = ({
                     ? (theme) => alpha(theme.palette.error.main, 0.1)
                     : 'transparent',
                   color: isLiked ? 'error.main' : 'text.secondary',
-                  transition: 'all 0.2s ease',
+                  transition: 'border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, transform 0.2s ease',
                   ...(isLiked && {
                     animation: `${heartPop} 0.4s ease`,
                   }),
@@ -347,7 +346,7 @@ const RecommendationResourceCard = ({
               height: 34,
               borderColor: 'divider',
               color: 'text.primary',
-              transition: 'all 0.2s ease',
+              transition: 'border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease',
               '&:hover': {
                 borderColor: 'primary.main',
                 bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
