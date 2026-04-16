@@ -23,18 +23,26 @@ CREATE OR REPLACE FUNCTION public.sp_student_profile_create(
     p_user_id UUID,
     p_institution_id BIGINT DEFAULT NULL,
     p_program_id BIGINT DEFAULT NULL,
-    p_current_semester_id BIGINT DEFAULT NULL
+    p_current_semester_id BIGINT DEFAULT NULL,
+    p_contribution_mode TEXT DEFAULT 'contributor'
 )
-RETURNS TABLE(user_id UUID, institution_id BIGINT, program_id BIGINT, 
-              current_semester_id BIGINT, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ) 
+RETURNS TABLE(user_id UUID, institution_id BIGINT, program_id BIGINT,
+              current_semester_id BIGINT, contribution_mode TEXT, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ)
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    v_contribution_mode TEXT;
 BEGIN
+    v_contribution_mode := lower(coalesce(nullif(trim(p_contribution_mode), ''), 'contributor'));
+    IF v_contribution_mode NOT IN ('learner', 'contributor') THEN
+        RAISE EXCEPTION 'contribution_mode must be learner or contributor';
+    END IF;
+
     RETURN QUERY
-    INSERT INTO public.student_profiles (user_id, institution_id, program_id, current_semester_id)
-    VALUES (p_user_id, p_institution_id, p_program_id, p_current_semester_id)
+    INSERT INTO public.student_profiles (user_id, institution_id, program_id, current_semester_id, contribution_mode)
+    VALUES (p_user_id, p_institution_id, p_program_id, p_current_semester_id, v_contribution_mode)
     RETURNING student_profiles.user_id, student_profiles.institution_id, 
-              student_profiles.program_id, student_profiles.current_semester_id,
+              student_profiles.program_id, student_profiles.current_semester_id, student_profiles.contribution_mode,
               student_profiles.created_at, student_profiles.updated_at;
 EXCEPTION
     WHEN unique_violation THEN
@@ -58,6 +66,7 @@ RETURNS TABLE(
     program_name TEXT,
     current_semester_id BIGINT,
     current_semester_name TEXT,
+    contribution_mode TEXT,
     created_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ
 ) 
@@ -75,6 +84,7 @@ BEGIN
         p.name AS program_name,
         sp.current_semester_id,
         s.name AS current_semester_name,
+        sp.contribution_mode,
         sp.created_at,
         sp.updated_at
     FROM public.student_profiles sp
@@ -98,6 +108,7 @@ RETURNS TABLE(
     program_name TEXT,
     current_semester_id BIGINT,
     current_semester_name TEXT,
+    contribution_mode TEXT,
     created_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ
 ) 
@@ -115,6 +126,7 @@ BEGIN
         p.name AS program_name,
         sp.current_semester_id,
         s.name AS current_semester_name,
+        sp.contribution_mode,
         sp.created_at,
         sp.updated_at
     FROM public.student_profiles sp
@@ -133,8 +145,8 @@ CREATE OR REPLACE FUNCTION public.sp_student_profile_update(
     p_program_id BIGINT DEFAULT NULL,
     p_current_semester_id BIGINT DEFAULT NULL
 )
-RETURNS TABLE(user_id UUID, institution_id BIGINT, program_id BIGINT, 
-              current_semester_id BIGINT, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ) 
+RETURNS TABLE(user_id UUID, institution_id BIGINT, program_id BIGINT,
+              current_semester_id BIGINT, contribution_mode TEXT, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -146,7 +158,7 @@ BEGIN
         current_semester_id = COALESCE(p_current_semester_id, student_profiles.current_semester_id)
     WHERE student_profiles.user_id = p_user_id
     RETURNING student_profiles.user_id, student_profiles.institution_id, 
-              student_profiles.program_id, student_profiles.current_semester_id,
+              student_profiles.program_id, student_profiles.current_semester_id, student_profiles.contribution_mode,
               student_profiles.created_at, student_profiles.updated_at;
     
     IF NOT FOUND THEN
@@ -163,8 +175,8 @@ CREATE OR REPLACE FUNCTION public.sp_student_profile_update_institution(
     p_user_id UUID,
     p_institution_id BIGINT
 )
-RETURNS TABLE(user_id UUID, institution_id BIGINT, program_id BIGINT, 
-              current_semester_id BIGINT, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ) 
+RETURNS TABLE(user_id UUID, institution_id BIGINT, program_id BIGINT,
+              current_semester_id BIGINT, contribution_mode TEXT, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -173,7 +185,7 @@ BEGIN
     SET institution_id = p_institution_id
     WHERE student_profiles.user_id = p_user_id
     RETURNING student_profiles.user_id, student_profiles.institution_id, 
-              student_profiles.program_id, student_profiles.current_semester_id,
+              student_profiles.program_id, student_profiles.current_semester_id, student_profiles.contribution_mode,
               student_profiles.created_at, student_profiles.updated_at;
     
     IF NOT FOUND THEN
@@ -190,8 +202,8 @@ CREATE OR REPLACE FUNCTION public.sp_student_profile_update_program(
     p_user_id UUID,
     p_program_id BIGINT
 )
-RETURNS TABLE(user_id UUID, institution_id BIGINT, program_id BIGINT, 
-              current_semester_id BIGINT, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ) 
+RETURNS TABLE(user_id UUID, institution_id BIGINT, program_id BIGINT,
+              current_semester_id BIGINT, contribution_mode TEXT, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -200,7 +212,7 @@ BEGIN
     SET program_id = p_program_id
     WHERE student_profiles.user_id = p_user_id
     RETURNING student_profiles.user_id, student_profiles.institution_id, 
-              student_profiles.program_id, student_profiles.current_semester_id,
+              student_profiles.program_id, student_profiles.current_semester_id, student_profiles.contribution_mode,
               student_profiles.created_at, student_profiles.updated_at;
     
     IF NOT FOUND THEN
@@ -217,8 +229,8 @@ CREATE OR REPLACE FUNCTION public.sp_student_profile_update_semester(
     p_user_id UUID,
     p_current_semester_id BIGINT
 )
-RETURNS TABLE(user_id UUID, institution_id BIGINT, program_id BIGINT, 
-              current_semester_id BIGINT, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ) 
+RETURNS TABLE(user_id UUID, institution_id BIGINT, program_id BIGINT,
+              current_semester_id BIGINT, contribution_mode TEXT, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -227,7 +239,7 @@ BEGIN
     SET current_semester_id = p_current_semester_id
     WHERE student_profiles.user_id = p_user_id
     RETURNING student_profiles.user_id, student_profiles.institution_id, 
-              student_profiles.program_id, student_profiles.current_semester_id,
+              student_profiles.program_id, student_profiles.current_semester_id, student_profiles.contribution_mode,
               student_profiles.created_at, student_profiles.updated_at;
     
     IF NOT FOUND THEN
@@ -239,7 +251,42 @@ EXCEPTION
 END;
 $$;
 
--- 8. Delete Student Profile
+-- 8. Update Student Contribution Mode
+CREATE OR REPLACE FUNCTION public.sp_student_profile_update_contribution_mode(
+    p_user_id UUID,
+    p_contribution_mode TEXT
+)
+RETURNS TABLE(user_id UUID, institution_id BIGINT, program_id BIGINT,
+              current_semester_id BIGINT, contribution_mode TEXT, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_contribution_mode TEXT;
+BEGIN
+    v_contribution_mode := lower(coalesce(nullif(trim(p_contribution_mode), ''), 'contributor'));
+    IF v_contribution_mode NOT IN ('learner', 'contributor') THEN
+        RAISE EXCEPTION 'contribution_mode must be learner or contributor';
+    END IF;
+
+    RETURN QUERY
+    UPDATE public.student_profiles
+    SET contribution_mode = v_contribution_mode
+    WHERE student_profiles.user_id = p_user_id
+    RETURNING student_profiles.user_id,
+              student_profiles.institution_id,
+              student_profiles.program_id,
+              student_profiles.current_semester_id,
+              student_profiles.contribution_mode,
+              student_profiles.created_at,
+              student_profiles.updated_at;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Student profile for user % not found', p_user_id;
+    END IF;
+END;
+$$;
+
+-- 9. Delete Student Profile
 CREATE OR REPLACE FUNCTION public.sp_student_profile_delete(
     p_user_id UUID
 )
@@ -262,7 +309,7 @@ BEGIN
 END;
 $$;
 
--- 9. Check if Student Profile Exists
+-- 10. Check if Student Profile Exists
 CREATE OR REPLACE FUNCTION public.sp_student_profile_exists(
     p_user_id UUID
 )
@@ -280,7 +327,7 @@ BEGIN
 END;
 $$;
 
--- 10. Get Students by Institution
+-- 11. Get Students by Institution
 CREATE OR REPLACE FUNCTION public.sp_student_profile_get_by_institution(
     p_institution_id BIGINT
 )
@@ -292,6 +339,7 @@ RETURNS TABLE(
     program_name TEXT,
     current_semester_id BIGINT,
     current_semester_name TEXT,
+    contribution_mode TEXT,
     created_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ
 ) 
@@ -307,6 +355,7 @@ BEGIN
         p.name AS program_name,
         sp.current_semester_id,
         s.name AS current_semester_name,
+        sp.contribution_mode,
         sp.created_at,
         sp.updated_at
     FROM public.student_profiles sp
@@ -318,7 +367,7 @@ BEGIN
 END;
 $$;
 
--- 11. Get Students by Program
+-- 12. Get Students by Program
 CREATE OR REPLACE FUNCTION public.sp_student_profile_get_by_program(
     p_program_id BIGINT
 )
@@ -330,6 +379,7 @@ RETURNS TABLE(
     institution_name TEXT,
     current_semester_id BIGINT,
     current_semester_name TEXT,
+    contribution_mode TEXT,
     created_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ
 ) 
@@ -345,6 +395,7 @@ BEGIN
         i.name AS institution_name,
         sp.current_semester_id,
         s.name AS current_semester_name,
+        sp.contribution_mode,
         sp.created_at,
         sp.updated_at
     FROM public.student_profiles sp
@@ -356,7 +407,7 @@ BEGIN
 END;
 $$;
 
--- 12. Get Students by Semester
+-- 13. Get Students by Semester
 CREATE OR REPLACE FUNCTION public.sp_student_profile_get_by_semester(
     p_semester_id BIGINT
 )
@@ -368,6 +419,7 @@ RETURNS TABLE(
     institution_name TEXT,
     program_id BIGINT,
     program_name TEXT,
+    contribution_mode TEXT,
     created_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ
 ) 
@@ -383,6 +435,7 @@ BEGIN
         i.name AS institution_name,
         sp.program_id,
         p.name AS program_name,
+        sp.contribution_mode,
         sp.created_at,
         sp.updated_at
     FROM public.student_profiles sp
@@ -394,7 +447,7 @@ BEGIN
 END;
 $$;
 
--- 13. Count Students by Institution
+-- 14. Count Students by Institution
 CREATE OR REPLACE FUNCTION public.sp_student_profile_count_by_institution(
     p_institution_id BIGINT
 )
@@ -412,7 +465,7 @@ BEGIN
 END;
 $$;
 
--- 14. Count Students by Program
+-- 15. Count Students by Program
 CREATE OR REPLACE FUNCTION public.sp_student_profile_count_by_program(
     p_program_id BIGINT
 )
@@ -430,7 +483,7 @@ BEGIN
 END;
 $$;
 
--- 15. Count Students by Semester
+-- 16. Count Students by Semester
 CREATE OR REPLACE FUNCTION public.sp_student_profile_count_by_semester(
     p_semester_id BIGINT
 )
@@ -448,7 +501,7 @@ BEGIN
 END;
 $$;
 
--- 16. Get Student Profile with Full Details
+-- 17. Get Student Profile with Full Details
 CREATE OR REPLACE FUNCTION public.sp_student_profile_get_full_details(
     p_user_id UUID
 )
@@ -469,6 +522,7 @@ RETURNS TABLE(
     current_semester_name TEXT,
     level_id BIGINT,
     level_name TEXT,
+    contribution_mode TEXT,
     created_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ
 ) 
@@ -493,6 +547,7 @@ BEGIN
         s.name AS current_semester_name,
         s.level_id,
         l.name AS level_name,
+        sp.contribution_mode,
         sp.created_at,
         sp.updated_at
     FROM public.student_profiles sp

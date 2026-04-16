@@ -17,6 +17,16 @@ import {
 } from "./userRolePolicyService.js";
 
 const DEFAULT_ROLE = "student";
+const DEFAULT_STUDENT_CONTRIBUTION_MODE = "contributor";
+
+const normalizeContributionMode = (rawMode) => {
+  const normalized = String(rawMode || "").trim().toLowerCase();
+  if (!normalized) return DEFAULT_STUDENT_CONTRIBUTION_MODE;
+  if (normalized === "learner" || normalized === "contributor") {
+    return normalized;
+  }
+  throw new AppError("contribution_mode must be learner or contributor", 400);
+};
 
 const sanitizeUser = (userInstance) => {
   if (!userInstance) return null;
@@ -47,6 +57,40 @@ const withMembership = async (userLike) => {
       },
     };
   }
+};
+
+const getStudentContributionMode = async (userId, transaction) => {
+  const [rows] = await sequelize.query(
+    `
+    SELECT contribution_mode
+    FROM public.student_profiles
+    WHERE user_id = :user_id
+    LIMIT 1
+    `,
+    {
+      replacements: { user_id: userId },
+      transaction,
+    }
+  );
+
+  if (!rows?.length) return DEFAULT_STUDENT_CONTRIBUTION_MODE;
+  return normalizeContributionMode(rows[0]?.contribution_mode);
+};
+
+const buildAuthUserPayload = async (userLike, roles, transaction) => {
+  const normalizedUser = await withMembership(sanitizeUser(userLike));
+  const isStudent = roles.includes("student");
+  const contributionMode = isStudent
+    ? await getStudentContributionMode(normalizedUser.id, transaction)
+    : null;
+
+  return {
+    ...normalizedUser,
+    roles,
+    role: roles[0] || null,
+    contribution_mode: contributionMode,
+    can_contribute: isStudent ? contributionMode === "contributor" : true,
+  };
 };
 
 const getRolesForUser = async (userId, transaction) => {
@@ -129,6 +173,7 @@ export const registerUser = async ({
   program_id: rawProgramId,
   level_id: rawLevelId,
   current_semester_id: rawSemesterId,
+  contribution_mode: rawContributionMode,
   preferred_tag_ids: rawPreferredTagIds,
   role_name: rawRoleName,
   allow_direct_role = false,
@@ -143,6 +188,7 @@ export const registerUser = async ({
   const level_id = rawLevelId != null ? Number(rawLevelId) : null;
   const current_semester_id = rawSemesterId != null ? Number(rawSemesterId) : null;
   const preferredTagIds = normalizeTagIds(rawPreferredTagIds || []);
+  const contributionMode = normalizeContributionMode(rawContributionMode);
   const requestedRoleName = normalizeRoleName(rawRoleName || DEFAULT_ROLE);
   const desiredRoleName = allow_direct_role ? requestedRoleName : DEFAULT_ROLE;
 
@@ -173,7 +219,16 @@ export const registerUser = async ({
       shouldCreateStudentProfile ? SQL.USER.REGISTER_STUDENT : SQL.USER.REGISTER,
       {
         replacements: shouldCreateStudentProfile
-          ? { full_name, email, password, institution_id, program_id, level_id, current_semester_id }
+          ? {
+              full_name,
+              email,
+              password,
+              institution_id,
+              program_id,
+              level_id,
+              current_semester_id,
+              contribution_mode: contributionMode,
+            }
           : { full_name, email, password },
       }
     );
@@ -254,6 +309,7 @@ export const registerUser = async ({
             institution_id,
             program_id,
             current_semester_id,
+            contribution_mode: contributionMode,
           },
           transaction,
         });
@@ -287,14 +343,8 @@ export const registerUser = async ({
 
   const roles = await getRolesForUser(createdUser.id);
   const token = include_token ? generateToken({ sub: createdUser.id, roles }) : null;
-
-  const normalizedUser = await withMembership(sanitizeUser(createdUser));
   return {
-    user: {
-      ...normalizedUser,
-      roles,
-      role: roles[0] || null,
-    },
+    user: await buildAuthUserPayload(createdUser, roles),
     token,
   };
 };
@@ -340,13 +390,8 @@ export const loginUser = async ({ email, password }) => {
   const roles = await getRolesForUser(user.id);
   const token = generateToken({ sub: user.id, roles, authVia: usedRoutine ? "routine" : "fallback" });
 
-  const normalizedUser = await withMembership(sanitizeUser(user));
   return {
-    user: {
-      ...normalizedUser,
-      roles,
-      role: roles[0] || null,
-    },
+    user: await buildAuthUserPayload(user, roles),
     token,
   };
 };
@@ -357,7 +402,7 @@ export const getProfile = async (userId) => {
     throw new AppError("User not found", 404);
   }
   const roles = await getRolesForUser(user.id);
-  return { user: { ...(await withMembership(sanitizeUser(user))), roles } };
+  return { user: await buildAuthUserPayload(user, roles) };
 };
 
 export const getUserWithRolesById = async (userId) => {
@@ -366,7 +411,7 @@ export const getUserWithRolesById = async (userId) => {
     throw new AppError("User not found", 404);
   }
   const roles = await getRolesForUser(user.id);
-  return { user: { ...(await withMembership(sanitizeUser(user))), roles } };
+  return { user: await buildAuthUserPayload(user, roles) };
 };
 
 export const changeEmail = async (userId, newEmail) => {
@@ -401,7 +446,7 @@ export const changeEmail = async (userId, newEmail) => {
   }
 
   const roles = await getRolesForUser(updatedUser.id);
-  return { user: { ...(await withMembership(sanitizeUser(updatedUser))), roles } };
+  return { user: await buildAuthUserPayload(updatedUser, roles) };
 };
 
 export const changePassword = async (userId, oldPassword, newPassword) => {
@@ -579,7 +624,7 @@ export const updateProfile = async (userId, full_name) => {
   }
 
   const roles = await getRolesForUser(updatedUser.id);
-  return { user: { ...(await withMembership(sanitizeUser(updatedUser))), roles } };
+  return { user: await buildAuthUserPayload(updatedUser, roles) };
 };
 
 export const setActive = async (userId, isActive) => {

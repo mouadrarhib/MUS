@@ -114,7 +114,7 @@ const AppRouter = () => {
           <Route
             path="uploads"
             element={
-              <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+              <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER', 'ADMIN']} requireContributor>
                 <MyUploadsPage />
               </ProtectedRoute>
             }

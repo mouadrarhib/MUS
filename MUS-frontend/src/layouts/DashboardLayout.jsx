@@ -15,7 +15,7 @@ const MOBILE_SIDEBAR_WIDTH = 'min(88vw, 340px)';
 const DashboardLayout = () => {
   const theme = useTheme();
   const { language } = useLanguage();
-  const { hasAnyRole } = useAuth();
+  const { hasAnyRole, isStudent, canContribute } = useAuth();
   const isArabic = language === 'ar';
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
@@ -28,6 +28,10 @@ const DashboardLayout = () => {
 
   const filteredNavigation = DASHBOARD_NAVIGATION.filter((item) => {
     if (Array.isArray(item?.excludeRoles) && item.excludeRoles.length > 0 && hasAnyRole(item.excludeRoles)) {
+      return false;
+    }
+
+    if (item?.requiresContributor && isStudent && !canContribute) {
       return false;
     }
 

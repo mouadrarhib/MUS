@@ -8,6 +8,7 @@ import {
   updateStudentInstitution,
   updateStudentProgram,
   updateStudentSemester,
+  updateStudentContributionMode,
   deleteStudentProfile,
   studentProfileExists,
   getStudentProfilesByInstitution,
@@ -91,12 +92,13 @@ import {
  *               $ref: '#/components/schemas/StudentProfile'
  */
 export const addStudentProfile = asyncHandler(async (req, res) => {
-  const { user_id, institution_id, program_id, current_semester_id } = req.body;
+  const { user_id, institution_id, program_id, current_semester_id, contribution_mode } = req.body;
   const result = await createStudentProfile(
     user_id,
     institution_id,
     program_id,
-    current_semester_id
+    current_semester_id,
+    contribution_mode
   );
   return successResponse(res, "Student profile created successfully", result, 201);
 });
@@ -194,14 +196,23 @@ export const getStudentProfile = asyncHandler(async (req, res) => {
  */
 export const updateExistingStudentProfile = asyncHandler(async (req, res) => {
   const { userId } = req.params;
-  const { institution_id, program_id, current_semester_id } = req.body;
-  const result = await updateStudentProfile(
+  const { institution_id, program_id, current_semester_id, contribution_mode } = req.body;
+  const profileResult = await updateStudentProfile(
     userId,
     institution_id,
     program_id,
     current_semester_id
   );
-  return successResponse(res, "Student profile updated successfully", result);
+
+  let modeResult = null;
+  if (typeof contribution_mode !== "undefined") {
+    modeResult = await updateStudentContributionMode(userId, contribution_mode);
+  }
+
+  return successResponse(res, "Student profile updated successfully", {
+    profile: profileResult,
+    contribution_mode: modeResult,
+  });
 });
 
 /**
@@ -339,6 +350,13 @@ export const updateStudentSemesterHandler = asyncHandler(async (req, res) => {
   const { current_semester_id } = req.body;
   const result = await updateStudentSemester(userId, current_semester_id);
   return successResponse(res, "Student semester updated successfully", result);
+});
+
+export const updateStudentContributionModeHandler = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { contribution_mode } = req.body;
+  const result = await updateStudentContributionMode(userId, contribution_mode);
+  return successResponse(res, "Student contribution mode updated successfully", result);
 });
 
 /**

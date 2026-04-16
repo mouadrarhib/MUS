@@ -2,8 +2,14 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from '@/features/auth/context/AuthContext';
 
-export const ProtectedRoute = ({ children, requiredRole = null, requiredRoles = [], blockedRoles = [] }) => {
-  const { isAuthenticated, loading, hasRole, hasAnyRole } = useAuth();
+export const ProtectedRoute = ({
+  children,
+  requiredRole = null,
+  requiredRoles = [],
+  blockedRoles = [],
+  requireContributor = false,
+}) => {
+  const { isAuthenticated, loading, hasRole, hasAnyRole, isStudent, canContribute } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -35,6 +41,10 @@ export const ProtectedRoute = ({ children, requiredRole = null, requiredRoles = 
   }
 
   if (Array.isArray(blockedRoles) && blockedRoles.length > 0 && hasAnyRole(blockedRoles)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (requireContributor && isStudent && !canContribute) {
     return <Navigate to="/dashboard" replace />;
   }
 

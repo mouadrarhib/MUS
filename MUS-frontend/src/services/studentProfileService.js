@@ -18,6 +18,9 @@ export const studentProfileService = {
   updateStudentSemester: (userId, current_semester_id) =>
     patch(`${STUDENT_PROFILES}/${userId}/semester`, { current_semester_id }),
 
+  updateStudentContributionMode: (userId, contribution_mode) =>
+    patch(`${STUDENT_PROFILES}/${userId}/contribution-mode`, { contribution_mode }),
+
   studentProfileExists: (userId) => get(`${STUDENT_PROFILES}/${userId}/exists`),
   getStudentProfilesByInstitution: (institutionId) => get(`${STUDENT_PROFILES}/institution/${institutionId}`),
   getStudentProfilesByProgram: (programId) => get(`${STUDENT_PROFILES}/program/${programId}`),

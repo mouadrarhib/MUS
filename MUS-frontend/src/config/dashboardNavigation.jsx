@@ -36,7 +36,8 @@ export const DASHBOARD_NAVIGATION = [
     labelKey: 'nav.myUploads',
     path: '/dashboard/uploads',
     icon: <UploadFile />,
-    roles: ['STUDENT', 'TEACHER', 'ADMIN']
+    roles: ['STUDENT', 'TEACHER', 'ADMIN'],
+    requiresContributor: true,
   },
 
   // ADMIN

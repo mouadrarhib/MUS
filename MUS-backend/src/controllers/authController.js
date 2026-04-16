@@ -167,7 +167,17 @@ import {
  *               $ref: '#/components/schemas/AuthResponse'
  */
 export const register = asyncHandler(async (req, res) => {
-  const { full_name, email, password, institution_id, program_id, level_id, current_semester_id, preferred_tag_ids } = req.body;
+  const {
+    full_name,
+    email,
+    password,
+    institution_id,
+    program_id,
+    level_id,
+    current_semester_id,
+    contribution_mode,
+    preferred_tag_ids,
+  } = req.body;
   const result = await registerUser({
     full_name,
     email,
@@ -176,6 +186,7 @@ export const register = asyncHandler(async (req, res) => {
     program_id,
     level_id,
     current_semester_id,
+    contribution_mode,
     preferred_tag_ids,
   });
   if (result?.token) {

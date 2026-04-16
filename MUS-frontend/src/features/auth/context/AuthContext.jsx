@@ -50,6 +50,13 @@ const extractTokenFromPayload = (payload) => {
   );
 };
 
+const normalizeContributionMode = (userLike) => {
+  const raw = userLike?.contribution_mode ?? userLike?.contributionMode;
+  const normalized = String(raw || '').trim().toLowerCase();
+  if (normalized === 'learner') return 'learner';
+  return 'contributor';
+};
+
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
@@ -71,9 +78,16 @@ export const AuthProvider = ({ children }) => {
       []
     );
     
+    const normalizedUser = newUser
+      ? {
+          ...newUser,
+          contribution_mode: normalizeContributionMode(newUser),
+        }
+      : newUser;
+
     setToken(newToken);
     setRoles(userRoles);
-    setUser(newUser);
+    setUser(normalizedUser);
     setIsAuthenticated(true);
 
     if (newToken) {
@@ -81,7 +95,7 @@ export const AuthProvider = ({ children }) => {
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
     }
     localStorage.setItem('userRoles', JSON.stringify(userRoles));
-    localStorage.setItem('userData', JSON.stringify(newUser));
+    localStorage.setItem('userData', JSON.stringify(normalizedUser));
   }, []);
 
   const logout = useCallback(() => {
@@ -102,7 +116,10 @@ export const AuthProvider = ({ children }) => {
       const profileUser = extractUserFromPayload(response?.data);
       if (!profileUser) return null;
 
-      const normalized = { ...profileUser };
+      const normalized = {
+        ...profileUser,
+        contribution_mode: normalizeContributionMode(profileUser),
+      };
 
       const userRoles = normalizeRoles(normalized?.roles || normalized?.role || []);
       setUser(normalized);
@@ -129,18 +146,22 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        const parsedUser = JSON.parse(storedUser);
-        const parsedRoles = normalizeRoles(
-          storedRoles
-            ? JSON.parse(storedRoles)
-            : parsedUser?.roles || parsedUser?.role || []
-        );
+         const parsedUser = JSON.parse(storedUser);
+         const normalizedStoredUser = {
+           ...parsedUser,
+           contribution_mode: normalizeContributionMode(parsedUser),
+         };
+         const parsedRoles = normalizeRoles(
+           storedRoles
+             ? JSON.parse(storedRoles)
+             : normalizedStoredUser?.roles || normalizedStoredUser?.role || []
+         );
 
         if (!mounted) return;
 
         setToken(storedToken);
         setRoles(parsedRoles);
-        setUser(parsedUser);
+        setUser(normalizedStoredUser);
         setIsAuthenticated(true);
         apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
 
@@ -197,6 +218,8 @@ export const AuthProvider = ({ children }) => {
     isModerator: roles.includes('MODERATOR'),
     membership: user?.membership || null,
     isPremium: Boolean(user?.membership?.is_premium),
+    contributionMode: normalizeContributionMode(user),
+    canContribute: !roles.includes('STUDENT') || normalizeContributionMode(user) === 'contributor',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -59,7 +59,7 @@ import DeleteAccountDialog from '@/features/settings/components/DeleteAccountDia
 
 const Settings = () => {
   const { mode, toggleTheme } = useThemeMode();
-  const { user, isAdmin, isStudent, refreshProfile } = useAuth();
+  const { user, isAdmin, isStudent, contributionMode, canContribute, refreshProfile } = useAuth();
   const { language, setLanguage: setAppLanguage, t } = useLanguage();
   
   // Theme & Appearance
@@ -106,6 +106,8 @@ const Settings = () => {
   const [academicProgramId, setAcademicProgramId] = useState('');
   const [academicLevelId, setAcademicLevelId] = useState('');
   const [academicSemesterId, setAcademicSemesterId] = useState('');
+  const [studentContributionMode, setStudentContributionMode] = useState('contributor');
+  const [contributionModeSaving, setContributionModeSaving] = useState(false);
 
   const toList = (response) => {
     const payload = response?.data ?? response;
@@ -377,6 +379,33 @@ const Settings = () => {
   const handleAcademicSemesterChange = (value) => {
     setAcademicSemesterId(value);
     setAcademicFeedback({ type: '', message: '' });
+  };
+
+  useEffect(() => {
+    if (!isStudent) return;
+    setStudentContributionMode(contributionMode === 'learner' ? 'learner' : 'contributor');
+  }, [contributionMode, isStudent]);
+
+  const handleSaveContributionMode = async () => {
+    if (!user?.id || !isStudent) return;
+
+    setContributionModeSaving(true);
+    setAcademicFeedback({ type: '', message: '' });
+    try {
+      await studentProfileService.updateStudentContributionMode(user.id, studentContributionMode);
+      await refreshProfile();
+      setAcademicFeedback({
+        type: 'success',
+        message: `Student mode updated to ${studentContributionMode}.`,
+      });
+    } catch (error) {
+      setAcademicFeedback({
+        type: 'error',
+        message: error?.response?.data?.message || 'Failed to update student mode.',
+      });
+    } finally {
+      setContributionModeSaving(false);
+    }
   };
 
   const handleSaveAcademicInformation = async () => {
@@ -857,6 +886,48 @@ const Settings = () => {
             ) : null}
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1.5 }}>
+              <Box sx={{ gridColumn: { xs: '1 / -1', md: '1 / -1' }, display: 'grid', gap: 1 }}>
+                <Typography variant="subtitle2" fontWeight={700}>
+                  Student Mode
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Learner mode blocks uploads and resource contribution routes until you switch back.
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <ToggleButtonGroup
+                    exclusive
+                    value={studentContributionMode}
+                    onChange={(_event, value) => {
+                      if (value) {
+                        setStudentContributionMode(value);
+                        setAcademicFeedback({ type: '', message: '' });
+                      }
+                    }}
+                    size="small"
+                  >
+                    <ToggleButton value="contributor">Contributor</ToggleButton>
+                    <ToggleButton value="learner">Learner</ToggleButton>
+                  </ToggleButtonGroup>
+                  <Chip
+                    size="small"
+                    color={canContribute ? 'success' : 'warning'}
+                    label={canContribute ? 'Currently can contribute' : 'Currently learner-only'}
+                    sx={{ fontWeight: 600 }}
+                  />
+                </Box>
+                <Box>
+                  <Button
+                    variant="outlined"
+                    color="success"
+                    onClick={handleSaveContributionMode}
+                    disabled={contributionModeSaving || studentContributionMode === contributionMode}
+                    sx={{ textTransform: 'none', fontWeight: 600 }}
+                  >
+                    {contributionModeSaving ? 'Saving Mode...' : 'Save Student Mode'}
+                  </Button>
+                </Box>
+              </Box>
+
               <FormControl fullWidth disabled={academicLoading || academicCatalogLoading.institutions}>
                 <Select
                   value={academicInstitutionId}

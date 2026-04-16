@@ -7,7 +7,8 @@ export const createStudentProfile = async (
   userId,
   institutionId,
   programId,
-  currentSemesterId
+  currentSemesterId,
+  contributionMode = "contributor"
 ) => {
   const [results] = await sequelize.query(SQL.STUDENT_PROFILE.CREATE, {
     replacements: {
@@ -15,6 +16,7 @@ export const createStudentProfile = async (
       institution_id: institutionId,
       program_id: programId,
       current_semester_id: currentSemesterId,
+      contribution_mode: contributionMode,
     },
   });
   return results;
@@ -66,6 +68,13 @@ export const updateStudentProgram = async (userId, programId) => {
 export const updateStudentSemester = async (userId, currentSemesterId) => {
   const [results] = await sequelize.query(SQL.STUDENT_PROFILE.UPDATE_SEMESTER, {
     replacements: { user_id: userId, current_semester_id: currentSemesterId },
+  });
+  return results;
+};
+
+export const updateStudentContributionMode = async (userId, contributionMode) => {
+  const [results] = await sequelize.query(SQL.STUDENT_PROFILE.UPDATE_CONTRIBUTION_MODE, {
+    replacements: { user_id: userId, contribution_mode: contributionMode },
   });
   return results;
 };

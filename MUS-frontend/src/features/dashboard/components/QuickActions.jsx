@@ -17,14 +17,16 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 
 const QuickActions = () => {
   const navigate = useNavigate();
-  const { isAdmin, hasAnyRole } = useAuth();
+  const { isAdmin, hasAnyRole, isStudent, canContribute } = useAuth();
+
+  const canOpenUploads = !isStudent || canContribute;
 
   const actions = [
     {
       label: 'Add Resource',
       icon: Add,
       color: 'primary',
-      onClick: () => navigate(isAdmin ? '/dashboard/resources' : '/dashboard/uploads'),
+      onClick: () => navigate(isAdmin ? '/dashboard/resources' : canOpenUploads ? '/dashboard/uploads' : '/dashboard/settings'),
     },
     {
       label: 'Discover Resources',
@@ -68,13 +70,19 @@ const QuickActions = () => {
   }
 
   if (hasAnyRole(['STUDENT', 'TEACHER'])) {
-    actions.push(
-      {
+    const learnerActions = [];
+
+    if (canOpenUploads) {
+      learnerActions.push({
         label: 'My Uploads',
         icon: UploadFile,
         color: 'info',
         onClick: () => navigate('/dashboard/uploads'),
-      },
+      });
+    }
+
+    actions.push(
+      ...learnerActions,
       {
         label: 'My Library',
         icon: School,

@@ -200,7 +200,7 @@ export const SQL = {
   USER: {
     REGISTER: `SELECT * FROM public.sp_user_register(:full_name, :email, :password)`,
 
-    REGISTER_STUDENT: `SELECT * FROM public.sp_user_register_student(:full_name, :email, :password, :institution_id, :program_id, :level_id, :current_semester_id)`,
+    REGISTER_STUDENT: `SELECT * FROM public.sp_user_register_student(:full_name, :email, :password, :institution_id, :program_id, :level_id, :current_semester_id, :contribution_mode)`,
     
     LOGIN: `SELECT * FROM public.sp_user_login(:email, :password)`,
     
@@ -455,7 +455,7 @@ export const SQL = {
   },
 
   STUDENT_PROFILE: {
-    CREATE: `SELECT * FROM public.sp_student_profile_create(:user_id, :institution_id, :program_id, :current_semester_id)`,
+    CREATE: `SELECT * FROM public.sp_student_profile_create(:user_id, :institution_id, :program_id, :current_semester_id, :contribution_mode)`,
 
     GET_BY_USER_ID: `SELECT * FROM public.sp_student_profile_get_by_user_id(:user_id)`,
 
@@ -468,6 +468,8 @@ export const SQL = {
     UPDATE_PROGRAM: `SELECT * FROM public.sp_student_profile_update_program(:user_id, :program_id)`,
 
     UPDATE_SEMESTER: `SELECT * FROM public.sp_student_profile_update_semester(:user_id, :current_semester_id)`,
+
+    UPDATE_CONTRIBUTION_MODE: `SELECT * FROM public.sp_student_profile_update_contribution_mode(:user_id, :contribution_mode)`,
 
     DELETE: `SELECT public.sp_student_profile_delete(:user_id)`,
 

@@ -37,6 +37,10 @@ router.post(
     body("program_id").optional().isInt({ min: 1 }).withMessage("Valid program ID is required"),
     body("level_id").optional().isInt({ min: 1 }).withMessage("Valid level ID is required"),
     body("current_semester_id").optional().isInt({ min: 1 }).withMessage("Valid current semester ID is required"),
+    body("contribution_mode")
+      .optional()
+      .isIn(["learner", "contributor"])
+      .withMessage("contribution_mode must be learner or contributor"),
     body("preferred_tag_ids").optional().isArray().withMessage("preferred_tag_ids must be an array"),
     body("preferred_tag_ids.*").optional().isInt({ min: 1 }).withMessage("Each preferred tag id must be a positive integer"),
     body().custom((payload) => {

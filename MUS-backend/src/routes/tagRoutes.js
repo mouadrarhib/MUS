@@ -6,6 +6,7 @@ import {
   requireOwnerOrAdmin,
   requirePublishedOrOwnerOrAdmin,
   requireRole,
+  requireStudentContributorOrStaff,
 } from "../middleware/authorization.js";
 import { getResourceById } from "../services/resourceService.js";
 import {
@@ -142,6 +143,7 @@ router.get(
 router.put(
   "/resources/:resourceId/tags",
   authMiddleware,
+  requireStudentContributorOrStaff,
   requireOwnerOrAdmin(getResourceOwnerId),
   [
     param("resourceId").isInt({ min: 1 }).withMessage("Valid resource ID is required"),
@@ -155,6 +157,7 @@ router.put(
 router.post(
   "/resources/:resourceId/tags",
   authMiddleware,
+  requireStudentContributorOrStaff,
   requireOwnerOrAdmin(getResourceOwnerId),
   [
     param("resourceId").isInt({ min: 1 }).withMessage("Valid resource ID is required"),
@@ -167,6 +170,7 @@ router.post(
 router.delete(
   "/resources/:resourceId/tags/:tagId",
   authMiddleware,
+  requireStudentContributorOrStaff,
   requireOwnerOrAdmin(getResourceOwnerId),
   [
     param("resourceId").isInt({ min: 1 }).withMessage("Valid resource ID is required"),

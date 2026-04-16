@@ -58,6 +58,7 @@ import {
   requireOwnerOrAdmin,
   requirePublishedOrOwnerOrAdmin,
   requireRole,
+  requireStudentContributorOrStaff,
 } from "../middleware/authorization.js";
 import { getResourceById } from "../services/resourceService.js";
 
@@ -89,6 +90,7 @@ const getResourceForVisibility = async (req) => {
 router.post(
   "/",
   authMiddleware,
+  requireStudentContributorOrStaff,
   [
     body("title").isString().withMessage("Le titre est requis"),
     body("description").optional().isString(),
@@ -109,6 +111,7 @@ router.post(
 router.post(
   "/upload-url",
   authMiddleware,
+  requireStudentContributorOrStaff,
   [
     body("filename").optional().isString().notEmpty(),
     query("filename").optional().isString().notEmpty(),
@@ -130,6 +133,7 @@ router.post(
 router.post(
   "/confirm-upload",
   authMiddleware,
+  requireStudentContributorOrStaff,
   [
     body("object_key").isString().notEmpty().withMessage("Object key is required"),
     body("title").isString().notEmpty().withMessage("Title is required"),
@@ -150,6 +154,7 @@ router.post(
 router.post(
   "/:id/upload-url",
   authMiddleware,
+  requireStudentContributorOrStaff,
   requireOwnerOrAdmin(getResourceOwnerId),
   [
     param("id").isInt().withMessage("Valid resource ID is required"),
@@ -173,6 +178,7 @@ router.post(
 router.post(
   "/:id/attach-file",
   authMiddleware,
+  requireStudentContributorOrStaff,
   requireOwnerOrAdmin(getResourceOwnerId),
   [
     param("id").isInt().withMessage("Valid resource ID is required"),
@@ -185,6 +191,7 @@ router.post(
 router.patch(
   "/:id/attach-url",
   authMiddleware,
+  requireStudentContributorOrStaff,
   requireOwnerOrAdmin(getResourceOwnerId),
   [
     param("id").isInt().withMessage("Valid resource ID is required"),
@@ -197,6 +204,7 @@ router.patch(
 router.post(
   "/:id/upload-file",
   authMiddleware,
+  requireStudentContributorOrStaff,
   requireOwnerOrAdmin(getResourceOwnerId),
   [param("id").isInt().withMessage("Valid resource ID is required")],
   validateRequest,
@@ -406,6 +414,7 @@ router.get(
 router.patch(
   "/:id",
   authMiddleware,
+  requireStudentContributorOrStaff,
   requireOwnerOrAdmin(getResourceOwnerId),
   [
     param("id").isInt().withMessage("ID de ressource invalide"),
@@ -428,6 +437,7 @@ router.patch(
 router.delete(
   "/:id",
   authMiddleware,
+  requireStudentContributorOrStaff,
   requireOwnerOrAdmin(getResourceOwnerId),
   [param("id").isInt().withMessage("ID de ressource invalide")],
   validateRequest,
@@ -437,6 +447,7 @@ router.delete(
 router.patch(
   "/:id/metadata",
   authMiddleware,
+  requireStudentContributorOrStaff,
   requireOwnerOrAdmin(getResourceOwnerId),
   [
     param("id").isInt().withMessage("ID de ressource invalide"),
@@ -449,6 +460,7 @@ router.patch(
 router.patch(
   "/:id/status",
   authMiddleware,
+  requireStudentContributorOrStaff,
   requireAuth,
   [
     param("id").isInt().withMessage("ID de ressource invalide"),

@@ -9,6 +9,7 @@ import {
   updateStudentInstitutionHandler,
   updateStudentProgramHandler,
   updateStudentSemesterHandler,
+  updateStudentContributionModeHandler,
   studentProfileExistsHandler,
   listStudentProfilesByInstitution,
   listStudentProfilesByProgram,
@@ -33,6 +34,7 @@ router.post(
     body("institution_id").isInt().withMessage("Valid institution ID is required"),
     body("program_id").isInt().withMessage("Valid program ID is required"),
     body("current_semester_id").isInt().withMessage("Valid current semester ID is required"),
+    body("contribution_mode").optional().isIn(["learner", "contributor"]).withMessage("contribution_mode must be learner or contributor"),
   ],
   validateRequest,
   addStudentProfile
@@ -104,9 +106,23 @@ router.patch(
     body("institution_id").optional().isInt(),
     body("program_id").optional().isInt(),
     body("current_semester_id").optional().isInt(),
+    body("contribution_mode").optional().isIn(["learner", "contributor"]),
   ],
   validateRequest,
   updateExistingStudentProfile
+);
+
+router.patch(
+  "/:userId/contribution-mode",
+  requireSelfOrAdmin("userId"),
+  [
+    param("userId").isUUID().withMessage("Valid user UUID is required"),
+    body("contribution_mode")
+      .isIn(["learner", "contributor"])
+      .withMessage("contribution_mode must be learner or contributor"),
+  ],
+  validateRequest,
+  updateStudentContributionModeHandler
 );
 
 router.delete(

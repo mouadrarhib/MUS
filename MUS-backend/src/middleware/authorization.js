@@ -1,4 +1,5 @@
 import AppError from "../helpers/appError.js";
+import { sequelize } from "../models/index.js";
 
 const getUserFromReq = (req) => req.user;
 
@@ -99,6 +100,45 @@ export const requirePublishedOrOwnerOrAdmin = (getResourceFn) => {
       return next(error);
     }
   };
+};
+
+export const requireStudentContributorOrStaff = async (req, _res, next) => {
+  try {
+    const user = getUserFromReq(req);
+    if (!user?.id) {
+      return next(new AppError("Authentification requise", 401));
+    }
+
+    const roles = user.roles || [];
+    if (roles.includes("admin") || roles.includes("teacher")) {
+      return next();
+    }
+
+    if (!roles.includes("student")) {
+      return next(new AppError("Acces refuse", 403));
+    }
+
+    const [rows] = await sequelize.query(
+      `
+      SELECT contribution_mode
+      FROM public.student_profiles
+      WHERE user_id = :user_id
+      LIMIT 1
+      `,
+      {
+        replacements: { user_id: user.id },
+      }
+    );
+
+    const mode = String(rows?.[0]?.contribution_mode || "contributor").trim().toLowerCase();
+    if (mode !== "contributor") {
+      return next(new AppError("Contribution mode requis pour cette action", 403));
+    }
+
+    return next();
+  } catch (error) {
+    return next(error);
+  }
 };
 
 export const requireAdmin = requireRole("admin");
