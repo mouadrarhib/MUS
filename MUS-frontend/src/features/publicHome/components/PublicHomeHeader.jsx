@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { Box, Button, IconButton, Stack, Typography, alpha, Menu as MuiMenu, MenuItem, ListItemIcon } from "@mui/material";
 import { Language, DarkMode, LightMode, Check } from "@mui/icons-material";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useThemeMode } from "@/app/providers/ThemeContext";
 import { useLanguage } from "@/app/providers/LanguageContext";
+import { useAuth } from "@/features/auth/context/AuthContext";
 import logo from "@/assets/images/logo.png";
 
 const PublicHomeHeader = ({ navLinks = [] }) => {
   const { mode, toggleTheme } = useThemeMode();
   const { language, setLanguage, t } = useLanguage();
+  const { isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
   const [languageAnchorEl, setLanguageAnchorEl] = useState(null);
 
   const languageOpen = Boolean(languageAnchorEl);
@@ -24,6 +27,11 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
   const handleLanguageSelect = (nextLanguage) => {
     setLanguage(nextLanguage);
     handleLanguageClose();
+  };
+
+  const handleLogout = () => {
+    navigate("/", { replace: true });
+    logout();
   };
 
   return (
@@ -120,28 +128,77 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
             {mode === "light" ? <DarkMode sx={{ fontSize: 18 }} /> : <LightMode sx={{ fontSize: 18, color: "warning.main" }} />}
           </IconButton>
 
-          <Button
-            component={RouterLink}
-            to="/login"
-            variant="contained"
-            sx={{
-              borderRadius: 2,
-              px: 2.2,
-              py: 0.7,
-              fontWeight: 700,
-              textTransform: "none",
-              fontSize: "0.85rem",
-              background: "linear-gradient(135deg, #44d62c 0%, #36b824 100%)",
-              boxShadow: "0 2px 8px rgba(68,214,44,0.3)",
-              border: "1px solid rgba(68,214,44,0.2)",
-              "&:hover": {
-                background: "linear-gradient(135deg, #3ec427 0%, #30a820 100%)",
-                boxShadow: "0 4px 14px rgba(68,214,44,0.4)",
-              },
-            }}
-          >
-            {t("publicHome.header.signIn", "Sign in")}
-          </Button>
+          {isAuthenticated ? (
+            <>
+              <Button
+                component={RouterLink}
+                to="/dashboard"
+                variant="contained"
+                sx={{
+                  borderRadius: 2,
+                  px: 2.2,
+                  py: 0.7,
+                  fontWeight: 700,
+                  textTransform: "none",
+                  fontSize: "0.85rem",
+                  background: "linear-gradient(135deg, #7c5cfc 0%, #5b3fdd 100%)",
+                  boxShadow: "0 2px 8px rgba(124,92,252,0.3)",
+                  "&:hover": {
+                    background: "linear-gradient(135deg, #6e4fe8 0%, #4e36cc 100%)",
+                    boxShadow: "0 4px 14px rgba(124,92,252,0.4)",
+                  },
+                }}
+              >
+                {t("common.dashboard", "Dashboard")}
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={handleLogout}
+                sx={{
+                  borderRadius: 2,
+                  px: 1.8,
+                  py: 0.6,
+                  fontWeight: 700,
+                  textTransform: "none",
+                  fontSize: "0.85rem",
+                  borderColor: (theme) =>
+                    theme.palette.mode === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)",
+                  color: "text.primary",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    borderColor: "error.main",
+                    color: "error.main",
+                    bgcolor: (theme) => alpha(theme.palette.error.main, 0.06),
+                  },
+                }}
+              >
+                {t("common.logout", "Logout")}
+              </Button>
+            </>
+          ) : (
+            <Button
+              component={RouterLink}
+              to="/login"
+              variant="contained"
+              sx={{
+                borderRadius: 2,
+                px: 2.2,
+                py: 0.7,
+                fontWeight: 700,
+                textTransform: "none",
+                fontSize: "0.85rem",
+                background: "linear-gradient(135deg, #44d62c 0%, #36b824 100%)",
+                boxShadow: "0 2px 8px rgba(68,214,44,0.3)",
+                border: "1px solid rgba(68,214,44,0.2)",
+                "&:hover": {
+                  background: "linear-gradient(135deg, #3ec427 0%, #30a820 100%)",
+                  boxShadow: "0 4px 14px rgba(68,214,44,0.4)",
+                },
+              }}
+            >
+              {t("publicHome.header.signIn", "Sign in")}
+            </Button>
+          )}
 
           <Button
             onClick={handleLanguageOpen}
