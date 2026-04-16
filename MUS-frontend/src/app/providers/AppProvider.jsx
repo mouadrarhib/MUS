@@ -17,18 +17,35 @@ const ThemeProviderComponent = ({ children }) => {
     return mode === 'light' ? lightTheme : darkTheme;
   }, [mode]);
 
-  const toggleTheme = useCallback(() => {
+  const applyThemeMode = useCallback((nextMode) => {
+    if (nextMode !== 'light' && nextMode !== 'dark') return;
+
     document.documentElement.classList.add('theme-switching');
+
     setMode((prevMode) => {
-      const newMode = prevMode === 'light' ? 'dark' : 'light';
-      localStorage.setItem('themeMode', newMode);
-      return newMode;
+      if (prevMode === nextMode) {
+        return prevMode;
+      }
+      localStorage.setItem('themeMode', nextMode);
+      return nextMode;
     });
 
     window.setTimeout(() => {
       document.documentElement.classList.remove('theme-switching');
     }, 180);
   }, []);
+
+  const toggleTheme = useCallback(() => {
+    const nextMode = mode === 'light' ? 'dark' : 'light';
+    applyThemeMode(nextMode);
+  }, [mode, applyThemeMode]);
+
+  const setThemeMode = useCallback(
+    (nextMode) => {
+      applyThemeMode(nextMode);
+    },
+    [applyThemeMode]
+  );
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', mode);
@@ -38,8 +55,9 @@ const ThemeProviderComponent = ({ children }) => {
     () => ({
       mode,
       toggleTheme,
+      setThemeMode,
     }),
-    [mode, toggleTheme]
+    [mode, toggleTheme, setThemeMode]
   );
 
   return (

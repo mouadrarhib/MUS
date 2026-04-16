@@ -58,7 +58,7 @@ import { SettingSection, SettingRow } from '@/features/settings/components/Setti
 import DeleteAccountDialog from '@/features/settings/components/DeleteAccountDialog';
 
 const Settings = () => {
-  const { mode, toggleTheme } = useThemeMode();
+  const { mode, setThemeMode } = useThemeMode();
   const { user, isAdmin, isStudent, contributionMode, canContribute, refreshProfile } = useAuth();
   const { language, setLanguage: setAppLanguage, t } = useLanguage();
   
@@ -183,8 +183,8 @@ const Settings = () => {
   const applyServerSettings = (settings) => {
     if (!settings) return;
 
-    if (settings.theme_mode && settings.theme_mode !== mode) {
-      toggleTheme();
+    if ((settings.theme_mode === 'light' || settings.theme_mode === 'dark') && settings.theme_mode !== mode) {
+      setThemeMode(settings.theme_mode);
     }
 
     if (settings.font_size) {
@@ -482,7 +482,7 @@ const Settings = () => {
 
   const handleThemeChange = async () => {
     const nextTheme = mode === 'dark' ? 'light' : 'dark';
-    toggleTheme();
+    setThemeMode(nextTheme);
     await persistAppearance({
       theme_mode: nextTheme,
       font_size: fontSize,
