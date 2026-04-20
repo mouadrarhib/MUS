@@ -53,6 +53,11 @@ const pickId = (payload) => {
   return data.id || data.resource_id || null;
 };
 
+const getNotificationRows = (payload) => {
+  const rows = payload?.data?.rows;
+  return Array.isArray(rows) ? rows : [];
+};
+
 const fail = (msg) => {
   console.error(msg);
   process.exit(1);
@@ -196,6 +201,19 @@ const run = async () => {
     resourceId = fallbackResourceId;
   }
 
+  record(
+    await admin.request("assign teacher as module referent", "POST", "/api/confusion/module-staff-assignments", {
+      body: {
+        module_id: moduleId,
+        user_id: teacherId,
+        assignment_role: "teacher_referent",
+        is_primary: true,
+        is_active: true,
+      },
+      expectedStatus: [200, 201],
+    })
+  );
+
   const q1 = await student.request("create anonymous question", "POST", "/api/qa/questions", {
     body: {
       module_id: moduleId,
@@ -302,6 +320,33 @@ const run = async () => {
     record(commentsAfterHide);
     const hiddenCommentVisible = (commentsAfterHide.payload?.data || []).some((c) => c.id === answerCommentId);
     if (hiddenCommentVisible) fail("Hidden comment is still visible in public list");
+  }
+
+  const teacherNotifications = await teacher.request(
+    "teacher unread notifications",
+    "GET",
+    "/api/notifications?unread_only=true&limit=100",
+    { expectedStatus: 200 }
+  );
+  record(teacherNotifications);
+
+  const teacherNotificationRows = getNotificationRows(teacherNotifications.payload);
+  const teacherNotificationTypes = new Set(teacherNotificationRows.map((row) => row.type));
+  if (!teacherNotificationTypes.has("QA_QUESTION_CREATED")) {
+    fail("Expected QA_QUESTION_CREATED notification for assigned teacher");
+  }
+  if (!teacherNotificationTypes.has("QA_ANSWER_CREATED")) {
+    fail("Expected QA_ANSWER_CREATED notification for assigned teacher");
+  }
+  if (!teacherNotificationTypes.has("QA_ANSWER_COMMENT_CREATED")) {
+    fail("Expected QA_ANSWER_COMMENT_CREATED notification for assigned teacher");
+  }
+
+  const ownQuestionCommentNotification = teacherNotificationRows.find(
+    (row) => row.type === "QA_QUESTION_COMMENT_CREATED" && row.payload?.actor_user_id === teacherId
+  );
+  if (ownQuestionCommentNotification) {
+    fail("Actor should not receive self notifications for own QA comment");
   }
 
   record(

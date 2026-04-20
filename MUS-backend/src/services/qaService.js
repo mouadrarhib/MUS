@@ -1,5 +1,6 @@
 import { sequelize } from "../models/index.js";
 import AppError from "../helpers/appError.js";
+import { createNotificationsBulk } from "./notificationService.js";
 
 const isAdmin = (roles = []) => roles.includes("admin");
 const isTeacher = (roles = []) => roles.includes("teacher");
@@ -7,6 +8,12 @@ const isStudent = (roles = []) => roles.includes("student");
 const TWO_HOURS = "2 hours";
 const STUDENT_QUESTION_LIMIT = 5;
 const STUDENT_ANSWER_LIMIT = 5;
+const QA_NOTIFICATION_TYPES = {
+  QUESTION_CREATED: "QA_QUESTION_CREATED",
+  ANSWER_CREATED: "QA_ANSWER_CREATED",
+  QUESTION_COMMENT_CREATED: "QA_QUESTION_COMMENT_CREATED",
+  ANSWER_COMMENT_CREATED: "QA_ANSWER_COMMENT_CREATED",
+};
 
 const canModerate = (roles = []) => isTeacher(roles) || isAdmin(roles);
 const canViewHidden = ({ actor = null, includeHidden = false }) =>
@@ -111,6 +118,74 @@ const ensureResourceLinkedToModule = async ({ resourceId, moduleId }) => {
   }
 };
 
+const listQaNotificationRecipients = async ({ questionId = null, resourceId = null, moduleId = null, actorUserId = null }) => {
+  const [rows] = await sequelize.query(
+    `
+    SELECT user_id, source
+    FROM public.sp_qa_notification_recipients(
+      :question_id,
+      :resource_id,
+      :module_id,
+      :actor_user_id
+    )
+    `,
+    {
+      replacements: {
+        question_id: questionId,
+        resource_id: resourceId,
+        module_id: moduleId,
+        actor_user_id: actorUserId,
+      },
+    }
+  );
+
+  return rows;
+};
+
+const notifyQaStakeholders = async ({
+  actorUserId,
+  questionId = null,
+  resourceId = null,
+  moduleId = null,
+  type,
+  title,
+  body,
+  payload = {},
+}) => {
+  try {
+    const recipients = await listQaNotificationRecipients({
+      questionId,
+      resourceId,
+      moduleId,
+      actorUserId,
+    });
+
+    if (!Array.isArray(recipients) || recipients.length === 0) {
+      return [];
+    }
+
+    const uniqueRecipientIds = Array.from(
+      new Set(recipients.map((row) => row.user_id).filter(Boolean))
+    );
+
+    if (!uniqueRecipientIds.length) {
+      return [];
+    }
+
+    const items = uniqueRecipientIds.map((recipientUserId) => ({
+      recipientUserId,
+      type,
+      title,
+      body,
+      payload,
+    }));
+
+    return createNotificationsBulk(items);
+  } catch (_error) {
+    return [];
+  }
+};
+
 export const createQuestion = async ({ userId, moduleId, resourceId, title, body, isAnonymous = false }) => {
   await ensureResourceLinkedToModule({ resourceId, moduleId });
 
@@ -137,7 +212,25 @@ export const createQuestion = async ({ userId, moduleId, resourceId, title, body
 
 export const createQuestionWithRoles = async ({ userId, roles = [], moduleId, resourceId, title, body, isAnonymous = false }) => {
   await assertStudentQuota({ userId, roles, type: "question" });
-  return createQuestion({ userId, moduleId, resourceId, title, body, isAnonymous });
+  const question = await createQuestion({ userId, moduleId, resourceId, title, body, isAnonymous });
+
+  await notifyQaStakeholders({
+    actorUserId: userId,
+    questionId: question.id,
+    resourceId: question.resource_id,
+    moduleId: question.module_id,
+    type: QA_NOTIFICATION_TYPES.QUESTION_CREATED,
+    title: "Nouvelle question sur une ressource",
+    body: "Une nouvelle question a ete publiee sur une ressource que vous suivez.",
+    payload: {
+      resource_id: question.resource_id,
+      module_id: question.module_id,
+      question_id: question.id,
+      actor_user_id: userId,
+    },
+  });
+
+  return question;
 };
 
 export const listQuestions = async (
@@ -196,7 +289,7 @@ export const getQuestionById = async (questionId, actor = null, includeHidden = 
 const ensureQuestionExists = async (questionId, { allowHidden = false } = {}) => {
   const [rows] = await sequelize.query(
     `
-    SELECT id, module_id, status::text AS status, moderation_status::text AS moderation_status
+    SELECT id, module_id, resource_id, user_id, status::text AS status, moderation_status::text AS moderation_status
     FROM public.qa_questions
     WHERE id = :question_id
       AND (:allow_hidden = TRUE OR moderation_status = 'active'::qa_moderation_status)
@@ -284,6 +377,24 @@ export const createAnswer = async ({ questionId, userId, roles = [], body, expla
     `,
     { replacements: { question_id: questionId } }
   );
+
+  await notifyQaStakeholders({
+    actorUserId: userId,
+    questionId: question.id,
+    resourceId: question.resource_id,
+    moduleId: question.module_id,
+    type: QA_NOTIFICATION_TYPES.ANSWER_CREATED,
+    title: "Nouvelle reponse sur une question",
+    body: "Une nouvelle reponse vient d'etre ajoutee a une question de votre ressource/module.",
+    payload: {
+      resource_id: question.resource_id,
+      module_id: question.module_id,
+      question_id: question.id,
+      answer_id: rows[0].id,
+      actor_user_id: userId,
+      is_official: rows[0].is_official,
+    },
+  });
 
   return rows[0];
 };
@@ -527,11 +638,29 @@ export const createCommentOnQuestion = async ({ questionId, userId, body }) => {
     }
   );
 
+  await notifyQaStakeholders({
+    actorUserId: userId,
+    questionId: question.id,
+    resourceId: question.resource_id,
+    moduleId: question.module_id,
+    type: QA_NOTIFICATION_TYPES.QUESTION_COMMENT_CREATED,
+    title: "Nouveau commentaire sur une question",
+    body: "Un commentaire a ete ajoute sur une question de votre ressource/module.",
+    payload: {
+      resource_id: question.resource_id,
+      module_id: question.module_id,
+      question_id: question.id,
+      comment_id: rows[0].id,
+      actor_user_id: userId,
+    },
+  });
+
   return rows[0];
 };
 
 export const createCommentOnAnswer = async ({ answerId, userId, body }) => {
-  await ensureAnswerExists(answerId, { allowHidden: false });
+  const answer = await ensureAnswerExists(answerId, { allowHidden: false });
+  const question = await ensureQuestionExists(answer.question_id, { allowHidden: false });
 
   const [rows] = await sequelize.query(
     `
@@ -547,6 +676,24 @@ export const createCommentOnAnswer = async ({ answerId, userId, body }) => {
       },
     }
   );
+
+  await notifyQaStakeholders({
+    actorUserId: userId,
+    questionId: question.id,
+    resourceId: question.resource_id,
+    moduleId: question.module_id,
+    type: QA_NOTIFICATION_TYPES.ANSWER_COMMENT_CREATED,
+    title: "Nouveau commentaire sur une reponse",
+    body: "Un commentaire a ete ajoute sur une reponse de votre ressource/module.",
+    payload: {
+      resource_id: question.resource_id,
+      module_id: question.module_id,
+      question_id: question.id,
+      answer_id: answer.id,
+      comment_id: rows[0].id,
+      actor_user_id: userId,
+    },
+  });
 
   return rows[0];
 };
