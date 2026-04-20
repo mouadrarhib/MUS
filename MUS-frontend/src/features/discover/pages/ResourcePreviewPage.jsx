@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { createElement, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -8,6 +9,7 @@ import {
   IconButton,
   Skeleton,
   Stack,
+  TextField,
   Tooltip,
   Typography,
   alpha,
@@ -28,10 +30,12 @@ import {
   Article,
   Headphones,
   ImageOutlined,
+  QuestionAnswer,
 } from '@mui/icons-material';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import DiscoverNavbar from '@/features/discover/components/DiscoverNavbar';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import qaService from '@/services/qaService';
 import resourcesService from '@/services/resourcesService';
 
 /* ─── helpers ─── */
@@ -50,6 +54,13 @@ const FORMAT_META = {
 
 const getFormatMeta = (fmt) =>
   FORMAT_META[fmt] || { label: fmt ? fmt.toUpperCase() : 'File', color: '#7c5cfc', Icon: Article };
+
+const formatDateTime = (value) => {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toLocaleString();
+};
 
 /* ─── Panel wrapper ─── */
 const Panel = ({ children, sx = {} }) => (
@@ -76,11 +87,11 @@ const Panel = ({ children, sx = {} }) => (
 );
 
 /* ─── Metadata row ─── */
-const MetaRow = ({ icon: Icon, label, value }) => {
+const MetaRow = ({ icon, label, value }) => {
   if (!value) return null;
   return (
     <Stack direction="row" spacing={1} alignItems="flex-start">
-      <Icon sx={{ fontSize: 15, color: 'text.disabled', mt: '2px', flexShrink: 0 }} />
+      {createElement(icon, { sx: { fontSize: 15, color: 'text.disabled', mt: '2px', flexShrink: 0 } })}
       <Box>
         <Typography
           variant="caption"
@@ -227,6 +238,24 @@ const ResourcePreviewPage = () => {
   const [previewUrl, setPreviewUrl] = useState(location.state?.previewUrl || '');
   const [error, setError] = useState('');
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [qaLoading, setQaLoading] = useState(false);
+  const [qaError, setQaError] = useState('');
+  const [questions, setQuestions] = useState([]);
+  const [selectedQuestionId, setSelectedQuestionId] = useState(null);
+  const [answers, setAnswers] = useState([]);
+  const [questionComments, setQuestionComments] = useState([]);
+  const [answerCommentsMap, setAnswerCommentsMap] = useState({});
+  const [questionTitleInput, setQuestionTitleInput] = useState('');
+  const [questionBodyInput, setQuestionBodyInput] = useState('');
+  const [answerBodyInput, setAnswerBodyInput] = useState('');
+  const [questionCommentInput, setQuestionCommentInput] = useState('');
+  const [answerCommentInputs, setAnswerCommentInputs] = useState({});
+  const [creatingQuestion, setCreatingQuestion] = useState(false);
+  const [creatingAnswer, setCreatingAnswer] = useState(false);
+  const [creatingQuestionComment, setCreatingQuestionComment] = useState(false);
+  const [creatingAnswerCommentId, setCreatingAnswerCommentId] = useState(null);
+  const resourceId = Number(resource?.id || id);
+  const moduleId = Number(resource?.academicContext?.moduleId || resource?.module_id || 0) || null;
 
   useEffect(() => {
     const resourceId = Number(id);
@@ -263,6 +292,42 @@ const ResourcePreviewPage = () => {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!resourceId) return;
+    let cancelled = false;
+
+    setQaLoading(true);
+    setQaError('');
+
+    qaService
+      .listQuestions({ resource_id: resourceId })
+      .then((rows) => {
+        if (cancelled) return;
+        setQuestions(rows);
+        if (!rows.some((item) => item.id === selectedQuestionId)) {
+          setSelectedQuestionId(rows[0]?.id || null);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setQaError('Unable to load Q&A right now.');
+        setQuestions([]);
+        setSelectedQuestionId(null);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setQaLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resourceId, selectedQuestionId]);
+
+  useEffect(() => {
+    loadSelectedThread(selectedQuestionId);
+  }, [selectedQuestionId]);
 
   const normalizedFormat = getFormat(resource);
   const formatMeta = getFormatMeta(normalizedFormat);
@@ -302,6 +367,143 @@ const ResourcePreviewPage = () => {
   const accessTier    = resource?.accessTier || resource?.access_tier || 'free';
   const isPremium     = String(accessTier).toLowerCase() === 'premium';
   const description   = resource?.description || resource?.resource_description;
+  const selectedQuestion = questions.find((item) => item.id === selectedQuestionId) || null;
+
+  async function loadQuestions({ keepSelection = true } = {}) {
+    if (!resourceId) return;
+    setQaLoading(true);
+    setQaError('');
+    try {
+      const rows = await qaService.listQuestions({ resource_id: resourceId });
+      setQuestions(rows);
+      if (!keepSelection || !rows.some((item) => item.id === selectedQuestionId)) {
+        setSelectedQuestionId(rows[0]?.id || null);
+      }
+    } catch {
+      setQaError('Unable to load Q&A right now.');
+      setQuestions([]);
+      setSelectedQuestionId(null);
+    } finally {
+      setQaLoading(false);
+    }
+  }
+
+  async function loadSelectedThread(questionIdValue) {
+    if (!questionIdValue) {
+      setAnswers([]);
+      setQuestionComments([]);
+      setAnswerCommentsMap({});
+      return;
+    }
+
+    try {
+      const [nextAnswers, nextQuestionComments] = await Promise.all([
+        qaService.listAnswersByQuestion(questionIdValue),
+        qaService.listQuestionComments(questionIdValue),
+      ]);
+
+      setAnswers(nextAnswers);
+      setQuestionComments(nextQuestionComments);
+
+      if (!nextAnswers.length) {
+        setAnswerCommentsMap({});
+        return;
+      }
+
+      const answerCommentEntries = await Promise.all(
+        nextAnswers.map(async (answer) => {
+          const comments = await qaService.listAnswerComments(answer.id);
+          return [answer.id, comments];
+        })
+      );
+
+      setAnswerCommentsMap(Object.fromEntries(answerCommentEntries));
+    } catch {
+      setQaError('Unable to load this discussion thread.');
+    }
+  }
+
+  const handleCreateQuestion = async () => {
+    if (!isAuthenticated || !moduleId || !resourceId || creatingQuestion) return;
+    if (questionTitleInput.trim().length < 5 || questionBodyInput.trim().length < 10) return;
+
+    setCreatingQuestion(true);
+    setQaError('');
+    try {
+      const created = await qaService.createQuestion({
+        module_id: moduleId,
+        resource_id: resourceId,
+        title: questionTitleInput.trim(),
+        body: questionBodyInput.trim(),
+      });
+      setQuestionTitleInput('');
+      setQuestionBodyInput('');
+      await loadQuestions({ keepSelection: false });
+      if (created?.id) {
+        setSelectedQuestionId(created.id);
+      }
+    } catch {
+      setQaError('Failed to post your question.');
+    } finally {
+      setCreatingQuestion(false);
+    }
+  };
+
+  const handleCreateAnswer = async () => {
+    if (!isAuthenticated || !selectedQuestionId || creatingAnswer) return;
+    if (answerBodyInput.trim().length < 10) return;
+
+    setCreatingAnswer(true);
+    setQaError('');
+    try {
+      await qaService.createAnswer(selectedQuestionId, {
+        body: answerBodyInput.trim(),
+      });
+      setAnswerBodyInput('');
+      await Promise.all([loadQuestions({ keepSelection: true }), loadSelectedThread(selectedQuestionId)]);
+    } catch {
+      setQaError('Failed to post your answer.');
+    } finally {
+      setCreatingAnswer(false);
+    }
+  };
+
+  const handleCreateQuestionComment = async () => {
+    if (!isAuthenticated || !selectedQuestionId || creatingQuestionComment) return;
+    if (questionCommentInput.trim().length < 2) return;
+
+    setCreatingQuestionComment(true);
+    setQaError('');
+    try {
+      await qaService.createQuestionComment(selectedQuestionId, {
+        body: questionCommentInput.trim(),
+      });
+      setQuestionCommentInput('');
+      await loadSelectedThread(selectedQuestionId);
+    } catch {
+      setQaError('Failed to post question comment.');
+    } finally {
+      setCreatingQuestionComment(false);
+    }
+  };
+
+  const handleCreateAnswerComment = async (answerId) => {
+    if (!isAuthenticated || !answerId || creatingAnswerCommentId) return;
+    const value = String(answerCommentInputs[answerId] || '').trim();
+    if (value.length < 2) return;
+
+    setCreatingAnswerCommentId(answerId);
+    setQaError('');
+    try {
+      await qaService.createAnswerComment(answerId, { body: value });
+      setAnswerCommentInputs((prev) => ({ ...prev, [answerId]: '' }));
+      await loadSelectedThread(selectedQuestionId);
+    } catch {
+      setQaError('Failed to post answer comment.');
+    } finally {
+      setCreatingAnswerCommentId(null);
+    }
+  };
 
   /* ─── preview panel content ─── */
   const renderPreview = () => {
@@ -526,6 +728,253 @@ const ResourcePreviewPage = () => {
             )}
           </Panel>
         </Box>
+
+        <Panel sx={{ mt: 2, p: { xs: 2, md: 2.5 } }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <QuestionAnswer sx={{ color: 'primary.main' }} />
+              <Typography variant="h6" fontWeight={700}>Q&A Discussion</Typography>
+            </Stack>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => loadQuestions({ keepSelection: true })}
+              disabled={qaLoading || !resourceId}
+              sx={{ textTransform: 'none', borderRadius: 2 }}
+            >
+              Refresh
+            </Button>
+          </Stack>
+
+          {qaError ? <Alert severity="error" sx={{ mb: 2 }}>{qaError}</Alert> : null}
+
+          <Box sx={{ mb: 2.5 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>Ask a question</Typography>
+            {!isAuthenticated ? (
+              <Alert severity="info">Sign in to ask questions, answer, and comment.</Alert>
+            ) : !moduleId ? (
+              <Alert severity="warning">This resource is not linked to a module yet. Question creation is disabled.</Alert>
+            ) : null}
+
+            <Stack spacing={1.25} sx={{ mt: 1.25 }}>
+              <TextField
+                size="small"
+                label="Question title"
+                value={questionTitleInput}
+                onChange={(event) => setQuestionTitleInput(event.target.value)}
+                disabled={!isAuthenticated || !moduleId || creatingQuestion}
+              />
+              <TextField
+                size="small"
+                label="Question details"
+                multiline
+                minRows={3}
+                value={questionBodyInput}
+                onChange={(event) => setQuestionBodyInput(event.target.value)}
+                disabled={!isAuthenticated || !moduleId || creatingQuestion}
+              />
+              <Box>
+                <Button
+                  variant="contained"
+                  onClick={handleCreateQuestion}
+                  disabled={!isAuthenticated || !moduleId || creatingQuestion || questionTitleInput.trim().length < 5 || questionBodyInput.trim().length < 10}
+                  sx={{ textTransform: 'none', borderRadius: 2 }}
+                >
+                  {creatingQuestion ? 'Posting...' : 'Post question'}
+                </Button>
+              </Box>
+            </Stack>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: '320px 1fr' },
+              gap: 2,
+            }}
+          >
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
+                Questions ({questions.length})
+              </Typography>
+              {qaLoading ? (
+                <Typography variant="body2" color="text.secondary">Loading discussions...</Typography>
+              ) : !questions.length ? (
+                <Typography variant="body2" color="text.secondary">No questions yet. Start the first thread.</Typography>
+              ) : (
+                <Stack spacing={1}>
+                  {questions.map((question) => {
+                    const isSelected = selectedQuestionId === question.id;
+                    return (
+                      <Box
+                        key={question.id}
+                        role="button"
+                        onClick={() => setSelectedQuestionId(question.id)}
+                        sx={(theme) => ({
+                          borderRadius: 2,
+                          border: '1px solid',
+                          borderColor: isSelected ? 'primary.main' : 'divider',
+                          backgroundColor: isSelected ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
+                          p: 1.25,
+                          cursor: 'pointer',
+                        })}
+                      >
+                        <Typography variant="body2" fontWeight={700}>{question.title}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.35 }}>
+                          {question.user_name || 'Unknown'} · {question.status}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              )}
+            </Box>
+
+            <Box>
+              {!selectedQuestion ? (
+                <Typography variant="body2" color="text.secondary">Select a question to view the full thread.</Typography>
+              ) : (
+                <Stack spacing={2}>
+                  <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
+                    <Typography variant="subtitle1" fontWeight={700}>{selectedQuestion.title}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-line', mt: 0.75 }}>
+                      {selectedQuestion.body}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                      {selectedQuestion.user_name || 'Unknown'} · {formatDateTime(selectedQuestion.created_at)}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Comments on question</Typography>
+                    {questionComments.length ? (
+                      <Stack spacing={0.8} sx={{ mb: 1.25 }}>
+                        {questionComments.map((comment) => (
+                          <Box key={comment.id} sx={{ p: 1, borderRadius: 1.5, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06) }}>
+                            <Typography variant="body2">{comment.body}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {comment.user_name || 'Unknown'} · {formatDateTime(comment.created_at)}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.25 }}>No comments yet.</Typography>
+                    )}
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                      <TextField
+                        size="small"
+                        fullWidth
+                        label="Add a comment"
+                        value={questionCommentInput}
+                        onChange={(event) => setQuestionCommentInput(event.target.value)}
+                        disabled={!isAuthenticated || creatingQuestionComment}
+                      />
+                      <Button
+                        variant="outlined"
+                        onClick={handleCreateQuestionComment}
+                        disabled={!isAuthenticated || creatingQuestionComment || questionCommentInput.trim().length < 2}
+                        sx={{ textTransform: 'none', borderRadius: 2, whiteSpace: 'nowrap' }}
+                      >
+                        {creatingQuestionComment ? 'Posting...' : 'Comment'}
+                      </Button>
+                    </Stack>
+                  </Box>
+
+                  <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Post an answer</Typography>
+                    <Stack spacing={1}>
+                      <TextField
+                        size="small"
+                        multiline
+                        minRows={3}
+                        label="Your answer"
+                        value={answerBodyInput}
+                        onChange={(event) => setAnswerBodyInput(event.target.value)}
+                        disabled={!isAuthenticated || creatingAnswer}
+                      />
+                      <Box>
+                        <Button
+                          variant="contained"
+                          onClick={handleCreateAnswer}
+                          disabled={!isAuthenticated || creatingAnswer || answerBodyInput.trim().length < 10}
+                          sx={{ textTransform: 'none', borderRadius: 2 }}
+                        >
+                          {creatingAnswer ? 'Posting...' : 'Post answer'}
+                        </Button>
+                      </Box>
+                    </Stack>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                      Answers ({answers.length})
+                    </Typography>
+                    {!answers.length ? (
+                      <Typography variant="body2" color="text.secondary">No answers yet.</Typography>
+                    ) : (
+                      <Stack spacing={1.25}>
+                        {answers.map((answer) => (
+                          <Box key={answer.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.25 }}>
+                            <Stack direction="row" spacing={0.75} sx={{ mb: 0.75 }}>
+                              {answer.is_official ? <Chip size="small" label="Official" color="info" /> : null}
+                              {answer.is_accepted ? <Chip size="small" label="Accepted" color="success" /> : null}
+                            </Stack>
+                            <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>{answer.body}</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
+                              {answer.user_name || 'Unknown'} · {formatDateTime(answer.created_at)}
+                            </Typography>
+
+                            <Box sx={{ mt: 1.1 }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                                Answer comments
+                              </Typography>
+                              {Array.isArray(answerCommentsMap[answer.id]) && answerCommentsMap[answer.id].length ? (
+                                <Stack spacing={0.5} sx={{ mb: 0.8 }}>
+                                  {answerCommentsMap[answer.id].map((comment) => (
+                                    <Box key={comment.id} sx={{ p: 0.75, borderRadius: 1.25, bgcolor: (theme) => alpha(theme.palette.info.main, 0.07) }}>
+                                      <Typography variant="caption" sx={{ display: 'block' }}>{comment.body}</Typography>
+                                      <Typography variant="caption" color="text.secondary">
+                                        {comment.user_name || 'Unknown'} · {formatDateTime(comment.created_at)}
+                                      </Typography>
+                                    </Box>
+                                  ))}
+                                </Stack>
+                              ) : (
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.8 }}>
+                                  No comments yet.
+                                </Typography>
+                              )}
+
+                              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                                <TextField
+                                  size="small"
+                                  fullWidth
+                                  label="Comment on this answer"
+                                  value={answerCommentInputs[answer.id] || ''}
+                                  onChange={(event) => setAnswerCommentInputs((prev) => ({ ...prev, [answer.id]: event.target.value }))}
+                                  disabled={!isAuthenticated || creatingAnswerCommentId === answer.id}
+                                />
+                                <Button
+                                  variant="outlined"
+                                  onClick={() => handleCreateAnswerComment(answer.id)}
+                                  disabled={!isAuthenticated || creatingAnswerCommentId === answer.id || String(answerCommentInputs[answer.id] || '').trim().length < 2}
+                                  sx={{ textTransform: 'none', borderRadius: 2, whiteSpace: 'nowrap' }}
+                                >
+                                  {creatingAnswerCommentId === answer.id ? 'Posting...' : 'Comment'}
+                                </Button>
+                              </Stack>
+                            </Box>
+                          </Box>
+                        ))}
+                      </Stack>
+                    )}
+                  </Box>
+                </Stack>
+              )}
+            </Box>
+          </Box>
+        </Panel>
       </Box>
     </Box>
   );
