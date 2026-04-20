@@ -13,6 +13,8 @@ import {
   MenuItem,
   Divider,
   ListItemIcon,
+  Badge,
+  CircularProgress,
   alpha
 } from '@mui/material';
 import {
@@ -22,28 +24,121 @@ import {
   Person,
   DarkMode,
   LightMode,
-  EmojiEvents
+  EmojiEvents,
+  NotificationsNone,
+  MarkEmailRead,
 } from '@mui/icons-material';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useThemeMode } from '@/app/providers/ThemeContext';
 import userSettingsService from '@/services/userSettingsService';
-import { useState } from 'react';
+import notificationService from '@/services/notificationService';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import logo from '@/assets/images/logo.png';
 import { useLanguage } from '@/app/providers/LanguageContext';
 
 const NAVBAR_HEIGHT = 64;
 
-export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
+export const Navbar = ({ onMenuClick, sidebarOpen }) => {
   const { user, roles, logout } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
   const { t, language } = useLanguage();
   const isArabic = language === 'ar';
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
+  const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsError, setNotificationsError] = useState('');
+  const [streamConnected, setStreamConnected] = useState(false);
   const open = Boolean(anchorEl);
+  const notificationsOpen = Boolean(notificationAnchorEl);
+
+  const unreadCount = useMemo(
+    () => notifications.reduce((total, item) => total + (item?.is_read ? 0 : 1), 0),
+    [notifications]
+  );
+
+  const deriveNotificationTarget = (notification) => {
+    const payload = notification?.payload || {};
+    const resourceId = Number(payload.resource_id || 0);
+    const questionId = Number(payload.question_id || 0);
+    if (resourceId > 0) {
+      return questionId > 0
+        ? `/discover/resources/${resourceId}/preview?question=${questionId}`
+        : `/discover/resources/${resourceId}/preview`;
+    }
+    return '/dashboard';
+  };
+
+  const mergeNotifications = (incomingRows = []) => {
+    setNotifications((prev) => {
+      const seen = new Set();
+      const merged = [...incomingRows, ...prev].filter((row) => {
+        const id = row?.id;
+        if (!id || seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+      merged.sort((a, b) => {
+        const aTime = new Date(a?.created_at || 0).getTime();
+        const bTime = new Date(b?.created_at || 0).getTime();
+        return bTime - aTime;
+      });
+      return merged.slice(0, 60);
+    });
+  };
+
+  const loadNotifications = useCallback(async () => {
+    if (!user?.id) return;
+    setNotificationsLoading(true);
+    setNotificationsError('');
+    try {
+      const data = await notificationService.list({ limit: 20, page: 1 });
+      setNotifications(Array.isArray(data.rows) ? data.rows : []);
+    } catch {
+      setNotificationsError('Failed to load notifications.');
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, [user?.id]);
+
+  const markNotificationAsRead = async (notificationId) => {
+    if (!notificationId) return;
+    try {
+      await notificationService.markRead(notificationId);
+      setNotifications((prev) =>
+        prev.map((item) =>
+          item.id === notificationId
+            ? { ...item, is_read: true, read_at: item.read_at || new Date().toISOString() }
+            : item
+        )
+      );
+    } catch {
+      // keep UI resilient when mark-read fails
+    }
+  };
+
+  const markAllVisibleAsRead = async () => {
+    const unreadIds = notifications.filter((item) => !item?.is_read).map((item) => item.id);
+    if (!unreadIds.length) return;
+    await Promise.all(unreadIds.map((id) => markNotificationAsRead(id)));
+  };
 
   const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
+  const handleNotificationsOpen = (event) => {
+    setNotificationAnchorEl(event.currentTarget);
+  };
+  const handleNotificationsClose = () => setNotificationAnchorEl(null);
+
+  const handleNotificationClick = async (notification) => {
+    if (!notification) return;
+    if (!notification.is_read) {
+      await markNotificationAsRead(notification.id);
+    }
+    handleNotificationsClose();
+    navigate(deriveNotificationTarget(notification));
+  };
 
   const handleProfile = () => {
     handleMenuClose();
@@ -102,6 +197,35 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
   const primaryRole = getPrimaryRole();
   const userPoints = Number(user?.points || 0);
   const showContributorPoints = primaryRole !== 'ADMIN';
+
+  useEffect(() => {
+    if (!user?.id) {
+      setNotifications([]);
+      return;
+    }
+
+    loadNotifications();
+
+    const stopStream = notificationService.openStream({
+      onNotification: (incoming) => {
+        mergeNotifications([incoming]);
+        setStreamConnected(true);
+      },
+      onError: () => {
+        setStreamConnected(false);
+      },
+    });
+
+    const interval = window.setInterval(() => {
+      loadNotifications();
+    }, 60000);
+
+    return () => {
+      stopStream();
+      window.clearInterval(interval);
+      setStreamConnected(false);
+    };
+  }, [user?.id, loadNotifications]);
 
   return (
     <AppBar
@@ -199,6 +323,30 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
           Discover Resources
         </Button>
 
+        <IconButton
+          onClick={handleNotificationsOpen}
+          aria-label="Open notifications"
+          sx={{
+            mr: 1,
+            color: 'text.primary',
+            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+            border: '1px solid',
+            borderColor: (theme) =>
+              theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+            borderRadius: 2,
+            p: 0.8,
+            transition: 'all 0.22s ease',
+            '&:hover': {
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.14),
+              borderColor: (theme) => alpha(theme.palette.primary.main, 0.3),
+            },
+          }}
+        >
+          <Badge badgeContent={unreadCount > 99 ? '99+' : unreadCount} color="error">
+            <NotificationsNone sx={{ fontSize: 19 }} />
+          </Badge>
+        </IconButton>
+
         {/* Theme Toggle */}
         <IconButton
           onClick={handleThemeToggle}
@@ -231,6 +379,105 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
             <LightMode sx={{ fontSize: 18, color: 'warning.main' }} />
           )}
         </IconButton>
+
+        <Menu
+          anchorEl={notificationAnchorEl}
+          open={notificationsOpen}
+          onClose={handleNotificationsClose}
+          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+          PaperProps={{
+            elevation: 0,
+            sx: {
+              width: 380,
+              maxWidth: 'calc(100vw - 16px)',
+              mt: 1.2,
+              borderRadius: 2.5,
+              border: '1px solid',
+              borderColor: (theme) =>
+                theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+              backdropFilter: 'blur(18px)',
+              bgcolor: (theme) =>
+                theme.palette.mode === 'dark' ? 'rgba(20,17,31,0.95)' : 'rgba(255,255,255,0.97)',
+            },
+          }}
+        >
+          <Box sx={{ px: 1.5, py: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box>
+              <Typography variant="subtitle2" fontWeight={800}>Notifications</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {streamConnected ? 'Live updates connected' : 'Live updates reconnecting'}
+              </Typography>
+            </Box>
+            <Button
+              onClick={markAllVisibleAsRead}
+              disabled={!unreadCount}
+              size="small"
+              sx={{ textTransform: 'none', borderRadius: 1.5 }}
+              startIcon={<MarkEmailRead sx={{ fontSize: 16 }} />}
+            >
+              Mark all read
+            </Button>
+          </Box>
+          <Divider />
+          <Box sx={{ maxHeight: 420, overflowY: 'auto', py: 0.5 }}>
+            {notificationsLoading ? (
+              <Box sx={{ py: 3, display: 'flex', justifyContent: 'center' }}>
+                <CircularProgress size={22} />
+              </Box>
+            ) : notificationsError ? (
+              <Box sx={{ p: 1.5 }}>
+                <Typography variant="body2" color="error.main">{notificationsError}</Typography>
+              </Box>
+            ) : notifications.length === 0 ? (
+              <Box sx={{ p: 2 }}>
+                <Typography variant="body2" color="text.secondary">No notifications yet.</Typography>
+              </Box>
+            ) : (
+              notifications.map((item) => (
+                <MenuItem
+                  key={item.id}
+                  onClick={() => handleNotificationClick(item)}
+                  sx={{
+                    alignItems: 'flex-start',
+                    py: 1.1,
+                    px: 1.5,
+                    borderRadius: 0,
+                    borderLeft: '3px solid',
+                    borderLeftColor: item.is_read ? 'transparent' : 'primary.main',
+                    bgcolor: item.is_read ? 'transparent' : (theme) => alpha(theme.palette.primary.main, 0.06),
+                    whiteSpace: 'normal',
+                  }}
+                >
+                  <Box>
+                    <Typography variant="body2" fontWeight={700} sx={{ mb: 0.2 }}>
+                      {item.title || item.type || 'Notification'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.2 }}>
+                      {item.body || 'Open to view details.'}
+                    </Typography>
+                    <Typography variant="caption" color="text.disabled">
+                      {new Date(item.created_at).toLocaleString()}
+                    </Typography>
+                  </Box>
+                </MenuItem>
+              ))
+            )}
+          </Box>
+          <Divider />
+          <Box sx={{ p: 1, display: 'flex', justifyContent: 'space-between' }}>
+            <Button
+              size="small"
+              onClick={loadNotifications}
+              sx={{ textTransform: 'none', borderRadius: 1.5 }}
+            >
+              Refresh
+            </Button>
+            <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+              {unreadCount} unread
+            </Typography>
+          </Box>
+        </Menu>
 
         {/* User Profile Section */}
         <Box display="flex" alignItems="center" gap={1.5}>
@@ -633,7 +880,6 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
 Navbar.propTypes = {
   onMenuClick: PropTypes.func.isRequired,
   sidebarOpen: PropTypes.bool,
-  sidebarWidth: PropTypes.number,
 };
 
 export { NAVBAR_HEIGHT };

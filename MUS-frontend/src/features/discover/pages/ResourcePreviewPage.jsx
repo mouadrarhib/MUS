@@ -232,6 +232,7 @@ const ResourcePreviewPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, isAuthenticated } = useAuth();
+  const initialQuestionId = Number(new URLSearchParams(location.search).get('question') || 0) || null;
 
   const [loading, setLoading] = useState(true);
   const [resource, setResource] = useState(location.state?.resource || null);
@@ -242,6 +243,7 @@ const ResourcePreviewPage = () => {
   const [qaError, setQaError] = useState('');
   const [questions, setQuestions] = useState([]);
   const [selectedQuestionId, setSelectedQuestionId] = useState(null);
+  const [preferredQuestionId, setPreferredQuestionId] = useState(initialQuestionId);
   const [answers, setAnswers] = useState([]);
   const [questionComments, setQuestionComments] = useState([]);
   const [answerCommentsMap, setAnswerCommentsMap] = useState({});
@@ -305,6 +307,11 @@ const ResourcePreviewPage = () => {
       .then((rows) => {
         if (cancelled) return;
         setQuestions(rows);
+        if (preferredQuestionId && rows.some((item) => item.id === preferredQuestionId)) {
+          setSelectedQuestionId(preferredQuestionId);
+          setPreferredQuestionId(null);
+          return;
+        }
         if (!rows.some((item) => item.id === selectedQuestionId)) {
           setSelectedQuestionId(rows[0]?.id || null);
         }
@@ -323,7 +330,7 @@ const ResourcePreviewPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [resourceId, selectedQuestionId]);
+  }, [resourceId, selectedQuestionId, preferredQuestionId]);
 
   useEffect(() => {
     loadSelectedThread(selectedQuestionId);
