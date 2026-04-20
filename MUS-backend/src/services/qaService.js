@@ -181,7 +181,8 @@ const notifyQaStakeholders = async ({
     }));
 
     return createNotificationsBulk(items);
-  } catch (_error) {
+  } catch (error) {
+    console.warn("[qa-notifications] unable to notify stakeholders:", error?.message || error);
     return [];
   }
 };
@@ -661,6 +662,9 @@ export const createCommentOnQuestion = async ({ questionId, userId, body }) => {
 export const createCommentOnAnswer = async ({ answerId, userId, body }) => {
   const answer = await ensureAnswerExists(answerId, { allowHidden: false });
   const question = await ensureQuestionExists(answer.question_id, { allowHidden: false });
+  if (question.status === "closed") {
+    throw new AppError("La question est fermee", 409);
+  }
 
   const [rows] = await sequelize.query(
     `

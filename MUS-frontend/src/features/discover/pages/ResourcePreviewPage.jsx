@@ -307,13 +307,17 @@ const ResourcePreviewPage = () => {
       .then((rows) => {
         if (cancelled) return;
         setQuestions(rows);
-        if (preferredQuestionId && rows.some((item) => item.id === preferredQuestionId)) {
-          setSelectedQuestionId(preferredQuestionId);
+        setSelectedQuestionId((current) => {
+          if (preferredQuestionId && rows.some((item) => item.id === preferredQuestionId)) {
+            return preferredQuestionId;
+          }
+          if (rows.some((item) => item.id === current)) {
+            return current;
+          }
+          return rows[0]?.id || null;
+        });
+        if (preferredQuestionId) {
           setPreferredQuestionId(null);
-          return;
-        }
-        if (!rows.some((item) => item.id === selectedQuestionId)) {
-          setSelectedQuestionId(rows[0]?.id || null);
         }
       })
       .catch(() => {
@@ -330,7 +334,7 @@ const ResourcePreviewPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [resourceId, selectedQuestionId, preferredQuestionId]);
+  }, [resourceId, preferredQuestionId]);
 
   useEffect(() => {
     loadSelectedThread(selectedQuestionId);
@@ -376,16 +380,22 @@ const ResourcePreviewPage = () => {
   const description   = resource?.description || resource?.resource_description;
   const selectedQuestion = questions.find((item) => item.id === selectedQuestionId) || null;
 
-  async function loadQuestions({ keepSelection = true } = {}) {
+  async function loadQuestions({ keepSelection = true, preferredId = null } = {}) {
     if (!resourceId) return;
     setQaLoading(true);
     setQaError('');
     try {
       const rows = await qaService.listQuestions({ resource_id: resourceId });
       setQuestions(rows);
-      if (!keepSelection || !rows.some((item) => item.id === selectedQuestionId)) {
-        setSelectedQuestionId(rows[0]?.id || null);
-      }
+      setSelectedQuestionId((current) => {
+        if (preferredId && rows.some((item) => item.id === preferredId)) {
+          return preferredId;
+        }
+        if (keepSelection && rows.some((item) => item.id === current)) {
+          return current;
+        }
+        return rows[0]?.id || null;
+      });
     } catch {
       setQaError('Unable to load Q&A right now.');
       setQuestions([]);
@@ -445,10 +455,7 @@ const ResourcePreviewPage = () => {
       });
       setQuestionTitleInput('');
       setQuestionBodyInput('');
-      await loadQuestions({ keepSelection: false });
-      if (created?.id) {
-        setSelectedQuestionId(created.id);
-      }
+      await loadQuestions({ keepSelection: false, preferredId: created?.id || null });
     } catch {
       setQaError('Failed to post your question.');
     } finally {
