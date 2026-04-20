@@ -10,11 +10,19 @@ class Client {
     const headers = { "content-type": "application/json" };
     if (this.cookie) headers.cookie = this.cookie;
 
-    const res = await fetch(`${baseUrl}${path}`, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    let res;
+    try {
+      res = await fetch(`${baseUrl}${path}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch (error) {
+      const reason = error?.cause?.code || error?.message || "unknown_error";
+      throw new Error(
+        `Cannot reach API at ${baseUrl}. Start the backend first or set BASE_URL. Cause: ${reason}`
+      );
+    }
 
     const text = await res.text();
     let data = null;
