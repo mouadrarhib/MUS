@@ -715,6 +715,7 @@ export const listCommentsByQuestion = async (questionId, actor = null, includeHi
       c.user_id,
       u.full_name AS user_name,
       c.body,
+      c.moderation_status::text AS moderation_status,
       c.created_at,
       c.updated_at
     FROM public.qa_comments c
@@ -742,6 +743,7 @@ export const listCommentsByAnswer = async (answerId, actor = null, includeHidden
       c.user_id,
       u.full_name AS user_name,
       c.body,
+      c.moderation_status::text AS moderation_status,
       c.created_at,
       c.updated_at
     FROM public.qa_comments c

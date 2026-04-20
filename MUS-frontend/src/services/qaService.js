@@ -35,6 +35,21 @@ const qaService = {
     return response?.data || null;
   },
 
+  moderateQuestion: async (questionId, payload) => {
+    const response = await patch(`${QA}/questions/${questionId}/moderate`, payload);
+    return response?.data || null;
+  },
+
+  moderateAnswer: async (answerId, payload) => {
+    const response = await patch(`${QA}/answers/${answerId}/moderate`, payload);
+    return response?.data || null;
+  },
+
+  moderateComment: async (commentId, payload) => {
+    const response = await patch(`${QA}/comments/${commentId}/moderate`, payload);
+    return response?.data || null;
+  },
+
   listQuestionComments: async (questionId, params = {}) => {
     const response = await get(`${QA}/questions/${questionId}/comments`, { params });
     return asArray(response?.data);

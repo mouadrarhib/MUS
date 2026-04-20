@@ -231,7 +231,7 @@ const ResourcePreviewPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout, isAuthenticated } = useAuth();
+  const { logout, isAuthenticated, isTeacher, isAdmin } = useAuth();
   const initialQuestionId = Number(new URLSearchParams(location.search).get('question') || 0) || null;
 
   const [loading, setLoading] = useState(true);
@@ -256,8 +256,10 @@ const ResourcePreviewPage = () => {
   const [creatingAnswer, setCreatingAnswer] = useState(false);
   const [creatingQuestionComment, setCreatingQuestionComment] = useState(false);
   const [creatingAnswerCommentId, setCreatingAnswerCommentId] = useState(null);
+  const [moderationLoadingKey, setModerationLoadingKey] = useState('');
   const resourceId = Number(resource?.id || id);
   const moduleId = Number(resource?.academicContext?.moduleId || resource?.module_id || 0) || null;
+  const canModerate = isTeacher || isAdmin;
 
   useEffect(() => {
     const resourceId = Number(id);
@@ -303,7 +305,7 @@ const ResourcePreviewPage = () => {
     setQaError('');
 
     qaService
-      .listQuestions({ resource_id: resourceId })
+      .listQuestions({ resource_id: resourceId, include_hidden: canModerate })
       .then((rows) => {
         if (cancelled) return;
         setQuestions(rows);
@@ -334,11 +336,7 @@ const ResourcePreviewPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [resourceId, preferredQuestionId]);
-
-  useEffect(() => {
-    loadSelectedThread(selectedQuestionId);
-  }, [selectedQuestionId]);
+  }, [resourceId, preferredQuestionId, canModerate]);
 
   const normalizedFormat = getFormat(resource);
   const formatMeta = getFormatMeta(normalizedFormat);
@@ -385,7 +383,7 @@ const ResourcePreviewPage = () => {
     setQaLoading(true);
     setQaError('');
     try {
-      const rows = await qaService.listQuestions({ resource_id: resourceId });
+      const rows = await qaService.listQuestions({ resource_id: resourceId, include_hidden: canModerate });
       setQuestions(rows);
       setSelectedQuestionId((current) => {
         if (preferredId && rows.some((item) => item.id === preferredId)) {
@@ -415,8 +413,8 @@ const ResourcePreviewPage = () => {
 
     try {
       const [nextAnswers, nextQuestionComments] = await Promise.all([
-        qaService.listAnswersByQuestion(questionIdValue),
-        qaService.listQuestionComments(questionIdValue),
+        qaService.listAnswersByQuestion(questionIdValue, { include_hidden: canModerate }),
+        qaService.listQuestionComments(questionIdValue, { include_hidden: canModerate }),
       ]);
 
       setAnswers(nextAnswers);
@@ -429,7 +427,7 @@ const ResourcePreviewPage = () => {
 
       const answerCommentEntries = await Promise.all(
         nextAnswers.map(async (answer) => {
-          const comments = await qaService.listAnswerComments(answer.id);
+          const comments = await qaService.listAnswerComments(answer.id, { include_hidden: canModerate });
           return [answer.id, comments];
         })
       );
@@ -439,6 +437,54 @@ const ResourcePreviewPage = () => {
       setQaError('Unable to load this discussion thread.');
     }
   }
+
+  useEffect(() => {
+    if (!selectedQuestionId) {
+      setAnswers([]);
+      setQuestionComments([]);
+      setAnswerCommentsMap({});
+      return;
+    }
+
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        const [nextAnswers, nextQuestionComments] = await Promise.all([
+          qaService.listAnswersByQuestion(selectedQuestionId, { include_hidden: canModerate }),
+          qaService.listQuestionComments(selectedQuestionId, { include_hidden: canModerate }),
+        ]);
+
+        if (cancelled) return;
+        setAnswers(nextAnswers);
+        setQuestionComments(nextQuestionComments);
+
+        if (!nextAnswers.length) {
+          setAnswerCommentsMap({});
+          return;
+        }
+
+        const answerCommentEntries = await Promise.all(
+          nextAnswers.map(async (answer) => {
+            const comments = await qaService.listAnswerComments(answer.id, { include_hidden: canModerate });
+            return [answer.id, comments];
+          })
+        );
+
+        if (cancelled) return;
+        setAnswerCommentsMap(Object.fromEntries(answerCommentEntries));
+      } catch {
+        if (cancelled) return;
+        setQaError('Unable to load this discussion thread.');
+      }
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedQuestionId, canModerate]);
 
   const handleCreateQuestion = async () => {
     if (!isAuthenticated || !moduleId || !resourceId || creatingQuestion) return;
@@ -516,6 +562,71 @@ const ResourcePreviewPage = () => {
       setQaError('Failed to post answer comment.');
     } finally {
       setCreatingAnswerCommentId(null);
+    }
+  };
+
+  const handleAcceptAnswer = async (answerId) => {
+    if (!canModerate || !answerId || moderationLoadingKey) return;
+    setModerationLoadingKey(`accept-answer-${answerId}`);
+    setQaError('');
+    try {
+      await qaService.acceptAnswer(answerId);
+      await Promise.all([loadQuestions({ keepSelection: true }), loadSelectedThread(selectedQuestionId)]);
+    } catch {
+      setQaError('Failed to accept this answer.');
+    } finally {
+      setModerationLoadingKey('');
+    }
+  };
+
+  const handleModerateQuestion = async (status) => {
+    if (!canModerate || !selectedQuestionId || moderationLoadingKey) return;
+    setModerationLoadingKey(`question-${selectedQuestionId}-${status}`);
+    setQaError('');
+    try {
+      await qaService.moderateQuestion(selectedQuestionId, {
+        moderation_status: status,
+        reason: `Updated from preview page (${status})`,
+      });
+      await Promise.all([loadQuestions({ keepSelection: true }), loadSelectedThread(selectedQuestionId)]);
+    } catch {
+      setQaError('Failed to update question moderation state.');
+    } finally {
+      setModerationLoadingKey('');
+    }
+  };
+
+  const handleModerateAnswer = async (answerId, status) => {
+    if (!canModerate || !answerId || moderationLoadingKey) return;
+    setModerationLoadingKey(`answer-${answerId}-${status}`);
+    setQaError('');
+    try {
+      await qaService.moderateAnswer(answerId, {
+        moderation_status: status,
+        reason: `Updated from preview page (${status})`,
+      });
+      await Promise.all([loadQuestions({ keepSelection: true }), loadSelectedThread(selectedQuestionId)]);
+    } catch {
+      setQaError('Failed to update answer moderation state.');
+    } finally {
+      setModerationLoadingKey('');
+    }
+  };
+
+  const handleModerateComment = async (commentId, status) => {
+    if (!canModerate || !commentId || moderationLoadingKey) return;
+    setModerationLoadingKey(`comment-${commentId}-${status}`);
+    setQaError('');
+    try {
+      await qaService.moderateComment(commentId, {
+        moderation_status: status,
+        reason: `Updated from preview page (${status})`,
+      });
+      await loadSelectedThread(selectedQuestionId);
+    } catch {
+      setQaError('Failed to update comment moderation state.');
+    } finally {
+      setModerationLoadingKey('');
     }
   };
 
@@ -837,6 +948,14 @@ const ResourcePreviewPage = () => {
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.35 }}>
                           {question.user_name || 'Unknown'} · {question.status}
                         </Typography>
+                        {question.moderation_status && question.moderation_status !== 'active' ? (
+                          <Chip
+                            size="small"
+                            label={question.moderation_status}
+                            color={question.moderation_status === 'hidden' ? 'warning' : 'error'}
+                            sx={{ mt: 0.6, height: 20 }}
+                          />
+                        ) : null}
                       </Box>
                     );
                   })}
@@ -850,13 +969,58 @@ const ResourcePreviewPage = () => {
               ) : (
                 <Stack spacing={2}>
                   <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
-                    <Typography variant="subtitle1" fontWeight={700}>{selectedQuestion.title}</Typography>
+                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+                      <Typography variant="subtitle1" fontWeight={700}>{selectedQuestion.title}</Typography>
+                      <Stack direction="row" spacing={0.6}>
+                        <Chip size="small" label={selectedQuestion.status || 'open'} color="default" />
+                        {selectedQuestion.moderation_status && selectedQuestion.moderation_status !== 'active' ? (
+                          <Chip
+                            size="small"
+                            label={selectedQuestion.moderation_status}
+                            color={selectedQuestion.moderation_status === 'hidden' ? 'warning' : 'error'}
+                          />
+                        ) : null}
+                      </Stack>
+                    </Stack>
                     <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-line', mt: 0.75 }}>
                       {selectedQuestion.body}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
                       {selectedQuestion.user_name || 'Unknown'} · {formatDateTime(selectedQuestion.created_at)}
                     </Typography>
+                    {canModerate ? (
+                      <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => handleModerateQuestion('active')}
+                          disabled={Boolean(moderationLoadingKey)}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          Show
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="warning"
+                          onClick={() => handleModerateQuestion('hidden')}
+                          disabled={Boolean(moderationLoadingKey)}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          Hide
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          onClick={() => handleModerateQuestion('deleted')}
+                          disabled={Boolean(moderationLoadingKey)}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          Delete
+                        </Button>
+                      </Stack>
+                    ) : null}
                   </Box>
 
                   <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
@@ -869,6 +1033,21 @@ const ResourcePreviewPage = () => {
                             <Typography variant="caption" color="text.secondary">
                               {comment.user_name || 'Unknown'} · {formatDateTime(comment.created_at)}
                             </Typography>
+                            {comment.moderation_status && comment.moderation_status !== 'active' ? (
+                              <Chip
+                                size="small"
+                                label={comment.moderation_status}
+                                color={comment.moderation_status === 'hidden' ? 'warning' : 'error'}
+                                sx={{ ml: 1, height: 20 }}
+                              />
+                            ) : null}
+                            {canModerate ? (
+                              <Stack direction="row" spacing={0.7} sx={{ mt: 0.6 }}>
+                                <Button size="small" variant="text" onClick={() => handleModerateComment(comment.id, 'active')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none', minWidth: 0, px: 0.5 }}>Show</Button>
+                                <Button size="small" variant="text" color="warning" onClick={() => handleModerateComment(comment.id, 'hidden')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none', minWidth: 0, px: 0.5 }}>Hide</Button>
+                                <Button size="small" variant="text" color="error" onClick={() => handleModerateComment(comment.id, 'deleted')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none', minWidth: 0, px: 0.5 }}>Delete</Button>
+                              </Stack>
+                            ) : null}
                           </Box>
                         ))}
                       </Stack>
@@ -882,12 +1061,12 @@ const ResourcePreviewPage = () => {
                         label="Add a comment"
                         value={questionCommentInput}
                         onChange={(event) => setQuestionCommentInput(event.target.value)}
-                        disabled={!isAuthenticated || creatingQuestionComment}
+                        disabled={!isAuthenticated || creatingQuestionComment || selectedQuestion.status === 'closed'}
                       />
                       <Button
                         variant="outlined"
                         onClick={handleCreateQuestionComment}
-                        disabled={!isAuthenticated || creatingQuestionComment || questionCommentInput.trim().length < 2}
+                        disabled={!isAuthenticated || creatingQuestionComment || questionCommentInput.trim().length < 2 || selectedQuestion.status === 'closed'}
                         sx={{ textTransform: 'none', borderRadius: 2, whiteSpace: 'nowrap' }}
                       >
                         {creatingQuestionComment ? 'Posting...' : 'Comment'}
@@ -897,6 +1076,9 @@ const ResourcePreviewPage = () => {
 
                   <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Post an answer</Typography>
+                    {selectedQuestion.status === 'closed' ? (
+                      <Alert severity="info" sx={{ mb: 1.2 }}>This question is closed. New answers and comments are disabled.</Alert>
+                    ) : null}
                     <Stack spacing={1}>
                       <TextField
                         size="small"
@@ -905,13 +1087,13 @@ const ResourcePreviewPage = () => {
                         label="Your answer"
                         value={answerBodyInput}
                         onChange={(event) => setAnswerBodyInput(event.target.value)}
-                        disabled={!isAuthenticated || creatingAnswer}
+                        disabled={!isAuthenticated || creatingAnswer || selectedQuestion.status === 'closed'}
                       />
                       <Box>
                         <Button
                           variant="contained"
                           onClick={handleCreateAnswer}
-                          disabled={!isAuthenticated || creatingAnswer || answerBodyInput.trim().length < 10}
+                          disabled={!isAuthenticated || creatingAnswer || answerBodyInput.trim().length < 10 || selectedQuestion.status === 'closed'}
                           sx={{ textTransform: 'none', borderRadius: 2 }}
                         >
                           {creatingAnswer ? 'Posting...' : 'Post answer'}
@@ -930,14 +1112,40 @@ const ResourcePreviewPage = () => {
                       <Stack spacing={1.25}>
                         {answers.map((answer) => (
                           <Box key={answer.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.25 }}>
-                            <Stack direction="row" spacing={0.75} sx={{ mb: 0.75 }}>
+                            <Stack direction="row" spacing={0.75} sx={{ mb: 0.75, flexWrap: 'wrap' }}>
                               {answer.is_official ? <Chip size="small" label="Official" color="info" /> : null}
                               {answer.is_accepted ? <Chip size="small" label="Accepted" color="success" /> : null}
+                              {answer.moderation_status && answer.moderation_status !== 'active' ? (
+                                <Chip
+                                  size="small"
+                                  label={answer.moderation_status}
+                                  color={answer.moderation_status === 'hidden' ? 'warning' : 'error'}
+                                />
+                              ) : null}
                             </Stack>
                             <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>{answer.body}</Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
                               {answer.user_name || 'Unknown'} · {formatDateTime(answer.created_at)}
                             </Typography>
+                            {canModerate ? (
+                              <Stack direction="row" spacing={1} sx={{ mt: 0.8, mb: 0.3 }}>
+                                {!answer.is_accepted ? (
+                                  <Button
+                                    size="small"
+                                    variant="contained"
+                                    color="success"
+                                    onClick={() => handleAcceptAnswer(answer.id)}
+                                    disabled={Boolean(moderationLoadingKey)}
+                                    sx={{ textTransform: 'none' }}
+                                  >
+                                    Accept
+                                  </Button>
+                                ) : null}
+                                <Button size="small" variant="outlined" onClick={() => handleModerateAnswer(answer.id, 'active')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none' }}>Show</Button>
+                                <Button size="small" variant="outlined" color="warning" onClick={() => handleModerateAnswer(answer.id, 'hidden')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none' }}>Hide</Button>
+                                <Button size="small" variant="outlined" color="error" onClick={() => handleModerateAnswer(answer.id, 'deleted')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none' }}>Delete</Button>
+                              </Stack>
+                            ) : null}
 
                             <Box sx={{ mt: 1.1 }}>
                               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
@@ -951,6 +1159,21 @@ const ResourcePreviewPage = () => {
                                       <Typography variant="caption" color="text.secondary">
                                         {comment.user_name || 'Unknown'} · {formatDateTime(comment.created_at)}
                                       </Typography>
+                                      {comment.moderation_status && comment.moderation_status !== 'active' ? (
+                                        <Chip
+                                          size="small"
+                                          label={comment.moderation_status}
+                                          color={comment.moderation_status === 'hidden' ? 'warning' : 'error'}
+                                          sx={{ ml: 1, height: 20 }}
+                                        />
+                                      ) : null}
+                                      {canModerate ? (
+                                        <Stack direction="row" spacing={0.7} sx={{ mt: 0.4 }}>
+                                          <Button size="small" variant="text" onClick={() => handleModerateComment(comment.id, 'active')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none', minWidth: 0, px: 0.5 }}>Show</Button>
+                                          <Button size="small" variant="text" color="warning" onClick={() => handleModerateComment(comment.id, 'hidden')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none', minWidth: 0, px: 0.5 }}>Hide</Button>
+                                          <Button size="small" variant="text" color="error" onClick={() => handleModerateComment(comment.id, 'deleted')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none', minWidth: 0, px: 0.5 }}>Delete</Button>
+                                        </Stack>
+                                      ) : null}
                                     </Box>
                                   ))}
                                 </Stack>
@@ -967,12 +1190,12 @@ const ResourcePreviewPage = () => {
                                   label="Comment on this answer"
                                   value={answerCommentInputs[answer.id] || ''}
                                   onChange={(event) => setAnswerCommentInputs((prev) => ({ ...prev, [answer.id]: event.target.value }))}
-                                  disabled={!isAuthenticated || creatingAnswerCommentId === answer.id}
+                                  disabled={!isAuthenticated || creatingAnswerCommentId === answer.id || selectedQuestion.status === 'closed'}
                                 />
                                 <Button
                                   variant="outlined"
                                   onClick={() => handleCreateAnswerComment(answer.id)}
-                                  disabled={!isAuthenticated || creatingAnswerCommentId === answer.id || String(answerCommentInputs[answer.id] || '').trim().length < 2}
+                                  disabled={!isAuthenticated || creatingAnswerCommentId === answer.id || String(answerCommentInputs[answer.id] || '').trim().length < 2 || selectedQuestion.status === 'closed'}
                                   sx={{ textTransform: 'none', borderRadius: 2, whiteSpace: 'nowrap' }}
                                 >
                                   {creatingAnswerCommentId === answer.id ? 'Posting...' : 'Comment'}
