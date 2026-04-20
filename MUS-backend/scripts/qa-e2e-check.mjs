@@ -292,7 +292,13 @@ const run = async () => {
       expectedStatus: 201,
     })
   );
-  const questionCommentId = pickId(tests[tests.length - 1].payload);
+  record(
+    await student.request("student comment on question", "POST", `/api/qa/questions/${questionId}/comments`, {
+      body: { body: "Merci pour la precision" },
+      expectedStatus: 201,
+    })
+  );
+  const questionCommentIdByStudent = pickId(tests[tests.length - 1].payload);
   record(
     await student.request("comment on answer", "POST", `/api/qa/answers/${officialAnswerId}/comments`, {
       body: { body: "Merci prof" },
@@ -340,6 +346,18 @@ const run = async () => {
   }
   if (!teacherNotificationTypes.has("QA_ANSWER_COMMENT_CREATED")) {
     fail("Expected QA_ANSWER_COMMENT_CREATED notification for assigned teacher");
+  }
+  if (!teacherNotificationTypes.has("QA_QUESTION_COMMENT_CREATED")) {
+    fail("Expected QA_QUESTION_COMMENT_CREATED notification for assigned teacher");
+  }
+
+  if (questionCommentIdByStudent) {
+    const hasQuestionCommentPayload = teacherNotificationRows.some(
+      (row) => row.type === "QA_QUESTION_COMMENT_CREATED" && row.payload?.comment_id === questionCommentIdByStudent
+    );
+    if (!hasQuestionCommentPayload) {
+      fail("Expected QA_QUESTION_COMMENT_CREATED payload to include student comment id");
+    }
   }
 
   const ownQuestionCommentNotification = teacherNotificationRows.find(
