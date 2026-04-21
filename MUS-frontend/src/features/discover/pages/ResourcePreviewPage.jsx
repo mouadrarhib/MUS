@@ -36,6 +36,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import DiscoverNavbar from '@/features/discover/components/DiscoverNavbar';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import qaService from '@/services/qaService';
+import resourceModuleMapService from '@/services/resourceModuleMapService';
 import resourcesService from '@/services/resourcesService';
 
 /* ─── helpers ─── */
@@ -60,6 +61,38 @@ const formatDateTime = (value) => {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return '';
   return parsed.toLocaleString();
+};
+
+const pickModuleIdFromResource = (resource) => {
+  const candidates = [
+    resource?.academicContext?.moduleId,
+    resource?.module_id,
+    resource?.moduleId,
+    resource?.module?.id,
+    resource?.resource_module_id,
+  ];
+
+  for (const value of candidates) {
+    const parsed = Number(value || 0);
+    if (parsed > 0) return parsed;
+  }
+
+  return null;
+};
+
+const pickModuleIdFromModulesPayload = (payload) => {
+  const modules = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.modules)
+      ? payload.modules
+      : [];
+
+  for (const item of modules) {
+    const parsed = Number(item?.module_id || item?.id || item?.module?.id || 0);
+    if (parsed > 0) return parsed;
+  }
+
+  return null;
 };
 
 /* ─── Panel wrapper ─── */
@@ -257,8 +290,9 @@ const ResourcePreviewPage = () => {
   const [creatingQuestionComment, setCreatingQuestionComment] = useState(false);
   const [creatingAnswerCommentId, setCreatingAnswerCommentId] = useState(null);
   const [moderationLoadingKey, setModerationLoadingKey] = useState('');
+  const [resolvedModuleId, setResolvedModuleId] = useState(() => pickModuleIdFromResource(location.state?.resource || null));
   const resourceId = Number(resource?.id || id);
-  const moduleId = Number(resource?.academicContext?.moduleId || resource?.module_id || 0) || null;
+  const moduleId = pickModuleIdFromResource(resource) || resolvedModuleId;
   const canModerate = isTeacher || isAdmin;
 
   useEffect(() => {
@@ -276,11 +310,24 @@ const ResourcePreviewPage = () => {
     Promise.allSettled([
       resourcesService.getResourceById(resourceId),
       resourcesService.getResourceFileUrl(resourceId),
-    ]).then(([detailRes, fileRes]) => {
+      resourceModuleMapService.getModulesByResource(resourceId),
+    ]).then(([detailRes, fileRes, modulesRes]) => {
       // Always call setLoading(false) — only skip the other state updates if cancelled.
       if (!cancelled) {
         if (detailRes.status === 'fulfilled' && detailRes.value) {
           setResource((prev) => ({ ...prev, ...detailRes.value }));
+        }
+        if (detailRes.status === 'fulfilled' && detailRes.value) {
+          const picked = pickModuleIdFromResource(detailRes.value);
+          if (picked) {
+            setResolvedModuleId(picked);
+          }
+        }
+        if (modulesRes.status === 'fulfilled') {
+          const picked = pickModuleIdFromModulesPayload(modulesRes.value);
+          if (picked) {
+            setResolvedModuleId(picked);
+          }
         }
         if (fileRes.status === 'fulfilled') {
           setPreviewUrl(fileRes.value?.url || fileRes.value?.download_url || '');

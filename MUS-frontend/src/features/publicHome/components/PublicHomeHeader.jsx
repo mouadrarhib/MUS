@@ -132,7 +132,7 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
             <>
               <Button
                 component={RouterLink}
-                to="/dashboard"
+                to="/discover"
                 variant="contained"
                 sx={{
                   borderRadius: 2,
@@ -149,7 +149,7 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
                   },
                 }}
               >
-                {t("common.dashboard", "Dashboard")}
+                {t("publicHome.nav.resources", "Resources")}
               </Button>
               <Button
                 variant="outlined"
