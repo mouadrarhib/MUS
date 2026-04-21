@@ -128,6 +128,9 @@ const VerifyResourceDialog = ({
           overflow: 'hidden',
         }
       }}
+    
+      keepMounted
+      transitionDuration={{ enter: 120, exit: 80 }}
     >
       {/* Header */}
       <DialogTitle 

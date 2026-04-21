@@ -40,6 +40,9 @@ export const Modal = ({
         },
       }}
       {...props}
+    
+      keepMounted
+      transitionDuration={{ enter: 120, exit: 80 }}
     >
       {title && (
         <DialogTitle

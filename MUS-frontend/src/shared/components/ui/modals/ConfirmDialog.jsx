@@ -56,7 +56,10 @@ export const ConfirmDialog = ({
         sx: {
           borderRadius: 3,
           border: '1px solid',
-          borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+          borderColor: (theme) =
+      keepMounted
+      transitionDuration={{ enter: 120, exit: 80 }}
+    > theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
           overflow: 'hidden',
         },
       }}

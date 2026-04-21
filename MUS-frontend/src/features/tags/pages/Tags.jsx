@@ -192,6 +192,39 @@ const UsageBreakdown = ({ tag }) => {
   );
 };
 
+
+const DebouncedSearchInput = ({ value, onChange }) => {
+  const [localValue, setLocalValue] = useState(value);
+  
+  useEffect(() => {
+    const t = setTimeout(() => onChange(localValue), 300);
+    return () => clearTimeout(t);
+  }, [localValue, onChange]);
+
+  return (
+    <TextField
+      size="small"
+      placeholder="Search tags..."
+      value={localValue}
+      onChange={(event) => setLocalValue(event.target.value)}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <Search sx={{ fontSize: 18, color: 'text.secondary' }} />
+          </InputAdornment>
+        ),
+      }}
+      sx={{
+        minWidth: 220,
+        '& .MuiOutlinedInput-root': {
+          borderRadius: 2,
+          fontSize: '0.875rem',
+        },
+      }}
+    />
+  );
+};
+
 const Tags = () => {
   const { t } = useLanguage();
   const [tags, setTags] = useState([]);
@@ -211,11 +244,8 @@ const Tags = () => {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      loadTags(search);
-    }, 250);
-
-    return () => window.clearTimeout(timeoutId);
+    loadTags(search);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   const loadTags = async (searchTerm = '') => {
@@ -457,26 +487,7 @@ const Tags = () => {
             </Box>
           </Box>
 
-          <TextField
-            size="small"
-            placeholder="Search tags..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search sx={{ fontSize: 18, color: 'text.secondary' }} />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              minWidth: 220,
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-                fontSize: '0.875rem',
-              },
-            }}
-          />
+          <DebouncedSearchInput value={search} onChange={setSearch} />
         </Box>
 
         {error && !loading ? (
@@ -639,7 +650,10 @@ const Tags = () => {
           sx: {
             borderRadius: 3,
             border: '1px solid',
-            borderColor: (theme) => (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'),
+            borderColor: (theme) =
+      keepMounted
+      transitionDuration={{ enter: 120, exit: 80 }}
+    > (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'),
             overflow: 'hidden',
             backdropFilter: 'blur(16px)',
           },
@@ -800,7 +814,10 @@ const Tags = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={deleteOpen} onClose={handleCloseDelete} maxWidth="xs" fullWidth>
+      <Dialog open={deleteOpen} onClose={handleCloseDelete} maxWidth="xs" fullWidth
+      keepMounted
+      transitionDuration={{ enter: 120, exit: 80 }}
+    >
         <DialogTitle sx={{ pb: 1, pt: 2.5, px: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Box
