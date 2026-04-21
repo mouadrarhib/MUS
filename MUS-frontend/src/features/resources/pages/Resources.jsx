@@ -152,32 +152,32 @@ const Resources = () => {
     const baseResource = toResourceDetailModel(resource);
     if (!baseResource?.id) return;
 
-    setViewingResource(baseResource);
-    setOpenDetailsDialog(true);
-
     try {
-      const [resourceRes, statsRes, tagsRes] = await Promise.allSettled([
-        resourcesService.getResourceById(baseResource.id),
-        resourcesService.getResourceStatistics(baseResource.id),
-        resourcesService.getResourceTags(baseResource.id),
-      ]);
+      const bundle = await resourcesService.getResourceDetailsBundle(baseResource.id);
+      const resourceData = bundle?.resource || baseResource;
+      const moduleContext = bundle?.module_context || null;
 
-      const detailed =
-        resourceRes.status === 'fulfilled' && resourceRes.value
-          ? {
-              ...toResourceDetailModel(resourceRes.value),
-              stats: statsRes.status === 'fulfilled' ? statsRes.value || {} : {},
-              tags: tagsRes.status === 'fulfilled' ? tagsRes.value || [] : [],
-            }
-          : {
-              ...baseResource,
-              stats: statsRes.status === 'fulfilled' ? statsRes.value || {} : {},
-              tags: tagsRes.status === 'fulfilled' ? tagsRes.value || [] : [],
-            };
+      const detailed = {
+        ...toResourceDetailModel(resourceData),
+        stats: bundle?.stats || {},
+        tags: Array.isArray(bundle?.tags) ? bundle.tags : [],
+        previewUrl: bundle?.file?.url || bundle?.file?.download_url || '',
+        academicContext: {
+          ...(toResourceDetailModel(resourceData)?.academicContext || {}),
+          moduleId: moduleContext?.module_id || resourceData?.module_id || '',
+          moduleCode: moduleContext?.module_code || resourceData?.module_code || '',
+          moduleTitle: moduleContext?.module_title || resourceData?.module_title || '',
+          chapter: moduleContext?.chapter || '',
+          difficulty: moduleContext?.difficulty || '',
+          examRelated: Boolean(moduleContext?.exam_related),
+        },
+      };
 
-      setViewingResource((prev) => (prev?.id === baseResource.id ? detailed : prev));
+      setViewingResource(detailed);
+      setOpenDetailsDialog(true);
     } catch {
-      // Keep base details when enrichment fails.
+      setViewingResource(baseResource);
+      setOpenDetailsDialog(true);
     }
   };
 

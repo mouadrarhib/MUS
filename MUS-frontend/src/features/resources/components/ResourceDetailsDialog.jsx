@@ -46,40 +46,18 @@ const ResourceDetailsDialog = ({ open, resource, onClose, onOpenPreviewPage }) =
   }, [open, resource?.id]);
 
   useEffect(() => {
-    let mounted = true;
-
-    const loadPreviewUrl = async () => {
-      if (!open || !resource?.id) {
-        if (mounted) {
-          setPreviewUrl('');
-          setPreviewError('');
-          setPreviewLoading(false);
-        }
-        return;
-      }
-
-      setPreviewLoading(true);
+    if (!open || !resource?.id) {
+      setPreviewUrl('');
       setPreviewError('');
-      try {
-        const result = await resourcesService.getResourceFileUrl(resource.id);
-        const url = result?.url || result?.download_url || '';
-        if (mounted) setPreviewUrl(url);
-      } catch {
-        if (mounted) {
-          setPreviewUrl('');
-          setPreviewError('Preview is unavailable for this resource right now.');
-        }
-      } finally {
-        if (mounted) setPreviewLoading(false);
-      }
-    };
+      setPreviewLoading(false);
+      return;
+    }
 
-    loadPreviewUrl();
-
-    return () => {
-      mounted = false;
-    };
-  }, [open, resource?.id]);
+    const resolved = resource?.previewUrl || resource?.url || '';
+    setPreviewUrl(resolved);
+    setPreviewError(resolved ? '' : 'Preview is unavailable for this resource right now.');
+    setPreviewLoading(false);
+  }, [open, resource?.id, resource?.previewUrl, resource?.url]);
 
   if (!resource) return null;
 

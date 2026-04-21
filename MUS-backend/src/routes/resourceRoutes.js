@@ -7,6 +7,7 @@ import {
   listMyResources,
   getMyResourceAnalyticsHandler,
   getResource,
+  getResourceDetailsBundleHandler,
   updateExistingResource,
   deleteExistingResource,
   listResourcesByStatus,
@@ -400,6 +401,14 @@ router.get(
   validateRequest,
   requirePublishedOrOwnerOrAdmin(getResourceForVisibility),
   getResourceFileUrlHandler
+);
+
+router.get(
+  "/:id/details",
+  [param("id").isInt().withMessage("Valid resource ID is required")],
+  validateRequest,
+  requirePublishedOrOwnerOrAdmin(getResourceForVisibility),
+  getResourceDetailsBundleHandler
 );
 
 router.get(

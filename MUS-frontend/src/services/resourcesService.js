@@ -358,6 +358,11 @@ export const resourcesService = {
     return normalizeResource(response?.data);
   },
 
+  getResourceDetailsBundle: async (resourceId) => {
+    const response = await get(`${RESOURCE.ROOT}/${resourceId}/details`);
+    return response?.data || null;
+  },
+
   recordDownload: async (resourceId) => {
     const response = await post(`${RESOURCE.ROOT}/${resourceId}/download`);
     return response?.data || response || {};

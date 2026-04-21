@@ -5,6 +5,7 @@ import {
   createResource,
   getAllResources,
   getResourceById,
+  getResourceDetailsBundle,
   getResourcesByStatus,
   getResourcesByEducationalType,
   getResourcesByFormat,
@@ -270,6 +271,12 @@ export const getResource = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const result = await getResourceById(id);
   return successResponse(res, "Ressource recuperee avec succes", result);
+});
+
+export const getResourceDetailsBundleHandler = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const result = await getResourceDetailsBundle(id, req.user || null);
+  return successResponse(res, "Details de la ressource recuperes avec succes", result);
 });
 
 /**
