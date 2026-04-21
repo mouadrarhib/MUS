@@ -1,7 +1,6 @@
 import { del, get, patch, post } from "@/services/http";
 
-// NOTE: backend route is mounted with typo: /ressouces-module-map
-const RESOURCE_MODULE_MAP = "/ressouces-module-map";
+const RESOURCE_MODULE_MAP = "";
 
 export const resourceModuleMapService = {
   addModuleToResource: (resourceId, payload) =>

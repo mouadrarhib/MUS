@@ -5,6 +5,9 @@ import { Add, Delete as DeleteIcon, Warning as WarningIcon, Article, ErrorOutlin
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import resourcesService from '@/services/resourcesService';
+import resourceModuleMapService from '@/services/resourceModuleMapService';
+import moduleService from '@/services/moduleService';
+import institutionProgramService from '@/services/institutionProgramService';
 import tagService from '@/services/tagService';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import ResourcesStatsCards from '@/features/resources/components/ResourcesStatsCards';
@@ -14,6 +17,14 @@ import ResourceDetailsDialog from '@/features/resources/components/ResourceDetai
 import { toResourceDetailModel } from '@/entities/resource/mappers/resourceViewModel';
 import { AsyncButton, EmptyState, PageHeader } from '@/shared/components/ui';
 import { useLanguage } from '@/app/providers/LanguageContext';
+
+const asList = (payload, key = null) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (key && Array.isArray(payload?.[key])) return payload[key];
+  if (key && Array.isArray(payload?.data?.[key])) return payload.data[key];
+  return [];
+};
 
 const Resources = () => {
   const { t } = useLanguage();
@@ -75,8 +86,60 @@ const Resources = () => {
     setOpenDialog(true);
   }, []);
 
-  const handleEditResource = useCallback((resource) => {
-    setEditingResource(resource);
+  const handleEditResource = useCallback(async (resource) => {
+    if (!resource?.id) return;
+
+    let enriched = { ...resource };
+
+    try {
+      const [resourceDetails, moduleMapResponse] = await Promise.all([
+        resourcesService.getResourceById(resource.id),
+        resourceModuleMapService.getModulesByResource(resource.id),
+      ]);
+
+      const modules = asList(moduleMapResponse, 'modules');
+      const primaryModule = modules[0] || null;
+
+      let moduleDetails = null;
+      let institutionId = '';
+      if (primaryModule?.module_id) {
+        try {
+          const detailsResponse = await moduleService.getModuleDetails(primaryModule.module_id);
+          moduleDetails = detailsResponse?.data || detailsResponse || null;
+          if (moduleDetails?.program_id) {
+            const institutionsResponse = await institutionProgramService.getInstitutionsByProgram(moduleDetails.program_id);
+            const institutions = asList(institutionsResponse);
+            institutionId = String(institutions[0]?.id || institutions[0]?.institution_id || '');
+          }
+        } catch {
+          moduleDetails = null;
+        }
+      }
+
+      enriched = {
+        ...resource,
+        ...resourceDetails,
+        academicContext: {
+          ...(resourceDetails?.academicContext || resource?.academicContext || {}),
+          institutionId,
+          programId: String(moduleDetails?.program_id || ''),
+          levelId: String(moduleDetails?.level_id || ''),
+          semesterId: String(moduleDetails?.semester_id || ''),
+          moduleId: String(primaryModule?.module_id || resourceDetails?.module_id || resource?.module_id || ''),
+          moduleCode: primaryModule?.module_code || resourceDetails?.module_code || resource?.module_code || '',
+          moduleTitle: primaryModule?.module_title || resourceDetails?.module_title || resource?.module_title || '',
+          chapter: primaryModule?.chapter || resourceDetails?.academicContext?.chapter || '',
+          difficulty: primaryModule?.difficulty || resourceDetails?.academicContext?.difficulty || 'medium',
+          isExamRelated: Boolean(
+            primaryModule?.exam_related ?? resourceDetails?.academicContext?.examRelated ?? resourceDetails?.exam_related
+          ),
+        },
+      };
+    } catch {
+      enriched = { ...resource };
+    }
+
+    setEditingResource(enriched);
     setOpenDialog(true);
   }, []);
 
@@ -141,19 +204,44 @@ const Resources = () => {
     try {
       const hasFile = Boolean(resourceData.file);
       const normalizedUrl = typeof resourceData.url === 'string' ? resourceData.url.trim() : '';
+      const existingMetadata = editingResource?.metadata && typeof editingResource.metadata === 'object'
+        ? editingResource.metadata
+        : {};
+      const academicContext = resourceData.academicContext || {};
+      const metadata = {
+        ...existingMetadata,
+        academicContext: {
+          ...(existingMetadata?.academicContext || {}),
+          ...academicContext,
+        },
+      };
       const payload = {
-        title: resourceData.title,
-        description: resourceData.description,
+        title: resourceData.title || undefined,
+        description: resourceData.description || undefined,
         educational_type: resourceData.educationalType || resourceData.educational_type || 'notes',
         format: resourceData.format || 'pdf',
         access_tier: resourceData.accessTier || resourceData.access_tier || 'free',
         resource_type_id: resourceData.resource_type_id || 1,
-        metadata: {
-          ...(resourceData.metadata || {}),
-          academicContext: resourceData.academicContext || null,
-        },
+        metadata,
         ...(normalizedUrl ? { url: normalizedUrl } : {}),
       };
+
+      const normalizedDifficulty = ['easy', 'medium', 'hard'].includes(String(academicContext.difficulty || '').toLowerCase())
+        ? String(academicContext.difficulty).toLowerCase()
+        : 'medium';
+
+      const moduleMappingPayload = {
+        module_id: Number(academicContext.moduleId || 0),
+        chapter: typeof academicContext.chapter === 'string' && academicContext.chapter.trim()
+          ? academicContext.chapter.trim()
+          : undefined,
+        difficulty: normalizedDifficulty,
+        exam_related: Boolean(academicContext.isExamRelated),
+      };
+
+      if (!moduleMappingPayload.module_id) {
+        throw new Error('Please select a module in Academic Context');
+      }
 
       if (editingResource && resourceData.status) {
         payload.status = resourceData.status;
@@ -162,6 +250,27 @@ const Resources = () => {
       if (editingResource) {
         const updatedResource = await resourcesService.updateResource(editingResource.id, payload);
         console.log('[Resources] Resource updated', { resourceId: updatedResource?.id, hasFile });
+
+        const existingMappingsResponse = await resourceModuleMapService.getModulesByResource(updatedResource.id);
+        const existingMappings = asList(existingMappingsResponse, 'modules');
+        const currentMapping = existingMappings[0] || null;
+
+        if (!currentMapping) {
+          await resourceModuleMapService.addModuleToResource(updatedResource.id, moduleMappingPayload);
+        } else if (Number(currentMapping.module_id) !== moduleMappingPayload.module_id) {
+          await resourceModuleMapService.removeAllModulesFromResource(updatedResource.id);
+          await resourceModuleMapService.addModuleToResource(updatedResource.id, moduleMappingPayload);
+        } else {
+          await resourceModuleMapService.updateResourceModuleMap(
+            updatedResource.id,
+            moduleMappingPayload.module_id,
+            {
+              chapter: moduleMappingPayload.chapter,
+              difficulty: moduleMappingPayload.difficulty,
+              exam_related: moduleMappingPayload.exam_related,
+            }
+          );
+        }
 
         await resourcesService.replaceResourceTags(updatedResource.id, resourceData.tagIds || []);
 
@@ -172,6 +281,8 @@ const Resources = () => {
       } else {
         const createdResource = await resourcesService.createResource(payload);
         console.log('[Resources] Resource created', { resourceId: createdResource?.id, hasFile });
+
+        await resourceModuleMapService.addModuleToResource(createdResource.id, moduleMappingPayload);
 
         await resourcesService.replaceResourceTags(createdResource.id, resourceData.tagIds || []);
 
