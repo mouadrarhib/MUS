@@ -29,6 +29,8 @@ router.get(
     query("resource_id").optional().isInt({ min: 1 }).withMessage("ID de ressource invalide"),
     query("status").optional().isIn(["open", "answered", "closed"]).withMessage("Statut invalide"),
     query("include_hidden").optional().isBoolean().withMessage("include_hidden doit etre un booleen"),
+    query("page").optional().isInt({ min: 1 }).withMessage("page invalide"),
+    query("limit").optional().isInt({ min: 1, max: 100 }).withMessage("limit doit etre entre 1 et 100"),
   ],
   validateRequest,
   listQuestionsHandler
@@ -40,6 +42,8 @@ router.get(
   [
     param("questionId").isInt({ min: 1 }).withMessage("ID de question invalide"),
     query("include_hidden").optional().isBoolean().withMessage("include_hidden doit etre un booleen"),
+    query("page").optional().isInt({ min: 1 }).withMessage("page invalide"),
+    query("limit").optional().isInt({ min: 1, max: 100 }).withMessage("limit doit etre entre 1 et 100"),
   ],
   validateRequest,
   getQuestionHandler
@@ -51,6 +55,8 @@ router.get(
   [
     param("questionId").isInt({ min: 1 }).withMessage("ID de question invalide"),
     query("include_hidden").optional().isBoolean().withMessage("include_hidden doit etre un booleen"),
+    query("page").optional().isInt({ min: 1 }).withMessage("page invalide"),
+    query("limit").optional().isInt({ min: 1, max: 200 }).withMessage("limit doit etre entre 1 et 200"),
   ],
   validateRequest,
   listAnswersHandler
@@ -102,6 +108,8 @@ router.get(
   [
     param("answerId").isInt({ min: 1 }).withMessage("ID de reponse invalide"),
     query("include_hidden").optional().isBoolean().withMessage("include_hidden doit etre un booleen"),
+    query("page").optional().isInt({ min: 1 }).withMessage("page invalide"),
+    query("limit").optional().isInt({ min: 1, max: 200 }).withMessage("limit doit etre entre 1 et 200"),
   ],
   validateRequest,
   listAnswerCommentsHandler

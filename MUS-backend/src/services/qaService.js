@@ -18,6 +18,12 @@ const QA_NOTIFICATION_TYPES = {
 const canModerate = (roles = []) => isTeacher(roles) || isAdmin(roles);
 const canViewHidden = ({ actor = null, includeHidden = false }) =>
   Boolean(includeHidden && canModerate(actor?.roles || []));
+const normalizePagination = ({ page = 1, limit = 20, maxLimit = 100 } = {}) => {
+  const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), maxLimit);
+  const safePage = Math.max(Number(page) || 1, 1);
+  const offset = (safePage - 1) * safeLimit;
+  return { safePage, safeLimit, offset };
+};
 
 const toBadges = (answer) => {
   const badges = [];
@@ -236,9 +242,10 @@ export const createQuestionWithRoles = async ({ userId, roles = [], moduleId, re
 
 export const listQuestions = async (
   actor = null,
-  { moduleId = null, resourceId = null, status = null, includeHidden = false } = {}
+  { moduleId = null, resourceId = null, status = null, includeHidden = false, page = 1, limit = 20 } = {}
 ) => {
   const allowHidden = includeHidden && canModerate(actor?.roles || []);
+  const { safeLimit, offset } = normalizePagination({ page, limit, maxLimit: 100 });
   const [rows] = await sequelize.query(
     `
     SELECT ${questionProjection(actor)}
@@ -249,6 +256,8 @@ export const listQuestions = async (
       AND (:status::text IS NULL OR q.status::text = :status)
       AND (:allow_hidden = TRUE OR q.moderation_status = 'active'::qa_moderation_status)
     ORDER BY q.created_at DESC
+    LIMIT :limit_value
+    OFFSET :offset_value
     `,
     {
       replacements: {
@@ -257,6 +266,8 @@ export const listQuestions = async (
         resource_id: resourceId,
         status,
         allow_hidden: allowHidden,
+        limit_value: safeLimit,
+        offset_value: offset,
       },
     }
   );
@@ -400,8 +411,9 @@ export const createAnswer = async ({ questionId, userId, roles = [], body, expla
   return rows[0];
 };
 
-export const listAnswersByQuestion = async (questionId, actor = null, includeHidden = false) => {
+export const listAnswersByQuestion = async (questionId, actor = null, includeHidden = false, { page = 1, limit = 50 } = {}) => {
   const allowHidden = canViewHidden({ actor, includeHidden });
+  const { safeLimit, offset } = normalizePagination({ page, limit, maxLimit: 100 });
   await ensureQuestionExists(questionId, { allowHidden });
 
   const [rows] = await sequelize.query(
@@ -426,8 +438,17 @@ export const listAnswersByQuestion = async (questionId, actor = null, includeHid
     WHERE a.question_id = :question_id
       AND (:allow_hidden = TRUE OR a.moderation_status = 'active'::qa_moderation_status)
     ORDER BY a.is_accepted DESC, a.is_official DESC, a.created_at ASC
+    LIMIT :limit_value
+    OFFSET :offset_value
     `,
-    { replacements: { question_id: questionId, allow_hidden: allowHidden } }
+    {
+      replacements: {
+        question_id: questionId,
+        allow_hidden: allowHidden,
+        limit_value: safeLimit,
+        offset_value: offset,
+      },
+    }
   );
 
   return rows.map((row) => ({
@@ -702,8 +723,9 @@ export const createCommentOnAnswer = async ({ answerId, userId, body }) => {
   return rows[0];
 };
 
-export const listCommentsByQuestion = async (questionId, actor = null, includeHidden = false) => {
+export const listCommentsByQuestion = async (questionId, actor = null, includeHidden = false, { page = 1, limit = 50 } = {}) => {
   const allowHidden = canViewHidden({ actor, includeHidden });
+  const { safeLimit, offset } = normalizePagination({ page, limit, maxLimit: 200 });
   await ensureQuestionExists(questionId, { allowHidden });
 
   const [rows] = await sequelize.query(
@@ -723,15 +745,25 @@ export const listCommentsByQuestion = async (questionId, actor = null, includeHi
     WHERE c.question_id = :question_id
       AND (:allow_hidden = TRUE OR c.moderation_status = 'active'::qa_moderation_status)
     ORDER BY c.created_at ASC
+    LIMIT :limit_value
+    OFFSET :offset_value
     `,
-    { replacements: { question_id: questionId, allow_hidden: allowHidden } }
+    {
+      replacements: {
+        question_id: questionId,
+        allow_hidden: allowHidden,
+        limit_value: safeLimit,
+        offset_value: offset,
+      },
+    }
   );
 
   return rows;
 };
 
-export const listCommentsByAnswer = async (answerId, actor = null, includeHidden = false) => {
+export const listCommentsByAnswer = async (answerId, actor = null, includeHidden = false, { page = 1, limit = 50 } = {}) => {
   const allowHidden = canViewHidden({ actor, includeHidden });
+  const { safeLimit, offset } = normalizePagination({ page, limit, maxLimit: 200 });
   await ensureAnswerExists(answerId, { allowHidden });
 
   const [rows] = await sequelize.query(
@@ -751,8 +783,17 @@ export const listCommentsByAnswer = async (answerId, actor = null, includeHidden
     WHERE c.answer_id = :answer_id
       AND (:allow_hidden = TRUE OR c.moderation_status = 'active'::qa_moderation_status)
     ORDER BY c.created_at ASC
+    LIMIT :limit_value
+    OFFSET :offset_value
     `,
-    { replacements: { answer_id: answerId, allow_hidden: allowHidden } }
+    {
+      replacements: {
+        answer_id: answerId,
+        allow_hidden: allowHidden,
+        limit_value: safeLimit,
+        offset_value: offset,
+      },
+    }
   );
 
   return rows;

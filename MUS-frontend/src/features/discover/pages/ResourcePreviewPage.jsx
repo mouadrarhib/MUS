@@ -305,7 +305,7 @@ const ResourcePreviewPage = () => {
     setQaError('');
 
     qaService
-      .listQuestions({ resource_id: resourceId, include_hidden: canModerate })
+      .listQuestions({ resource_id: resourceId, include_hidden: canModerate, page: 1, limit: 50 })
       .then((rows) => {
         if (cancelled) return;
         setQuestions(rows);
@@ -383,7 +383,7 @@ const ResourcePreviewPage = () => {
     setQaLoading(true);
     setQaError('');
     try {
-      const rows = await qaService.listQuestions({ resource_id: resourceId, include_hidden: canModerate });
+      const rows = await qaService.listQuestions({ resource_id: resourceId, include_hidden: canModerate, page: 1, limit: 50 });
       setQuestions(rows);
       setSelectedQuestionId((current) => {
         if (preferredId && rows.some((item) => item.id === preferredId)) {
@@ -451,8 +451,8 @@ const ResourcePreviewPage = () => {
     const run = async () => {
       try {
         const [nextAnswers, nextQuestionComments] = await Promise.all([
-          qaService.listAnswersByQuestion(selectedQuestionId, { include_hidden: canModerate }),
-          qaService.listQuestionComments(selectedQuestionId, { include_hidden: canModerate }),
+          qaService.listAnswersByQuestion(selectedQuestionId, { include_hidden: canModerate, page: 1, limit: 50 }),
+          qaService.listQuestionComments(selectedQuestionId, { include_hidden: canModerate, page: 1, limit: 100 }),
         ]);
 
         if (cancelled) return;
@@ -466,7 +466,7 @@ const ResourcePreviewPage = () => {
 
         const answerCommentEntries = await Promise.all(
           nextAnswers.map(async (answer) => {
-            const comments = await qaService.listAnswerComments(answer.id, { include_hidden: canModerate });
+            const comments = await qaService.listAnswerComments(answer.id, { include_hidden: canModerate, page: 1, limit: 100 });
             return [answer.id, comments];
           })
         );

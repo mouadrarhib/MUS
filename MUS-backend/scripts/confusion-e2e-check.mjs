@@ -85,10 +85,18 @@ const run = async () => {
 
   push(
     await admin.request("login", "POST", "/api/auth/login", {
-      body: { email: "user@gmail.com", password: "user1234!" },
+      body: {
+        email: process.env.ADMIN_EMAIL || "user@gmail.com",
+        password: process.env.ADMIN_PASSWORD || "user1234!",
+      },
       expected: 200,
     })
   );
+  if (!results[results.length - 1].ok) {
+    throw new Error(
+      `Admin login failed. Set ADMIN_EMAIL and ADMIN_PASSWORD env vars. Status: ${results[results.length - 1].status}`
+    );
+  }
 
   push(
     await student.request("register", "POST", "/api/auth/register", {

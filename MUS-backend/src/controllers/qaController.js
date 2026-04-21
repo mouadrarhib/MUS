@@ -146,7 +146,9 @@ export const listQuestionsHandler = asyncHandler(async (req, res) => {
   const resourceId = req.query.resource_id ? parseInt(req.query.resource_id, 10) : null;
   const status = req.query.status || null;
   const includeHidden = String(req.query.include_hidden || "false").toLowerCase() === "true";
-  const questions = await listQuestions(req.user || null, { moduleId, resourceId, status, includeHidden });
+  const page = Math.max(parseInt(req.query.page || "1", 10), 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit || "20", 10), 1), 100);
+  const questions = await listQuestions(req.user || null, { moduleId, resourceId, status, includeHidden, page, limit });
   return successResponse(res, "Questions recuperees avec succes", questions);
 });
 
@@ -269,7 +271,9 @@ export const createAnswerHandler = asyncHandler(async (req, res) => {
 export const listAnswersHandler = asyncHandler(async (req, res) => {
   const questionId = parseInt(req.params.questionId, 10);
   const includeHidden = String(req.query.include_hidden || "false").toLowerCase() === "true";
-  const answers = await listAnswersByQuestion(questionId, req.user || null, includeHidden);
+  const page = Math.max(parseInt(req.query.page || "1", 10), 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit || "50", 10), 1), 100);
+  const answers = await listAnswersByQuestion(questionId, req.user || null, includeHidden, { page, limit });
   return successResponse(res, "Reponses recuperees avec succes", answers);
 });
 
@@ -517,7 +521,9 @@ export const createAnswerCommentHandler = asyncHandler(async (req, res) => {
 export const listQuestionCommentsHandler = asyncHandler(async (req, res) => {
   const questionId = parseInt(req.params.questionId, 10);
   const includeHidden = String(req.query.include_hidden || "false").toLowerCase() === "true";
-  const comments = await listCommentsByQuestion(questionId, req.user || null, includeHidden);
+  const page = Math.max(parseInt(req.query.page || "1", 10), 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit || "50", 10), 1), 200);
+  const comments = await listCommentsByQuestion(questionId, req.user || null, includeHidden, { page, limit });
   return successResponse(res, "Commentaires recuperes avec succes", comments);
 });
 
@@ -546,7 +552,9 @@ export const listQuestionCommentsHandler = asyncHandler(async (req, res) => {
 export const listAnswerCommentsHandler = asyncHandler(async (req, res) => {
   const answerId = parseInt(req.params.answerId, 10);
   const includeHidden = String(req.query.include_hidden || "false").toLowerCase() === "true";
-  const comments = await listCommentsByAnswer(answerId, req.user || null, includeHidden);
+  const page = Math.max(parseInt(req.query.page || "1", 10), 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit || "50", 10), 1), 200);
+  const comments = await listCommentsByAnswer(answerId, req.user || null, includeHidden, { page, limit });
   return successResponse(res, "Commentaires recuperes avec succes", comments);
 });
 

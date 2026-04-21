@@ -74,8 +74,8 @@ const fail = (msg) => {
 const randomSuffix = Date.now();
 
 const adminCreds = {
-  email: "user@gmail.com",
-  password: "user1234!",
+  email: process.env.ADMIN_EMAIL || "user@gmail.com",
+  password: process.env.ADMIN_PASSWORD || "user1234!",
 };
 
 const studentCreds = {
@@ -90,6 +90,12 @@ const teacherCreds = {
   full_name: "QA Teacher",
 };
 
+const inactiveTeacherCreds = {
+  email: `qa.inactive.teacher.${randomSuffix}@example.com`,
+  password: "Pass1234!",
+  full_name: "QA Inactive Teacher",
+};
+
 const quotaStudentCreds = {
   email: `qa.quota.${randomSuffix}@example.com`,
   password: "Pass1234!",
@@ -99,11 +105,22 @@ const quotaStudentCreds = {
 const admin = new Client("admin");
 const student = new Client("student");
 const teacher = new Client("teacher");
+const inactiveTeacher = new Client("inactive-teacher");
 const quotaStudent = new Client("quota-student");
 const pub = new Client("public");
 
 const run = async () => {
-  record(await admin.request("login", "POST", "/api/auth/login", { body: adminCreds, expectedStatus: 200 }));
+  const adminLogin = await admin.request("login", "POST", "/api/auth/login", { body: adminCreds, expectedStatus: 200 });
+  record(adminLogin);
+  if (!adminLogin.ok) {
+    fail(
+      `Admin login failed. Set ADMIN_EMAIL and ADMIN_PASSWORD env vars. Status: ${adminLogin.status} Message: ${adminLogin.message}`
+    );
+  }
+  const adminMe = await admin.request("admin me", "GET", "/api/auth/me", { expectedStatus: 200 });
+  record(adminMe);
+  const adminId = adminMe.payload?.data?.user?.id;
+  if (!adminId) fail("Admin id not found");
 
   const rolesRes = await admin.request("list roles", "GET", "/api/roles", { expectedStatus: 200 });
   record(rolesRes);
@@ -140,6 +157,30 @@ const run = async () => {
     await admin.request("assign teacher role", "POST", "/api/user-roles/assign", {
       body: { userId: teacherId, roleId: teacherRole.id },
       expectedStatus: [200, 201],
+    })
+  );
+
+  record(await inactiveTeacher.request("register inactive teacher", "POST", "/api/auth/register", { body: inactiveTeacherCreds, expectedStatus: 201 }));
+  record(
+    await inactiveTeacher.request("login inactive teacher temp", "POST", "/api/auth/login", {
+      body: { email: inactiveTeacherCreds.email, password: inactiveTeacherCreds.password },
+      expectedStatus: 200,
+    })
+  );
+  const inactiveTeacherMe = await inactiveTeacher.request("inactive teacher me", "GET", "/api/auth/me", { expectedStatus: 200 });
+  record(inactiveTeacherMe);
+  const inactiveTeacherId = inactiveTeacherMe.payload?.data?.user?.id;
+  if (!inactiveTeacherId) fail("Inactive teacher id not found");
+  record(
+    await admin.request("assign role to inactive teacher", "POST", "/api/user-roles/assign", {
+      body: { userId: inactiveTeacherId, roleId: teacherRole.id },
+      expectedStatus: [200, 201],
+    })
+  );
+  record(
+    await admin.request("deactivate inactive teacher", "PATCH", `/api/auth/user/${inactiveTeacherId}`, {
+      body: { is_active: false },
+      expectedStatus: 200,
     })
   );
 
@@ -221,6 +262,30 @@ const run = async () => {
       expectedStatus: [200, 201],
     })
   );
+  record(
+    await admin.request("assign admin as module referent for dedupe", "POST", "/api/confusion/module-staff-assignments", {
+      body: {
+        module_id: moduleId,
+        user_id: adminId,
+        assignment_role: "admin_referent",
+        is_primary: false,
+        is_active: true,
+      },
+      expectedStatus: [200, 201],
+    })
+  );
+  record(
+    await admin.request("assign inactive teacher as module referent", "POST", "/api/confusion/module-staff-assignments", {
+      body: {
+        module_id: moduleId,
+        user_id: inactiveTeacherId,
+        assignment_role: "teacher_referent",
+        is_primary: false,
+        is_active: true,
+      },
+      expectedStatus: [200, 201],
+    })
+  );
 
   const q1 = await student.request("create anonymous question", "POST", "/api/qa/questions", {
     body: {
@@ -236,7 +301,42 @@ const run = async () => {
   const questionId = pickId(q1.payload);
   if (!questionId) fail("Question id not found");
 
+  const teacherQuestionView = await teacher.request(
+    "teacher list questions includes anonymous masking",
+    "GET",
+    `/api/qa/questions?resource_id=${resourceId}&limit=20`,
+    { expectedStatus: 200 }
+  );
+  record(teacherQuestionView);
+  const maskedQuestion = (teacherQuestionView.payload?.data || []).find((q) => q.id === questionId);
+  if (!maskedQuestion) fail("Anonymous question missing in teacher list");
+  if (maskedQuestion.user_name !== "Anonyme" || maskedQuestion.user_id !== null) {
+    fail("Anonymous question author should be masked for non-admin non-author viewers");
+  }
+
+  const ownerQuestionView = await student.request(
+    "author list questions sees own identity",
+    "GET",
+    `/api/qa/questions?resource_id=${resourceId}&limit=20`,
+    { expectedStatus: 200 }
+  );
+  record(ownerQuestionView);
+  const ownerVisibleQuestion = (ownerQuestionView.payload?.data || []).find((q) => q.id === questionId);
+  if (!ownerVisibleQuestion?.user_id || ownerVisibleQuestion.user_name === "Anonyme") {
+    fail("Question author should see own identity even when anonymous");
+  }
+
   record(await pub.request("public read questions", "GET", "/api/qa/questions", { expectedStatus: 200 }));
+  const pagedQuestions = await pub.request(
+    "public read questions paged",
+    "GET",
+    `/api/qa/questions?resource_id=${resourceId}&page=1&limit=2`,
+    { expectedStatus: 200 }
+  );
+  record(pagedQuestions);
+  if ((pagedQuestions.payload?.data || []).length > 2) {
+    fail("Questions pagination limit is not enforced");
+  }
 
   record(
     await teacher.request("official answer missing explanation", "POST", `/api/qa/questions/${questionId}/answers`, {
@@ -374,6 +474,28 @@ const run = async () => {
   if (ownQuestionCommentNotification) {
     fail("Actor should not receive self notifications for own QA comment");
   }
+
+  const adminNotifications = await admin.request(
+    "admin unread notifications",
+    "GET",
+    "/api/notifications?unread_only=true&limit=200",
+    { expectedStatus: 200 }
+  );
+  record(adminNotifications);
+  const adminNotificationRows = getNotificationRows(adminNotifications.payload);
+  const adminQuestionNotifications = adminNotificationRows.filter(
+    (row) => row.type === "QA_QUESTION_CREATED" && row.payload?.question_id === questionId
+  );
+  if (adminQuestionNotifications.length !== 1) {
+    fail(`Expected duplicate suppression for admin recipient, got ${adminQuestionNotifications.length}`);
+  }
+
+  record(
+    await admin.request("inactive teacher cannot login", "POST", "/api/auth/login", {
+      body: { email: inactiveTeacherCreds.email, password: inactiveTeacherCreds.password },
+      expectedStatus: [401, 403],
+    })
+  );
 
   record(
     await teacher.request("moderate question hidden", "PATCH", `/api/qa/questions/${questionId}/moderate`, {
