@@ -26,7 +26,7 @@ export const BreadcrumbFlow = ({ steps }) => (
         display="flex"
         alignItems="center"
         gap={0.5}
-        sx={{ flex: { xs: '1 1 100%', md: '0 1 auto' }, minWidth: 0 }}
+        sx={{ flex: { xs: '1 1 100%', sm: '0 1 auto' }, minWidth: 0 }}
       >
         {index > 0 && (
           <Box
@@ -84,7 +84,7 @@ export const BreadcrumbFlow = ({ steps }) => (
               fontSize: '0.71rem',
               fontWeight: step.active ? 700 : 500,
               color: step.active ? step.color : 'text.disabled',
-              whiteSpace: { xs: 'normal', md: 'nowrap' },
+              whiteSpace: 'normal',
               overflowWrap: 'anywhere',
               lineHeight: 1.2,
             }}
@@ -283,9 +283,9 @@ export const HierarchyPanel = ({
 
     <Box
       sx={{
-        px: { xs: 1.25, sm: 1.6, md: 2 },
-        py: { xs: 1.1, sm: 1.4 },
-        pt: { xs: 1.6, sm: 2.1 },
+        px: { xs: 1.5, sm: 2 },
+        py: { xs: 1.15, sm: 1.5 },
+        pt: { xs: 1.8, sm: 2.2 },
         borderBottom: '1px solid',
         borderColor: (theme) =>
           theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
@@ -402,8 +402,8 @@ export const HierarchyPanel = ({
               key={`${title}-${itemId}`}
               onClick={() => onSelect?.(item)}
               sx={{
-                pl: selected ? { xs: 1.3, sm: 1.6 } : { xs: 1.15, sm: 1.35 },
-                pr: { xs: 1.05, sm: 1.35 },
+                pl: selected ? { xs: 1.35, sm: 1.6 } : { xs: 1.15, sm: 1.35 },
+                pr: { xs: 1.15, sm: 1.35 },
                 py: { xs: 1, sm: 1.2 },
                 borderRadius: 2,
                 border: '1px solid',

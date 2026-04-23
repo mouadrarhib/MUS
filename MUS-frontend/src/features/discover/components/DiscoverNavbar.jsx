@@ -1,12 +1,84 @@
-import { Box, Button, IconButton, Stack, Typography, alpha } from '@mui/material';
+import { Box, Button, IconButton, Stack, Typography, alpha, Badge, Menu as MuiMenu, MenuItem, Divider, CircularProgress } from '@mui/material';
 import { Menu, LightMode, DarkMode } from '@mui/icons-material';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { useThemeMode } from '@/app/providers/ThemeContext';
+import notificationService from '@/services/notificationService';
 import logo from '@/assets/images/logo.png';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { NotificationsNone } from '@mui/icons-material';
 
 const DiscoverNavbar = ({ onLogout, isAuthenticated }) => {
   const { mode, toggleTheme } = useThemeMode();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+
+  const notificationsOpen = Boolean(notificationAnchorEl);
+  const unreadCount = useMemo(
+    () => notifications.reduce((total, item) => total + (item?.is_read ? 0 : 1), 0),
+    [notifications]
+  );
+
+  const loadNotifications = useCallback(async () => {
+    if (!isAuthenticated) return;
+    setLoadingNotifications(true);
+    try {
+      const data = await notificationService.list({ page: 1, limit: 15 });
+      setNotifications(Array.isArray(data.rows) ? data.rows : []);
+    } catch {
+      setNotifications([]);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  }, [isAuthenticated]);
+
+  const deriveNotificationTarget = (notification) => {
+    const payload = notification?.payload || {};
+    const resourceId = Number(payload.resource_id || 0);
+    const questionId = Number(payload.question_id || 0);
+    if (resourceId > 0) {
+      return questionId > 0
+        ? `/discover/resources/${resourceId}/preview?question=${questionId}`
+        : `/discover/resources/${resourceId}/preview`;
+    }
+    return '/dashboard';
+  };
+
+  const handleNotificationClick = async (notification) => {
+    if (!notification) return;
+    if (!notification.is_read) {
+      try {
+        await notificationService.markRead(notification.id);
+      } catch {
+        // keep navigation responsive
+      }
+    }
+    setNotificationAnchorEl(null);
+    navigate(deriveNotificationTarget(notification));
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setNotifications([]);
+      return;
+    }
+
+    loadNotifications();
+    const stopStream = notificationService.openStream({
+      onNotification: (incoming) => {
+        setNotifications((prev) => {
+          const merged = [incoming, ...prev].filter((item, index, arr) => arr.findIndex((row) => row.id === item.id) === index);
+          return merged.slice(0, 40);
+        });
+      },
+    });
+
+    return () => {
+      stopStream();
+    };
+  }, [isAuthenticated, loadNotifications]);
 
   const navItems = [
     { label: 'Discover', to: '/discover', active: location.pathname === '/discover' },
@@ -110,6 +182,76 @@ const DiscoverNavbar = ({ onLogout, isAuthenticated }) => {
 
         {/* Right: Theme toggle + Auth buttons */}
         <Stack direction="row" spacing={0.8} alignItems="center">
+          {isAuthenticated ? (
+            <>
+              <IconButton
+                onClick={(event) => setNotificationAnchorEl(event.currentTarget)}
+                aria-label="Open notifications"
+                size="small"
+                sx={{
+                  color: 'text.primary',
+                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+                  border: '1px solid',
+                  borderColor: (theme) =>
+                    theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                  borderRadius: 2,
+                  p: 0.8,
+                }}
+              >
+                <Badge badgeContent={unreadCount > 99 ? '99+' : unreadCount} color="error">
+                  <NotificationsNone sx={{ fontSize: 18 }} />
+                </Badge>
+              </IconButton>
+              <MuiMenu
+                anchorEl={notificationAnchorEl}
+                open={notificationsOpen}
+                onClose={() => setNotificationAnchorEl(null)}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                PaperProps={{
+                  sx: {
+                    width: 360,
+                    maxWidth: 'calc(100vw - 20px)',
+                    borderRadius: 2,
+                  },
+                }}
+              >
+                <Box sx={{ px: 1.4, py: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="subtitle2" fontWeight={700}>Notifications</Typography>
+                  <Button size="small" onClick={loadNotifications} sx={{ textTransform: 'none' }}>Refresh</Button>
+                </Box>
+                <Divider />
+                {loadingNotifications ? (
+                  <Box sx={{ py: 2.4, display: 'flex', justifyContent: 'center' }}>
+                    <CircularProgress size={20} />
+                  </Box>
+                ) : notifications.length ? (
+                  notifications.map((item) => (
+                    <MenuItem
+                      key={item.id}
+                      onClick={() => handleNotificationClick(item)}
+                      sx={{
+                        whiteSpace: 'normal',
+                        alignItems: 'flex-start',
+                        borderLeft: '3px solid',
+                        borderLeftColor: item.is_read ? 'transparent' : 'primary.main',
+                      }}
+                    >
+                      <Box>
+                        <Typography variant="body2" fontWeight={700}>{item.title || 'Notification'}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{item.body || ''}</Typography>
+                      </Box>
+                    </MenuItem>
+                  ))
+                ) : (
+                  <Box sx={{ p: 1.5 }}>
+                    <Typography variant="body2" color="text.secondary">No notifications yet.</Typography>
+                  </Box>
+                )}
+              </MuiMenu>
+            </>
+          ) : null}
+
           <IconButton
             onClick={toggleTheme}
             aria-label={mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}

@@ -11,46 +11,46 @@ const typography = {
   ].join(','),
   h1: {
     fontFamily: '"Space Grotesk"',
-    fontSize: 'clamp(1.95rem, 2.4vw, 2.75rem)',
+    fontSize: 'clamp(2rem, 3vw, 3rem)',
     fontWeight: 700,
     lineHeight: 1.2,
   },
   h2: {
     fontFamily: '"Space Grotesk"',
-    fontSize: 'clamp(1.7rem, 2.1vw, 2.25rem)',
+    fontSize: 'clamp(1.75rem, 2.5vw, 2.4rem)',
     fontWeight: 600,
     lineHeight: 1.3,
   },
   h3: {
     fontFamily: '"Space Grotesk"',
-    fontSize: 'clamp(1.48rem, 1.75vw, 1.9rem)',
+    fontSize: 'clamp(1.5rem, 2.2vw, 2rem)',
     fontWeight: 600,
     lineHeight: 1.4,
   },
   h4: {
     fontFamily: '"Space Grotesk"',
-    fontSize: 'clamp(1.3rem, 1.4vw, 1.58rem)',
+    fontSize: 'clamp(1.35rem, 1.9vw, 1.75rem)',
     fontWeight: 600,
     lineHeight: 1.4,
   },
   h5: {
     fontFamily: '"Space Grotesk"',
-    fontSize: 'clamp(1.12rem, 1.12vw, 1.28rem)',
+    fontSize: 'clamp(1.15rem, 1.5vw, 1.35rem)',
     fontWeight: 600,
     lineHeight: 1.5,
   },
   h6: {
     fontFamily: '"Space Grotesk"',
-    fontSize: 'clamp(0.95rem, 0.98vw, 1.05rem)',
+    fontSize: 'clamp(0.95rem, 1.1vw, 1rem)',
     fontWeight: 600,
     lineHeight: 1.5,
   },
   body1: {
-    fontSize: 'clamp(0.94rem, 0.98vw, 1.02rem)',
+    fontSize: 'clamp(0.95rem, 1vw, 1rem)',
     lineHeight: 1.6,
   },
   body2: {
-    fontSize: 'clamp(0.82rem, 0.9vw, 0.92rem)',
+    fontSize: 'clamp(0.82rem, 0.92vw, 0.9rem)',
     lineHeight: 1.55,
   },
   button: {
@@ -137,20 +137,75 @@ export const lightTheme = createTheme({
   transitions,
   components: {
     MuiButton: {
+      defaultProps: {
+        disableElevation: true,
+      },
       styleOverrides: {
         root: {
           borderRadius: 8,
-          padding: '10px 24px',
-          fontSize: '0.9375rem',
-          fontWeight: 500,
+          padding: '8px 20px',
+          fontSize: '0.9rem',
+          fontWeight: 600,
           boxShadow: 'none',
+          letterSpacing: '0.01em',
+          transition:
+            'background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'color 150ms cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'transform 150ms cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'border-color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+          willChange: 'transform, box-shadow',
           '&:hover': {
-            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
+            transform: 'translateY(-1px)',
+          },
+          '&:active': {
+            transform: 'translateY(0px)',
+            boxShadow: 'none',
+          },
+          '&:focus-visible': {
+            outline: '2px solid currentColor',
+            outlineOffset: 2,
+          },
+          '&.Mui-disabled': {
+            opacity: 0.5,
           },
         },
         contained: {
           '&:hover': {
-            boxShadow: '0 6px 12px rgba(0, 0, 0, 0.15)',
+            boxShadow: '0 6px 16px rgba(0, 0, 0, 0.16)',
+          },
+        },
+        outlined: {
+          '&:hover': {
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+          },
+        },
+        sizeSmall: {
+          padding: '5px 14px',
+          fontSize: '0.8125rem',
+        },
+        sizeLarge: {
+          padding: '12px 28px',
+          fontSize: '1rem',
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          transition:
+            'background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'color 150ms cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'transform 150ms cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'border-color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+          willChange: 'transform',
+          '&:hover': {
+            transform: 'scale(1.08)',
+          },
+          '&:active': {
+            transform: 'scale(0.96)',
           },
         },
       },
@@ -160,7 +215,7 @@ export const lightTheme = createTheme({
         root: {
           borderRadius: 12,
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-          transition: 'box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out',
+          transition: 'box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
             transform: 'translateY(-4px)',
@@ -173,8 +228,12 @@ export const lightTheme = createTheme({
         root: ({ theme }) => ({
           '& .MuiOutlinedInput-root': {
             borderRadius: 8,
+            transition: 'box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover fieldset': {
               borderColor: theme.palette.primary.light,
+            },
+            '&.Mui-focused': {
+              boxShadow: `0 0 0 3px ${theme.palette.primary.main}22`,
             },
           },
         }),
@@ -192,6 +251,39 @@ export const lightTheme = createTheme({
         root: {
           borderRadius: 6,
           fontWeight: 500,
+          transition: 'background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+        },
+      },
+    },
+    MuiSwitch: {
+      styleOverrides: {
+        root: {
+          '& .MuiSwitch-switchBase': {
+            transition: 'transform 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+          },
+          '& .MuiSwitch-thumb': {
+            transition: 'box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+          },
+        },
+      },
+    },
+    MuiDialog: {
+      defaultProps: {
+        keepMounted: true,
+        transitionDuration: { enter: 120, exit: 80 },
+      },
+      styleOverrides: {
+        paper: {
+          backgroundImage: 'none',
+        },
+      },
+    },
+    MuiBackdrop: {
+      styleOverrides: {
+        root: {
+          '&:not(.MuiBackdrop-invisible)': {
+            transition: 'opacity 120ms cubic-bezier(0.4, 0, 0.2, 1) !important',
+          },
         },
       },
     },
@@ -249,12 +341,75 @@ export const darkTheme = createTheme({
   transitions,
   components: {
     MuiButton: {
+      defaultProps: {
+        disableElevation: true,
+      },
       styleOverrides: {
         root: {
           borderRadius: 8,
-          padding: '10px 24px',
-          fontSize: '0.9375rem',
-          fontWeight: 500,
+          padding: '8px 20px',
+          fontSize: '0.9rem',
+          fontWeight: 600,
+          letterSpacing: '0.01em',
+          transition:
+            'background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'color 150ms cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'transform 150ms cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'border-color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+          willChange: 'transform, box-shadow',
+          '&:hover': {
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+            transform: 'translateY(-1px)',
+          },
+          '&:active': {
+            transform: 'translateY(0px)',
+            boxShadow: 'none',
+          },
+          '&:focus-visible': {
+            outline: '2px solid currentColor',
+            outlineOffset: 2,
+          },
+          '&.Mui-disabled': {
+            opacity: 0.4,
+          },
+        },
+        contained: {
+          '&:hover': {
+            boxShadow: '0 6px 18px rgba(0, 0, 0, 0.35)',
+          },
+        },
+        outlined: {
+          '&:hover': {
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+          },
+        },
+        sizeSmall: {
+          padding: '5px 14px',
+          fontSize: '0.8125rem',
+        },
+        sizeLarge: {
+          padding: '12px 28px',
+          fontSize: '1rem',
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          transition:
+            'background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'color 150ms cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'transform 150ms cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'border-color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+          willChange: 'transform',
+          '&:hover': {
+            transform: 'scale(1.08)',
+          },
+          '&:active': {
+            transform: 'scale(0.96)',
+          },
         },
       },
     },
@@ -265,6 +420,7 @@ export const darkTheme = createTheme({
           backgroundImage: 'none',
           backgroundColor: '#1a1a1a',
           border: '1px solid rgba(255, 255, 255, 0.08)',
+          transition: 'box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms cubic-bezier(0.4, 0, 0.2, 1)',
         },
       },
     },
@@ -286,6 +442,63 @@ export const darkTheme = createTheme({
       styleOverrides: {
         paper: {
           backgroundImage: 'none',
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 8,
+            transition: 'box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+            '&:hover fieldset': {
+              borderColor: theme.palette.primary.light,
+            },
+            '&.Mui-focused': {
+              boxShadow: `0 0 0 3px ${theme.palette.primary.main}33`,
+            },
+          },
+        }),
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          borderRadius: 6,
+          fontWeight: 500,
+          transition: 'background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+        },
+      },
+    },
+    MuiSwitch: {
+      styleOverrides: {
+        root: {
+          '& .MuiSwitch-switchBase': {
+            transition: 'transform 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+          },
+          '& .MuiSwitch-thumb': {
+            transition: 'box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+          },
+        },
+      },
+    },
+    MuiDialog: {
+      defaultProps: {
+        keepMounted: true,
+        transitionDuration: { enter: 120, exit: 80 },
+      },
+      styleOverrides: {
+        paper: {
+          backgroundImage: 'none',
+        },
+      },
+    },
+    MuiBackdrop: {
+      styleOverrides: {
+        root: {
+          '&:not(.MuiBackdrop-invisible)': {
+            transition: 'opacity 120ms cubic-bezier(0.4, 0, 0.2, 1) !important',
+          },
         },
       },
     },

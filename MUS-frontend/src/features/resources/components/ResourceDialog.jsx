@@ -28,6 +28,11 @@ import PropTypes from 'prop-types';
 import { useForm, Controller } from 'react-hook-form';
 import { AsyncButton } from '@/shared/components/ui';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import institutionService from '@/services/institutionService';
+import institutionProgramService from '@/services/institutionProgramService';
+import levelService from '@/services/levelService';
+import semesterService from '@/services/semesterService';
+import moduleService from '@/services/moduleService';
 import {
   Description as DescriptionIcon,
   School as SchoolIcon,
@@ -70,24 +75,41 @@ const getDefaultValues = (resource) => ({
   status: resource?.status || 'pending',
   url: resource?.url || '',
   academicContext: {
-    moduleCode: resource?.academicContext?.moduleCode || '',
-    moduleTitle: resource?.academicContext?.moduleTitle || '',
-    semesterName: resource?.academicContext?.semesterName || '',
-    levelName: resource?.academicContext?.levelName || '',
-    programName: resource?.academicContext?.programName || '',
+    institutionId: String(resource?.academicContext?.institutionId || ''),
+    programId: String(resource?.academicContext?.programId || ''),
+    levelId: String(resource?.academicContext?.levelId || ''),
+    semesterId: String(resource?.academicContext?.semesterId || ''),
+    moduleId: String(resource?.academicContext?.moduleId || resource?.module_id || ''),
     difficulty: resource?.academicContext?.difficulty || 'medium',
-    isExamRelated: resource?.academicContext?.isExamRelated || false,
+    chapter: resource?.academicContext?.chapter || '',
+    isExamRelated: Boolean(resource?.academicContext?.isExamRelated || resource?.academicContext?.examRelated),
   },
   tagIds: Array.isArray(resource?.tags)
     ? resource.tags.map((tag) => Number(tag.tag_id || tag.id)).filter(Number.isFinite)
     : [],
 });
 
+const toList = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.modules)) return payload.modules;
+  if (Array.isArray(payload?.data?.modules)) return payload.data.modules;
+  if (Array.isArray(payload?.programs)) return payload.programs;
+  if (Array.isArray(payload?.data?.programs)) return payload.data.programs;
+  return [];
+};
+
 const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, availableTags = [], tagsLoading = false }) => {
   const { isAdmin } = useAuth();
   const [activeStep, setActiveStep] = useState(0);
   const [uploadMethod, setUploadMethod] = useState('url');
   const [selectedFile, setSelectedFile] = useState(null);
+  const [institutions, setInstitutions] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [levels, setLevels] = useState([]);
+  const [semesters, setSemesters] = useState([]);
+  const [modules, setModules] = useState([]);
+  const [academicLoading, setAcademicLoading] = useState(false);
   const {
     register,
     control,
@@ -113,6 +135,131 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
     setActiveStep(0);
   }, [resource, open, reset, clearErrors]);
 
+  const loadPrograms = async (institutionId) => {
+    if (!institutionId) {
+      setPrograms([]);
+      return [];
+    }
+    const response = await institutionProgramService.getProgramsByInstitution(institutionId);
+    const list = toList(response);
+    setPrograms(list);
+    return list;
+  };
+
+  const loadLevels = async (programId) => {
+    if (!programId) {
+      setLevels([]);
+      return [];
+    }
+    const response = await levelService.getLevelsByProgram(programId);
+    const list = toList(response);
+    setLevels(list);
+    return list;
+  };
+
+  const loadSemesters = async (levelId) => {
+    if (!levelId) {
+      setSemesters([]);
+      return [];
+    }
+    const response = await semesterService.getSemestersByLevel(levelId);
+    const list = toList(response);
+    setSemesters(list);
+    return list;
+  };
+
+  const loadModules = async (semesterId) => {
+    if (!semesterId) {
+      setModules([]);
+      return [];
+    }
+    const response = await moduleService.getModulesBySemester(semesterId);
+    const list = toList(response);
+    setModules(list);
+    return list;
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+
+    const bootstrapAcademic = async () => {
+      setAcademicLoading(true);
+      try {
+        const institutionsResponse = await institutionService.getAllInstitutions();
+        if (cancelled) return;
+
+        const institutionsList = toList(institutionsResponse);
+        setInstitutions(institutionsList);
+
+        const institutionId = String(getValues('academicContext.institutionId') || '');
+        const programId = String(getValues('academicContext.programId') || '');
+        const levelId = String(getValues('academicContext.levelId') || '');
+        const semesterId = String(getValues('academicContext.semesterId') || '');
+
+        if (institutionId) await loadPrograms(institutionId);
+        if (programId) await loadLevels(programId);
+        if (levelId) await loadSemesters(levelId);
+        if (semesterId) await loadModules(semesterId);
+      } catch {
+        if (cancelled) return;
+        setInstitutions([]);
+        setPrograms([]);
+        setLevels([]);
+        setSemesters([]);
+        setModules([]);
+      } finally {
+        if (!cancelled) setAcademicLoading(false);
+      }
+    };
+
+    bootstrapAcademic();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, resource, getValues]);
+
+  const handleInstitutionChange = async (value) => {
+    setValue('academicContext.institutionId', value);
+    setValue('academicContext.programId', '');
+    setValue('academicContext.levelId', '');
+    setValue('academicContext.semesterId', '');
+    setValue('academicContext.moduleId', '');
+    setPrograms([]);
+    setLevels([]);
+    setSemesters([]);
+    setModules([]);
+    await loadPrograms(value);
+  };
+
+  const handleProgramChange = async (value) => {
+    setValue('academicContext.programId', value);
+    setValue('academicContext.levelId', '');
+    setValue('academicContext.semesterId', '');
+    setValue('academicContext.moduleId', '');
+    setLevels([]);
+    setSemesters([]);
+    setModules([]);
+    await loadLevels(value);
+  };
+
+  const handleLevelChange = async (value) => {
+    setValue('academicContext.levelId', value);
+    setValue('academicContext.semesterId', '');
+    setValue('academicContext.moduleId', '');
+    setSemesters([]);
+    setModules([]);
+    await loadSemesters(value);
+  };
+
+  const handleSemesterChange = async (value) => {
+    setValue('academicContext.semesterId', value);
+    setValue('academicContext.moduleId', '');
+    setModules([]);
+    await loadModules(value);
+  };
+
   const validateStep = async (step) => {
     if (step === 0) {
       const fields = ['title', 'description'];
@@ -126,6 +273,16 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
 
       clearErrors('file');
       return valid;
+    }
+
+    if (step === 1) {
+      return trigger([
+        'academicContext.institutionId',
+        'academicContext.programId',
+        'academicContext.levelId',
+        'academicContext.semesterId',
+        'academicContext.moduleId',
+      ]);
     }
 
     return true;
@@ -474,57 +631,179 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
             </Typography>
             <Grid container spacing={1.5}>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Module Code"
-                  {...register('academicContext.moduleCode')}
-                  InputLabelProps={{ shrink: true }}
-                  placeholder="e.g., MATH101"
-                  sx={inputSurfaceSx}
+                <Controller
+                  name="academicContext.institutionId"
+                  control={control}
+                  rules={{ required: 'Institution is required' }}
+                  render={({ field }) => (
+                    <FormControl fullWidth size="small" error={!!errors?.academicContext?.institutionId}>
+                      <InputLabel shrink>University *</InputLabel>
+                      <Select
+                        {...field}
+                        label="University *"
+                        displayEmpty
+                        notched
+                        sx={selectSurfaceSx}
+                        onChange={async (event) => {
+                          field.onChange(event);
+                          await handleInstitutionChange(String(event.target.value || ''));
+                        }}
+                      >
+                        <MenuItem value=""><em>Select university</em></MenuItem>
+                        {institutions.map((institution) => (
+                          <MenuItem key={institution.id} value={String(institution.id)}>
+                            {institution.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                        {errors?.academicContext?.institutionId?.message || ''}
+                      </Typography>
+                    </FormControl>
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Controller
+                  name="academicContext.programId"
+                  control={control}
+                  rules={{ required: 'Program is required' }}
+                  render={({ field }) => (
+                    <FormControl fullWidth size="small" error={!!errors?.academicContext?.programId}>
+                      <InputLabel shrink>Program *</InputLabel>
+                      <Select
+                        {...field}
+                        label="Program *"
+                        displayEmpty
+                        notched
+                        disabled={!watch('academicContext.institutionId') || academicLoading}
+                        sx={selectSurfaceSx}
+                        onChange={async (event) => {
+                          field.onChange(event);
+                          await handleProgramChange(String(event.target.value || ''));
+                        }}
+                      >
+                        <MenuItem value=""><em>Select program</em></MenuItem>
+                        {programs.map((program) => (
+                          <MenuItem key={program.id || program.program_id} value={String(program.id || program.program_id)}>
+                            {program.name || program.program_name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                        {errors?.academicContext?.programId?.message || ''}
+                      </Typography>
+                    </FormControl>
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Controller
+                  name="academicContext.levelId"
+                  control={control}
+                  rules={{ required: 'Level is required' }}
+                  render={({ field }) => (
+                    <FormControl fullWidth size="small" error={!!errors?.academicContext?.levelId}>
+                      <InputLabel shrink>Level *</InputLabel>
+                      <Select
+                        {...field}
+                        label="Level *"
+                        displayEmpty
+                        notched
+                        disabled={!watch('academicContext.programId') || academicLoading}
+                        sx={selectSurfaceSx}
+                        onChange={async (event) => {
+                          field.onChange(event);
+                          await handleLevelChange(String(event.target.value || ''));
+                        }}
+                      >
+                        <MenuItem value=""><em>Select level</em></MenuItem>
+                        {levels.map((level) => (
+                          <MenuItem key={level.id || level.level_id} value={String(level.id || level.level_id)}>
+                            {level.name || level.level_name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                        {errors?.academicContext?.levelId?.message || ''}
+                      </Typography>
+                    </FormControl>
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Controller
+                  name="academicContext.semesterId"
+                  control={control}
+                  rules={{ required: 'Semester is required' }}
+                  render={({ field }) => (
+                    <FormControl fullWidth size="small" error={!!errors?.academicContext?.semesterId}>
+                      <InputLabel shrink>Semester *</InputLabel>
+                      <Select
+                        {...field}
+                        label="Semester *"
+                        displayEmpty
+                        notched
+                        disabled={!watch('academicContext.levelId') || academicLoading}
+                        sx={selectSurfaceSx}
+                        onChange={async (event) => {
+                          field.onChange(event);
+                          await handleSemesterChange(String(event.target.value || ''));
+                        }}
+                      >
+                        <MenuItem value=""><em>Select semester</em></MenuItem>
+                        {semesters.map((semester) => (
+                          <MenuItem key={semester.id || semester.semester_id} value={String(semester.id || semester.semester_id)}>
+                            {semester.name || semester.semester_name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                        {errors?.academicContext?.semesterId?.message || ''}
+                      </Typography>
+                    </FormControl>
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Controller
+                  name="academicContext.moduleId"
+                  control={control}
+                  rules={{ required: 'Module is required' }}
+                  render={({ field }) => (
+                    <FormControl fullWidth size="small" error={!!errors?.academicContext?.moduleId}>
+                      <InputLabel shrink>Module *</InputLabel>
+                      <Select
+                        {...field}
+                        label="Module *"
+                        displayEmpty
+                        notched
+                        disabled={!watch('academicContext.semesterId') || academicLoading}
+                        sx={selectSurfaceSx}
+                      >
+                        <MenuItem value=""><em>Select module</em></MenuItem>
+                        {modules.map((module) => (
+                          <MenuItem key={module.module_id || module.id} value={String(module.module_id || module.id)}>
+                            {(module.module_code || module.code) ? `${module.module_code || module.code} - ` : ''}
+                            {module.module_title || module.title}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                        {errors?.academicContext?.moduleId?.message || ''}
+                      </Typography>
+                    </FormControl>
+                  )}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   size="small"
-                  label="Module Title"
-                  {...register('academicContext.moduleTitle')}
+                  label="Chapter"
+                  {...register('academicContext.chapter')}
                   InputLabelProps={{ shrink: true }}
-                  placeholder="e.g., Calculus I"
-                  sx={inputSurfaceSx}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Semester"
-                  {...register('academicContext.semesterName')}
-                  InputLabelProps={{ shrink: true }}
-                  placeholder="e.g., Semester 1"
-                  sx={inputSurfaceSx}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Academic Level"
-                  {...register('academicContext.levelName')}
-                  InputLabelProps={{ shrink: true }}
-                  placeholder="e.g., 1st Year"
-                  sx={inputSurfaceSx}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Program Name"
-                  {...register('academicContext.programName')}
-                  InputLabelProps={{ shrink: true }}
-                  placeholder="e.g., Computer Science"
+                  placeholder="e.g., Chapter 2"
                   sx={inputSurfaceSx}
                 />
               </Grid>
@@ -545,6 +824,28 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
                         <MenuItem value="easy">Easy</MenuItem>
                         <MenuItem value="medium">Medium</MenuItem>
                         <MenuItem value="hard">Hard</MenuItem>
+                      </Select>
+                    </FormControl>
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Controller
+                  name="academicContext.isExamRelated"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth size="small">
+                      <InputLabel shrink>Exam Related</InputLabel>
+                      <Select
+                        value={field.value ? 'yes' : 'no'}
+                        label="Exam Related"
+                        displayEmpty
+                        notched
+                        sx={selectSurfaceSx}
+                        onChange={(event) => field.onChange(event.target.value === 'yes')}
+                      >
+                        <MenuItem value="no">No</MenuItem>
+                        <MenuItem value="yes">Yes</MenuItem>
                       </Select>
                     </FormControl>
                   )}
@@ -686,6 +987,8 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
               : 'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%)',
         }
       }}
+      keepMounted
+      transitionDuration={{ enter: 120, exit: 80 }}
     >
       {/* Header */}
       <DialogTitle sx={{ p: 0, position: 'relative' }}>

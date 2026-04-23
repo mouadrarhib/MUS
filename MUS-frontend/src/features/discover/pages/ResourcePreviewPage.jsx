@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { createElement, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -8,6 +9,7 @@ import {
   IconButton,
   Skeleton,
   Stack,
+  TextField,
   Tooltip,
   Typography,
   alpha,
@@ -28,10 +30,13 @@ import {
   Article,
   Headphones,
   ImageOutlined,
+  QuestionAnswer,
 } from '@mui/icons-material';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import DiscoverNavbar from '@/features/discover/components/DiscoverNavbar';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import qaService from '@/services/qaService';
+import resourceModuleMapService from '@/services/resourceModuleMapService';
 import resourcesService from '@/services/resourcesService';
 
 /* ─── helpers ─── */
@@ -50,6 +55,45 @@ const FORMAT_META = {
 
 const getFormatMeta = (fmt) =>
   FORMAT_META[fmt] || { label: fmt ? fmt.toUpperCase() : 'File', color: '#7c5cfc', Icon: Article };
+
+const formatDateTime = (value) => {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toLocaleString();
+};
+
+const pickModuleIdFromResource = (resource) => {
+  const candidates = [
+    resource?.academicContext?.moduleId,
+    resource?.module_id,
+    resource?.moduleId,
+    resource?.module?.id,
+    resource?.resource_module_id,
+  ];
+
+  for (const value of candidates) {
+    const parsed = Number(value || 0);
+    if (parsed > 0) return parsed;
+  }
+
+  return null;
+};
+
+const pickModuleIdFromModulesPayload = (payload) => {
+  const modules = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.modules)
+      ? payload.modules
+      : [];
+
+  for (const item of modules) {
+    const parsed = Number(item?.module_id || item?.id || item?.module?.id || 0);
+    if (parsed > 0) return parsed;
+  }
+
+  return null;
+};
 
 /* ─── Panel wrapper ─── */
 const Panel = ({ children, sx = {} }) => (
@@ -76,11 +120,11 @@ const Panel = ({ children, sx = {} }) => (
 );
 
 /* ─── Metadata row ─── */
-const MetaRow = ({ icon: Icon, label, value }) => {
+const MetaRow = ({ icon, label, value }) => {
   if (!value) return null;
   return (
     <Stack direction="row" spacing={1} alignItems="flex-start">
-      <Icon sx={{ fontSize: 15, color: 'text.disabled', mt: '2px', flexShrink: 0 }} />
+      {createElement(icon, { sx: { fontSize: 15, color: 'text.disabled', mt: '2px', flexShrink: 0 } })}
       <Box>
         <Typography
           variant="caption"
@@ -220,13 +264,36 @@ const ResourcePreviewPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout, isAuthenticated } = useAuth();
+  const { logout, isAuthenticated, isTeacher, isAdmin } = useAuth();
+  const initialQuestionId = Number(new URLSearchParams(location.search).get('question') || 0) || null;
 
   const [loading, setLoading] = useState(true);
   const [resource, setResource] = useState(location.state?.resource || null);
   const [previewUrl, setPreviewUrl] = useState(location.state?.previewUrl || '');
   const [error, setError] = useState('');
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [qaLoading, setQaLoading] = useState(false);
+  const [qaError, setQaError] = useState('');
+  const [questions, setQuestions] = useState([]);
+  const [selectedQuestionId, setSelectedQuestionId] = useState(null);
+  const [preferredQuestionId, setPreferredQuestionId] = useState(initialQuestionId);
+  const [answers, setAnswers] = useState([]);
+  const [questionComments, setQuestionComments] = useState([]);
+  const [answerCommentsMap, setAnswerCommentsMap] = useState({});
+  const [questionTitleInput, setQuestionTitleInput] = useState('');
+  const [questionBodyInput, setQuestionBodyInput] = useState('');
+  const [answerBodyInput, setAnswerBodyInput] = useState('');
+  const [questionCommentInput, setQuestionCommentInput] = useState('');
+  const [answerCommentInputs, setAnswerCommentInputs] = useState({});
+  const [creatingQuestion, setCreatingQuestion] = useState(false);
+  const [creatingAnswer, setCreatingAnswer] = useState(false);
+  const [creatingQuestionComment, setCreatingQuestionComment] = useState(false);
+  const [creatingAnswerCommentId, setCreatingAnswerCommentId] = useState(null);
+  const [moderationLoadingKey, setModerationLoadingKey] = useState('');
+  const [resolvedModuleId, setResolvedModuleId] = useState(() => pickModuleIdFromResource(location.state?.resource || null));
+  const resourceId = Number(resource?.id || id);
+  const moduleId = pickModuleIdFromResource(resource) || resolvedModuleId;
+  const canModerate = isTeacher || isAdmin;
 
   useEffect(() => {
     const resourceId = Number(id);
@@ -243,11 +310,24 @@ const ResourcePreviewPage = () => {
     Promise.allSettled([
       resourcesService.getResourceById(resourceId),
       resourcesService.getResourceFileUrl(resourceId),
-    ]).then(([detailRes, fileRes]) => {
+      resourceModuleMapService.getModulesByResource(resourceId),
+    ]).then(([detailRes, fileRes, modulesRes]) => {
       // Always call setLoading(false) — only skip the other state updates if cancelled.
       if (!cancelled) {
         if (detailRes.status === 'fulfilled' && detailRes.value) {
           setResource((prev) => ({ ...prev, ...detailRes.value }));
+        }
+        if (detailRes.status === 'fulfilled' && detailRes.value) {
+          const picked = pickModuleIdFromResource(detailRes.value);
+          if (picked) {
+            setResolvedModuleId(picked);
+          }
+        }
+        if (modulesRes.status === 'fulfilled') {
+          const picked = pickModuleIdFromModulesPayload(modulesRes.value);
+          if (picked) {
+            setResolvedModuleId(picked);
+          }
         }
         if (fileRes.status === 'fulfilled') {
           setPreviewUrl(fileRes.value?.url || fileRes.value?.download_url || '');
@@ -263,6 +343,47 @@ const ResourcePreviewPage = () => {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!resourceId) return;
+    let cancelled = false;
+
+    setQaLoading(true);
+    setQaError('');
+
+    qaService
+      .listQuestions({ resource_id: resourceId, include_hidden: canModerate, page: 1, limit: 50 })
+      .then((rows) => {
+        if (cancelled) return;
+        setQuestions(rows);
+        setSelectedQuestionId((current) => {
+          if (preferredQuestionId && rows.some((item) => item.id === preferredQuestionId)) {
+            return preferredQuestionId;
+          }
+          if (rows.some((item) => item.id === current)) {
+            return current;
+          }
+          return rows[0]?.id || null;
+        });
+        if (preferredQuestionId) {
+          setPreferredQuestionId(null);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setQaError('Unable to load Q&A right now.');
+        setQuestions([]);
+        setSelectedQuestionId(null);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setQaLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resourceId, preferredQuestionId, canModerate]);
 
   const normalizedFormat = getFormat(resource);
   const formatMeta = getFormatMeta(normalizedFormat);
@@ -302,6 +423,259 @@ const ResourcePreviewPage = () => {
   const accessTier    = resource?.accessTier || resource?.access_tier || 'free';
   const isPremium     = String(accessTier).toLowerCase() === 'premium';
   const description   = resource?.description || resource?.resource_description;
+  const selectedQuestion = questions.find((item) => item.id === selectedQuestionId) || null;
+
+  async function loadQuestions({ keepSelection = true, preferredId = null } = {}) {
+    if (!resourceId) return;
+    setQaLoading(true);
+    setQaError('');
+    try {
+      const rows = await qaService.listQuestions({ resource_id: resourceId, include_hidden: canModerate, page: 1, limit: 50 });
+      setQuestions(rows);
+      setSelectedQuestionId((current) => {
+        if (preferredId && rows.some((item) => item.id === preferredId)) {
+          return preferredId;
+        }
+        if (keepSelection && rows.some((item) => item.id === current)) {
+          return current;
+        }
+        return rows[0]?.id || null;
+      });
+    } catch {
+      setQaError('Unable to load Q&A right now.');
+      setQuestions([]);
+      setSelectedQuestionId(null);
+    } finally {
+      setQaLoading(false);
+    }
+  }
+
+  async function loadSelectedThread(questionIdValue) {
+    if (!questionIdValue) {
+      setAnswers([]);
+      setQuestionComments([]);
+      setAnswerCommentsMap({});
+      return;
+    }
+
+    try {
+      const [nextAnswers, nextQuestionComments] = await Promise.all([
+        qaService.listAnswersByQuestion(questionIdValue, { include_hidden: canModerate }),
+        qaService.listQuestionComments(questionIdValue, { include_hidden: canModerate }),
+      ]);
+
+      setAnswers(nextAnswers);
+      setQuestionComments(nextQuestionComments);
+
+      if (!nextAnswers.length) {
+        setAnswerCommentsMap({});
+        return;
+      }
+
+      const answerCommentEntries = await Promise.all(
+        nextAnswers.map(async (answer) => {
+          const comments = await qaService.listAnswerComments(answer.id, { include_hidden: canModerate });
+          return [answer.id, comments];
+        })
+      );
+
+      setAnswerCommentsMap(Object.fromEntries(answerCommentEntries));
+    } catch {
+      setQaError('Unable to load this discussion thread.');
+    }
+  }
+
+  useEffect(() => {
+    if (!selectedQuestionId) {
+      setAnswers([]);
+      setQuestionComments([]);
+      setAnswerCommentsMap({});
+      return;
+    }
+
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        const [nextAnswers, nextQuestionComments] = await Promise.all([
+          qaService.listAnswersByQuestion(selectedQuestionId, { include_hidden: canModerate, page: 1, limit: 50 }),
+          qaService.listQuestionComments(selectedQuestionId, { include_hidden: canModerate, page: 1, limit: 100 }),
+        ]);
+
+        if (cancelled) return;
+        setAnswers(nextAnswers);
+        setQuestionComments(nextQuestionComments);
+
+        if (!nextAnswers.length) {
+          setAnswerCommentsMap({});
+          return;
+        }
+
+        const answerCommentEntries = await Promise.all(
+          nextAnswers.map(async (answer) => {
+            const comments = await qaService.listAnswerComments(answer.id, { include_hidden: canModerate, page: 1, limit: 100 });
+            return [answer.id, comments];
+          })
+        );
+
+        if (cancelled) return;
+        setAnswerCommentsMap(Object.fromEntries(answerCommentEntries));
+      } catch {
+        if (cancelled) return;
+        setQaError('Unable to load this discussion thread.');
+      }
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedQuestionId, canModerate]);
+
+  const handleCreateQuestion = async () => {
+    if (!isAuthenticated || !moduleId || !resourceId || creatingQuestion) return;
+    if (questionTitleInput.trim().length < 5 || questionBodyInput.trim().length < 10) return;
+
+    setCreatingQuestion(true);
+    setQaError('');
+    try {
+      const created = await qaService.createQuestion({
+        module_id: moduleId,
+        resource_id: resourceId,
+        title: questionTitleInput.trim(),
+        body: questionBodyInput.trim(),
+      });
+      setQuestionTitleInput('');
+      setQuestionBodyInput('');
+      await loadQuestions({ keepSelection: false, preferredId: created?.id || null });
+    } catch {
+      setQaError('Failed to post your question.');
+    } finally {
+      setCreatingQuestion(false);
+    }
+  };
+
+  const handleCreateAnswer = async () => {
+    if (!isAuthenticated || !selectedQuestionId || creatingAnswer) return;
+    if (answerBodyInput.trim().length < 10) return;
+
+    setCreatingAnswer(true);
+    setQaError('');
+    try {
+      await qaService.createAnswer(selectedQuestionId, {
+        body: answerBodyInput.trim(),
+      });
+      setAnswerBodyInput('');
+      await Promise.all([loadQuestions({ keepSelection: true }), loadSelectedThread(selectedQuestionId)]);
+    } catch {
+      setQaError('Failed to post your answer.');
+    } finally {
+      setCreatingAnswer(false);
+    }
+  };
+
+  const handleCreateQuestionComment = async () => {
+    if (!isAuthenticated || !selectedQuestionId || creatingQuestionComment) return;
+    if (questionCommentInput.trim().length < 2) return;
+
+    setCreatingQuestionComment(true);
+    setQaError('');
+    try {
+      await qaService.createQuestionComment(selectedQuestionId, {
+        body: questionCommentInput.trim(),
+      });
+      setQuestionCommentInput('');
+      await loadSelectedThread(selectedQuestionId);
+    } catch {
+      setQaError('Failed to post question comment.');
+    } finally {
+      setCreatingQuestionComment(false);
+    }
+  };
+
+  const handleCreateAnswerComment = async (answerId) => {
+    if (!isAuthenticated || !answerId || creatingAnswerCommentId) return;
+    const value = String(answerCommentInputs[answerId] || '').trim();
+    if (value.length < 2) return;
+
+    setCreatingAnswerCommentId(answerId);
+    setQaError('');
+    try {
+      await qaService.createAnswerComment(answerId, { body: value });
+      setAnswerCommentInputs((prev) => ({ ...prev, [answerId]: '' }));
+      await loadSelectedThread(selectedQuestionId);
+    } catch {
+      setQaError('Failed to post answer comment.');
+    } finally {
+      setCreatingAnswerCommentId(null);
+    }
+  };
+
+  const handleAcceptAnswer = async (answerId) => {
+    if (!canModerate || !answerId || moderationLoadingKey) return;
+    setModerationLoadingKey(`accept-answer-${answerId}`);
+    setQaError('');
+    try {
+      await qaService.acceptAnswer(answerId);
+      await Promise.all([loadQuestions({ keepSelection: true }), loadSelectedThread(selectedQuestionId)]);
+    } catch {
+      setQaError('Failed to accept this answer.');
+    } finally {
+      setModerationLoadingKey('');
+    }
+  };
+
+  const handleModerateQuestion = async (status) => {
+    if (!canModerate || !selectedQuestionId || moderationLoadingKey) return;
+    setModerationLoadingKey(`question-${selectedQuestionId}-${status}`);
+    setQaError('');
+    try {
+      await qaService.moderateQuestion(selectedQuestionId, {
+        moderation_status: status,
+        reason: `Updated from preview page (${status})`,
+      });
+      await Promise.all([loadQuestions({ keepSelection: true }), loadSelectedThread(selectedQuestionId)]);
+    } catch {
+      setQaError('Failed to update question moderation state.');
+    } finally {
+      setModerationLoadingKey('');
+    }
+  };
+
+  const handleModerateAnswer = async (answerId, status) => {
+    if (!canModerate || !answerId || moderationLoadingKey) return;
+    setModerationLoadingKey(`answer-${answerId}-${status}`);
+    setQaError('');
+    try {
+      await qaService.moderateAnswer(answerId, {
+        moderation_status: status,
+        reason: `Updated from preview page (${status})`,
+      });
+      await Promise.all([loadQuestions({ keepSelection: true }), loadSelectedThread(selectedQuestionId)]);
+    } catch {
+      setQaError('Failed to update answer moderation state.');
+    } finally {
+      setModerationLoadingKey('');
+    }
+  };
+
+  const handleModerateComment = async (commentId, status) => {
+    if (!canModerate || !commentId || moderationLoadingKey) return;
+    setModerationLoadingKey(`comment-${commentId}-${status}`);
+    setQaError('');
+    try {
+      await qaService.moderateComment(commentId, {
+        moderation_status: status,
+        reason: `Updated from preview page (${status})`,
+      });
+      await loadSelectedThread(selectedQuestionId);
+    } catch {
+      setQaError('Failed to update comment moderation state.');
+    } finally {
+      setModerationLoadingKey('');
+    }
+  };
 
   /* ─── preview panel content ─── */
   const renderPreview = () => {
@@ -526,6 +900,365 @@ const ResourcePreviewPage = () => {
             )}
           </Panel>
         </Box>
+
+        <Panel sx={{ mt: 2, p: { xs: 2, md: 2.5 } }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <QuestionAnswer sx={{ color: 'primary.main' }} />
+              <Typography variant="h6" fontWeight={700}>Q&A Discussion</Typography>
+            </Stack>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => loadQuestions({ keepSelection: true })}
+              disabled={qaLoading || !resourceId}
+              sx={{ textTransform: 'none', borderRadius: 2 }}
+            >
+              Refresh
+            </Button>
+          </Stack>
+
+          {qaError ? <Alert severity="error" sx={{ mb: 2 }}>{qaError}</Alert> : null}
+
+          <Box sx={{ mb: 2.5 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>Ask a question</Typography>
+            {!isAuthenticated ? (
+              <Alert severity="info">Sign in to ask questions, answer, and comment.</Alert>
+            ) : !moduleId ? (
+              <Alert severity="warning">This resource is not linked to a module yet. Question creation is disabled.</Alert>
+            ) : null}
+
+            <Stack spacing={1.25} sx={{ mt: 1.25 }}>
+              <TextField
+                size="small"
+                label="Question title"
+                value={questionTitleInput}
+                onChange={(event) => setQuestionTitleInput(event.target.value)}
+                disabled={!isAuthenticated || !moduleId || creatingQuestion}
+              />
+              <TextField
+                size="small"
+                label="Question details"
+                multiline
+                minRows={3}
+                value={questionBodyInput}
+                onChange={(event) => setQuestionBodyInput(event.target.value)}
+                disabled={!isAuthenticated || !moduleId || creatingQuestion}
+              />
+              <Box>
+                <Button
+                  variant="contained"
+                  onClick={handleCreateQuestion}
+                  disabled={!isAuthenticated || !moduleId || creatingQuestion || questionTitleInput.trim().length < 5 || questionBodyInput.trim().length < 10}
+                  sx={{ textTransform: 'none', borderRadius: 2 }}
+                >
+                  {creatingQuestion ? 'Posting...' : 'Post question'}
+                </Button>
+              </Box>
+            </Stack>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: '320px 1fr' },
+              gap: 2,
+            }}
+          >
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
+                Questions ({questions.length})
+              </Typography>
+              {qaLoading ? (
+                <Typography variant="body2" color="text.secondary">Loading discussions...</Typography>
+              ) : !questions.length ? (
+                <Typography variant="body2" color="text.secondary">No questions yet. Start the first thread.</Typography>
+              ) : (
+                <Stack spacing={1}>
+                  {questions.map((question) => {
+                    const isSelected = selectedQuestionId === question.id;
+                    return (
+                      <Box
+                        key={question.id}
+                        role="button"
+                        onClick={() => setSelectedQuestionId(question.id)}
+                        sx={(theme) => ({
+                          borderRadius: 2,
+                          border: '1px solid',
+                          borderColor: isSelected ? 'primary.main' : 'divider',
+                          backgroundColor: isSelected ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
+                          p: 1.25,
+                          cursor: 'pointer',
+                        })}
+                      >
+                        <Typography variant="body2" fontWeight={700}>{question.title}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.35 }}>
+                          {question.user_name || 'Unknown'} · {question.status}
+                        </Typography>
+                        {question.moderation_status && question.moderation_status !== 'active' ? (
+                          <Chip
+                            size="small"
+                            label={question.moderation_status}
+                            color={question.moderation_status === 'hidden' ? 'warning' : 'error'}
+                            sx={{ mt: 0.6, height: 20 }}
+                          />
+                        ) : null}
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              )}
+            </Box>
+
+            <Box>
+              {!selectedQuestion ? (
+                <Typography variant="body2" color="text.secondary">Select a question to view the full thread.</Typography>
+              ) : (
+                <Stack spacing={2}>
+                  <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+                      <Typography variant="subtitle1" fontWeight={700}>{selectedQuestion.title}</Typography>
+                      <Stack direction="row" spacing={0.6}>
+                        <Chip size="small" label={selectedQuestion.status || 'open'} color="default" />
+                        {selectedQuestion.moderation_status && selectedQuestion.moderation_status !== 'active' ? (
+                          <Chip
+                            size="small"
+                            label={selectedQuestion.moderation_status}
+                            color={selectedQuestion.moderation_status === 'hidden' ? 'warning' : 'error'}
+                          />
+                        ) : null}
+                      </Stack>
+                    </Stack>
+                    <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-line', mt: 0.75 }}>
+                      {selectedQuestion.body}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                      {selectedQuestion.user_name || 'Unknown'} · {formatDateTime(selectedQuestion.created_at)}
+                    </Typography>
+                    {canModerate ? (
+                      <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => handleModerateQuestion('active')}
+                          disabled={Boolean(moderationLoadingKey)}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          Show
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="warning"
+                          onClick={() => handleModerateQuestion('hidden')}
+                          disabled={Boolean(moderationLoadingKey)}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          Hide
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          onClick={() => handleModerateQuestion('deleted')}
+                          disabled={Boolean(moderationLoadingKey)}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          Delete
+                        </Button>
+                      </Stack>
+                    ) : null}
+                  </Box>
+
+                  <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Comments on question</Typography>
+                    {questionComments.length ? (
+                      <Stack spacing={0.8} sx={{ mb: 1.25 }}>
+                        {questionComments.map((comment) => (
+                          <Box key={comment.id} sx={{ p: 1, borderRadius: 1.5, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06) }}>
+                            <Typography variant="body2">{comment.body}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {comment.user_name || 'Unknown'} · {formatDateTime(comment.created_at)}
+                            </Typography>
+                            {comment.moderation_status && comment.moderation_status !== 'active' ? (
+                              <Chip
+                                size="small"
+                                label={comment.moderation_status}
+                                color={comment.moderation_status === 'hidden' ? 'warning' : 'error'}
+                                sx={{ ml: 1, height: 20 }}
+                              />
+                            ) : null}
+                            {canModerate ? (
+                              <Stack direction="row" spacing={0.7} sx={{ mt: 0.6 }}>
+                                <Button size="small" variant="text" onClick={() => handleModerateComment(comment.id, 'active')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none', minWidth: 0, px: 0.5 }}>Show</Button>
+                                <Button size="small" variant="text" color="warning" onClick={() => handleModerateComment(comment.id, 'hidden')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none', minWidth: 0, px: 0.5 }}>Hide</Button>
+                                <Button size="small" variant="text" color="error" onClick={() => handleModerateComment(comment.id, 'deleted')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none', minWidth: 0, px: 0.5 }}>Delete</Button>
+                              </Stack>
+                            ) : null}
+                          </Box>
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.25 }}>No comments yet.</Typography>
+                    )}
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                      <TextField
+                        size="small"
+                        fullWidth
+                        label="Add a comment"
+                        value={questionCommentInput}
+                        onChange={(event) => setQuestionCommentInput(event.target.value)}
+                        disabled={!isAuthenticated || creatingQuestionComment || selectedQuestion.status === 'closed'}
+                      />
+                      <Button
+                        variant="outlined"
+                        onClick={handleCreateQuestionComment}
+                        disabled={!isAuthenticated || creatingQuestionComment || questionCommentInput.trim().length < 2 || selectedQuestion.status === 'closed'}
+                        sx={{ textTransform: 'none', borderRadius: 2, whiteSpace: 'nowrap' }}
+                      >
+                        {creatingQuestionComment ? 'Posting...' : 'Comment'}
+                      </Button>
+                    </Stack>
+                  </Box>
+
+                  <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Post an answer</Typography>
+                    {selectedQuestion.status === 'closed' ? (
+                      <Alert severity="info" sx={{ mb: 1.2 }}>This question is closed. New answers and comments are disabled.</Alert>
+                    ) : null}
+                    <Stack spacing={1}>
+                      <TextField
+                        size="small"
+                        multiline
+                        minRows={3}
+                        label="Your answer"
+                        value={answerBodyInput}
+                        onChange={(event) => setAnswerBodyInput(event.target.value)}
+                        disabled={!isAuthenticated || creatingAnswer || selectedQuestion.status === 'closed'}
+                      />
+                      <Box>
+                        <Button
+                          variant="contained"
+                          onClick={handleCreateAnswer}
+                          disabled={!isAuthenticated || creatingAnswer || answerBodyInput.trim().length < 10 || selectedQuestion.status === 'closed'}
+                          sx={{ textTransform: 'none', borderRadius: 2 }}
+                        >
+                          {creatingAnswer ? 'Posting...' : 'Post answer'}
+                        </Button>
+                      </Box>
+                    </Stack>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                      Answers ({answers.length})
+                    </Typography>
+                    {!answers.length ? (
+                      <Typography variant="body2" color="text.secondary">No answers yet.</Typography>
+                    ) : (
+                      <Stack spacing={1.25}>
+                        {answers.map((answer) => (
+                          <Box key={answer.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.25 }}>
+                            <Stack direction="row" spacing={0.75} sx={{ mb: 0.75, flexWrap: 'wrap' }}>
+                              {answer.is_official ? <Chip size="small" label="Official" color="info" /> : null}
+                              {answer.is_accepted ? <Chip size="small" label="Accepted" color="success" /> : null}
+                              {answer.moderation_status && answer.moderation_status !== 'active' ? (
+                                <Chip
+                                  size="small"
+                                  label={answer.moderation_status}
+                                  color={answer.moderation_status === 'hidden' ? 'warning' : 'error'}
+                                />
+                              ) : null}
+                            </Stack>
+                            <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>{answer.body}</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
+                              {answer.user_name || 'Unknown'} · {formatDateTime(answer.created_at)}
+                            </Typography>
+                            {canModerate ? (
+                              <Stack direction="row" spacing={1} sx={{ mt: 0.8, mb: 0.3 }}>
+                                {!answer.is_accepted ? (
+                                  <Button
+                                    size="small"
+                                    variant="contained"
+                                    color="success"
+                                    onClick={() => handleAcceptAnswer(answer.id)}
+                                    disabled={Boolean(moderationLoadingKey)}
+                                    sx={{ textTransform: 'none' }}
+                                  >
+                                    Accept
+                                  </Button>
+                                ) : null}
+                                <Button size="small" variant="outlined" onClick={() => handleModerateAnswer(answer.id, 'active')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none' }}>Show</Button>
+                                <Button size="small" variant="outlined" color="warning" onClick={() => handleModerateAnswer(answer.id, 'hidden')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none' }}>Hide</Button>
+                                <Button size="small" variant="outlined" color="error" onClick={() => handleModerateAnswer(answer.id, 'deleted')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none' }}>Delete</Button>
+                              </Stack>
+                            ) : null}
+
+                            <Box sx={{ mt: 1.1 }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                                Answer comments
+                              </Typography>
+                              {Array.isArray(answerCommentsMap[answer.id]) && answerCommentsMap[answer.id].length ? (
+                                <Stack spacing={0.5} sx={{ mb: 0.8 }}>
+                                  {answerCommentsMap[answer.id].map((comment) => (
+                                    <Box key={comment.id} sx={{ p: 0.75, borderRadius: 1.25, bgcolor: (theme) => alpha(theme.palette.info.main, 0.07) }}>
+                                      <Typography variant="caption" sx={{ display: 'block' }}>{comment.body}</Typography>
+                                      <Typography variant="caption" color="text.secondary">
+                                        {comment.user_name || 'Unknown'} · {formatDateTime(comment.created_at)}
+                                      </Typography>
+                                      {comment.moderation_status && comment.moderation_status !== 'active' ? (
+                                        <Chip
+                                          size="small"
+                                          label={comment.moderation_status}
+                                          color={comment.moderation_status === 'hidden' ? 'warning' : 'error'}
+                                          sx={{ ml: 1, height: 20 }}
+                                        />
+                                      ) : null}
+                                      {canModerate ? (
+                                        <Stack direction="row" spacing={0.7} sx={{ mt: 0.4 }}>
+                                          <Button size="small" variant="text" onClick={() => handleModerateComment(comment.id, 'active')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none', minWidth: 0, px: 0.5 }}>Show</Button>
+                                          <Button size="small" variant="text" color="warning" onClick={() => handleModerateComment(comment.id, 'hidden')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none', minWidth: 0, px: 0.5 }}>Hide</Button>
+                                          <Button size="small" variant="text" color="error" onClick={() => handleModerateComment(comment.id, 'deleted')} disabled={Boolean(moderationLoadingKey)} sx={{ textTransform: 'none', minWidth: 0, px: 0.5 }}>Delete</Button>
+                                        </Stack>
+                                      ) : null}
+                                    </Box>
+                                  ))}
+                                </Stack>
+                              ) : (
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.8 }}>
+                                  No comments yet.
+                                </Typography>
+                              )}
+
+                              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                                <TextField
+                                  size="small"
+                                  fullWidth
+                                  label="Comment on this answer"
+                                  value={answerCommentInputs[answer.id] || ''}
+                                  onChange={(event) => setAnswerCommentInputs((prev) => ({ ...prev, [answer.id]: event.target.value }))}
+                                  disabled={!isAuthenticated || creatingAnswerCommentId === answer.id || selectedQuestion.status === 'closed'}
+                                />
+                                <Button
+                                  variant="outlined"
+                                  onClick={() => handleCreateAnswerComment(answer.id)}
+                                  disabled={!isAuthenticated || creatingAnswerCommentId === answer.id || String(answerCommentInputs[answer.id] || '').trim().length < 2 || selectedQuestion.status === 'closed'}
+                                  sx={{ textTransform: 'none', borderRadius: 2, whiteSpace: 'nowrap' }}
+                                >
+                                  {creatingAnswerCommentId === answer.id ? 'Posting...' : 'Comment'}
+                                </Button>
+                              </Stack>
+                            </Box>
+                          </Box>
+                        ))}
+                      </Stack>
+                    )}
+                  </Box>
+                </Stack>
+              )}
+            </Box>
+          </Box>
+        </Panel>
       </Box>
     </Box>
   );

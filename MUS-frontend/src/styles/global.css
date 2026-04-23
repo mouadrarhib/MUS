@@ -18,6 +18,53 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ── Global Button Smoothness ─────────────────────────── */
+.MuiButtonBase-root {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Speed up MUI ripple from default 550ms → 250ms */
+.MuiTouchRipple-rippleVisible {
+  animation-duration: 250ms !important;
+}
+.MuiTouchRipple-child {
+  border-radius: 50%;
+}
+
+/* Ensure all icon buttons have smooth hover regardless of inline sx */
+.MuiIconButton-root {
+  transition:
+    background-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 150ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+  will-change: transform;
+}
+
+.MuiIconButton-root:hover {
+  transform: scale(1.08) !important;
+}
+
+.MuiIconButton-root:active {
+  transform: scale(0.95) !important;
+}
+
+/* All MUI buttons get smooth transitions */
+.MuiButton-root {
+  transition:
+    background-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 150ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+  will-change: transform, box-shadow;
+}
+
+.MuiButton-root:active {
+  transform: translateY(1px) !important;
+}
+
+/* ── Theme switching: no flash ────────────────────────── */
 html.theme-switching *,
 html.theme-switching *::before,
 html.theme-switching *::after {
@@ -25,7 +72,6 @@ html.theme-switching *::after {
   animation: none !important;
 }
 
-/* Scroll bar personnalisée */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

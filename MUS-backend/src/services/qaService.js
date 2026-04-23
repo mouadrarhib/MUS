@@ -1,5 +1,6 @@
 import { sequelize } from "../models/index.js";
 import AppError from "../helpers/appError.js";
+import { createNotificationsBulk } from "./notificationService.js";
 
 const isAdmin = (roles = []) => roles.includes("admin");
 const isTeacher = (roles = []) => roles.includes("teacher");
@@ -7,10 +8,22 @@ const isStudent = (roles = []) => roles.includes("student");
 const TWO_HOURS = "2 hours";
 const STUDENT_QUESTION_LIMIT = 5;
 const STUDENT_ANSWER_LIMIT = 5;
+const QA_NOTIFICATION_TYPES = {
+  QUESTION_CREATED: "QA_QUESTION_CREATED",
+  ANSWER_CREATED: "QA_ANSWER_CREATED",
+  QUESTION_COMMENT_CREATED: "QA_QUESTION_COMMENT_CREATED",
+  ANSWER_COMMENT_CREATED: "QA_ANSWER_COMMENT_CREATED",
+};
 
 const canModerate = (roles = []) => isTeacher(roles) || isAdmin(roles);
 const canViewHidden = ({ actor = null, includeHidden = false }) =>
   Boolean(includeHidden && canModerate(actor?.roles || []));
+const normalizePagination = ({ page = 1, limit = 20, maxLimit = 100 } = {}) => {
+  const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), maxLimit);
+  const safePage = Math.max(Number(page) || 1, 1);
+  const offset = (safePage - 1) * safeLimit;
+  return { safePage, safeLimit, offset };
+};
 
 const toBadges = (answer) => {
   const badges = [];
@@ -111,6 +124,75 @@ const ensureResourceLinkedToModule = async ({ resourceId, moduleId }) => {
   }
 };
 
+const listQaNotificationRecipients = async ({ questionId = null, resourceId = null, moduleId = null, actorUserId = null }) => {
+  const [rows] = await sequelize.query(
+    `
+    SELECT user_id, source
+    FROM public.sp_qa_notification_recipients(
+      :question_id,
+      :resource_id,
+      :module_id,
+      :actor_user_id
+    )
+    `,
+    {
+      replacements: {
+        question_id: questionId,
+        resource_id: resourceId,
+        module_id: moduleId,
+        actor_user_id: actorUserId,
+      },
+    }
+  );
+
+  return rows;
+};
+
+const notifyQaStakeholders = async ({
+  actorUserId,
+  questionId = null,
+  resourceId = null,
+  moduleId = null,
+  type,
+  title,
+  body,
+  payload = {},
+}) => {
+  try {
+    const recipients = await listQaNotificationRecipients({
+      questionId,
+      resourceId,
+      moduleId,
+      actorUserId,
+    });
+
+    if (!Array.isArray(recipients) || recipients.length === 0) {
+      return [];
+    }
+
+    const uniqueRecipientIds = Array.from(
+      new Set(recipients.map((row) => row.user_id).filter(Boolean))
+    );
+
+    if (!uniqueRecipientIds.length) {
+      return [];
+    }
+
+    const items = uniqueRecipientIds.map((recipientUserId) => ({
+      recipientUserId,
+      type,
+      title,
+      body,
+      payload,
+    }));
+
+    return createNotificationsBulk(items);
+  } catch (error) {
+    console.warn("[qa-notifications] unable to notify stakeholders:", error?.message || error);
+    return [];
+  }
+};
+
 export const createQuestion = async ({ userId, moduleId, resourceId, title, body, isAnonymous = false }) => {
   await ensureResourceLinkedToModule({ resourceId, moduleId });
 
@@ -137,14 +219,33 @@ export const createQuestion = async ({ userId, moduleId, resourceId, title, body
 
 export const createQuestionWithRoles = async ({ userId, roles = [], moduleId, resourceId, title, body, isAnonymous = false }) => {
   await assertStudentQuota({ userId, roles, type: "question" });
-  return createQuestion({ userId, moduleId, resourceId, title, body, isAnonymous });
+  const question = await createQuestion({ userId, moduleId, resourceId, title, body, isAnonymous });
+
+  await notifyQaStakeholders({
+    actorUserId: userId,
+    questionId: question.id,
+    resourceId: question.resource_id,
+    moduleId: question.module_id,
+    type: QA_NOTIFICATION_TYPES.QUESTION_CREATED,
+    title: "Nouvelle question sur une ressource",
+    body: "Une nouvelle question a ete publiee sur une ressource que vous suivez.",
+    payload: {
+      resource_id: question.resource_id,
+      module_id: question.module_id,
+      question_id: question.id,
+      actor_user_id: userId,
+    },
+  });
+
+  return question;
 };
 
 export const listQuestions = async (
   actor = null,
-  { moduleId = null, resourceId = null, status = null, includeHidden = false } = {}
+  { moduleId = null, resourceId = null, status = null, includeHidden = false, page = 1, limit = 20 } = {}
 ) => {
   const allowHidden = includeHidden && canModerate(actor?.roles || []);
+  const { safeLimit, offset } = normalizePagination({ page, limit, maxLimit: 100 });
   const [rows] = await sequelize.query(
     `
     SELECT ${questionProjection(actor)}
@@ -155,6 +256,8 @@ export const listQuestions = async (
       AND (:status::text IS NULL OR q.status::text = :status)
       AND (:allow_hidden = TRUE OR q.moderation_status = 'active'::qa_moderation_status)
     ORDER BY q.created_at DESC
+    LIMIT :limit_value
+    OFFSET :offset_value
     `,
     {
       replacements: {
@@ -163,6 +266,8 @@ export const listQuestions = async (
         resource_id: resourceId,
         status,
         allow_hidden: allowHidden,
+        limit_value: safeLimit,
+        offset_value: offset,
       },
     }
   );
@@ -196,7 +301,7 @@ export const getQuestionById = async (questionId, actor = null, includeHidden = 
 const ensureQuestionExists = async (questionId, { allowHidden = false } = {}) => {
   const [rows] = await sequelize.query(
     `
-    SELECT id, module_id, status::text AS status, moderation_status::text AS moderation_status
+    SELECT id, module_id, resource_id, user_id, status::text AS status, moderation_status::text AS moderation_status
     FROM public.qa_questions
     WHERE id = :question_id
       AND (:allow_hidden = TRUE OR moderation_status = 'active'::qa_moderation_status)
@@ -285,11 +390,30 @@ export const createAnswer = async ({ questionId, userId, roles = [], body, expla
     { replacements: { question_id: questionId } }
   );
 
+  await notifyQaStakeholders({
+    actorUserId: userId,
+    questionId: question.id,
+    resourceId: question.resource_id,
+    moduleId: question.module_id,
+    type: QA_NOTIFICATION_TYPES.ANSWER_CREATED,
+    title: "Nouvelle reponse sur une question",
+    body: "Une nouvelle reponse vient d'etre ajoutee a une question de votre ressource/module.",
+    payload: {
+      resource_id: question.resource_id,
+      module_id: question.module_id,
+      question_id: question.id,
+      answer_id: rows[0].id,
+      actor_user_id: userId,
+      is_official: rows[0].is_official,
+    },
+  });
+
   return rows[0];
 };
 
-export const listAnswersByQuestion = async (questionId, actor = null, includeHidden = false) => {
+export const listAnswersByQuestion = async (questionId, actor = null, includeHidden = false, { page = 1, limit = 50 } = {}) => {
   const allowHidden = canViewHidden({ actor, includeHidden });
+  const { safeLimit, offset } = normalizePagination({ page, limit, maxLimit: 100 });
   await ensureQuestionExists(questionId, { allowHidden });
 
   const [rows] = await sequelize.query(
@@ -314,8 +438,17 @@ export const listAnswersByQuestion = async (questionId, actor = null, includeHid
     WHERE a.question_id = :question_id
       AND (:allow_hidden = TRUE OR a.moderation_status = 'active'::qa_moderation_status)
     ORDER BY a.is_accepted DESC, a.is_official DESC, a.created_at ASC
+    LIMIT :limit_value
+    OFFSET :offset_value
     `,
-    { replacements: { question_id: questionId, allow_hidden: allowHidden } }
+    {
+      replacements: {
+        question_id: questionId,
+        allow_hidden: allowHidden,
+        limit_value: safeLimit,
+        offset_value: offset,
+      },
+    }
   );
 
   return rows.map((row) => ({
@@ -527,11 +660,32 @@ export const createCommentOnQuestion = async ({ questionId, userId, body }) => {
     }
   );
 
+  await notifyQaStakeholders({
+    actorUserId: userId,
+    questionId: question.id,
+    resourceId: question.resource_id,
+    moduleId: question.module_id,
+    type: QA_NOTIFICATION_TYPES.QUESTION_COMMENT_CREATED,
+    title: "Nouveau commentaire sur une question",
+    body: "Un commentaire a ete ajoute sur une question de votre ressource/module.",
+    payload: {
+      resource_id: question.resource_id,
+      module_id: question.module_id,
+      question_id: question.id,
+      comment_id: rows[0].id,
+      actor_user_id: userId,
+    },
+  });
+
   return rows[0];
 };
 
 export const createCommentOnAnswer = async ({ answerId, userId, body }) => {
-  await ensureAnswerExists(answerId, { allowHidden: false });
+  const answer = await ensureAnswerExists(answerId, { allowHidden: false });
+  const question = await ensureQuestionExists(answer.question_id, { allowHidden: false });
+  if (question.status === "closed") {
+    throw new AppError("La question est fermee", 409);
+  }
 
   const [rows] = await sequelize.query(
     `
@@ -548,11 +702,30 @@ export const createCommentOnAnswer = async ({ answerId, userId, body }) => {
     }
   );
 
+  await notifyQaStakeholders({
+    actorUserId: userId,
+    questionId: question.id,
+    resourceId: question.resource_id,
+    moduleId: question.module_id,
+    type: QA_NOTIFICATION_TYPES.ANSWER_COMMENT_CREATED,
+    title: "Nouveau commentaire sur une reponse",
+    body: "Un commentaire a ete ajoute sur une reponse de votre ressource/module.",
+    payload: {
+      resource_id: question.resource_id,
+      module_id: question.module_id,
+      question_id: question.id,
+      answer_id: answer.id,
+      comment_id: rows[0].id,
+      actor_user_id: userId,
+    },
+  });
+
   return rows[0];
 };
 
-export const listCommentsByQuestion = async (questionId, actor = null, includeHidden = false) => {
+export const listCommentsByQuestion = async (questionId, actor = null, includeHidden = false, { page = 1, limit = 50 } = {}) => {
   const allowHidden = canViewHidden({ actor, includeHidden });
+  const { safeLimit, offset } = normalizePagination({ page, limit, maxLimit: 200 });
   await ensureQuestionExists(questionId, { allowHidden });
 
   const [rows] = await sequelize.query(
@@ -564,6 +737,7 @@ export const listCommentsByQuestion = async (questionId, actor = null, includeHi
       c.user_id,
       u.full_name AS user_name,
       c.body,
+      c.moderation_status::text AS moderation_status,
       c.created_at,
       c.updated_at
     FROM public.qa_comments c
@@ -571,15 +745,25 @@ export const listCommentsByQuestion = async (questionId, actor = null, includeHi
     WHERE c.question_id = :question_id
       AND (:allow_hidden = TRUE OR c.moderation_status = 'active'::qa_moderation_status)
     ORDER BY c.created_at ASC
+    LIMIT :limit_value
+    OFFSET :offset_value
     `,
-    { replacements: { question_id: questionId, allow_hidden: allowHidden } }
+    {
+      replacements: {
+        question_id: questionId,
+        allow_hidden: allowHidden,
+        limit_value: safeLimit,
+        offset_value: offset,
+      },
+    }
   );
 
   return rows;
 };
 
-export const listCommentsByAnswer = async (answerId, actor = null, includeHidden = false) => {
+export const listCommentsByAnswer = async (answerId, actor = null, includeHidden = false, { page = 1, limit = 50 } = {}) => {
   const allowHidden = canViewHidden({ actor, includeHidden });
+  const { safeLimit, offset } = normalizePagination({ page, limit, maxLimit: 200 });
   await ensureAnswerExists(answerId, { allowHidden });
 
   const [rows] = await sequelize.query(
@@ -591,6 +775,7 @@ export const listCommentsByAnswer = async (answerId, actor = null, includeHidden
       c.user_id,
       u.full_name AS user_name,
       c.body,
+      c.moderation_status::text AS moderation_status,
       c.created_at,
       c.updated_at
     FROM public.qa_comments c
@@ -598,8 +783,17 @@ export const listCommentsByAnswer = async (answerId, actor = null, includeHidden
     WHERE c.answer_id = :answer_id
       AND (:allow_hidden = TRUE OR c.moderation_status = 'active'::qa_moderation_status)
     ORDER BY c.created_at ASC
+    LIMIT :limit_value
+    OFFSET :offset_value
     `,
-    { replacements: { answer_id: answerId, allow_hidden: allowHidden } }
+    {
+      replacements: {
+        answer_id: answerId,
+        allow_hidden: allowHidden,
+        limit_value: safeLimit,
+        offset_value: offset,
+      },
+    }
   );
 
   return rows;

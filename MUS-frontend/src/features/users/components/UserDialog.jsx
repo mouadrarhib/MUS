@@ -193,6 +193,9 @@ const UserDialog = ({
           overflow: "hidden",
         },
       }}
+    
+      keepMounted
+      transitionDuration={{ enter: 120, exit: 80 }}
     >
       <DialogTitle sx={{ p: 0 }}>
         <Box sx={{ px: 3, py: 2.6, background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.04)} 100%)`, borderBottom: "1px solid", borderColor: "divider", position: "relative" }}>
@@ -321,7 +324,7 @@ const UserDialog = ({
                       <InputLabel>Program</InputLabel>
                       <Select {...field} label="Program">
                         {programOptions.map((program) => (
-                          <MenuItem key={program.id} value={String(program.id)}>{program.name}</MenuItem>
+                          <MenuItem key={program.id || program.program_id} value={String(program.id || program.program_id)}>{program.name || program.program_name}</MenuItem>
                         ))}
                       </Select>
                       <FormHelperText>{selectedInstitutionId ? "Programs available for the selected institution" : "Choose an institution first"}</FormHelperText>
@@ -339,7 +342,7 @@ const UserDialog = ({
                       <InputLabel>Level</InputLabel>
                       <Select {...field} label="Level">
                         {filteredLevels.map((level) => (
-                          <MenuItem key={level.id} value={String(level.id)}>{level.name}</MenuItem>
+                          <MenuItem key={level.id || level.level_id} value={String(level.id || level.level_id)}>{level.name || level.level_name}</MenuItem>
                         ))}
                       </Select>
                     </FormControl>
@@ -356,7 +359,7 @@ const UserDialog = ({
                       <InputLabel>Current Semester</InputLabel>
                       <Select {...field} label="Current Semester">
                         {filteredSemesters.map((semester) => (
-                          <MenuItem key={semester.id} value={String(semester.id)}>{semester.name}</MenuItem>
+                          <MenuItem key={semester.id || semester.semester_id} value={String(semester.id || semester.semester_id)}>{semester.name || semester.semester_name}</MenuItem>
                         ))}
                       </Select>
                     </FormControl>

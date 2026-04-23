@@ -251,8 +251,8 @@ export const RegisterForm = () => {
   };
 
   const handleSubmitForm = handleSubmit(async (formData) => {
-    setRegisterError('');
-    setRegisterSuccess('');
+    if (registerError) setRegisterError('');
+                      if (registerSuccess) setRegisterSuccess('');
 
     try {
       const response = await apiRegister({
@@ -340,8 +340,8 @@ export const RegisterForm = () => {
                   {...register('fullName', {
                     required: 'Full name is required',
                     onChange: () => {
-                      setRegisterError('');
-                      setRegisterSuccess('');
+                      if (registerError) setRegisterError('');
+                      if (registerSuccess) setRegisterSuccess('');
                     },
                   })}
                   error={Boolean(errors.fullName)}
@@ -370,8 +370,8 @@ export const RegisterForm = () => {
                       message: 'Email is invalid',
                     },
                     onChange: () => {
-                      setRegisterError('');
-                      setRegisterSuccess('');
+                      if (registerError) setRegisterError('');
+                      if (registerSuccess) setRegisterSuccess('');
                     },
                   })}
                   error={Boolean(errors.email)}
@@ -399,8 +399,8 @@ export const RegisterForm = () => {
                       message: 'Password must be at least 8 characters',
                     },
                     onChange: () => {
-                      setRegisterError('');
-                      setRegisterSuccess('');
+                      if (registerError) setRegisterError('');
+                      if (registerSuccess) setRegisterSuccess('');
                     },
                   })}
                   error={Boolean(errors.password)}
@@ -436,8 +436,8 @@ export const RegisterForm = () => {
                     required: 'Please confirm your password',
                     validate: (value) => value === passwordValue || 'Passwords do not match',
                     onChange: () => {
-                      setRegisterError('');
-                      setRegisterSuccess('');
+                      if (registerError) setRegisterError('');
+                      if (registerSuccess) setRegisterSuccess('');
                     },
                   })}
                   error={Boolean(errors.confirmPassword)}
@@ -629,8 +629,8 @@ export const RegisterForm = () => {
                           .map((tag) => Number(tag.id || tag.tag_id))
                           .filter(Number.isFinite);
                         field.onChange(Array.from(new Set(ids)));
-                        setRegisterError('');
-                        setRegisterSuccess('');
+                        if (registerError) setRegisterError('');
+                      if (registerSuccess) setRegisterSuccess('');
                       }}
                       renderInput={(params) => (
                         <TextField
@@ -659,8 +659,8 @@ export const RegisterForm = () => {
                             checked={!!field.value}
                             onChange={(event) => {
                               field.onChange(event.target.checked);
-                              setRegisterError('');
-                              setRegisterSuccess('');
+                              if (registerError) setRegisterError('');
+                      if (registerSuccess) setRegisterSuccess('');
                             }}
                             color="primary"
                           />

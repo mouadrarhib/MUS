@@ -216,7 +216,9 @@ export const LoginForm = () => {
                       value: /\S+@\S+\.\S+/,
                       message: 'Email is invalid',
                     },
-                    onChange: () => setLoginError(''),
+                    onChange: () => {
+                      if (loginError) setLoginError('');
+                    },
                   })}
                   error={Boolean(errors.email)}
                   helperText={errors.email?.message}
@@ -243,7 +245,9 @@ export const LoginForm = () => {
                       value: 8,
                       message: 'Password must be at least 8 characters',
                     },
-                    onChange: () => setLoginError(''),
+                    onChange: () => {
+                      if (loginError) setLoginError('');
+                    },
                   })}
                   error={Boolean(errors.password)}
                   helperText={errors.password?.message}

@@ -2392,7 +2392,9 @@ const CatalogManagement = () => {
             backdropFilter: "blur(16px)",
           },
         }}
-        >
+        keepMounted
+        transitionDuration={{ enter: 120, exit: 80 }}
+      >
         <DialogTitle sx={{ p: 0 }}>
           <Box
             sx={{

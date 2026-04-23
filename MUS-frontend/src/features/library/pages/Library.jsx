@@ -163,7 +163,10 @@ const Library = () => {
             overflow: 'hidden',
           }
         }}
-      >
+      
+      keepMounted
+      transitionDuration={{ enter: 120, exit: 80 }}
+    >
         <DialogTitle sx={{ pb: 1, pt: 2.5, px: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Box

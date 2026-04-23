@@ -1,8 +1,9 @@
 import { sequelize } from "../models/index.js";
 import { SQL } from "../snippets/index.js";
 import { getCurrentUserId } from "../middleware/auth.js";
-import { addResourceToModule } from "./resourceModuleMapService.js";
+import { addResourceToModule, getModulesByResource } from "./resourceModuleMapService.js";
 import AppError from "../helpers/appError.js";
+import { getTagsByResource } from "./tagService.js";
 import {
   buildObjectKey,
   getDownloadUrl,
@@ -300,6 +301,41 @@ export const getResourceById = async (id) => {
   return {
     ...item,
     access_tier: normalizeAccessTier(accessTier),
+  };
+};
+
+export const getResourceDetailsBundle = async (id, actor = null) => {
+  const resource = await getResourceById(id);
+  if (!resource) {
+    return null;
+  }
+
+  const admin = isAdmin(actor?.roles || []);
+  const owner = actor?.id && resource.created_by === actor.id;
+  const canSeeStats = Boolean(admin || owner);
+
+  const [statsRes, tagsRes, modulesRes] = await Promise.allSettled([
+    canSeeStats ? getResourceStatistics(id) : Promise.resolve(null),
+    getTagsByResource(id),
+    getModulesByResource(id),
+  ]);
+
+  let file = null;
+  try {
+    file = await getResourceFileUrl(id, { forceDownload: false }, actor);
+  } catch {
+    file = null;
+  }
+
+  return {
+    resource,
+    stats: statsRes.status === "fulfilled" ? statsRes.value || null : null,
+    tags: tagsRes.status === "fulfilled" ? tagsRes.value || [] : [],
+    file,
+    module_context:
+      modulesRes.status === "fulfilled" && Array.isArray(modulesRes.value) && modulesRes.value.length
+        ? modulesRes.value[0]
+        : null,
   };
 };
 

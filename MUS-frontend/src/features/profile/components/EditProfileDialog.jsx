@@ -73,6 +73,9 @@ const EditProfileDialog = ({ open, onClose }) => {
       PaperProps={{
         sx: { borderRadius: 3, overflow: 'hidden' }
       }}
+    
+      keepMounted
+      transitionDuration={{ enter: 120, exit: 80 }}
     >
       <DialogTitle sx={{ p: 0, position: 'relative' }}>
         <Box
