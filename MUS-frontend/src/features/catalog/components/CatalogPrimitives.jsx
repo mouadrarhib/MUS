@@ -7,10 +7,11 @@ export const BreadcrumbFlow = ({ steps }) => (
     sx={{
       display: 'flex',
       alignItems: 'center',
+      justifyContent: 'flex-start',
       flexWrap: 'wrap',
       gap: 0.5,
-      py: 1.4,
-      px: 2,
+      py: 1.2,
+      px: { xs: 1, sm: 2 },
       borderRadius: 2.5,
       border: '1px solid',
       borderColor: (theme) =>
@@ -20,7 +21,13 @@ export const BreadcrumbFlow = ({ steps }) => (
     }}
   >
     {steps.map((step, index) => (
-      <Box key={step.label} display="flex" alignItems="center" gap={0.5}>
+      <Box
+        key={step.label}
+        display="flex"
+        alignItems="center"
+        gap={0.5}
+        sx={{ flex: { xs: '1 1 100%', sm: '0 1 auto' }, minWidth: 0 }}
+      >
         {index > 0 && (
           <Box
             sx={{
@@ -77,8 +84,9 @@ export const BreadcrumbFlow = ({ steps }) => (
               fontSize: '0.71rem',
               fontWeight: step.active ? 700 : 500,
               color: step.active ? step.color : 'text.disabled',
-              whiteSpace: 'nowrap',
-              lineHeight: 1,
+              whiteSpace: 'normal',
+              overflowWrap: 'anywhere',
+              lineHeight: 1.2,
             }}
           >
             {step.label}:{' '}
@@ -95,7 +103,7 @@ export const BreadcrumbFlow = ({ steps }) => (
 export const InterPanelConnector = ({ active, color }) => (
   <Box
     sx={{
-      display: { xs: 'none', lg: 'flex' },
+      display: { xs: 'none', xl: 'flex' },
       alignItems: 'center',
       justifyContent: 'center',
       alignSelf: 'center',
@@ -246,7 +254,7 @@ export const HierarchyPanel = ({
       bgcolor: (theme) =>
         theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.025)' : 'rgba(255,255,255,0.92)',
       overflow: 'hidden',
-      minHeight: 290,
+      minHeight: { xs: 'auto', md: 290 },
       position: 'relative',
       transition: 'box-shadow 0.25s ease',
       '&:hover': {
@@ -272,9 +280,9 @@ export const HierarchyPanel = ({
 
     <Box
       sx={{
-        px: 2,
-        py: 1.5,
-        pt: 2.2,
+        px: { xs: 1.5, sm: 2 },
+        py: { xs: 1.15, sm: 1.5 },
+        pt: { xs: 1.8, sm: 2.2 },
         borderBottom: '1px solid',
         borderColor: (theme) =>
           theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
@@ -365,7 +373,7 @@ export const HierarchyPanel = ({
       ) : null}
     </Box>
 
-    <Box sx={{ p: 1.2, display: 'grid', gap: 0.85, maxHeight: 380, overflowY: 'auto' }}>
+    <Box sx={{ p: { xs: 1, sm: 1.2 }, display: 'grid', gap: 0.85, maxHeight: { xs: 'none', sm: 380 }, overflowY: 'auto' }}>
       {disabled ? (
         <EmptyState message={disabledMessage} dimmed />
       ) : items.length === 0 ? (
@@ -380,9 +388,9 @@ export const HierarchyPanel = ({
               key={`${title}-${itemId}`}
               onClick={() => onSelect?.(item)}
               sx={{
-                pl: selected ? 1.6 : 1.35,
-                pr: 1.35,
-                py: 1.2,
+                pl: selected ? { xs: 1.35, sm: 1.6 } : { xs: 1.15, sm: 1.35 },
+                pr: { xs: 1.15, sm: 1.35 },
+                py: { xs: 1, sm: 1.2 },
                 borderRadius: 2,
                 border: '1px solid',
                 borderColor: selected

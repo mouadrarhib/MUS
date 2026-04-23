@@ -139,6 +139,9 @@ const PublicHeroSection = ({ theme }) => {
       <Dialog
         open={authPromptOpen}
         onClose={() => setAuthPromptOpen(false)}
+        keepMounted
+        transitionDuration={{ enter: 120, exit: 80 }}
+        onClose={() => setAuthPromptOpen(false)}
         maxWidth="xs"
         fullWidth
         PaperProps={{

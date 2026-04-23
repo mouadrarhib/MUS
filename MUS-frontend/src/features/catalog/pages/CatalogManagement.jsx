@@ -1052,8 +1052,8 @@ const CatalogManagement = () => {
               {/* Panel grid with connectors */}
               <Box
                 sx={{
-                  display: { xs: "grid", lg: "flex" },
-                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                  display: { xs: "grid", lg: "grid", xl: "flex" },
+                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(3, minmax(0,1fr))" },
                   gap: 1.5,
                   mt: 2.2,
                   alignItems: "stretch",
@@ -1323,8 +1323,8 @@ const CatalogManagement = () => {
               {/* Panel grid with connectors */}
               <Box
                 sx={{
-                  display: { xs: "grid", lg: "flex" },
-                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                  display: { xs: "grid", lg: "grid", xl: "flex" },
+                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(3, minmax(0,1fr))" },
                   gap: 1.5,
                   mt: 2.2,
                   alignItems: "stretch",
@@ -2322,6 +2322,8 @@ const CatalogManagement = () => {
             backdropFilter: "blur(16px)",
           },
         }}
+        keepMounted
+        transitionDuration={{ enter: 120, exit: 80 }}
       >
         <DialogTitle sx={{ p: 0 }}>
           <Box

@@ -252,15 +252,25 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
         height: NAVBAR_HEIGHT,
       }}
     >
-      <Toolbar sx={{ height: NAVBAR_HEIGHT, px: { xs: 2, sm: 3 }, flexDirection: isArabic ? 'row-reverse' : 'row' }}>
+      <Toolbar
+        sx={{
+          height: NAVBAR_HEIGHT,
+          px: { xs: 1.5, sm: 3 },
+          py: { xs: 0.55, sm: 0 },
+          flexDirection: isArabic ? 'row-reverse' : 'row',
+          flexWrap: { xs: 'wrap', sm: 'nowrap' },
+          gap: { xs: 1, sm: 0 },
+          alignItems: 'center',
+        }}
+      >
         {/* Menu Toggle */}
         <IconButton
           edge="start"
           onClick={onMenuClick}
           aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
           sx={{
-            mr: isArabic ? 0 : 1.5,
-            ml: isArabic ? 1.5 : 0,
+            mr: { xs: 1, sm: isArabic ? 0 : 1.5 },
+            ml: { xs: 0, sm: isArabic ? 1.5 : 0 },
             color: 'text.primary',
             border: '1px solid',
             borderColor: (theme) =>
@@ -389,7 +399,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
           PaperProps={{
             elevation: 0,
             sx: {
-              width: 380,
+              width: 'min(100vw - 24px, 420px)',
               maxWidth: 'calc(100vw - 16px)',
               mt: 1.2,
               borderRadius: 2.5,

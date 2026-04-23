@@ -60,6 +60,8 @@ export const ConfirmDialog = ({
           overflow: 'hidden',
         },
       }}
+      keepMounted
+      transitionDuration={{ enter: 120, exit: 80 }}
     >
       <DialogTitle sx={{ p: 0 }}>
         <Box sx={{ position: 'relative', px: 3, pt: 3, pb: 2.5 }}>

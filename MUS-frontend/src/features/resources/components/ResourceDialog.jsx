@@ -981,11 +981,14 @@ const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, avail
           overflow: 'hidden',
           bgcolor: 'background.paper',
           backgroundImage: 'none',
-          background: (theme) => theme.palette.mode === 'dark'
+          background: (theme) =>
+            theme.palette.mode === 'dark'
               ? 'linear-gradient(180deg, rgba(18,18,18,0.98) 0%, rgba(18,18,18,0.98) 100%)'
               : 'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%)',
         }
       }}
+      keepMounted
+      transitionDuration={{ enter: 120, exit: 80 }}
     >
       {/* Header */}
       <DialogTitle sx={{ p: 0, position: 'relative' }}>
