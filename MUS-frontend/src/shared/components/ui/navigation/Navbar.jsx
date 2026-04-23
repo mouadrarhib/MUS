@@ -128,21 +128,29 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
         height: NAVBAR_HEIGHT,
       }}
     >
-      <Toolbar sx={{ height: NAVBAR_HEIGHT, px: { xs: 2, sm: 3 }, flexDirection: isArabic ? 'row-reverse' : 'row' }}>
+      <Toolbar
+        sx={{
+          minHeight: { xs: 56, sm: 60 },
+          px: { xs: 0.75, sm: 1.75, md: 2.25 },
+          py: { xs: 0.35, sm: 0.8 },
+          flexDirection: isArabic ? 'row-reverse' : 'row',
+          gap: { xs: 0.5, sm: 0.9 },
+        }}
+      >
         {/* Menu Toggle */}
         <IconButton
           edge="start"
           onClick={onMenuClick}
           aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
           sx={{
-            mr: isArabic ? 0 : 1.5,
-            ml: isArabic ? 1.5 : 0,
+            mr: isArabic ? 0 : { xs: 0.75, sm: 1.25 },
+            ml: isArabic ? { xs: 0.75, sm: 1.25 } : 0,
             color: 'text.primary',
             border: '1px solid',
             borderColor: (theme) =>
               theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
             borderRadius: 2,
-            p: 0.8,
+            p: { xs: 0.65, sm: 0.8 },
             transition: 'all 0.2s ease',
             '&:hover': {
               bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
@@ -165,7 +173,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
             src={logo}
             alt="MUS Logo"
             sx={{
-              height: 42,
+              height: { xs: 32, sm: 34, md: 36 },
               width: 'auto',
               objectFit: 'contain',
             }}
@@ -180,14 +188,15 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
           onClick={() => navigate('/discover')}
           variant="contained"
           sx={{
-            mr: 1,
+            mr: { xs: 0.6, sm: 0.9, md: 1 },
             borderRadius: 2,
-            px: 2,
-            py: 0.65,
+            px: { md: 1.35, lg: 1.75 },
+            py: { md: 0.52, lg: 0.6 },
             fontWeight: 700,
             textTransform: 'none',
-            fontSize: '0.82rem',
-            display: { xs: 'none', sm: 'inline-flex' },
+            fontSize: { md: '0.74rem', lg: '0.78rem' },
+            minWidth: 0,
+            display: { xs: 'none', md: 'inline-flex' },
             background: 'linear-gradient(135deg, #7c5cfc 0%, #5b3fdd 100%)',
             boxShadow: '0 2px 8px rgba(124,92,252,0.25)',
             '&:hover': {
@@ -204,14 +213,14 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
           onClick={handleThemeToggle}
           aria-label={mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
           sx={{
-            mr: 1.5,
+            mr: { xs: 0.45, sm: 0.75, md: 1.15 },
             color: 'text.primary',
             bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
             border: '1px solid',
             borderColor: (theme) =>
               theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
             borderRadius: 2,
-            p: 0.8,
+            p: { xs: 0.65, sm: 0.8 },
             transition: 'all 0.22s ease',
             '&:hover': {
               bgcolor: (theme) => alpha(theme.palette.primary.main, 0.14),
@@ -233,14 +242,14 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
         </IconButton>
 
         {/* User Profile Section */}
-        <Box display="flex" alignItems="center" gap={1.5}>
+        <Box display="flex" alignItems="center" gap={{ xs: 0.65, sm: 1.1 }}>
           <Box
             display="flex"
             alignItems="center"
-            gap={1.5}
+            gap={{ xs: 0.55, sm: 1.15 }}
             sx={{
-              px: 1.5,
-              py: 0.8,
+              px: { xs: 0.75, sm: 1.2, md: 1.45 },
+              py: { xs: 0.5, sm: 0.75 },
               borderRadius: 2.5,
               border: '1px solid',
               borderColor: (theme) =>
@@ -277,12 +286,12 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
             }}
           >
             {/* User Name and Role - Hidden on mobile */}
-            <Box sx={{ display: { xs: 'none', md: 'block' }, textAlign: 'right' }}>
+            <Box sx={{ display: { xs: 'none', lg: 'block' }, textAlign: 'right' }}>
               <Typography
                 variant="body2"
                 fontWeight={700}
                 color="text.primary"
-                sx={{ lineHeight: 1.3, fontSize: '0.85rem' }}
+                sx={{ lineHeight: 1.3, fontSize: '0.82rem' }}
               >
                 {user?.full_name || 'User'}
               </Typography>
@@ -298,7 +307,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
                     border: '1px solid',
                     borderColor: (theme) => alpha(theme.palette.primary.main, 0.15),
                     color: 'primary.main',
-                    fontSize: '0.62rem',
+                    fontSize: '0.6rem',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
@@ -320,7 +329,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
                       border: '1px solid',
                       borderColor: (theme) => alpha(theme.palette.warning.main, 0.18),
                       color: 'warning.dark',
-                      fontSize: '0.62rem',
+                       fontSize: '0.6rem',
                       fontWeight: 700,
                     }}
                   >
@@ -334,12 +343,12 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
             {/* Avatar */}
             <Avatar
               sx={{
-                width: 38,
-                height: 38,
+                width: { xs: 34, sm: 37, md: 38 },
+                height: { xs: 34, sm: 37, md: 38 },
                 bgcolor: 'primary.main',
                 background: 'linear-gradient(135deg, #7c5cfc 0%, #3b82f6 100%)',
                 fontWeight: 700,
-                fontSize: '0.95rem',
+                fontSize: { xs: '0.9rem', sm: '0.94rem' },
                 border: '2px solid',
                 borderColor: (theme) =>
                   theme.palette.mode === 'dark'
@@ -368,7 +377,8 @@ export const Navbar = ({ onMenuClick, sidebarOpen, sidebarWidth = 280 }) => {
             PaperProps={{
               elevation: 0,
               sx: {
-                minWidth: 280,
+                width: 'min(100vw - 20px, 340px)',
+                minWidth: { xs: 250, sm: 280 },
                 mt: 1.5,
                 borderRadius: 3,
                 border: '1px solid',

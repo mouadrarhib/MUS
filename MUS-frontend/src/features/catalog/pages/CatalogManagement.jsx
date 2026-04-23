@@ -883,7 +883,7 @@ const CatalogManagement = () => {
   const renderTabContent = () => {
     if (activeTab === TAB_KEYS.HIERARCHY_EXPLORER)
       return (
-        <Box display="grid" gap={2.5}>
+        <Box display="grid" gap={{ xs: 2, md: 2.5 }}>
           {/* ─── Academic Hierarchy Explorer ─── */}
           <Box
             sx={{
@@ -916,14 +916,20 @@ const CatalogManagement = () => {
               }}
             />
 
-            <Box sx={{ px: 2.8, pt: 3, pb: 2.2 }}>
+            <Box sx={{ px: { xs: 1.25, sm: 2, md: 2.6 }, pt: { xs: 2.2, sm: 2.8, md: 3 }, pb: { xs: 1.6, sm: 2, md: 2.2 } }}>
               {/* Section header */}
-              <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap={2} mb={2}>
-                <Box display="flex" alignItems="center" gap={1.5}>
+              <Box
+                display="flex"
+                alignItems={{ xs: "flex-start", sm: "center" }}
+                justifyContent="space-between"
+                gap={{ xs: 1.1, sm: 2 }}
+                mb={{ xs: 1.2, sm: 2 }}
+              >
+                <Box display="flex" alignItems="center" gap={{ xs: 1, sm: 1.5 }} sx={{ minWidth: 0 }}>
                   <Box
                     sx={{
-                      width: 40,
-                      height: 40,
+                      width: { xs: 34, sm: 40 },
+                      height: { xs: 34, sm: 40 },
                       borderRadius: 2.2,
                       background: "linear-gradient(135deg, rgba(96,165,250,0.2) 0%, rgba(59,130,246,0.1) 100%)",
                       border: "1px solid",
@@ -935,24 +941,34 @@ const CatalogManagement = () => {
                       boxShadow: "0 2px 12px rgba(96,165,250,0.15)",
                     }}
                   >
-                    <Hub sx={{ fontSize: 20, color: "#60a5fa" }} />
+                    <Hub sx={{ fontSize: { xs: 18, sm: 20 }, color: "#60a5fa" }} />
                   </Box>
-                  <Box>
+                  <Box sx={{ minWidth: 0 }}>
                     <Typography
                       variant="subtitle1"
                       fontWeight={900}
                       sx={{
                         lineHeight: 1.2,
-                        fontSize: "1.05rem",
+                        fontSize: { xs: "0.96rem", sm: "1.05rem" },
                         background: "linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)",
                         WebkitBackgroundClip: "text",
                         WebkitTextFillColor: "transparent",
                         backgroundClip: "text",
+                        overflowWrap: "anywhere",
                       }}
                     >
                       Academic Hierarchy Explorer
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8rem", mt: 0.2 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        fontSize: { xs: "0.76rem", sm: "0.8rem" },
+                        mt: 0.2,
+                        lineHeight: 1.45,
+                        overflowWrap: "anywhere",
+                      }}
+                    >
                       Navigate from domains to modules — create and manage entities in context
                     </Typography>
                   </Box>
@@ -961,7 +977,7 @@ const CatalogManagement = () => {
                 {/* Step indicators */}
                 <Box
                   sx={{
-                    display: { xs: "none", md: "flex" },
+                  display: { xs: "none", lg: "flex" },
                     alignItems: "center",
                     gap: 0.6,
                     flexShrink: 0,
@@ -1052,11 +1068,15 @@ const CatalogManagement = () => {
               {/* Panel grid with connectors */}
               <Box
                 sx={{
-                  display: { xs: "grid", lg: "flex" },
-                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                  gap: 1.5,
-                  mt: 2.2,
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", lg: "repeat(3, minmax(0, 1fr))", xl: "repeat(5, minmax(0, 1fr))" },
+                  gap: { xs: 1, sm: 1.2, md: 1.5 },
+                  mt: { xs: 1.5, sm: 2.2 },
                   alignItems: "stretch",
+                  "@media (min-width:1800px)": {
+                    display: "flex",
+                    flexDirection: "row",
+                  },
                 }}
               >
                 <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -1210,14 +1230,20 @@ const CatalogManagement = () => {
               }}
             />
 
-            <Box sx={{ px: 2.8, pt: 3, pb: 2.2 }}>
+            <Box sx={{ px: { xs: 1.25, sm: 2, md: 2.6 }, pt: { xs: 2.2, sm: 2.8, md: 3 }, pb: { xs: 1.6, sm: 2, md: 2.2 } }}>
               {/* Section header */}
-              <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap={2} mb={2}>
-                <Box display="flex" alignItems="center" gap={1.5}>
+              <Box
+                display="flex"
+                alignItems={{ xs: "flex-start", sm: "center" }}
+                justifyContent="space-between"
+                gap={{ xs: 1.1, sm: 2 }}
+                mb={{ xs: 1.2, sm: 2 }}
+              >
+                <Box display="flex" alignItems="center" gap={{ xs: 1, sm: 1.5 }} sx={{ minWidth: 0 }}>
                   <Box
                     sx={{
-                      width: 40,
-                      height: 40,
+                      width: { xs: 34, sm: 40 },
+                      height: { xs: 34, sm: 40 },
                       borderRadius: 2.2,
                       background: "linear-gradient(135deg, rgba(236,72,153,0.2) 0%, rgba(245,158,11,0.1) 100%)",
                       border: "1px solid",
@@ -1229,24 +1255,34 @@ const CatalogManagement = () => {
                       boxShadow: "0 2px 12px rgba(236,72,153,0.15)",
                     }}
                   >
-                    <Link sx={{ fontSize: 20, color: "#ec4899" }} />
+                    <Link sx={{ fontSize: { xs: 18, sm: 20 }, color: "#ec4899" }} />
                   </Box>
-                  <Box>
+                  <Box sx={{ minWidth: 0 }}>
                     <Typography
                       variant="subtitle1"
                       fontWeight={900}
                       sx={{
                         lineHeight: 1.2,
-                        fontSize: "1.05rem",
+                        fontSize: { xs: "0.96rem", sm: "1.05rem" },
                         background: "linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)",
                         WebkitBackgroundClip: "text",
                         WebkitTextFillColor: "transparent",
                         backgroundClip: "text",
+                        overflowWrap: "anywhere",
                       }}
                     >
                       Institution Mapping Explorer
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8rem", mt: 0.2 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        fontSize: { xs: "0.76rem", sm: "0.8rem" },
+                        mt: 0.2,
+                        lineHeight: 1.45,
+                        overflowWrap: "anywhere",
+                      }}
+                    >
                       Manage institution types, institutions, and the programs linked to each institution
                     </Typography>
                   </Box>
@@ -1255,7 +1291,7 @@ const CatalogManagement = () => {
                 {/* Step indicators */}
                 <Box
                   sx={{
-                    display: { xs: "none", md: "flex" },
+                  display: { xs: "none", lg: "flex" },
                     alignItems: "center",
                     gap: 0.6,
                     flexShrink: 0,
@@ -1323,11 +1359,15 @@ const CatalogManagement = () => {
               {/* Panel grid with connectors */}
               <Box
                 sx={{
-                  display: { xs: "grid", lg: "flex" },
-                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                  gap: 1.5,
-                  mt: 2.2,
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))", xl: "repeat(3, minmax(0, 1fr))" },
+                  gap: { xs: 1, sm: 1.2, md: 1.5 },
+                  mt: { xs: 1.5, sm: 2.2 },
                   alignItems: "stretch",
+                  "@media (min-width:1650px)": {
+                    display: "flex",
+                    flexDirection: "row",
+                  },
                 }}
               >
                 <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -1392,7 +1432,7 @@ const CatalogManagement = () => {
                     bgcolor: (theme) =>
                       theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.92)",
                     overflow: "hidden",
-                    minHeight: 290,
+                    minHeight: { xs: "auto", md: 290 },
                     position: "relative",
                     transition: "all 0.25s ease",
                     boxShadow: selectedExplorerInstitutionId
@@ -1415,22 +1455,22 @@ const CatalogManagement = () => {
                   />
 
                   {/* Header */}
-                  <Box
-                    sx={{
-                      px: 2,
-                      py: 1.7,
-                      pt: 2.2,
-                      borderBottom: "1px solid",
-                      borderColor: (theme) =>
-                        theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)",
+                    <Box
+                      sx={{
+                        px: { xs: 1.25, sm: 1.6, md: 2 },
+                        py: { xs: 1.2, sm: 1.6 },
+                        pt: { xs: 1.8, sm: 2.2 },
+                        borderBottom: "1px solid",
+                        borderColor: (theme) =>
+                          theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)",
                     }}
                   >
                     <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap={1}>
-                      <Box display="flex" gap={1.2} alignItems="flex-start">
+                      <Box display="flex" gap={{ xs: 0.9, sm: 1.2 }} alignItems="flex-start" sx={{ minWidth: 0 }}>
                         <Box
                           sx={{
-                            width: 34,
-                            height: 34,
+                            width: { xs: 30, sm: 34 },
+                            height: { xs: 30, sm: 34 },
                             borderRadius: 2,
                             background: `linear-gradient(135deg, ${alpha("#ec4899", 0.18)} 0%, ${alpha("#ec4899", 0.08)} 100%)`,
                             border: "1px solid",
@@ -1442,11 +1482,15 @@ const CatalogManagement = () => {
                             boxShadow: `0 2px 8px ${alpha("#ec4899", 0.12)}`,
                           }}
                         >
-                          <Link sx={{ fontSize: 17, color: "#ec4899" }} />
+                          <Link sx={{ fontSize: { xs: 15, sm: 17 }, color: "#ec4899" }} />
                         </Box>
-                        <Box>
+                        <Box sx={{ minWidth: 0 }}>
                           <Box display="flex" alignItems="center" gap={0.8}>
-                            <Typography variant="subtitle2" fontWeight={800} sx={{ lineHeight: 1.2, fontSize: "0.84rem" }}>
+                            <Typography
+                              variant="subtitle2"
+                              fontWeight={800}
+                              sx={{ lineHeight: 1.2, fontSize: { xs: "0.8rem", sm: "0.84rem" }, overflowWrap: "anywhere" }}
+                            >
                               Program Links
                             </Typography>
                             {selectedExplorerInstitutionId && !mappingLoading && institutionPrograms.length > 0 && (
@@ -1469,7 +1513,12 @@ const CatalogManagement = () => {
                           <Typography
                             variant="caption"
                             color="text.secondary"
-                            sx={{ fontSize: "0.70rem", opacity: 0.8, display: "block" }}
+                            sx={{
+                              fontSize: { xs: "0.68rem", sm: "0.70rem" },
+                              opacity: 0.8,
+                              display: "block",
+                              overflowWrap: "anywhere",
+                            }}
                           >
                             {selectedExplorerInstitutionId
                               ? `Linked to ${institutionNameById.get(String(selectedExplorerInstitutionId)) || "institution"}`
@@ -1481,7 +1530,7 @@ const CatalogManagement = () => {
                   </Box>
 
                   {/* Body */}
-                  <Box sx={{ p: 1.8, display: "grid", gap: 1.4 }}>
+                  <Box sx={{ p: { xs: 1.1, sm: 1.8 }, display: "grid", gap: 1.4 }}>
                     {!selectedExplorerInstitutionId ? (
                       <EmptyState message="Select an institution to view and manage linked programs." dimmed />
                     ) : (
@@ -1493,7 +1542,7 @@ const CatalogManagement = () => {
                             gridTemplateColumns: { xs: "1fr", sm: "1fr auto" },
                             gap: 1,
                             alignItems: "center",
-                            p: 1.4,
+                            p: { xs: 1, sm: 1.4 },
                             borderRadius: 2.5,
                             border: "1px solid",
                             borderColor: (theme) =>
@@ -1510,7 +1559,7 @@ const CatalogManagement = () => {
                               value={explorerMappingProgramId}
                               label="Add a Program"
                               onChange={(event) => setExplorerMappingProgramId(String(event.target.value))}
-                              sx={{ borderRadius: 2, fontSize: "0.85rem" }}
+                              sx={{ borderRadius: 2, fontSize: { xs: "0.82rem", sm: "0.85rem" } }}
                             >
                               {availableProgramsForSelectedInstitution.length === 0 ? (
                                 <MenuItem disabled value="">
@@ -1536,9 +1585,9 @@ const CatalogManagement = () => {
                               borderRadius: 2,
                               textTransform: "none",
                               fontWeight: 700,
-                              fontSize: "0.82rem",
+                              fontSize: { xs: "0.78rem", sm: "0.82rem" },
                               height: 40,
-                              px: 2,
+                              px: { xs: 1.25, sm: 2 },
                               background: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
                               boxShadow: "0 2px 8px rgba(236,72,153,0.25)",
                               whiteSpace: "nowrap",
@@ -1571,9 +1620,9 @@ const CatalogManagement = () => {
                                 <Box
                                   key={`mapped-program-${resolvedProgramId}`}
                                   sx={{
-                                    pl: 1.6,
-                                    pr: 1.35,
-                                    py: 1.2,
+                                    pl: { xs: 1.3, sm: 1.6 },
+                                    pr: { xs: 1.1, sm: 1.35 },
+                                    py: { xs: 1, sm: 1.2 },
                                     borderRadius: 2,
                                     border: "1px solid",
                                     borderColor: alpha("#ec4899", 0.2),
@@ -1609,10 +1658,18 @@ const CatalogManagement = () => {
                                     }}
                                   />
                                   <Box>
-                                    <Typography variant="body2" fontWeight={700} sx={{ fontSize: "0.84rem", color: "#ec4899" }}>
+                                    <Typography
+                                      variant="body2"
+                                      fontWeight={700}
+                                      sx={{ fontSize: { xs: "0.82rem", sm: "0.84rem" }, color: "#ec4899", overflowWrap: "anywhere" }}
+                                    >
                                       {program.name || resolvedProgram?.name || "—"}
                                     </Typography>
-                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.70rem", opacity: 0.75 }}>
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{ fontSize: { xs: "0.68rem", sm: "0.70rem" }, opacity: 0.75, overflowWrap: "anywhere" }}
+                                    >
                                       {domainNameById.get(String(resolvedProgram?.domain_id || resolvedProgram?.domainId)) || "Program mapping"}
                                     </Typography>
                                   </Box>
@@ -2211,7 +2268,18 @@ const CatalogManagement = () => {
       />
 
       {/* Stats row */}
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,1fr)", md: "repeat(4,1fr)" }, gap: 1.5, mb: 2.5 }}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "repeat(2,minmax(0,1fr))",
+            md: "repeat(3,minmax(0,1fr))",
+            xl: "repeat(4,minmax(0,1fr))",
+          },
+          gap: { xs: 1, sm: 1.25, md: 1.5 },
+          mb: { xs: 2, md: 2.5 },
+        }}
+      >
         <StatCard label="Institution Types" count={institutionTypes.length} icon={Category}    color="#7c5cfc" loading={loading} />
         <StatCard label="Domains"           count={domains.length}          icon={AccountTree}  color="#3b82f6" loading={loading} />
         <StatCard label="Programs"          count={programs.length}         icon={School}       color="#10b981" loading={loading} />
@@ -2225,7 +2293,7 @@ const CatalogManagement = () => {
       {/* Tabs */}
       <Box
         sx={{
-          mb: 2.5,
+          mb: { xs: 2, md: 2.5 },
           borderRadius: 3,
           border: "1px solid",
           borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
@@ -2239,13 +2307,15 @@ const CatalogManagement = () => {
           variant="scrollable"
           scrollButtons="auto"
           sx={{
-            minHeight: 52,
+            minHeight: { xs: 48, sm: 52 },
             "& .MuiTab-root": {
-              minHeight: 52,
+              minHeight: { xs: 48, sm: 52 },
               textTransform: "none",
               fontWeight: 600,
-              fontSize: "0.85rem",
+              fontSize: { xs: "0.78rem", sm: "0.84rem", md: "0.86rem" },
               gap: 0.5,
+              px: { xs: 1.1, sm: 1.5 },
+              minWidth: { xs: 112, sm: 130 },
               transition: "all 0.2s ease",
             },
             "& .Mui-selected": { fontWeight: 700 },
@@ -2262,7 +2332,7 @@ const CatalogManagement = () => {
               <Tab
                 key={key}
                 value={key}
-                icon={<Icon sx={{ fontSize: 17, color: activeTab === key ? meta.color : "text.secondary" }} />}
+                icon={<Icon sx={{ fontSize: { xs: 16, sm: 17 }, color: activeTab === key ? meta.color : "text.secondary" }} />}
                 iconPosition="start"
                 label={t(`pages.catalog.tabs.${key}`) || meta.label}
                 sx={{ color: activeTab === key ? meta.color : "text.secondary" }}
@@ -2307,7 +2377,7 @@ const CatalogManagement = () => {
       {renderTabContent()}
 
       {/* Dialog */}
-      <Dialog
+        <Dialog
         open={dialogOpen}
         onClose={closeDialog}
         fullScreen={isMobile}
@@ -2322,14 +2392,14 @@ const CatalogManagement = () => {
             backdropFilter: "blur(16px)",
           },
         }}
-      >
+        >
         <DialogTitle sx={{ p: 0 }}>
           <Box
             sx={{
               position: "relative",
-              px: 3,
-              pt: 3,
-              pb: 2.5,
+              px: { xs: 2, sm: 3 },
+              pt: { xs: 2, sm: 3 },
+              pb: { xs: 2, sm: 2.5 },
               overflow: "hidden",
             }}
           >
@@ -2342,12 +2412,12 @@ const CatalogManagement = () => {
                 background: `linear-gradient(90deg, ${activeDialogMeta.color}, ${activeDialogMeta.color}88)`,
               }}
             />
-            <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap={2}>
-              <Box display="flex" alignItems="center" gap={1.5}>
+            <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap={{ xs: 1, sm: 2 }}>
+              <Box display="flex" alignItems="center" gap={{ xs: 1, sm: 1.5 }} sx={{ minWidth: 0 }}>
                 <Box
                   sx={{
-                    width: 40,
-                    height: 40,
+                    width: { xs: 34, sm: 40 },
+                    height: { xs: 34, sm: 40 },
                     borderRadius: 2,
                     bgcolor: alpha(activeDialogMeta.color, 0.12),
                     border: "1px solid",
@@ -2355,13 +2425,13 @@ const CatalogManagement = () => {
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}
                 >
-                  <ActiveDialogIcon sx={{ fontSize: 20, color: activeDialogMeta.color }} />
-                </Box>
-                <Box>
-                  <Typography variant="subtitle1" fontWeight={800} sx={{ lineHeight: 1.2 }}>
+                    <ActiveDialogIcon sx={{ fontSize: { xs: 18, sm: 20 }, color: activeDialogMeta.color }} />
+                  </Box>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="subtitle1" fontWeight={800} sx={{ lineHeight: 1.2, fontSize: { xs: "0.96rem", sm: "1rem" }, overflowWrap: "anywhere" }}>
                     {dialogMode === "create" ? `Create ${activeDialogMeta.title}` : `Edit ${activeDialogMeta.title}`}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.76rem" }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: "0.72rem", sm: "0.76rem" }, overflowWrap: "anywhere" }}>
                     {activeDialogMeta.subtitle}
                   </Typography>
                 </Box>
@@ -2382,13 +2452,13 @@ const CatalogManagement = () => {
           </Box>
         </DialogTitle>
 
-        <DialogContent sx={{ px: 3, py: 2.5 }}>
+        <DialogContent sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 2.5 } }}>
           <Box
             sx={{
               border: "1px solid",
               borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
               borderRadius: 2.5,
-              p: 2.5,
+              p: { xs: 1.6, sm: 2.5 },
               bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(248,249,255,0.8)",
             }}
           >
@@ -2398,8 +2468,8 @@ const CatalogManagement = () => {
 
         <DialogActions
           sx={{
-            px: 3,
-            pb: 3,
+            px: { xs: 2, sm: 3 },
+            pb: { xs: 2, sm: 3 },
             pt: 1,
             gap: 1,
             borderTop: "1px solid",

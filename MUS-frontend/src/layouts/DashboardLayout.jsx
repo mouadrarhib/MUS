@@ -131,8 +131,10 @@ const DashboardLayout = () => {
           <Container
             maxWidth="xl"
             sx={{
-              py: { xs: 3, sm: 4, md: 5 },
-              px: { xs: 2, sm: 3, md: 4 },
+              maxWidth: { xl: 1460 },
+              mx: 'auto',
+              py: { xs: 2.25, sm: 3.2, md: 4 },
+              px: { xs: 1.25, sm: 2.2, md: 3.2 },
             }}
           >
             <Box key={location.pathname} sx={(theme) => pageTransitionSx(theme)}>

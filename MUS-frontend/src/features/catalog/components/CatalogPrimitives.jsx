@@ -7,10 +7,11 @@ export const BreadcrumbFlow = ({ steps }) => (
     sx={{
       display: 'flex',
       alignItems: 'center',
+      justifyContent: 'flex-start',
       flexWrap: 'wrap',
-      gap: 0.5,
-      py: 1.4,
-      px: 2,
+      gap: { xs: 0.25, sm: 0.5 },
+      py: { xs: 1, sm: 1.4 },
+      px: { xs: 1.5, sm: 2 },
       borderRadius: 2.5,
       border: '1px solid',
       borderColor: (theme) =>
@@ -20,7 +21,13 @@ export const BreadcrumbFlow = ({ steps }) => (
     }}
   >
     {steps.map((step, index) => (
-      <Box key={step.label} display="flex" alignItems="center" gap={0.5}>
+      <Box
+        key={step.label}
+        display="flex"
+        alignItems="center"
+        gap={0.5}
+        sx={{ flex: { xs: '1 1 100%', md: '0 1 auto' }, minWidth: 0 }}
+      >
         {index > 0 && (
           <Box
             sx={{
@@ -77,8 +84,9 @@ export const BreadcrumbFlow = ({ steps }) => (
               fontSize: '0.71rem',
               fontWeight: step.active ? 700 : 500,
               color: step.active ? step.color : 'text.disabled',
-              whiteSpace: 'nowrap',
-              lineHeight: 1,
+              whiteSpace: { xs: 'normal', md: 'nowrap' },
+              overflowWrap: 'anywhere',
+              lineHeight: 1.2,
             }}
           >
             {step.label}:{' '}
@@ -95,7 +103,10 @@ export const BreadcrumbFlow = ({ steps }) => (
 export const InterPanelConnector = ({ active, color }) => (
   <Box
     sx={{
-      display: { xs: 'none', lg: 'flex' },
+      display: 'none',
+      '@media (min-width:1800px)': {
+        display: 'flex',
+      },
       alignItems: 'center',
       justifyContent: 'center',
       alignSelf: 'center',
@@ -246,7 +257,7 @@ export const HierarchyPanel = ({
       bgcolor: (theme) =>
         theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.025)' : 'rgba(255,255,255,0.92)',
       overflow: 'hidden',
-      minHeight: 290,
+      minHeight: { xs: 'auto', sm: 250, md: 280 },
       position: 'relative',
       transition: 'box-shadow 0.25s ease',
       '&:hover': {
@@ -272,9 +283,9 @@ export const HierarchyPanel = ({
 
     <Box
       sx={{
-        px: 2,
-        py: 1.5,
-        pt: 2.2,
+        px: { xs: 1.25, sm: 1.6, md: 2 },
+        py: { xs: 1.1, sm: 1.4 },
+        pt: { xs: 1.6, sm: 2.1 },
         borderBottom: '1px solid',
         borderColor: (theme) =>
           theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
@@ -305,7 +316,7 @@ export const HierarchyPanel = ({
 
         <Box sx={{ minWidth: 0, overflow: 'hidden' }}>
           <Box display="flex" alignItems="center" gap={0.6} sx={{ minWidth: 0 }}>
-            <Typography variant="subtitle2" fontWeight={800} noWrap sx={{ lineHeight: 1.2, fontSize: '0.82rem', minWidth: 0 }}>
+            <Typography variant="subtitle2" fontWeight={800} sx={{ lineHeight: 1.2, fontSize: { xs: '0.78rem', sm: '0.82rem' }, minWidth: 0 }}>
               {title}
             </Typography>
             {!disabled && items.length > 0 && (
@@ -325,7 +336,18 @@ export const HierarchyPanel = ({
               </Box>
             )}
           </Box>
-          <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: '0.68rem', opacity: 0.75, display: 'block' }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{
+              fontSize: { xs: '0.65rem', sm: '0.68rem' },
+              opacity: 0.75,
+              display: '-webkit-box',
+              WebkitBoxOrient: 'vertical',
+              WebkitLineClamp: { xs: 2, sm: 1 },
+              overflow: 'hidden',
+            }}
+          >
             {subtitle}
           </Typography>
         </Box>
@@ -365,7 +387,7 @@ export const HierarchyPanel = ({
       ) : null}
     </Box>
 
-    <Box sx={{ p: 1.2, display: 'grid', gap: 0.85, maxHeight: 380, overflowY: 'auto' }}>
+    <Box sx={{ p: { xs: 1, sm: 1.2 }, display: 'grid', gap: 0.85, maxHeight: { xs: 'none', sm: 380 }, overflowY: 'auto' }}>
       {disabled ? (
         <EmptyState message={disabledMessage} dimmed />
       ) : items.length === 0 ? (
@@ -380,9 +402,9 @@ export const HierarchyPanel = ({
               key={`${title}-${itemId}`}
               onClick={() => onSelect?.(item)}
               sx={{
-                pl: selected ? 1.6 : 1.35,
-                pr: 1.35,
-                py: 1.2,
+                pl: selected ? { xs: 1.3, sm: 1.6 } : { xs: 1.15, sm: 1.35 },
+                pr: { xs: 1.05, sm: 1.35 },
+                py: { xs: 1, sm: 1.2 },
                 borderRadius: 2,
                 border: '1px solid',
                 borderColor: selected
@@ -424,15 +446,26 @@ export const HierarchyPanel = ({
                     variant="body2"
                     fontWeight={selected ? 800 : 700}
                     sx={{
-                      fontSize: '0.84rem',
+                      fontSize: { xs: '0.82rem', sm: '0.84rem' },
                       color: selected ? color : 'text.primary',
                       lineHeight: 1.3,
+                      overflowWrap: 'anywhere',
                     }}
                   >
                     {getPrimaryLabel(item)}
                   </Typography>
                   {getSecondaryLabel ? (
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25, fontSize: '0.70rem', opacity: 0.75 }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{
+                        display: 'block',
+                        mt: 0.25,
+                        fontSize: { xs: '0.68rem', sm: '0.70rem' },
+                        opacity: 0.75,
+                        overflowWrap: 'anywhere',
+                      }}
+                    >
                       {getSecondaryLabel(item)}
                     </Typography>
                   ) : null}

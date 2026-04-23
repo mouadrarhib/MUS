@@ -1,7 +1,44 @@
+:root {
+  font-family: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: clamp(14px, 0.55vw + 0.56rem, 16px);
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.87);
+  background: #f5f7fa;
+  text-rendering: optimizeLegibility;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
 #root {
   width: 100%;
-  min-height: 100vh;
+  min-height: 100%;
   margin: 0;
   padding: 0;
-  text-align: initial;
+}
+
+body {
+  min-height: 100vh;
+  background: #f5f7fa;
+  color: rgba(0, 0, 0, 0.87);
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }
