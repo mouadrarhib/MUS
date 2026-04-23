@@ -195,13 +195,50 @@ export const usersService = {
     return Array.isArray(users) ? users.map(normalizeUser) : [];
   },
 
-  getRewardsAnalytics: async () => {
-    const response = await get('/admin/rewards/analytics');
+  getRewardsAnalytics: async ({
+    periodDays,
+    role,
+    search,
+    contributorsPage,
+    contributorsLimit,
+    activityPage,
+    activityLimit,
+    topResourcesLimit,
+  } = {}) => {
+    const response = await get('/admin/rewards/analytics', {
+      params: {
+        ...(periodDays ? { period_days: periodDays } : {}),
+        ...(role ? { role } : {}),
+        ...(typeof search === 'string' ? { search } : {}),
+        ...(contributorsPage ? { contributors_page: contributorsPage } : {}),
+        ...(contributorsLimit ? { contributors_limit: contributorsLimit } : {}),
+        ...(activityPage ? { activity_page: activityPage } : {}),
+        ...(activityLimit ? { activity_limit: activityLimit } : {}),
+        ...(topResourcesLimit ? { top_resources_limit: topResourcesLimit } : {}),
+      },
+    });
+
+    const contributorsMeta = response?.data?.contributors_meta || {};
+    const activityMeta = response?.data?.recent_activity_meta || {};
+
     return {
       overview: response?.data?.overview || {},
       contributors: Array.isArray(response?.data?.contributors) ? response.data.contributors.map(normalizeUser) : [],
+      contributors_meta: {
+        page: Number(contributorsMeta.page || 1),
+        limit: Number(contributorsMeta.limit || 10),
+        total: Number(contributorsMeta.total || 0),
+        total_pages: Number(contributorsMeta.total_pages || 0),
+      },
       top_resources: Array.isArray(response?.data?.top_resources) ? response.data.top_resources : [],
       recent_activity: Array.isArray(response?.data?.recent_activity) ? response.data.recent_activity : [],
+      recent_activity_meta: {
+        page: Number(activityMeta.page || 1),
+        limit: Number(activityMeta.limit || 10),
+        total: Number(activityMeta.total || 0),
+        total_pages: Number(activityMeta.total_pages || 0),
+      },
+      filters: response?.data?.filters || {},
       generated_at: response?.data?.generated_at || null,
     };
   },

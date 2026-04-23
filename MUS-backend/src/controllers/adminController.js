@@ -80,8 +80,17 @@ export const getUsersPointsOverviewHandler = asyncHandler(async (req, res) => {
   });
 });
 
-export const getContributorRewardsAnalyticsHandler = asyncHandler(async (_req, res) => {
-  const result = await getContributorRewardsAnalytics();
+export const getContributorRewardsAnalyticsHandler = asyncHandler(async (req, res) => {
+  const result = await getContributorRewardsAnalytics({
+    periodDays: req.query.period_days,
+    role: req.query.role,
+    search: req.query.search,
+    contributorsPage: req.query.contributors_page,
+    contributorsLimit: req.query.contributors_limit,
+    activityPage: req.query.activity_page,
+    activityLimit: req.query.activity_limit,
+    topResourcesLimit: req.query.top_resources_limit,
+  });
 
   return successResponse(res, "Contributor rewards analytics retrieved successfully", result);
 });

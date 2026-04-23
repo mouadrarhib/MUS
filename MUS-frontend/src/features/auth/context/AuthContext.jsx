@@ -108,6 +108,10 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('userRoles');
     localStorage.removeItem('userData');
     localStorage.removeItem('rememberEmail');
+    localStorage.setItem('themeMode', 'light');
+    localStorage.setItem('fontSize', 'medium');
+
+    document.documentElement.style.fontSize = '16px';
   }, []);
 
   const refreshProfile = useCallback(async () => {

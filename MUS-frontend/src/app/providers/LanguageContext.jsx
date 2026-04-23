@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 
 const STORAGE_KEY = 'language';
@@ -35,7 +35,96 @@ const translations = {
     },
     pages: {
       users: { title: 'Users', subtitle: 'Manage user accounts, status, and single-role assignments', add: 'Add User' },
-      points: { title: 'Rewards Analytics', subtitle: 'Monitor automated contributor rewards, engagement trends, and top-performing resources' },
+      points: {
+        title: 'Rewards Analytics',
+        subtitle: 'Monitor automated contributor rewards, engagement trends, and top-performing resources',
+        common: {
+          students: 'students',
+          teachers: 'teachers',
+          generatedAt: 'Report generated',
+          pointsShort: 'pts',
+          last30Days: 'last 30 days',
+          lastPeriod: 'last {days} days',
+          active: 'Active',
+          inactive: 'Inactive',
+          unknownResource: 'Unknown resource',
+        },
+        cards: {
+          contributors: 'Contributors',
+          contributorsHint: '{active} active contributors across teachers and students',
+          points: 'Automated Reward Points',
+          pointsHint: '{periodPoints} points in {periodLabel}',
+          downloads: 'Contributor Downloads',
+          downloadsHint: '{periodDownloads} downloads in {periodLabel}',
+          favorites: 'Contributor Favorites',
+          favoritesHint: '{periodFavorites} favorites in {periodLabel}',
+        },
+        sections: {
+          contributors: {
+            title: 'Contributor Rewards',
+            subtitle: 'Analytics based on automated download and favorite reward events for student and teacher contributors.',
+          },
+          topResources: {
+            title: 'Top Reward-Earning Resources',
+            subtitle: 'Ranked by automated reward events, then by downloads and favorites received.',
+          },
+          activity: {
+            title: 'Recent Reward Activity',
+            subtitle: 'Latest reward ledger events for contributor-owned resources.',
+          },
+        },
+        filters: {
+          search: 'Search contributors...',
+          roleLabel: 'Role',
+          allContributors: 'All contributors',
+          students: 'Students',
+          teachers: 'Teachers',
+          periodLabel: 'Period',
+          periodOption: 'Last {days} days',
+        },
+        table: {
+          contributor: 'Contributor',
+          role: 'Role',
+          lifetimePoints: 'Lifetime Points',
+          resources: 'Published / Total Resources',
+          downloads: 'Downloads Received',
+          favorites: 'Favorites Received',
+          netChange: '30-Day Net Change',
+          status: 'Status',
+          pointsSplit: '{downloads} from downloads / {favorites} from favorites',
+          publishedCount: '{count} published',
+          totalCount: '{count} total resources',
+        },
+        topResources: {
+          resource: 'Resource',
+          owner: 'Owner',
+          downloads: 'Downloads',
+          favorites: 'Favorites',
+          breakdown: 'Reward Breakdown',
+          breakdownValue: '{downloads} download points / {favorites} favorite points',
+        },
+        activity: {
+          resourcePrefix: 'Resource:',
+          actorPrefix: 'Actor:',
+          system: 'System',
+          recordedAt: 'Recorded',
+        },
+        events: {
+          downloadReward: 'Download reward',
+          favoriteAddedReward: 'Favorite added',
+          favoriteRemovedPenalty: 'Favorite removed',
+        },
+        feedback: {
+          loadError: 'Failed to load rewards analytics',
+          loadingContributors: 'Loading contributor analytics...',
+          noContributors: 'No contributors match the current filters.',
+          loadingTopResources: 'Loading top resources...',
+          noTopResources: 'No reward-generating resources yet.',
+          loadingActivity: 'Loading recent reward activity...',
+          noActivityTitle: 'No reward activity yet',
+          noActivityDescription: 'Reward events will appear here once contributors start receiving downloads and favorites.',
+        },
+      },
       resources: { title: 'Resources', subtitle: 'Manage educational resources, exams, courses and notes', add: 'Add Resource' },
       tags: { title: 'Tags', subtitle: 'Manage discovery tags used across resources and personalization' },
       library: { title: 'My Library', subtitle: 'View and manage your favorite resources', label: 'Saved' },
@@ -176,7 +265,96 @@ const translations = {
     },
     pages: {
       users: { title: 'Utilisateurs', subtitle: 'Gerez les comptes utilisateurs, le statut et le role unique', add: 'Ajouter un utilisateur' },
-      points: { title: 'Analytique des recompenses', subtitle: 'Surveillez les recompenses automatiques des contributeurs, les tendances d engagement et les ressources les plus performantes' },
+      points: {
+        title: 'Analytique des recompenses',
+        subtitle: 'Surveillez les recompenses automatiques des contributeurs, les tendances d engagement et les ressources les plus performantes',
+        common: {
+          students: 'etudiants',
+          teachers: 'enseignants',
+          generatedAt: 'Rapport genere',
+          pointsShort: 'pts',
+          last30Days: '30 derniers jours',
+          lastPeriod: '{days} derniers jours',
+          active: 'Actif',
+          inactive: 'Inactif',
+          unknownResource: 'Ressource inconnue',
+        },
+        cards: {
+          contributors: 'Contributeurs',
+          contributorsHint: '{active} contributeurs actifs entre etudiants et enseignants',
+          points: 'Points de recompense automatiques',
+          pointsHint: '{periodPoints} points sur {periodLabel}',
+          downloads: 'Telechargements des contributeurs',
+          downloadsHint: '{periodDownloads} telechargements sur {periodLabel}',
+          favorites: 'Favoris des contributeurs',
+          favoritesHint: '{periodFavorites} favoris sur {periodLabel}',
+        },
+        sections: {
+          contributors: {
+            title: 'Recompenses des contributeurs',
+            subtitle: 'Analytique basee sur les evenements automatiques de telechargement et de favoris pour les contributeurs etudiants et enseignants.',
+          },
+          topResources: {
+            title: 'Ressources les plus remunerees',
+            subtitle: 'Classees par evenements de recompense automatiques puis par telechargements et favoris.',
+          },
+          activity: {
+            title: 'Activite recente des recompenses',
+            subtitle: 'Derniers evenements du registre des recompenses pour les ressources des contributeurs.',
+          },
+        },
+        filters: {
+          search: 'Rechercher des contributeurs...',
+          roleLabel: 'Role',
+          allContributors: 'Tous les contributeurs',
+          students: 'Etudiants',
+          teachers: 'Enseignants',
+          periodLabel: 'Periode',
+          periodOption: '{days} derniers jours',
+        },
+        table: {
+          contributor: 'Contributeur',
+          role: 'Role',
+          lifetimePoints: 'Points cumulés',
+          resources: 'Publiees / Total ressources',
+          downloads: 'Telechargements recus',
+          favorites: 'Favoris recus',
+          netChange: 'Variation nette 30 jours',
+          status: 'Statut',
+          pointsSplit: '{downloads} depuis les telechargements / {favorites} depuis les favoris',
+          publishedCount: '{count} publiees',
+          totalCount: '{count} ressources au total',
+        },
+        topResources: {
+          resource: 'Ressource',
+          owner: 'Proprietaire',
+          downloads: 'Telechargements',
+          favorites: 'Favoris',
+          breakdown: 'Detail des recompenses',
+          breakdownValue: '{downloads} points telechargement / {favorites} points favoris',
+        },
+        activity: {
+          resourcePrefix: 'Ressource :',
+          actorPrefix: 'Acteur :',
+          system: 'Systeme',
+          recordedAt: 'Enregistre',
+        },
+        events: {
+          downloadReward: 'Recompense de telechargement',
+          favoriteAddedReward: 'Favori ajoute',
+          favoriteRemovedPenalty: 'Favori retire',
+        },
+        feedback: {
+          loadError: 'Echec du chargement de l analytique des recompenses',
+          loadingContributors: 'Chargement des analytiques des contributeurs...',
+          noContributors: 'Aucun contributeur ne correspond aux filtres actuels.',
+          loadingTopResources: 'Chargement des meilleures ressources...',
+          noTopResources: 'Aucune ressource generatrice de recompense pour le moment.',
+          loadingActivity: 'Chargement de l activite recente des recompenses...',
+          noActivityTitle: 'Aucune activite de recompense pour le moment',
+          noActivityDescription: 'Les evenements de recompense apparaitront ici des que les contributeurs recevront des telechargements et des favoris.',
+        },
+      },
       resources: { title: 'Ressources', subtitle: 'Gerez les ressources educatives, examens, cours et notes', add: 'Ajouter une ressource' },
       tags: { title: 'Etiquettes', subtitle: 'Gerez les etiquettes de decouverte utilisees pour les ressources et la personnalisation' },
       library: { title: 'Ma bibliotheque', subtitle: 'Consultez et gerez vos ressources favorites', label: 'Sauvegardees' },
@@ -317,7 +495,96 @@ const translations = {
     },
     pages: {
       users: { title: 'المستخدمون', subtitle: 'ادارة حسابات المستخدمين والحالة وتعيين دور واحد فقط', add: 'اضافة مستخدم' },
-      points: { title: 'تحليلات المكافآت', subtitle: 'مراقبة مكافآت المساهمين التلقائية واتجاهات التفاعل والموارد الأعلى أداءً' },
+      points: {
+        title: 'تحليلات المكافآت',
+        subtitle: 'مراقبة مكافآت المساهمين التلقائية واتجاهات التفاعل والموارد الأعلى أداءً',
+        common: {
+          students: 'طلاب',
+          teachers: 'مدرسون',
+          generatedAt: 'تم إنشاء التقرير',
+          pointsShort: 'نقطة',
+          last30Days: 'آخر 30 يومًا',
+          lastPeriod: 'آخر {days} يومًا',
+          active: 'نشط',
+          inactive: 'غير نشط',
+          unknownResource: 'مورد غير معروف',
+        },
+        cards: {
+          contributors: 'المساهمون',
+          contributorsHint: '{active} مساهمًا نشطًا من الطلاب والمدرسين',
+          points: 'نقاط المكافآت التلقائية',
+          pointsHint: '{periodPoints} نقطة خلال {periodLabel}',
+          downloads: 'تنزيلات المساهمين',
+          downloadsHint: '{periodDownloads} تنزيل خلال {periodLabel}',
+          favorites: 'مفضلات المساهمين',
+          favoritesHint: '{periodFavorites} مفضلة خلال {periodLabel}',
+        },
+        sections: {
+          contributors: {
+            title: 'مكافآت المساهمين',
+            subtitle: 'تحليلات مبنية على أحداث المكافآت التلقائية للتنزيلات والمفضلة لمساهمي الطلاب والمدرسين.',
+          },
+          topResources: {
+            title: 'أعلى الموارد تحقيقًا للمكافآت',
+            subtitle: 'مرتبة حسب أحداث المكافآت التلقائية ثم التنزيلات والمفضلات.',
+          },
+          activity: {
+            title: 'آخر نشاطات المكافآت',
+            subtitle: 'أحدث أحداث سجل المكافآت لموارد المساهمين.',
+          },
+        },
+        filters: {
+          search: 'ابحث عن مساهمين...',
+          roleLabel: 'الدور',
+          allContributors: 'كل المساهمين',
+          students: 'الطلاب',
+          teachers: 'المدرسون',
+          periodLabel: 'الفترة',
+          periodOption: 'آخر {days} يومًا',
+        },
+        table: {
+          contributor: 'المساهم',
+          role: 'الدور',
+          lifetimePoints: 'إجمالي النقاط',
+          resources: 'منشور / إجمالي الموارد',
+          downloads: 'التنزيلات المستلمة',
+          favorites: 'المفضلات المستلمة',
+          netChange: 'صافي التغير خلال 30 يومًا',
+          status: 'الحالة',
+          pointsSplit: '{downloads} من التنزيلات / {favorites} من المفضلات',
+          publishedCount: '{count} منشور',
+          totalCount: '{count} مورد إجمالاً',
+        },
+        topResources: {
+          resource: 'المورد',
+          owner: 'المالك',
+          downloads: 'التنزيلات',
+          favorites: 'المفضلات',
+          breakdown: 'تفاصيل المكافأة',
+          breakdownValue: '{downloads} نقاط تنزيل / {favorites} نقاط مفضلة',
+        },
+        activity: {
+          resourcePrefix: 'المورد:',
+          actorPrefix: 'المنفذ:',
+          system: 'النظام',
+          recordedAt: 'سُجل في',
+        },
+        events: {
+          downloadReward: 'مكافأة تنزيل',
+          favoriteAddedReward: 'إضافة إلى المفضلة',
+          favoriteRemovedPenalty: 'إزالة من المفضلة',
+        },
+        feedback: {
+          loadError: 'فشل تحميل تحليلات المكافآت',
+          loadingContributors: 'جارٍ تحميل تحليلات المساهمين...',
+          noContributors: 'لا يوجد مساهمون يطابقون عوامل التصفية الحالية.',
+          loadingTopResources: 'جارٍ تحميل أعلى الموارد...',
+          noTopResources: 'لا توجد موارد مولدة للمكافآت حتى الآن.',
+          loadingActivity: 'جارٍ تحميل نشاط المكافآت الأخير...',
+          noActivityTitle: 'لا يوجد نشاط مكافآت حتى الآن',
+          noActivityDescription: 'ستظهر أحداث المكافآت هنا عندما يبدأ المساهمون في تلقي التنزيلات والمفضلات.',
+        },
+      },
       resources: { title: 'الموارد', subtitle: 'ادارة الموارد التعليمية والاختبارات والدروس والملاحظات', add: 'اضافة مورد' },
       tags: { title: 'الوسوم', subtitle: 'ادارة وسوم الاكتشاف المستخدمة عبر الموارد والتخصيص' },
       library: { title: 'مكتبتي', subtitle: 'عرض وادارة الموارد المفضلة لديك', label: 'محفوظة' },
@@ -437,11 +704,11 @@ const LanguageContext = createContext(null);
 export const LanguageProvider = ({ children }) => {
   const [language, setLanguageState] = useState(() => localStorage.getItem(STORAGE_KEY) || 'en');
 
-  const setLanguage = (nextLanguage) => {
+  const setLanguage = useCallback((nextLanguage) => {
     const normalized = ['en', 'fr', 'ar'].includes(nextLanguage) ? nextLanguage : 'en';
     setLanguageState(normalized);
     localStorage.setItem(STORAGE_KEY, normalized);
-  };
+  }, []);
 
   useEffect(() => {
     const isArabic = language === 'ar';
@@ -450,14 +717,14 @@ export const LanguageProvider = ({ children }) => {
     document.body.setAttribute('dir', isArabic ? 'rtl' : 'ltr');
   }, [language]);
 
-  const t = (key, fallback = key) => {
+  const t = useCallback((key, fallback = key) => {
     const localized = getNestedValue(translations[language], key);
     if (localized !== undefined) return localized;
     const english = getNestedValue(translations.en, key);
     return english !== undefined ? english : fallback;
-  };
+  }, [language]);
 
-  const value = useMemo(() => ({ language, setLanguage, t }), [language]);
+  const value = useMemo(() => ({ language, setLanguage, t }), [language, setLanguage, t]);
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 };

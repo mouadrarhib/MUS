@@ -116,7 +116,21 @@ router.get(
 );
 
 // GET /admin/rewards/analytics - Vue analytique des recompenses contributeurs
-router.get("/rewards/analytics", getContributorRewardsAnalyticsHandler);
+router.get(
+  "/rewards/analytics",
+  [
+    query("period_days").optional().isInt({ min: 1, max: 90 }).withMessage("period_days doit etre entre 1 et 90"),
+    query("role").optional().isIn(["all", "student", "teacher"]).withMessage("role doit etre all, student ou teacher"),
+    query("search").optional().isString().isLength({ max: 150 }).withMessage("search invalide"),
+    query("contributors_page").optional().isInt({ min: 1 }).withMessage("contributors_page invalide"),
+    query("contributors_limit").optional().isInt({ min: 1, max: 100 }).withMessage("contributors_limit doit etre entre 1 et 100"),
+    query("activity_page").optional().isInt({ min: 1 }).withMessage("activity_page invalide"),
+    query("activity_limit").optional().isInt({ min: 1, max: 100 }).withMessage("activity_limit doit etre entre 1 et 100"),
+    query("top_resources_limit").optional().isInt({ min: 1, max: 50 }).withMessage("top_resources_limit doit etre entre 1 et 50"),
+  ],
+  validateRequest,
+  getContributorRewardsAnalyticsHandler
+);
 
 // PATCH /admin/users/:userId/points - Ajuster les points d'un utilisateur
 router.patch(
