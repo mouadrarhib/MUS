@@ -438,13 +438,6 @@ export const darkTheme = createTheme({
         },
       },
     },
-    MuiDialog: {
-      styleOverrides: {
-        paper: {
-          backgroundImage: 'none',
-        },
-      },
-    },
     MuiTextField: {
       styleOverrides: {
         root: ({ theme }) => ({
