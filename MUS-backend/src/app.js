@@ -11,7 +11,7 @@ import { publicRateLimit } from "./middleware/rateLimit.js";
 
 const app = express();
 
-const rawOrigins = process.env.CLIENT_ORIGIN || "";
+const rawOrigins = process.env.ALLOWED_ORIGINS || process.env.CLIENT_ORIGIN || "";
 const allowedOrigins = rawOrigins
   .split(",")
   .map((origin) => origin.trim())

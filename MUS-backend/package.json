@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon index.js",
-    "start": "cross-env PORT=5001 node index.js",
+    "start": "node index.js",
     "lint": "eslint .",
     "test:smoke:routes": "node --check index.js && node --check src/routes/index.js && node --check src/app.js",
     "test:smoke:membership": "node scripts/testMembershipDownloadAccess.js",
