@@ -13,11 +13,24 @@ const startServer = async () => {
   }
 
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
+  const rawRailwayUrl = String(process.env.RAILWAY_STATIC_URL || "").trim();
+  const publicBaseUrl = rawRailwayUrl
+    ? rawRailwayUrl.startsWith("http://") || rawRailwayUrl.startsWith("https://")
+      ? rawRailwayUrl
+      : `https://${rawRailwayUrl}`
+    : null;
+
+  app.listen(PORT, "0.0.0.0", () => {
     startNotificationRetryWorker();
-    console.log(`API running on http://localhost:${PORT}`);
-    console.log(`Swagger docs: http://localhost:${PORT}/api/docs`);
-    console.log(`Swagger JSON (for Postman import): http://localhost:${PORT}/api/docs.json`);
+    console.log(`API running on port ${PORT}`);
+    if (publicBaseUrl) {
+      console.log(`Public URL: ${publicBaseUrl}`);
+      console.log(`Swagger docs: ${publicBaseUrl}/api/docs`);
+      console.log(`Swagger JSON (for Postman import): ${publicBaseUrl}/api/docs.json`);
+    } else {
+      console.log(`Swagger docs: /api/docs`);
+      console.log(`Swagger JSON (for Postman import): /api/docs.json`);
+    }
   });
 };
 
