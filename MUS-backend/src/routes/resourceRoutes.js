@@ -243,6 +243,15 @@ router.get(
   [
     query("recommendation_limit").optional().isInt({ min: 1, max: 100 }),
     query("resources_limit").optional().isInt({ min: 1, max: 500 }),
+    query("module_id").optional().isInt({ min: 1 }),
+    query("educational_type").optional().isString().isLength({ max: 60 }),
+    query("format").optional().isString().isLength({ max: 60 }),
+    query("language").optional().isString().isLength({ max: 30 }),
+    query("access_tier").optional().isIn(["all", "free", "premium"]),
+    query("min_rating").optional().isFloat({ min: 0, max: 5 }),
+    query("favorites_only").optional().isBoolean(),
+    query("sort_by").optional().isIn(["recommended", "newest", "rating", "favorites"]),
+    query("search").optional().isString().isLength({ max: 120 }),
   ],
   validateRequest,
   getDiscoverBootstrapHandler

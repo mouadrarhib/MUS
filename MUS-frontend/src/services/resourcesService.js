@@ -15,9 +15,8 @@ const DISCOVER_BOOTSTRAP_CACHE_TTL_MS = 20_000;
 let publishedResourcesInFlight = null;
 let publishedResourcesCache = null;
 let publishedResourcesCacheTs = 0;
-let discoverBootstrapInFlight = null;
-let discoverBootstrapCache = null;
-let discoverBootstrapCacheTs = 0;
+const discoverBootstrapInFlight = new Map();
+const discoverBootstrapCache = new Map();
 const resourceListInFlight = new Map();
 const resourceListCache = new Map();
 const tagListInFlight = new Map();
@@ -54,9 +53,8 @@ const clearResourceListCaches = () => {
   publishedResourcesInFlight = null;
   publishedResourcesCache = null;
   publishedResourcesCacheTs = 0;
-  discoverBootstrapInFlight = null;
-  discoverBootstrapCache = null;
-  discoverBootstrapCacheTs = 0;
+  discoverBootstrapInFlight.clear();
+  discoverBootstrapCache.clear();
   myRejectionsInFlight.clear();
   myRejectionsCache.clear();
 };
@@ -110,6 +108,34 @@ const extractOne = (response) => {
   const data = response?.data;
   if (Array.isArray(data)) return data[0] || null;
   return data || null;
+};
+
+const getDiscoverBootstrapCacheKey = (params = {}) => {
+  const normalized = {
+    recommendation_limit: Number(params.recommendationLimit || 12),
+    resources_limit: Number(params.resourcesLimit || 80),
+    module_id: params.moduleId ? String(params.moduleId) : "all",
+    educational_type: params.educationalType ? String(params.educationalType) : "all",
+    format: params.format ? String(params.format) : "all",
+    language: params.language ? String(params.language) : "all",
+    access_tier: params.accessTier ? String(params.accessTier) : "all",
+    min_rating: Number(params.minRating || 0),
+    favorites_only: Boolean(params.favoritesOnly),
+    sort_by: params.sortBy ? String(params.sortBy) : "recommended",
+    search: typeof params.search === "string" ? params.search.trim().toLowerCase() : "",
+  };
+
+  return JSON.stringify(normalized);
+};
+
+const getDiscoverBootstrapCachedValue = (key) => {
+  const cached = discoverBootstrapCache.get(key);
+  if (!cached) return null;
+  if (Date.now() - cached.ts > DISCOVER_BOOTSTRAP_CACHE_TTL_MS) {
+    discoverBootstrapCache.delete(key);
+    return null;
+  }
+  return cached.data;
 };
 
 export const resourcesService = {
@@ -408,21 +434,56 @@ export const resourcesService = {
   },
 
   getDiscoverBootstrap: async (params = {}, options = {}) => {
-    const { recommendationLimit = 12, resourcesLimit = 80 } = params;
+    const {
+      recommendationLimit = 12,
+      resourcesLimit = 80,
+      moduleId = "all",
+      educationalType = "all",
+      format = "all",
+      language = "all",
+      accessTier = "all",
+      minRating = 0,
+      favoritesOnly = false,
+      sortBy = "recommended",
+      search = "",
+    } = params;
     const { force = false } = options;
+    const cacheKey = getDiscoverBootstrapCacheKey({
+      recommendationLimit,
+      resourcesLimit,
+      moduleId,
+      educationalType,
+      format,
+      language,
+      accessTier,
+      minRating,
+      favoritesOnly,
+      sortBy,
+      search,
+    });
 
-    if (!force && discoverBootstrapCache && Date.now() - discoverBootstrapCacheTs <= DISCOVER_BOOTSTRAP_CACHE_TTL_MS) {
-      return discoverBootstrapCache;
+    if (!force) {
+      const cached = getDiscoverBootstrapCachedValue(cacheKey);
+      if (cached) return cached;
     }
 
-    if (!force && discoverBootstrapInFlight) {
-      return discoverBootstrapInFlight;
+    if (!force && discoverBootstrapInFlight.has(cacheKey)) {
+      return discoverBootstrapInFlight.get(cacheKey);
     }
 
-    discoverBootstrapInFlight = get(`${RESOURCE.ROOT}/discover/bootstrap`, {
+    const request = get(`${RESOURCE.ROOT}/discover/bootstrap`, {
       params: {
         recommendation_limit: recommendationLimit,
         resources_limit: resourcesLimit,
+        ...(moduleId && moduleId !== "all" ? { module_id: moduleId } : {}),
+        ...(educationalType && educationalType !== "all" ? { educational_type: educationalType } : {}),
+        ...(format && format !== "all" ? { format } : {}),
+        ...(language && language !== "all" ? { language } : {}),
+        ...(accessTier && accessTier !== "all" ? { access_tier: accessTier } : {}),
+        ...(Number(minRating) > 0 ? { min_rating: minRating } : {}),
+        ...(favoritesOnly ? { favorites_only: true } : {}),
+        ...(sortBy ? { sort_by: sortBy } : {}),
+        ...(typeof search === "string" && search.trim() ? { search: search.trim() } : {}),
       },
     })
       .then((response) => {
@@ -436,15 +497,18 @@ export const resourcesService = {
           meta: payload?.meta && typeof payload.meta === "object" ? payload.meta : {},
         };
 
-        discoverBootstrapCache = normalized;
-        discoverBootstrapCacheTs = Date.now();
+        discoverBootstrapCache.set(cacheKey, {
+          ts: Date.now(),
+          data: normalized,
+        });
         return normalized;
       })
       .finally(() => {
-        discoverBootstrapInFlight = null;
+        discoverBootstrapInFlight.delete(cacheKey);
       });
 
-    return discoverBootstrapInFlight;
+    discoverBootstrapInFlight.set(cacheKey, request);
+    return request;
   },
 
   listResourcesByStatus: async (status, options = {}) => {

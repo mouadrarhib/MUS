@@ -5,14 +5,7 @@ import resourcesService from '@/services/resourcesService';
 import favoritesService from '@/services/favoritesService';
 import { toResourceDetailModel } from '@/entities/resource/mappers/resourceViewModel';
 
-const parseScore = (value) => {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : 0;
-};
-
 const getResourceId = (item) => Number(item?.id || item?.resource_id || 0);
-
-const getModuleId = (item) => Number(item?.module_id || item?.academicContext?.moduleId || item?.moduleId || 0);
 
 const getModuleName = (item) => {
   return (
@@ -38,6 +31,25 @@ const formatTypeLabel = (value) => {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 };
 
+const getInitialParam = (search, key, fallback = 'all') => {
+  const params = new URLSearchParams(search || '');
+  const value = params.get(key);
+  if (!value || !String(value).trim()) return fallback;
+  return String(value).trim();
+};
+
+const getInitialNumberParam = (search, key, fallback = 0, { min = 0, max = Number.POSITIVE_INFINITY } = {}) => {
+  const value = Number(getInitialParam(search, key, ''));
+  if (!Number.isFinite(value)) return fallback;
+  return Math.min(Math.max(value, min), max);
+};
+
+const getInitialBooleanParam = (search, key, fallback = false) => {
+  const raw = getInitialParam(search, key, '');
+  if (!raw) return fallback;
+  return ['1', 'true', 'yes', 'on'].includes(String(raw).toLowerCase());
+};
+
 const groupResources = (resources, keyGetter) => {
   const groups = new Map();
 
@@ -61,9 +73,16 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
   const [loadingResources, setLoadingResources] = useState(true);
   const [resources, setResources] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
+  const [discoverMeta, setDiscoverMeta] = useState({});
   const [discoverModules, setDiscoverModules] = useState([]);
-  const [selectedModule, setSelectedModule] = useState('all');
-  const [selectedType, setSelectedType] = useState('all');
+  const [selectedModule, setSelectedModule] = useState(() => getInitialParam(location.search, 'module', 'all'));
+  const [selectedType, setSelectedType] = useState(() => getInitialParam(location.search, 'type', 'all').toLowerCase());
+  const [selectedFormat, setSelectedFormat] = useState(() => getInitialParam(location.search, 'format', 'all').toLowerCase());
+  const [selectedLanguage, setSelectedLanguage] = useState(() => getInitialParam(location.search, 'language', 'all').toLowerCase());
+  const [selectedAccessTier, setSelectedAccessTier] = useState(() => getInitialParam(location.search, 'access', 'all').toLowerCase());
+  const [selectedSort, setSelectedSort] = useState(() => getInitialParam(location.search, 'sort', 'recommended').toLowerCase());
+  const [minRating, setMinRating] = useState(() => getInitialNumberParam(location.search, 'rating', 0, { min: 0, max: 5 }));
+  const [favoritesOnly, setFavoritesOnly] = useState(() => getInitialBooleanParam(location.search, 'favorites', false));
   const [searchQuery, setSearchQuery] = useState(() => {
     const initialParams = new URLSearchParams(location.search);
     return initialParams.get('q') || '';
@@ -78,6 +97,12 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const deferredModule = useDeferredValue(selectedModule);
   const deferredType = useDeferredValue(selectedType);
+  const deferredFormat = useDeferredValue(selectedFormat);
+  const deferredLanguage = useDeferredValue(selectedLanguage);
+  const deferredAccessTier = useDeferredValue(selectedAccessTier);
+  const deferredSort = useDeferredValue(selectedSort);
+  const deferredMinRating = useDeferredValue(minRating);
+  const deferredFavoritesOnly = useDeferredValue(favoritesOnly);
   const [isPending, startTransition] = useTransition();
   const detailsCacheRef = useRef(new Map());
 
@@ -109,6 +134,7 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     const loadDiscoverBootstrap = async () => {
       if (!isAuthenticated) {
         setRecommendations([]);
+        setDiscoverMeta({});
         setDiscoverModules([]);
         setResources([]);
         setLikedMap({});
@@ -122,13 +148,23 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
 
       try {
         const bootstrap = await resourcesService.getDiscoverBootstrap({
-          recommendationLimit: 12,
-          resourcesLimit: 80,
+          recommendationLimit: recommendationsOnly ? 60 : 24,
+          resourcesLimit: 220,
+          moduleId: deferredModule,
+          educationalType: deferredType,
+          format: deferredFormat,
+          language: deferredLanguage,
+          accessTier: deferredAccessTier,
+          minRating: deferredMinRating,
+          favoritesOnly: deferredFavoritesOnly,
+          sortBy: deferredSort,
+          search: deferredSearchQuery,
         });
 
         if (!mounted) return;
 
         setRecommendations(Array.isArray(bootstrap?.recommendations) ? bootstrap.recommendations : []);
+        setDiscoverMeta(bootstrap?.meta && typeof bootstrap.meta === 'object' ? bootstrap.meta : {});
         setDiscoverModules(Array.isArray(bootstrap?.discover_modules) ? bootstrap.discover_modules : []);
         setResources(Array.isArray(bootstrap?.published_resources) ? bootstrap.published_resources : []);
 
@@ -141,6 +177,7 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
       } catch {
         if (!mounted) return;
         setRecommendations([]);
+        setDiscoverMeta({});
         setDiscoverModules([]);
         setResources([]);
         setLikedMap({});
@@ -157,106 +194,135 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     return () => {
       mounted = false;
     };
-  }, [isAuthenticated]);
+  }, [
+    isAuthenticated,
+    recommendationsOnly,
+    deferredModule,
+    deferredType,
+    deferredFormat,
+    deferredLanguage,
+    deferredAccessTier,
+    deferredMinRating,
+    deferredFavoritesOnly,
+    deferredSort,
+    deferredSearchQuery,
+  ]);
 
-  const rankedResources = useMemo(() => {
-    const recommendationMap = new Map();
-    recommendations.forEach((row) => {
-      const id = Number(row?.resource_id || row?.id || 0);
-      if (id > 0) recommendationMap.set(id, parseScore(row?.score));
-    });
+  useEffect(() => {
+    const params = new URLSearchParams();
 
-    const sorted = [...resources].sort((a, b) => {
-      const scoreA = recommendationMap.get(getResourceId(a)) || 0;
-      const scoreB = recommendationMap.get(getResourceId(b)) || 0;
-      if (scoreA !== scoreB) return scoreB - scoreA;
+    const normalizedSearch = searchQuery.trim();
+    if (normalizedSearch) params.set('q', normalizedSearch);
+    if (selectedModule !== 'all') params.set('module', String(selectedModule));
+    if (selectedType !== 'all') params.set('type', String(selectedType));
+    if (selectedFormat !== 'all') params.set('format', String(selectedFormat));
+    if (selectedLanguage !== 'all') params.set('language', String(selectedLanguage));
+    if (selectedAccessTier !== 'all') params.set('access', String(selectedAccessTier));
+    if (selectedSort !== 'recommended') params.set('sort', String(selectedSort));
+    if (Number(minRating) > 0) params.set('rating', String(minRating));
+    if (favoritesOnly) params.set('favorites', '1');
 
-      const tsA = new Date(a?.createdAt || a?.created_at || 0).getTime() || 0;
-      const tsB = new Date(b?.createdAt || b?.created_at || 0).getTime() || 0;
-      return tsB - tsA;
-    });
+    const nextSearch = params.toString();
+    const currentSearch = location.search.startsWith('?') ? location.search.slice(1) : location.search;
 
-    return sorted;
-  }, [recommendations, resources]);
+    if (nextSearch !== currentSearch) {
+      navigate(
+        {
+          pathname: location.pathname,
+          search: nextSearch ? `?${nextSearch}` : '',
+        },
+        { replace: true }
+      );
+    }
+  }, [
+    searchQuery,
+    selectedModule,
+    selectedType,
+    selectedFormat,
+    selectedLanguage,
+    selectedAccessTier,
+    selectedSort,
+    minRating,
+    favoritesOnly,
+    location.pathname,
+    location.search,
+    navigate,
+  ]);
 
-  const selectedModuleLabel = useMemo(() => {
-    if (selectedModule === 'all') return null;
-    const match = discoverModules.find((moduleRow) => String(moduleRow?.id) === String(selectedModule));
-    return match?.title || match?.module_title || null;
-  }, [discoverModules, selectedModule]);
+  const rankedResources = useMemo(() => resources, [resources]);
 
   const availableTypes = useMemo(() => {
+    const fromMeta = Array.isArray(discoverMeta?.facets?.educational_types)
+      ? discoverMeta.facets.educational_types
+      : [];
+    if (fromMeta.length > 0) {
+      return fromMeta;
+    }
+
     const set = new Set();
-    rankedResources.forEach((item) => {
+    resources.forEach((item) => {
       set.add(getEducationalType(item));
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [rankedResources]);
+  }, [discoverMeta, resources]);
+
+  const availableFormats = useMemo(() => {
+    const fromMeta = Array.isArray(discoverMeta?.facets?.formats) ? discoverMeta.facets.formats : [];
+    if (fromMeta.length > 0) return fromMeta;
+
+    const set = new Set();
+    resources.forEach((item) => {
+      const value = String(item?.format || item?.resource_format || '').trim().toLowerCase();
+      if (value) set.add(value);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [discoverMeta, resources]);
+
+  const availableLanguages = useMemo(() => {
+    const fromMeta = Array.isArray(discoverMeta?.facets?.languages) ? discoverMeta.facets.languages : [];
+    if (fromMeta.length > 0) return fromMeta;
+
+    const set = new Set();
+    resources.forEach((item) => {
+      const value = String(item?.language || '').trim().toLowerCase();
+      if (value) set.add(value);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [discoverMeta, resources]);
+
+  const availableAccessTiers = useMemo(() => {
+    const fromMeta = Array.isArray(discoverMeta?.facets?.access_tiers) ? discoverMeta.facets.access_tiers : [];
+    if (fromMeta.length > 0) return fromMeta;
+
+    const set = new Set();
+    resources.forEach((item) => {
+      const value = String(item?.access_tier || item?.accessTier || 'free').trim().toLowerCase();
+      if (value) set.add(value);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [discoverMeta, resources]);
 
   const query = useMemo(() => deferredSearchQuery.trim().toLowerCase(), [deferredSearchQuery]);
-
-  const matchesSearch = useCallback(
-    (item) => {
-      if (!query) return true;
-      const haystack = [
-        item?.title,
-        item?.resource_title,
-        item?.author?.name,
-        item?.author_name,
-        item?.created_by_name,
-        item?.creator_name,
-        item?.institution_name,
-        item?.author?.institution,
-        item?.module_title,
-        item?.academicContext?.moduleTitle,
-        item?.module_code,
-        item?.academicContext?.moduleCode,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return haystack.includes(query);
-    },
-    [query]
-  );
-
-  const matchesFilters = useCallback(
-    (item) => {
-      if (deferredModule !== 'all') {
-        const itemModuleId = getModuleId(item);
-        if (itemModuleId > 0) {
-          if (String(itemModuleId) !== String(deferredModule)) return false;
-        } else if (selectedModuleLabel) {
-          if (getModuleName(item) !== selectedModuleLabel) return false;
-        } else {
-          return false;
-        }
-      }
-      if (deferredType !== 'all' && getEducationalType(item) !== deferredType) {
-        return false;
-      }
-      return true;
-    },
-    [deferredModule, deferredType, selectedModuleLabel]
-  );
-
-  const filteredRecommendations = useMemo(
-    () => recommendations.filter((item) => matchesSearch(item) && matchesFilters(item)),
-    [recommendations, matchesSearch, matchesFilters]
-  );
+  const filteredRecommendations = useMemo(() => recommendations, [recommendations]);
 
   const discoverRecommendationPreviewCount = 4;
   const displayedRecommendations = recommendationsOnly
     ? filteredRecommendations
     : filteredRecommendations.slice(0, discoverRecommendationPreviewCount);
-  const hasActiveFilterSelection = selectedModule !== 'all' || selectedType !== 'all';
+  const hasActiveFilterSelection =
+    selectedModule !== 'all' ||
+    selectedType !== 'all' ||
+    selectedFormat !== 'all' ||
+    selectedLanguage !== 'all' ||
+    selectedAccessTier !== 'all' ||
+    selectedSort !== 'recommended' ||
+    Number(minRating) > 0 ||
+    favoritesOnly ||
+    Boolean(query);
   const hideRecommendationsSection =
     hasActiveFilterSelection && !loadingRecommendations && filteredRecommendations.length === 0;
 
-  const filteredRankedResources = useMemo(
-    () => rankedResources.filter((item) => matchesSearch(item) && matchesFilters(item)),
-    [rankedResources, matchesSearch, matchesFilters]
-  );
+  const filteredRankedResources = useMemo(() => rankedResources, [rankedResources]);
 
   const latestPublishedResources = useMemo(() => {
     return [...filteredRankedResources]
@@ -272,6 +338,18 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     if (!showHeavySections) return [];
     return groupResources(filteredRankedResources, getModuleName);
   }, [filteredRankedResources, showHeavySections]);
+
+  const resetFilters = useCallback(() => {
+    setSelectedModule('all');
+    setSelectedType('all');
+    setSelectedFormat('all');
+    setSelectedLanguage('all');
+    setSelectedAccessTier('all');
+    setSelectedSort('recommended');
+    setMinRating(0);
+    setFavoritesOnly(false);
+    setSearchQuery('');
+  }, []);
 
   const ensureAuthenticated = () => {
     if (isAuthenticated) return true;
@@ -391,10 +469,20 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     discoverModules,
     selectedModule,
     selectedType,
+    selectedFormat,
+    selectedLanguage,
+    selectedAccessTier,
+    selectedSort,
+    minRating,
+    favoritesOnly,
     searchQuery,
     isPending,
     query,
+    discoverMeta,
     availableTypes,
+    availableFormats,
+    availableLanguages,
+    availableAccessTiers,
     filteredRecommendations,
     displayedRecommendations,
     filteredRankedResources,
@@ -411,7 +499,14 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     feedback,
     setSelectedModule,
     setSelectedType,
+    setSelectedFormat,
+    setSelectedLanguage,
+    setSelectedAccessTier,
+    setSelectedSort,
+    setMinRating,
+    setFavoritesOnly,
     setSearchQuery,
+    resetFilters,
     startTransition,
     handleToggleLike,
     handleDownload,

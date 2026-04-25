@@ -712,7 +712,164 @@ export const getPublishedResources = async () => {
 
 const toArray = (value) => (Array.isArray(value) ? value : []);
 
-export const getDiscoverBootstrapData = async ({ userId, recommendationLimit = 12, resourcesLimit = 200 }) => {
+const toDiscoverText = (value) => String(value || "").trim().toLowerCase();
+
+const parseDiscoverNumber = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const parseDiscoverTimestamp = (value) => {
+  const ts = new Date(value || 0).getTime();
+  return Number.isFinite(ts) ? ts : 0;
+};
+
+const normalizeDiscoverSort = (value) => {
+  const normalized = toDiscoverText(value);
+  if (["recommended", "newest", "rating", "favorites"].includes(normalized)) {
+    return normalized;
+  }
+  return "recommended";
+};
+
+const normalizeDiscoverFilterValue = (value) => {
+  const normalized = toDiscoverText(value);
+  return normalized && normalized !== "all" ? normalized : "all";
+};
+
+const buildDiscoverFacets = (resources = []) => {
+  const unique = (items) => Array.from(new Set(items.filter(Boolean))).sort((a, b) => a.localeCompare(b));
+
+  return {
+    educational_types: unique(resources.map((item) => toDiscoverText(item?.educational_type || item?.educationalType))),
+    formats: unique(resources.map((item) => toDiscoverText(item?.format || item?.resource_format))),
+    languages: unique(resources.map((item) => toDiscoverText(item?.language))),
+    access_tiers: unique(resources.map((item) => toDiscoverText(item?.access_tier || item?.accessTier || "free"))),
+  };
+};
+
+const matchesDiscoverSearch = (item, searchTerm) => {
+  if (!searchTerm) return true;
+
+  const textParts = [
+    item?.title,
+    item?.resource_title,
+    item?.description,
+    item?.creator_name,
+    item?.created_by_name,
+    item?.author_name,
+    item?.institution_name,
+    item?.module_title,
+    item?.module_code,
+    item?.language,
+    ...(Array.isArray(item?.tags) ? item.tags : []),
+  ]
+    .filter(Boolean)
+    .map((value) => String(value));
+
+  return textParts.join(" ").toLowerCase().includes(searchTerm);
+};
+
+const matchesDiscoverFilters = (
+  item,
+  {
+    moduleId,
+    educationalType,
+    format,
+    language,
+    accessTier,
+    minRating,
+    favoritesOnly,
+    search,
+  }
+) => {
+  if (moduleId !== "all") {
+    const itemModuleId = Number(item?.module_id || item?.moduleId || 0);
+    if (!itemModuleId || String(itemModuleId) !== String(moduleId)) {
+      return false;
+    }
+  }
+
+  if (educationalType !== "all" && toDiscoverText(item?.educational_type || item?.educationalType) !== educationalType) {
+    return false;
+  }
+
+  if (format !== "all" && toDiscoverText(item?.format || item?.resource_format) !== format) {
+    return false;
+  }
+
+  if (language !== "all" && toDiscoverText(item?.language) !== language) {
+    return false;
+  }
+
+  if (accessTier !== "all" && toDiscoverText(item?.access_tier || item?.accessTier || "free") !== accessTier) {
+    return false;
+  }
+
+  if (parseDiscoverNumber(item?.average_rating, 0) < minRating) {
+    return false;
+  }
+
+  if (favoritesOnly && !item?.is_favorited) {
+    return false;
+  }
+
+  if (!matchesDiscoverSearch(item, search)) {
+    return false;
+  }
+
+  return true;
+};
+
+const sortDiscoverPublishedResources = (resources = [], sortBy, recommendationScoreMap = new Map()) => {
+  const sorted = [...resources];
+
+  sorted.sort((a, b) => {
+    const createdAtDiff = parseDiscoverTimestamp(b?.created_at || b?.createdAt) - parseDiscoverTimestamp(a?.created_at || a?.createdAt);
+
+    if (sortBy === "newest") {
+      return createdAtDiff;
+    }
+
+    if (sortBy === "rating") {
+      const ratingDiff = parseDiscoverNumber(b?.average_rating, 0) - parseDiscoverNumber(a?.average_rating, 0);
+      if (ratingDiff !== 0) return ratingDiff;
+
+      const ratingCountDiff = parseDiscoverNumber(b?.total_ratings, 0) - parseDiscoverNumber(a?.total_ratings, 0);
+      if (ratingCountDiff !== 0) return ratingCountDiff;
+      return createdAtDiff;
+    }
+
+    if (sortBy === "favorites") {
+      const favoritesDiff = parseDiscoverNumber(b?.total_favorites, 0) - parseDiscoverNumber(a?.total_favorites, 0);
+      if (favoritesDiff !== 0) return favoritesDiff;
+      return createdAtDiff;
+    }
+
+    const idA = Number(a?.id || a?.resource_id || 0);
+    const idB = Number(b?.id || b?.resource_id || 0);
+    const scoreDiff = parseDiscoverNumber(recommendationScoreMap.get(idB), 0) - parseDiscoverNumber(recommendationScoreMap.get(idA), 0);
+    if (scoreDiff !== 0) return scoreDiff;
+    return createdAtDiff;
+  });
+
+  return sorted;
+};
+
+export const getDiscoverBootstrapData = async ({
+  userId,
+  recommendationLimit = 12,
+  resourcesLimit = 200,
+  moduleId = "all",
+  educationalType = "all",
+  format = "all",
+  language = "all",
+  accessTier = "all",
+  minRating = 0,
+  favoritesOnly = false,
+  sortBy = "recommended",
+  search = "",
+}) => {
   const [rows] = await sequelize.query(SQL.DISCOVER.BOOTSTRAP, {
     replacements: {
       user_id: userId,
@@ -722,13 +879,90 @@ export const getDiscoverBootstrapData = async ({ userId, recommendationLimit = 1
   });
 
   const row = rows?.[0] || {};
+  const publishedResources = toArray(row.published_resources);
+  const discoverModules = toArray(row.discover_modules);
+  const recommendations = toArray(row.recommendations);
+  const favorites = toArray(row.favorites);
+  const effectiveSort = normalizeDiscoverSort(sortBy);
+  const effectiveFilters = {
+    moduleId: normalizeDiscoverFilterValue(moduleId),
+    educationalType: normalizeDiscoverFilterValue(educationalType),
+    format: normalizeDiscoverFilterValue(format),
+    language: normalizeDiscoverFilterValue(language),
+    accessTier: normalizeDiscoverFilterValue(accessTier),
+    minRating: Math.max(0, Math.min(parseDiscoverNumber(minRating, 0), 5)),
+    favoritesOnly: Boolean(favoritesOnly),
+    search: toDiscoverText(search),
+  };
+
+  const resourceById = new Map(
+    publishedResources.map((resource) => [Number(resource?.id || resource?.resource_id || 0), resource])
+  );
+  const recommendationScoreMap = new Map(
+    recommendations.map((item) => [Number(item?.resource_id || item?.id || 0), parseDiscoverNumber(item?.score, 0)])
+  );
+
+  const enrichedRecommendations = recommendations.map((recommendationItem) => {
+    const resourceId = Number(recommendationItem?.resource_id || recommendationItem?.id || 0);
+    const baseResource = resourceById.get(resourceId) || {};
+
+    return {
+      ...baseResource,
+      ...recommendationItem,
+      resource_id: resourceId || recommendationItem?.resource_id,
+      id: Number(baseResource?.id || recommendationItem?.resource_id || recommendationItem?.id || 0),
+    };
+  });
+
+  const filteredPublishedResources = publishedResources.filter((item) => matchesDiscoverFilters(item, effectiveFilters));
+  const filteredPublishedResourceIds = new Set(
+    filteredPublishedResources.map((item) => Number(item?.id || item?.resource_id || 0)).filter((id) => id > 0)
+  );
+
+  const filteredRecommendations = enrichedRecommendations
+    .filter((item) => {
+      const resourceId = Number(item?.resource_id || item?.id || 0);
+      if (resourceId > 0 && filteredPublishedResourceIds.has(resourceId)) {
+        return true;
+      }
+      return matchesDiscoverFilters(item, effectiveFilters);
+    })
+    .sort((a, b) => {
+      const scoreDiff = parseDiscoverNumber(b?.score, 0) - parseDiscoverNumber(a?.score, 0);
+      if (scoreDiff !== 0) return scoreDiff;
+      return parseDiscoverTimestamp(b?.created_at || b?.createdAt) - parseDiscoverTimestamp(a?.created_at || a?.createdAt);
+    });
+
+  const sortedPublishedResources = sortDiscoverPublishedResources(
+    filteredPublishedResources,
+    effectiveSort,
+    recommendationScoreMap
+  );
+
+  const incomingMeta = row.meta && typeof row.meta === "object" ? row.meta : {};
   return {
     generated_at: row.generated_at || null,
-    published_resources: toArray(row.published_resources),
-    discover_modules: toArray(row.discover_modules),
-    recommendations: toArray(row.recommendations),
-    favorites: toArray(row.favorites),
-    meta: row.meta && typeof row.meta === "object" ? row.meta : {},
+    published_resources: sortedPublishedResources,
+    discover_modules: discoverModules,
+    recommendations: filteredRecommendations,
+    favorites,
+    meta: {
+      ...incomingMeta,
+      filtered_published_count: sortedPublishedResources.length,
+      filtered_recommendations_count: filteredRecommendations.length,
+      applied_filters: {
+        module_id: effectiveFilters.moduleId,
+        educational_type: effectiveFilters.educationalType,
+        format: effectiveFilters.format,
+        language: effectiveFilters.language,
+        access_tier: effectiveFilters.accessTier,
+        min_rating: effectiveFilters.minRating,
+        favorites_only: effectiveFilters.favoritesOnly,
+        sort_by: effectiveSort,
+        search: effectiveFilters.search,
+      },
+      facets: buildDiscoverFacets(publishedResources),
+    },
   };
 };
 

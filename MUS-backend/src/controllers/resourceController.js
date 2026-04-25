@@ -949,11 +949,21 @@ export const listPublishedResources = asyncHandler(async (req, res) => {
 export const getDiscoverBootstrapHandler = asyncHandler(async (req, res) => {
   const recommendationLimit = Math.min(Math.max(Number(req.query?.recommendation_limit || 12), 1), 100);
   const resourcesLimit = Math.min(Math.max(Number(req.query?.resources_limit || 200), 1), 500);
+  const favoritesOnly = String(req.query?.favorites_only || "false").toLowerCase() === "true";
 
   const result = await getDiscoverBootstrapData({
     userId: req.user.id,
     recommendationLimit,
     resourcesLimit,
+    moduleId: req.query?.module_id,
+    educationalType: req.query?.educational_type,
+    format: req.query?.format,
+    language: req.query?.language,
+    accessTier: req.query?.access_tier,
+    minRating: req.query?.min_rating,
+    favoritesOnly,
+    sortBy: req.query?.sort_by,
+    search: req.query?.search,
   });
 
   return successResponse(res, "Discover bootstrap retrieved successfully", result);

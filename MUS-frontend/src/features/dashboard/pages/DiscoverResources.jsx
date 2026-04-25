@@ -18,10 +18,19 @@ const DiscoverResources = ({ recommendationsOnly = false }) => {
     discoverModules,
     selectedModule,
     selectedType,
+    selectedFormat,
+    selectedLanguage,
+    selectedAccessTier,
+    selectedSort,
+    minRating,
+    favoritesOnly,
     searchQuery,
     isPending,
     query,
     availableTypes,
+    availableFormats,
+    availableLanguages,
+    availableAccessTiers,
     filteredRecommendations,
     displayedRecommendations,
     filteredRankedResources,
@@ -38,7 +47,14 @@ const DiscoverResources = ({ recommendationsOnly = false }) => {
     feedback,
     setSelectedModule,
     setSelectedType,
+    setSelectedFormat,
+    setSelectedLanguage,
+    setSelectedAccessTier,
+    setSelectedSort,
+    setMinRating,
+    setFavoritesOnly,
     setSearchQuery,
+    resetFilters,
     startTransition,
     handleToggleLike,
     handleDownload,
@@ -127,12 +143,29 @@ const DiscoverResources = ({ recommendationsOnly = false }) => {
           discoverModules={discoverModules}
           selectedModule={selectedModule}
           selectedType={selectedType}
+          selectedFormat={selectedFormat}
+          selectedLanguage={selectedLanguage}
+          selectedAccessTier={selectedAccessTier}
+          selectedSort={selectedSort}
+          minRating={minRating}
+          favoritesOnly={favoritesOnly}
           availableTypes={availableTypes}
+          availableFormats={availableFormats}
+          availableLanguages={availableLanguages}
+          availableAccessTiers={availableAccessTiers}
           formatTypeLabel={formatTypeLabel}
           startTransition={startTransition}
           setSelectedModule={setSelectedModule}
           setSelectedType={setSelectedType}
+          setSelectedFormat={setSelectedFormat}
+          setSelectedLanguage={setSelectedLanguage}
+          setSelectedAccessTier={setSelectedAccessTier}
+          setSelectedSort={setSelectedSort}
+          setMinRating={setMinRating}
+          setFavoritesOnly={setFavoritesOnly}
+          onResetFilters={resetFilters}
           filteredCount={filteredRankedResources.length}
+          recommendationCount={filteredRecommendations.length}
           isPending={isPending}
         />
 
