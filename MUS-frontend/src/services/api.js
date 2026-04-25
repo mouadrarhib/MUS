@@ -6,7 +6,7 @@ const normalizeBaseURL = (url) => {
   const clean = String(url || "").trim().replace(/\/+$/, "");
   if (!clean) return "http://localhost:5000/api";
 
-  const withProtocol = /^https?:\/\//i.test(clean) ? clean : `http://${clean}`;
+  const withProtocol = /^https?:\/\//i.test(clean) ? clean : `https://${clean}`;
   return withProtocol.endsWith("/api") ? withProtocol : `${withProtocol}/api`;
 };
 
