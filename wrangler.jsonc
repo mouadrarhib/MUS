@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mus",
+  "compatibility_date": "2026-04-25",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "MUS-frontend"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}
