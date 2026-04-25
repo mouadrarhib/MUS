@@ -210,7 +210,7 @@ Supported languages:
 
 | Variable | Required | Description |
 |---|---|---|
-| `VITE_API_URL` | ✅ Yes | Backend base URL (e.g. `http://localhost:5000`) |
+| `VITE_API_URL` | ✅ Yes | Backend base URL (e.g. `http://localhost:5000` for local, `https://mus-mus-backend.up.railway.app` for production) |
 | `SCREENSHOT_BASE_URL` | Optional | Used by screenshot script (default: `http://127.0.0.1:5173`) |
 
 ---
@@ -233,7 +233,7 @@ Supported languages:
 npm install
 
 # 2. Configure environment
-echo "VITE_API_URL=http://localhost:5000" > .env
+cp .env.example .env
 
 # 3. Start the dev server
 npm run dev
@@ -259,6 +259,27 @@ docker run -p 8080:80 mus-frontend
 ```
 
 > App runs at **`http://localhost:8080`**
+
+---
+
+## ☁️ Cloudflare Pages Deployment
+
+Use these settings when connecting the monorepo to Cloudflare Pages:
+
+| Setting | Value |
+|---|---|
+| Framework preset | `Vite` |
+| Root directory | `MUS-frontend` |
+| Build command | `npm run build` |
+| Build output directory | `dist` |
+
+Set this environment variable in Cloudflare Pages (`Settings -> Variables and Secrets`):
+
+```env
+VITE_API_URL=https://mus-mus-backend.up.railway.app
+```
+
+SPA routing fallback is already configured through `public/_redirects` so deep links like `/login` and `/dashboard` resolve correctly on refresh.
 
 ---
 
@@ -317,4 +338,4 @@ SCREENSHOT_BASE_URL=http://127.0.0.1:5173 node scripts/captureRoleScreenshots.mj
 ## 📝 Notes
 
 - Component-level UI docs are located in `src/shared/components/ui/README.md`.
-- Ensure the backend `CLIENT_ORIGIN` includes your frontend origin and that `withCredentials` is allowed for authenticated calls.
+- Ensure the backend `ALLOWED_ORIGINS` includes your frontend origin and that `withCredentials` is allowed for authenticated calls.
