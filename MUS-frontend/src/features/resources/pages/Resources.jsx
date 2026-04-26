@@ -26,6 +26,40 @@ const asList = (payload, key = null) => {
   return [];
 };
 
+const getAcademicContextFromResource = (resource) => {
+  const metadataAcademicContext = resource?.metadata?.academicContext && typeof resource.metadata.academicContext === 'object'
+    ? resource.metadata.academicContext
+    : {};
+  return {
+    institutionId: String(resource?.academicContext?.institutionId || metadataAcademicContext.institutionId || ''),
+    programId: String(resource?.academicContext?.programId || metadataAcademicContext.programId || ''),
+    levelId: String(resource?.academicContext?.levelId || metadataAcademicContext.levelId || ''),
+    semesterId: String(resource?.academicContext?.semesterId || metadataAcademicContext.semesterId || ''),
+    moduleId: String(resource?.academicContext?.moduleId || metadataAcademicContext.moduleId || resource?.module_id || ''),
+    moduleCode: resource?.academicContext?.moduleCode || metadataAcademicContext.moduleCode || resource?.module_code || '',
+    moduleTitle: resource?.academicContext?.moduleTitle || metadataAcademicContext.moduleTitle || resource?.module_title || '',
+    chapter: resource?.academicContext?.chapter || metadataAcademicContext.chapter || '',
+    difficulty: resource?.academicContext?.difficulty || metadataAcademicContext.difficulty || 'medium',
+    isExamRelated: Boolean(
+      resource?.academicContext?.isExamRelated
+      ?? resource?.academicContext?.examRelated
+      ?? metadataAcademicContext.isExamRelated
+      ?? metadataAcademicContext.examRelated
+      ?? false
+    ),
+  };
+};
+
+const assertModuleMappingSaved = async (resourceId, expectedModuleId) => {
+  const mappingResponse = await resourceModuleMapService.getModulesByResource(resourceId);
+  const mappings = asList(mappingResponse, 'modules');
+  const exists = mappings.some((item) => Number(item?.module_id || item?.id || 0) === Number(expectedModuleId));
+  if (!exists) {
+    throw new Error('The resource was saved, but its module link could not be confirmed. Please retry.');
+  }
+  return mappings;
+};
+
 const Resources = () => {
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
@@ -90,6 +124,7 @@ const Resources = () => {
     if (!resource?.id) return;
 
     let enriched = { ...resource };
+    const baseAcademicContext = getAcademicContextFromResource(resource);
 
     try {
       const [resourceDetails, moduleMapResponse] = await Promise.all([
@@ -97,16 +132,18 @@ const Resources = () => {
         resourceModuleMapService.getModulesByResource(resource.id),
       ]);
 
+      const resourceAcademicContext = getAcademicContextFromResource(resourceDetails || resource);
+
       const modules = asList(moduleMapResponse, 'modules');
       const primaryModule = modules[0] || null;
 
       let moduleDetails = null;
-      let institutionId = '';
+      let institutionId = resourceAcademicContext.institutionId || baseAcademicContext.institutionId || '';
       if (primaryModule?.module_id) {
         try {
           const detailsResponse = await moduleService.getModuleDetails(primaryModule.module_id);
           moduleDetails = detailsResponse?.data || detailsResponse || null;
-          if (moduleDetails?.program_id) {
+          if (!institutionId && moduleDetails?.program_id) {
             const institutionsResponse = await institutionProgramService.getInstitutionsByProgram(moduleDetails.program_id);
             const institutions = asList(institutionsResponse);
             institutionId = String(institutions[0]?.id || institutions[0]?.institution_id || '');
@@ -120,18 +157,22 @@ const Resources = () => {
         ...resource,
         ...resourceDetails,
         academicContext: {
-          ...(resourceDetails?.academicContext || resource?.academicContext || {}),
+          ...baseAcademicContext,
+          ...resourceAcademicContext,
           institutionId,
-          programId: String(moduleDetails?.program_id || ''),
-          levelId: String(moduleDetails?.level_id || ''),
-          semesterId: String(moduleDetails?.semester_id || ''),
-          moduleId: String(primaryModule?.module_id || resourceDetails?.module_id || resource?.module_id || ''),
-          moduleCode: primaryModule?.module_code || resourceDetails?.module_code || resource?.module_code || '',
-          moduleTitle: primaryModule?.module_title || resourceDetails?.module_title || resource?.module_title || '',
-          chapter: primaryModule?.chapter || resourceDetails?.academicContext?.chapter || '',
-          difficulty: primaryModule?.difficulty || resourceDetails?.academicContext?.difficulty || 'medium',
+          programId: String(resourceAcademicContext.programId || moduleDetails?.program_id || ''),
+          levelId: String(resourceAcademicContext.levelId || moduleDetails?.level_id || ''),
+          semesterId: String(resourceAcademicContext.semesterId || moduleDetails?.semester_id || ''),
+          moduleId: String(primaryModule?.module_id || resourceAcademicContext.moduleId || resourceDetails?.module_id || resource?.module_id || ''),
+          moduleCode: primaryModule?.module_code || resourceAcademicContext.moduleCode || resourceDetails?.module_code || resource?.module_code || '',
+          moduleTitle: primaryModule?.module_title || resourceAcademicContext.moduleTitle || resourceDetails?.module_title || resource?.module_title || '',
+          chapter: primaryModule?.chapter || resourceAcademicContext.chapter || '',
+          difficulty: primaryModule?.difficulty || resourceAcademicContext.difficulty || 'medium',
           isExamRelated: Boolean(
-            primaryModule?.exam_related ?? resourceDetails?.academicContext?.examRelated ?? resourceDetails?.exam_related
+            primaryModule?.exam_related
+            ?? resourceAcademicContext.isExamRelated
+            ?? resourceAcademicContext.examRelated
+            ?? resourceDetails?.exam_related
           ),
         },
       };
@@ -272,6 +313,8 @@ const Resources = () => {
           );
         }
 
+        await assertModuleMappingSaved(updatedResource.id, moduleMappingPayload.module_id);
+
         await resourcesService.replaceResourceTags(updatedResource.id, resourceData.tagIds || []);
 
         if (hasFile) {
@@ -283,6 +326,7 @@ const Resources = () => {
         console.log('[Resources] Resource created', { resourceId: createdResource?.id, hasFile });
 
         await resourceModuleMapService.addModuleToResource(createdResource.id, moduleMappingPayload);
+        await assertModuleMappingSaved(createdResource.id, moduleMappingPayload.module_id);
 
         await resourcesService.replaceResourceTags(createdResource.id, resourceData.tagIds || []);
 

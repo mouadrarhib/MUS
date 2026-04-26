@@ -1,6 +1,6 @@
 const baseUrl = process.env.BASE_URL || "http://127.0.0.1:5000";
 
-class Client {i
+class Client {
   constructor(name) {
     this.name = name; 
     this.cookie = "";

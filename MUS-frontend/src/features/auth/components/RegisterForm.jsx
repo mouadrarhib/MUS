@@ -43,7 +43,7 @@ import gsap from 'gsap';
 
 export const RegisterForm = () => {
   const navigate = useNavigate();
-  const { login: authLogin, isAdmin } = useAuth();
+  const { login: authLogin } = useAuth();
   const { register: apiRegister, loading, error: apiError } = useRegister();
 
   const [showPassword, setShowPassword] = useState(false);
@@ -273,9 +273,7 @@ export const RegisterForm = () => {
       authLogin(response.data);
       
       setTimeout(() => {
-        if (isAdmin) {
-          navigate('/admin');
-        }
+        navigate('/dashboard', { replace: true });
       }, 1000);
     } catch {
       setRegisterError(apiError || 'Registration failed. Please try again.');

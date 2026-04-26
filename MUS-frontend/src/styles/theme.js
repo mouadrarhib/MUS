@@ -438,6 +438,17 @@ export const darkTheme = createTheme({
         },
       },
     },
+    MuiDialog: {
+      defaultProps: {
+        keepMounted: true,
+        transitionDuration: { enter: 120, exit: 80 },
+      },
+      styleOverrides: {
+        paper: {
+          backgroundImage: 'none',
+        },
+      },
+    },
     MuiTextField: {
       styleOverrides: {
         root: ({ theme }) => ({
@@ -472,17 +483,6 @@ export const darkTheme = createTheme({
           '& .MuiSwitch-thumb': {
             transition: 'box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1)',
           },
-        },
-      },
-    },
-    MuiDialog: {
-      defaultProps: {
-        keepMounted: true,
-        transitionDuration: { enter: 120, exit: 80 },
-      },
-      styleOverrides: {
-        paper: {
-          backgroundImage: 'none',
         },
       },
     },

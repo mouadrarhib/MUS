@@ -26,6 +26,16 @@ const resourceTagsMapInFlight = new Map();
 
 const makeCacheKey = (prefix, payload) => `${prefix}:${JSON.stringify(payload || {})}`;
 
+const parseMetadata = (metadata) => {
+  if (!metadata) return {};
+  if (typeof metadata === 'object') return metadata;
+  try {
+    return JSON.parse(metadata);
+  } catch {
+    return {};
+  }
+};
+
 const getCached = (key) => {
   const cached = resourceListCache.get(key);
   if (!cached) return null;
@@ -67,12 +77,17 @@ const normalizeResource = (item) => {
   const educationalType = item.educational_type || item.resource_educational_type || item.educationalType;
   const createdAt = item.created_at || item.resource_created_at || item.createdAt;
   const accessTier = String(item.access_tier || item.accessTier || "free").toLowerCase() === "premium" ? "premium" : "free";
+  const metadata = parseMetadata(item.metadata);
+  const metadataAcademicContext = metadata?.academicContext && typeof metadata.academicContext === 'object'
+    ? metadata.academicContext
+    : {};
 
   return {
     ...item,
     id,
     status,
     educationalType,
+    metadata,
     access_tier: accessTier,
     accessTier,
     format: item.format || item.resource_format,
@@ -86,12 +101,16 @@ const normalizeResource = (item) => {
       institution: item.institution_name || item.author?.institution,
     },
     academicContext: {
-      moduleId: item.module_id,
-      moduleCode: item.module_code,
-      moduleTitle: item.module_title,
-      difficulty: item.difficulty,
-      chapter: item.chapter,
-      examRelated: item.exam_related,
+      institutionId: String(metadataAcademicContext.institutionId || ''),
+      programId: String(metadataAcademicContext.programId || ''),
+      levelId: String(metadataAcademicContext.levelId || ''),
+      semesterId: String(metadataAcademicContext.semesterId || ''),
+      moduleId: String(metadataAcademicContext.moduleId || item.module_id || ''),
+      moduleCode: metadataAcademicContext.moduleCode || item.module_code || '',
+      moduleTitle: metadataAcademicContext.moduleTitle || item.module_title || '',
+      difficulty: metadataAcademicContext.difficulty || item.difficulty || 'medium',
+      chapter: metadataAcademicContext.chapter || item.chapter || '',
+      examRelated: Boolean(metadataAcademicContext.isExamRelated ?? metadataAcademicContext.examRelated ?? item.exam_related),
     },
   };
 };

@@ -15,6 +15,7 @@ import {
   moderateComment,
   moderateQuestion,
   moderateAnswer,
+  updateQuestionStatus,
 } from "../services/qaService.js";
 import { linkOfficialAnswerToConfusionCase } from "../services/resourceConfusionService.js";
 
@@ -325,6 +326,29 @@ export const moderateQuestionHandler = asyncHandler(async (req, res) => {
   });
 
   return successResponse(res, "Moderation de la question mise a jour avec succes", question);
+});
+
+export const updateQuestionStatusHandler = asyncHandler(async (req, res) => {
+  const questionId = parseInt(req.params.questionId, 10);
+  const { status } = req.body;
+
+  const question = await updateQuestionStatus({
+    questionId,
+    actor: req.user,
+    status,
+  });
+
+  await logAudit({
+    userId: req.user.id,
+    action: "QA_UPDATE_QUESTION_STATUS",
+    resourceType: "qa_question",
+    resourceId: questionId,
+    newValue: { status: question.status },
+    ip: req.ip,
+    userAgent: req.get("user-agent") || null,
+  });
+
+  return successResponse(res, "Statut de la question mis a jour avec succes", question);
 });
 
 /**

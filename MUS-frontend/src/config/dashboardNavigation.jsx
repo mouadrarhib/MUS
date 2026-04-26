@@ -9,7 +9,8 @@ import {
   LocalOffer,
   People,
   Settings,
-  AccountTree
+  AccountTree,
+  ReportProblem
 } from '@mui/icons-material';
 
 export const DASHBOARD_NAVIGATION = [
@@ -71,6 +72,12 @@ export const DASHBOARD_NAVIGATION = [
     path: '/dashboard/tags',
     icon: <LocalOffer />,
     roles: ['ADMIN']
+  },
+  {
+    label: 'Confusion Cases',
+    path: '/dashboard/confusion',
+    icon: <ReportProblem />,
+    roles: ['ADMIN', 'TEACHER']
   },
   {
     labelKey: 'nav.academicCatalog',

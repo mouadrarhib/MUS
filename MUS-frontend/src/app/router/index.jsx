@@ -29,6 +29,7 @@ const VerifyResourcesPage = lazy(() => import('@/features/verify/pages/VerifyRes
 const CatalogManagementPage = lazy(() => import('@/features/catalog/pages/CatalogManagement'));
 const WalletPage = lazy(() => import('@/features/wallet/pages/Wallet'));
 const TagsPage = lazy(() => import('@/features/tags/pages/Tags'));
+const ConfusionCasesPage = lazy(() => import('@/features/confusion/pages/ConfusionCases'));
 
 const LoadingFallback = () => (
   <Box
@@ -160,6 +161,15 @@ const AppRouter = () => {
             element={
               <ProtectedRoute requiredRoles={['ADMIN']}>
                 <TagsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="confusion"
+            element={
+              <ProtectedRoute requiredRoles={['ADMIN', 'TEACHER']}>
+                <ConfusionCasesPage />
               </ProtectedRoute>
             }
           />

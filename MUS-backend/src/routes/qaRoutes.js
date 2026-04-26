@@ -17,6 +17,7 @@ import {
   moderateAnswerHandler,
   moderateCommentHandler,
   moderateQuestionHandler,
+  updateQuestionStatusHandler,
 } from "../controllers/qaController.js";
 
 const router = Router();
@@ -113,6 +114,18 @@ router.get(
   ],
   validateRequest,
   listAnswerCommentsHandler
+);
+
+router.patch(
+  "/questions/:questionId/status",
+  authMiddleware,
+  requireRole("teacher", "admin"),
+  [
+    param("questionId").isInt({ min: 1 }).withMessage("ID de question invalide"),
+    body("status").isIn(["open", "closed"]).withMessage("status doit etre open ou closed"),
+  ],
+  validateRequest,
+  updateQuestionStatusHandler
 );
 
 router.patch(

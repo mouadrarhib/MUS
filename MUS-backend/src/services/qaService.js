@@ -13,6 +13,11 @@ const QA_NOTIFICATION_TYPES = {
   ANSWER_CREATED: "QA_ANSWER_CREATED",
   QUESTION_COMMENT_CREATED: "QA_QUESTION_COMMENT_CREATED",
   ANSWER_COMMENT_CREATED: "QA_ANSWER_COMMENT_CREATED",
+  QUESTION_GOT_ANSWER: "QA_QUESTION_GOT_ANSWER",
+  ANSWER_GOT_COMMENT: "QA_ANSWER_GOT_COMMENT",
+  QUESTION_MODERATED: "QA_QUESTION_MODERATED",
+  ANSWER_MODERATED: "QA_ANSWER_MODERATED",
+  COMMENT_MODERATED: "QA_COMMENT_MODERATED",
 };
 
 const canModerate = (roles = []) => isTeacher(roles) || isAdmin(roles);
@@ -193,6 +198,91 @@ const notifyQaStakeholders = async ({
   }
 };
 
+const notifyExplicitRecipients = async ({ recipientUserIds = [], actorUserId = null, type, title, body, payload = {} }) => {
+  const uniqueRecipientIds = Array.from(
+    new Set((recipientUserIds || []).filter((userId) => Boolean(userId) && userId !== actorUserId))
+  );
+
+  if (!uniqueRecipientIds.length) {
+    return [];
+  }
+
+  return createNotificationsBulk(
+    uniqueRecipientIds.map((recipientUserId) => ({
+      recipientUserId,
+      type,
+      title,
+      body,
+      payload,
+    }))
+  );
+};
+
+const getQuestionContext = async (questionId) => {
+  const [rows] = await sequelize.query(
+    `
+    SELECT id, resource_id, module_id, user_id, status::text AS status, moderation_status::text AS moderation_status
+    FROM public.qa_questions
+    WHERE id = :question_id
+    LIMIT 1
+    `,
+    {
+      replacements: { question_id: questionId },
+    }
+  );
+
+  return rows[0] || null;
+};
+
+const getAnswerContext = async (answerId) => {
+  const [rows] = await sequelize.query(
+    `
+    SELECT
+      a.id,
+      a.question_id,
+      a.user_id,
+      a.moderation_status::text AS moderation_status,
+      q.resource_id,
+      q.module_id
+    FROM public.qa_answers a
+    INNER JOIN public.qa_questions q ON q.id = a.question_id
+    WHERE a.id = :answer_id
+    LIMIT 1
+    `,
+    {
+      replacements: { answer_id: answerId },
+    }
+  );
+
+  return rows[0] || null;
+};
+
+const getCommentContext = async (commentId) => {
+  const [rows] = await sequelize.query(
+    `
+    SELECT
+      c.id,
+      c.user_id,
+      c.question_id,
+      c.answer_id,
+      c.moderation_status::text AS moderation_status,
+      COALESCE(c.question_id, a.question_id) AS parent_question_id,
+      q.resource_id,
+      q.module_id
+    FROM public.qa_comments c
+    LEFT JOIN public.qa_answers a ON a.id = c.answer_id
+    LEFT JOIN public.qa_questions q ON q.id = COALESCE(c.question_id, a.question_id)
+    WHERE c.id = :comment_id
+    LIMIT 1
+    `,
+    {
+      replacements: { comment_id: commentId },
+    }
+  );
+
+  return rows[0] || null;
+};
+
 export const createQuestion = async ({ userId, moduleId, resourceId, title, body, isAnonymous = false }) => {
   await ensureResourceLinkedToModule({ resourceId, moduleId });
 
@@ -323,7 +413,7 @@ const ensureQuestionExists = async (questionId, { allowHidden = false } = {}) =>
 const ensureAnswerExists = async (answerId, { allowHidden = false } = {}) => {
   const [rows] = await sequelize.query(
     `
-    SELECT id, question_id, moderation_status::text AS moderation_status
+    SELECT id, question_id, user_id, moderation_status::text AS moderation_status
     FROM public.qa_answers
     WHERE id = :answer_id
       AND (:allow_hidden = TRUE OR moderation_status = 'active'::qa_moderation_status)
@@ -408,6 +498,22 @@ export const createAnswer = async ({ questionId, userId, roles = [], body, expla
     },
   });
 
+  await notifyExplicitRecipients({
+    recipientUserIds: [question.user_id],
+    actorUserId: userId,
+    type: QA_NOTIFICATION_TYPES.QUESTION_GOT_ANSWER,
+    title: "Votre question a recu une reponse",
+    body: "Une nouvelle reponse a ete ajoutee a votre question.",
+    payload: {
+      resource_id: question.resource_id,
+      module_id: question.module_id,
+      question_id: question.id,
+      answer_id: rows[0].id,
+      actor_user_id: userId,
+      is_official: rows[0].is_official,
+    },
+  });
+
   return rows[0];
 };
 
@@ -462,6 +568,59 @@ const canAcceptAnswer = async ({ actor, questionId }) => {
   if (isAdmin(actor.roles || [])) return true;
   if (!isTeacher(actor.roles || [])) return false;
   return true;
+};
+
+export const updateQuestionStatus = async ({ questionId, actor, status }) => {
+  if (!canModerate(actor?.roles || [])) {
+    throw new AppError("Acces refuse", 403);
+  }
+
+  if (!["open", "closed"].includes(status)) {
+    throw new AppError("Statut de question invalide", 400);
+  }
+
+  const question = await ensureQuestionExists(questionId, { allowHidden: true });
+  if (question.moderation_status !== "active") {
+    throw new AppError("Impossible de changer le statut d'une question moderee", 409);
+  }
+
+  let nextStatus = status;
+  if (status === "open") {
+    const [countRows] = await sequelize.query(
+      `
+      SELECT COUNT(*)::int AS count
+      FROM public.qa_answers
+      WHERE question_id = :question_id
+        AND moderation_status = 'active'::qa_moderation_status
+      `,
+      { replacements: { question_id: questionId } }
+    );
+
+    nextStatus = Number(countRows?.[0]?.count || 0) > 0 ? "answered" : "open";
+  }
+
+  const [rows] = await sequelize.query(
+    `
+    UPDATE public.qa_questions
+    SET status = :status::qa_question_status,
+        updated_at = NOW()
+    WHERE id = :question_id
+      AND moderation_status = 'active'::qa_moderation_status
+    RETURNING id, status::text AS status, moderation_status::text AS moderation_status, updated_at
+    `,
+    {
+      replacements: {
+        question_id: questionId,
+        status: nextStatus,
+      },
+    }
+  );
+
+  if (!rows.length) {
+    throw new AppError("Question introuvable", 404);
+  }
+
+  return rows[0];
 };
 
 export const acceptAnswer = async ({ answerId, actor }) => {
@@ -536,6 +695,10 @@ export const moderateQuestion = async ({ questionId, actor, status, reason }) =>
   }
 
   validateModerationPayload({ status, reason });
+  const current = await getQuestionContext(questionId);
+  if (!current) {
+    throw new AppError("Question introuvable", 404);
+  }
 
   const [rows] = await sequelize.query(
     `
@@ -563,6 +726,23 @@ export const moderateQuestion = async ({ questionId, actor, status, reason }) =>
     throw new AppError("Question introuvable", 404);
   }
 
+  if (["hidden", "deleted"].includes(status)) {
+    await notifyExplicitRecipients({
+      recipientUserIds: [current.user_id],
+      actorUserId: actor.id,
+      type: QA_NOTIFICATION_TYPES.QUESTION_MODERATED,
+      title: status === "hidden" ? "Votre question a ete masquee" : "Votre question a ete supprimee",
+      body: reason?.trim() || "Une action de moderation a ete appliquee a votre question.",
+      payload: {
+        resource_id: current.resource_id,
+        module_id: current.module_id,
+        question_id: questionId,
+        actor_user_id: actor.id,
+        moderation_status: status,
+      },
+    });
+  }
+
   return rows[0];
 };
 
@@ -572,6 +752,10 @@ export const moderateAnswer = async ({ answerId, actor, status, reason }) => {
   }
 
   validateModerationPayload({ status, reason });
+  const current = await getAnswerContext(answerId);
+  if (!current) {
+    throw new AppError("Reponse introuvable", 404);
+  }
 
   const [rows] = await sequelize.query(
     `
@@ -601,6 +785,24 @@ export const moderateAnswer = async ({ answerId, actor, status, reason }) => {
     throw new AppError("Reponse introuvable", 404);
   }
 
+  if (["hidden", "deleted"].includes(status)) {
+    await notifyExplicitRecipients({
+      recipientUserIds: [current.user_id],
+      actorUserId: actor.id,
+      type: QA_NOTIFICATION_TYPES.ANSWER_MODERATED,
+      title: status === "hidden" ? "Votre reponse a ete masquee" : "Votre reponse a ete supprimee",
+      body: reason?.trim() || "Une action de moderation a ete appliquee a votre reponse.",
+      payload: {
+        resource_id: current.resource_id,
+        module_id: current.module_id,
+        question_id: current.question_id,
+        answer_id: answerId,
+        actor_user_id: actor.id,
+        moderation_status: status,
+      },
+    });
+  }
+
   return rows[0];
 };
 
@@ -610,6 +812,10 @@ export const moderateComment = async ({ commentId, actor, status, reason }) => {
   }
 
   validateModerationPayload({ status, reason });
+  const current = await getCommentContext(commentId);
+  if (!current) {
+    throw new AppError("Commentaire introuvable", 404);
+  }
 
   const [rows] = await sequelize.query(
     `
@@ -634,6 +840,25 @@ export const moderateComment = async ({ commentId, actor, status, reason }) => {
 
   if (!rows.length) {
     throw new AppError("Commentaire introuvable", 404);
+  }
+
+  if (["hidden", "deleted"].includes(status)) {
+    await notifyExplicitRecipients({
+      recipientUserIds: [current.user_id],
+      actorUserId: actor.id,
+      type: QA_NOTIFICATION_TYPES.COMMENT_MODERATED,
+      title: status === "hidden" ? "Votre commentaire a ete masque" : "Votre commentaire a ete supprime",
+      body: reason?.trim() || "Une action de moderation a ete appliquee a votre commentaire.",
+      payload: {
+        resource_id: current.resource_id,
+        module_id: current.module_id,
+        question_id: current.parent_question_id,
+        answer_id: current.answer_id,
+        comment_id: commentId,
+        actor_user_id: actor.id,
+        moderation_status: status,
+      },
+    });
   }
 
   return rows[0];
@@ -710,6 +935,22 @@ export const createCommentOnAnswer = async ({ answerId, userId, body }) => {
     type: QA_NOTIFICATION_TYPES.ANSWER_COMMENT_CREATED,
     title: "Nouveau commentaire sur une reponse",
     body: "Un commentaire a ete ajoute sur une reponse de votre ressource/module.",
+    payload: {
+      resource_id: question.resource_id,
+      module_id: question.module_id,
+      question_id: question.id,
+      answer_id: answer.id,
+      comment_id: rows[0].id,
+      actor_user_id: userId,
+    },
+  });
+
+  await notifyExplicitRecipients({
+    recipientUserIds: [answer.user_id],
+    actorUserId: userId,
+    type: QA_NOTIFICATION_TYPES.ANSWER_GOT_COMMENT,
+    title: "Votre reponse a recu un commentaire",
+    body: "Un nouveau commentaire a ete ajoute sur votre reponse.",
     payload: {
       resource_id: question.resource_id,
       module_id: question.module_id,

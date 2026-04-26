@@ -20,3 +20,4 @@ export { default as studentProfileService } from "@/services/studentProfileServi
 export { default as moduleService } from "@/services/moduleService";
 export { default as ratingService } from "@/services/ratingService";
 export { default as resourceModuleMapService } from "@/services/resourceModuleMapService";
+export { default as confusionService } from "@/services/confusionService";

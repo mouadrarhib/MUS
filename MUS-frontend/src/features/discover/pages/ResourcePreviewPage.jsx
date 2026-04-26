@@ -3,11 +3,17 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
   CircularProgress,
   Divider,
+  FormControlLabel,
+  FormControl,
   IconButton,
+  InputLabel,
+  MenuItem,
   Skeleton,
+  Select,
   Stack,
   TextField,
   Tooltip,
@@ -31,13 +37,16 @@ import {
   Headphones,
   ImageOutlined,
   QuestionAnswer,
+  ReportProblem,
 } from '@mui/icons-material';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import DiscoverNavbar from '@/features/discover/components/DiscoverNavbar';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import confusionService from '@/services/confusionService';
 import qaService from '@/services/qaService';
 import resourceModuleMapService from '@/services/resourceModuleMapService';
 import resourcesService from '@/services/resourcesService';
+import { useNotification } from '@/shared/components/ui';
 
 /* ─── helpers ─── */
 const getFormat = (resource) =>
@@ -85,6 +94,8 @@ const pickModuleIdFromModulesPayload = (payload) => {
     ? payload
     : Array.isArray(payload?.modules)
       ? payload.modules
+      : Array.isArray(payload?.data?.modules)
+        ? payload.data.modules
       : [];
 
   for (const item of modules) {
@@ -93,6 +104,31 @@ const pickModuleIdFromModulesPayload = (payload) => {
   }
 
   return null;
+};
+
+const extractLinkedModules = (payload) => {
+  const modules = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.modules)
+      ? payload.modules
+      : Array.isArray(payload?.data?.modules)
+        ? payload.data.modules
+      : [];
+
+  const seen = new Set();
+
+  return modules
+    .map((item) => {
+      const moduleId = Number(item?.module_id || item?.id || item?.module?.id || 0);
+      if (!moduleId || seen.has(moduleId)) return null;
+      seen.add(moduleId);
+      return {
+        module_id: moduleId,
+        module_code: item?.module_code || item?.code || item?.module?.code || '',
+        module_title: item?.module_title || item?.title || item?.module?.title || `Module ${moduleId}`,
+      };
+    })
+    .filter(Boolean);
 };
 
 /* ─── Panel wrapper ─── */
@@ -257,6 +293,21 @@ const NoUrlState = () => (
   </Box>
 );
 
+const QUESTIONS_PAGE_SIZE = 20;
+const MODULE_PREFERENCE_STORAGE_KEY = 'mus:last-selected-module';
+const AUTO_REFRESH_INTERVAL_MS = 15000;
+const QUESTION_STATUS_LABELS = {
+  open: 'Open',
+  answered: 'Answered',
+  closed: 'Closed',
+};
+
+const moderationVisibilityLabel = (status) => {
+  if (status === 'hidden') return 'Hidden from learners';
+  if (status === 'deleted') return 'Removed from learners';
+  return 'Visible to everyone';
+};
+
 /* ═══════════════════════════════════════════════
    Main page
 ═══════════════════════════════════════════════ */
@@ -264,8 +315,16 @@ const ResourcePreviewPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout, isAuthenticated, isTeacher, isAdmin } = useAuth();
-  const initialQuestionId = Number(new URLSearchParams(location.search).get('question') || 0) || null;
+  const { logout, isAuthenticated, isTeacher, isAdmin, isStudent } = useAuth();
+  const { showSuccess, showError, showInfo } = useNotification();
+  const queryState = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return {
+      questionId: Number(params.get('question') || 0) || null,
+      answerId: Number(params.get('answer') || 0) || null,
+      commentId: Number(params.get('comment') || 0) || null,
+    };
+  }, [location.search]);
 
   const [loading, setLoading] = useState(true);
   const [resource, setResource] = useState(location.state?.resource || null);
@@ -273,27 +332,57 @@ const ResourcePreviewPage = () => {
   const [error, setError] = useState('');
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [qaLoading, setQaLoading] = useState(false);
+  const [threadLoading, setThreadLoading] = useState(false);
   const [qaError, setQaError] = useState('');
   const [questions, setQuestions] = useState([]);
+  const [questionsPage, setQuestionsPage] = useState(1);
+  const [questionsHasMore, setQuestionsHasMore] = useState(false);
+  const [questionsLoadingMore, setQuestionsLoadingMore] = useState(false);
   const [selectedQuestionId, setSelectedQuestionId] = useState(null);
-  const [preferredQuestionId, setPreferredQuestionId] = useState(initialQuestionId);
+  const [preferredQuestionId, setPreferredQuestionId] = useState(queryState.questionId);
+  const [targetAnswerId, setTargetAnswerId] = useState(queryState.answerId);
+  const [targetCommentId, setTargetCommentId] = useState(queryState.commentId);
+  const [highlightedAnswerId, setHighlightedAnswerId] = useState(null);
+  const [highlightedCommentId, setHighlightedCommentId] = useState(null);
   const [answers, setAnswers] = useState([]);
   const [questionComments, setQuestionComments] = useState([]);
   const [answerCommentsMap, setAnswerCommentsMap] = useState({});
   const [questionTitleInput, setQuestionTitleInput] = useState('');
   const [questionBodyInput, setQuestionBodyInput] = useState('');
+  const [questionAnonymousInput, setQuestionAnonymousInput] = useState(false);
   const [answerBodyInput, setAnswerBodyInput] = useState('');
+  const [answerExplanationInput, setAnswerExplanationInput] = useState('');
+  const [answerExampleInput, setAnswerExampleInput] = useState('');
   const [questionCommentInput, setQuestionCommentInput] = useState('');
   const [answerCommentInputs, setAnswerCommentInputs] = useState({});
   const [creatingQuestion, setCreatingQuestion] = useState(false);
   const [creatingAnswer, setCreatingAnswer] = useState(false);
   const [creatingQuestionComment, setCreatingQuestionComment] = useState(false);
   const [creatingAnswerCommentId, setCreatingAnswerCommentId] = useState(null);
+  const [creatingConfusionSignal, setCreatingConfusionSignal] = useState(false);
+  const [confusionNoteInput, setConfusionNoteInput] = useState('');
+  const [confusionFeedback, setConfusionFeedback] = useState({ type: '', message: '' });
+  const [myConfusionCasesLoading, setMyConfusionCasesLoading] = useState(false);
+  const [myConfusionCases, setMyConfusionCases] = useState([]);
+  const [linkedModules, setLinkedModules] = useState([]);
+  const [studentAvailableModuleIds, setStudentAvailableModuleIds] = useState([]);
+  const [selectedModuleId, setSelectedModuleId] = useState(null);
   const [moderationLoadingKey, setModerationLoadingKey] = useState('');
   const [resolvedModuleId, setResolvedModuleId] = useState(() => pickModuleIdFromResource(location.state?.resource || null));
+  const inferredModuleIdFromQuestions = useMemo(() => {
+    for (const item of questions) {
+      const parsed = Number(item?.module_id || item?.moduleId || 0);
+      if (parsed > 0) return parsed;
+    }
+    return null;
+  }, [questions]);
   const resourceId = Number(resource?.id || id);
-  const moduleId = pickModuleIdFromResource(resource) || resolvedModuleId;
+  const moduleId = selectedModuleId || pickModuleIdFromResource(resource) || resolvedModuleId || inferredModuleIdFromQuestions;
   const canModerate = isTeacher || isAdmin;
+  const moduleIdsForResource = useMemo(
+    () => linkedModules.map((item) => Number(item?.module_id || 0)).filter((value) => value > 0),
+    [linkedModules]
+  );
 
   useEffect(() => {
     const resourceId = Number(id);
@@ -306,6 +395,8 @@ const ResourcePreviewPage = () => {
     let cancelled = false;
     setLoading(true);
     setError('');
+    setLinkedModules([]);
+    setSelectedModuleId(null);
 
     Promise.allSettled([
       resourcesService.getResourceById(resourceId),
@@ -324,10 +415,16 @@ const ResourcePreviewPage = () => {
           }
         }
         if (modulesRes.status === 'fulfilled') {
+          const normalizedModules = extractLinkedModules(modulesRes.value);
+          setLinkedModules(normalizedModules);
+
           const picked = pickModuleIdFromModulesPayload(modulesRes.value);
           if (picked) {
             setResolvedModuleId(picked);
+            setSelectedModuleId((current) => current || picked);
           }
+        } else {
+          setLinkedModules([]);
         }
         if (fileRes.status === 'fulfilled') {
           setPreviewUrl(fileRes.value?.url || fileRes.value?.download_url || '');
@@ -345,17 +442,50 @@ const ResourcePreviewPage = () => {
   }, [id]);
 
   useEffect(() => {
+    setPreferredQuestionId(queryState.questionId);
+    setTargetAnswerId(queryState.answerId);
+    setTargetCommentId(queryState.commentId);
+  }, [queryState]);
+
+  useEffect(() => {
+    if (selectedModuleId) return;
+    const storedModuleId = Number(window.localStorage.getItem(MODULE_PREFERENCE_STORAGE_KEY) || 0) || null;
+    const studentPreferredModuleId = studentAvailableModuleIds.find((candidateId) => moduleIdsForResource.includes(candidateId)) || null;
+    const storedPreferredModuleId = storedModuleId && moduleIdsForResource.includes(storedModuleId) ? storedModuleId : null;
+    const candidate =
+      studentPreferredModuleId
+      || storedPreferredModuleId
+      || pickModuleIdFromResource(resource)
+      || resolvedModuleId
+      || inferredModuleIdFromQuestions
+      || linkedModules[0]?.module_id
+      || null;
+    if (candidate) {
+      setSelectedModuleId(candidate);
+    }
+  }, [selectedModuleId, resource, resolvedModuleId, inferredModuleIdFromQuestions, linkedModules, moduleIdsForResource, studentAvailableModuleIds]);
+
+  useEffect(() => {
+    if (!selectedModuleId) return;
+    window.localStorage.setItem(MODULE_PREFERENCE_STORAGE_KEY, String(selectedModuleId));
+  }, [selectedModuleId]);
+
+  useEffect(() => {
     if (!resourceId) return;
     let cancelled = false;
 
     setQaLoading(true);
     setQaError('');
+    setQuestionsPage(1);
+    setQuestionsHasMore(false);
+    setQuestionsLoadingMore(false);
 
     qaService
-      .listQuestions({ resource_id: resourceId, include_hidden: canModerate, page: 1, limit: 50 })
+      .listQuestions({ resource_id: resourceId, include_hidden: canModerate, page: 1, limit: QUESTIONS_PAGE_SIZE })
       .then((rows) => {
         if (cancelled) return;
         setQuestions(rows);
+        setQuestionsHasMore(rows.length === QUESTIONS_PAGE_SIZE);
         setSelectedQuestionId((current) => {
           if (preferredQuestionId && rows.some((item) => item.id === preferredQuestionId)) {
             return preferredQuestionId;
@@ -373,6 +503,7 @@ const ResourcePreviewPage = () => {
         if (cancelled) return;
         setQaError('Unable to load Q&A right now.');
         setQuestions([]);
+        setQuestionsHasMore(false);
         setSelectedQuestionId(null);
       })
       .finally(() => {
@@ -384,6 +515,75 @@ const ResourcePreviewPage = () => {
       cancelled = true;
     };
   }, [resourceId, preferredQuestionId, canModerate]);
+
+  useEffect(() => {
+    if (!resourceId || !isAuthenticated || !isStudent) {
+      setMyConfusionCases([]);
+      return;
+    }
+
+    let cancelled = false;
+    setMyConfusionCasesLoading(true);
+
+    confusionService
+      .listMyCases({ page: 1, limit: 20 })
+      .then((rows) => {
+        if (cancelled) return;
+        const nextRows = Array.isArray(rows)
+          ? rows.filter((item) => Number(item?.resource_id || 0) === Number(resourceId))
+          : [];
+        setMyConfusionCases(nextRows);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setMyConfusionCases([]);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setMyConfusionCasesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resourceId, isAuthenticated, isStudent]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !isStudent || !moduleIdsForResource.length) {
+      setStudentAvailableModuleIds([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    resourceModuleMapService
+      .getAvailableModulesForStudent()
+      .then((payload) => {
+        if (cancelled) return;
+        const rows = Array.isArray(payload?.data?.modules)
+          ? payload.data.modules
+          : Array.isArray(payload?.modules)
+            ? payload.modules
+            : Array.isArray(payload?.data)
+              ? payload.data
+              : Array.isArray(payload)
+                ? payload
+                : [];
+        const moduleIds = rows
+          .map((item) => Number(item?.module_id || item?.id || 0))
+          .filter((value) => value > 0);
+        setStudentAvailableModuleIds(moduleIds);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setStudentAvailableModuleIds([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, isStudent, moduleIdsForResource]);
 
   const normalizedFormat = getFormat(resource);
   const formatMeta = getFormatMeta(normalizedFormat);
@@ -424,29 +624,65 @@ const ResourcePreviewPage = () => {
   const isPremium     = String(accessTier).toLowerCase() === 'premium';
   const description   = resource?.description || resource?.resource_description;
   const selectedQuestion = questions.find((item) => item.id === selectedQuestionId) || null;
+  const questionReadOnly = selectedQuestion?.status === 'closed' || selectedQuestion?.moderation_status !== 'active';
 
-  async function loadQuestions({ keepSelection = true, preferredId = null } = {}) {
+  async function loadQuestions({ keepSelection = true, preferredId = null, page = 1, append = false } = {}) {
     if (!resourceId) return;
-    setQaLoading(true);
+    if (append) {
+      setQuestionsLoadingMore(true);
+    } else {
+      setQaLoading(true);
+    }
     setQaError('');
     try {
-      const rows = await qaService.listQuestions({ resource_id: resourceId, include_hidden: canModerate, page: 1, limit: 50 });
-      setQuestions(rows);
+      const rows = await qaService.listQuestions({
+        resource_id: resourceId,
+        include_hidden: canModerate,
+        page,
+        limit: QUESTIONS_PAGE_SIZE,
+      });
+
+      setQuestionsPage(page);
+      setQuestionsHasMore(rows.length === QUESTIONS_PAGE_SIZE);
+      setQuestions((currentRows) => {
+        if (!append || page <= 1) {
+          return rows;
+        }
+        const merged = [...currentRows, ...rows];
+        const seen = new Set();
+        return merged.filter((item) => {
+          const id = Number(item?.id || 0);
+          if (!id || seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        });
+      });
+
       setSelectedQuestionId((current) => {
         if (preferredId && rows.some((item) => item.id === preferredId)) {
           return preferredId;
         }
+        if (append && keepSelection && current) {
+          return current;
+        }
         if (keepSelection && rows.some((item) => item.id === current)) {
           return current;
         }
-        return rows[0]?.id || null;
+        return current || rows[0]?.id || null;
       });
     } catch {
       setQaError('Unable to load Q&A right now.');
-      setQuestions([]);
-      setSelectedQuestionId(null);
+      if (!append) {
+        setQuestions([]);
+        setQuestionsHasMore(false);
+        setSelectedQuestionId(null);
+      }
     } finally {
-      setQaLoading(false);
+      if (append) {
+        setQuestionsLoadingMore(false);
+      } else {
+        setQaLoading(false);
+      }
     }
   }
 
@@ -455,9 +691,12 @@ const ResourcePreviewPage = () => {
       setAnswers([]);
       setQuestionComments([]);
       setAnswerCommentsMap({});
+      setThreadLoading(false);
       return;
     }
 
+    setThreadLoading(true);
+    setQaError('');
     try {
       const [nextAnswers, nextQuestionComments] = await Promise.all([
         qaService.listAnswersByQuestion(questionIdValue, { include_hidden: canModerate }),
@@ -482,18 +721,28 @@ const ResourcePreviewPage = () => {
       setAnswerCommentsMap(Object.fromEntries(answerCommentEntries));
     } catch {
       setQaError('Unable to load this discussion thread.');
+    } finally {
+      setThreadLoading(false);
     }
   }
+
+  const handleLoadMoreQuestions = async () => {
+    if (!questionsHasMore || qaLoading || questionsLoadingMore) return;
+    await loadQuestions({ keepSelection: true, page: questionsPage + 1, append: true });
+  };
 
   useEffect(() => {
     if (!selectedQuestionId) {
       setAnswers([]);
       setQuestionComments([]);
       setAnswerCommentsMap({});
+      setThreadLoading(false);
       return;
     }
 
     let cancelled = false;
+    setThreadLoading(true);
+    setQaError('');
 
     const run = async () => {
       try {
@@ -523,6 +772,10 @@ const ResourcePreviewPage = () => {
       } catch {
         if (cancelled) return;
         setQaError('Unable to load this discussion thread.');
+      } finally {
+        if (!cancelled) {
+          setThreadLoading(false);
+        }
       }
     };
 
@@ -532,6 +785,62 @@ const ResourcePreviewPage = () => {
       cancelled = true;
     };
   }, [selectedQuestionId, canModerate]);
+
+  useEffect(() => {
+    if (!selectedQuestionId) return;
+
+    const timer = window.setTimeout(() => {
+      if (targetCommentId) {
+        const commentElement = document.getElementById(`qa-comment-${targetCommentId}`);
+        if (commentElement) {
+          setHighlightedCommentId(targetCommentId);
+          commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTargetCommentId(null);
+          return;
+        }
+      }
+
+      if (targetAnswerId) {
+        const answerElement = document.getElementById(`qa-answer-${targetAnswerId}`);
+        if (answerElement) {
+          setHighlightedAnswerId(targetAnswerId);
+          answerElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTargetAnswerId(null);
+        }
+      }
+    }, 120);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [selectedQuestionId, answers, answerCommentsMap, questionComments, targetAnswerId, targetCommentId]);
+
+  useEffect(() => {
+    if (!highlightedAnswerId && !highlightedCommentId) return;
+    const timer = window.setTimeout(() => {
+      setHighlightedAnswerId(null);
+      setHighlightedCommentId(null);
+    }, 2200);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [highlightedAnswerId, highlightedCommentId]);
+
+  useEffect(() => {
+    if (!resourceId) return undefined;
+
+    const interval = window.setInterval(() => {
+      loadQuestions({ keepSelection: true });
+      if (selectedQuestionId) {
+        loadSelectedThread(selectedQuestionId);
+      }
+    }, AUTO_REFRESH_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [resourceId, selectedQuestionId, canModerate]);
 
   const handleCreateQuestion = async () => {
     if (!isAuthenticated || !moduleId || !resourceId || creatingQuestion) return;
@@ -545,9 +854,11 @@ const ResourcePreviewPage = () => {
         resource_id: resourceId,
         title: questionTitleInput.trim(),
         body: questionBodyInput.trim(),
+        is_anonymous: questionAnonymousInput,
       });
       setQuestionTitleInput('');
       setQuestionBodyInput('');
+      setQuestionAnonymousInput(false);
       await loadQuestions({ keepSelection: false, preferredId: created?.id || null });
     } catch {
       setQaError('Failed to post your question.');
@@ -559,14 +870,20 @@ const ResourcePreviewPage = () => {
   const handleCreateAnswer = async () => {
     if (!isAuthenticated || !selectedQuestionId || creatingAnswer) return;
     if (answerBodyInput.trim().length < 10) return;
+    if (isTeacher && answerExplanationInput.trim().length < 50) return;
+    if (isTeacher && answerExampleInput.trim().length < 10) return;
 
     setCreatingAnswer(true);
     setQaError('');
     try {
       await qaService.createAnswer(selectedQuestionId, {
         body: answerBodyInput.trim(),
+        explanation: isTeacher ? answerExplanationInput.trim() : null,
+        example: isTeacher ? answerExampleInput.trim() : null,
       });
       setAnswerBodyInput('');
+      setAnswerExplanationInput('');
+      setAnswerExampleInput('');
       await Promise.all([loadQuestions({ keepSelection: true }), loadSelectedThread(selectedQuestionId)]);
     } catch {
       setQaError('Failed to post your answer.');
@@ -612,6 +929,47 @@ const ResourcePreviewPage = () => {
     }
   };
 
+  const handleCreateConfusionSignal = async () => {
+    if (!isAuthenticated || !isStudent || !resourceId || !moduleId || creatingConfusionSignal) return;
+
+    const normalizedNote = confusionNoteInput.trim();
+    if (normalizedNote.length > 0 && normalizedNote.length < 3) {
+      setConfusionFeedback({
+        type: 'warning',
+        message: 'Please provide at least 3 characters in the confusion note, or leave it empty.',
+      });
+      return;
+    }
+
+    setCreatingConfusionSignal(true);
+    setConfusionFeedback({ type: '', message: '' });
+
+    try {
+      await confusionService.createSignal(resourceId, {
+        module_id: moduleId,
+        note: normalizedNote || undefined,
+      });
+      setConfusionNoteInput('');
+      setConfusionFeedback({
+        type: 'success',
+        message: 'Your confusion signal has been sent. A support case is now tracked for this resource.',
+      });
+
+      const refreshedRows = await confusionService.listMyCases({ page: 1, limit: 20 });
+      const nextRows = Array.isArray(refreshedRows)
+        ? refreshedRows.filter((item) => Number(item?.resource_id || 0) === Number(resourceId))
+        : [];
+      setMyConfusionCases(nextRows);
+    } catch {
+      setConfusionFeedback({
+        type: 'error',
+        message: 'Unable to submit confusion signal right now. Please try again.',
+      });
+    } finally {
+      setCreatingConfusionSignal(false);
+    }
+  };
+
   const handleAcceptAnswer = async (answerId) => {
     if (!canModerate || !answerId || moderationLoadingKey) return;
     setModerationLoadingKey(`accept-answer-${answerId}`);
@@ -619,8 +977,10 @@ const ResourcePreviewPage = () => {
     try {
       await qaService.acceptAnswer(answerId);
       await Promise.all([loadQuestions({ keepSelection: true }), loadSelectedThread(selectedQuestionId)]);
+      showSuccess('Accepted answer updated successfully.');
     } catch {
       setQaError('Failed to accept this answer.');
+      showError('Failed to accept this answer.');
     } finally {
       setModerationLoadingKey('');
     }
@@ -636,8 +996,10 @@ const ResourcePreviewPage = () => {
         reason: `Updated from preview page (${status})`,
       });
       await Promise.all([loadQuestions({ keepSelection: true }), loadSelectedThread(selectedQuestionId)]);
+      showInfo(`Question visibility updated: ${moderationVisibilityLabel(status)}.`);
     } catch {
       setQaError('Failed to update question moderation state.');
+      showError('Failed to update question moderation state.');
     } finally {
       setModerationLoadingKey('');
     }
@@ -653,8 +1015,10 @@ const ResourcePreviewPage = () => {
         reason: `Updated from preview page (${status})`,
       });
       await Promise.all([loadQuestions({ keepSelection: true }), loadSelectedThread(selectedQuestionId)]);
+      showInfo(`Answer visibility updated: ${moderationVisibilityLabel(status)}.`);
     } catch {
       setQaError('Failed to update answer moderation state.');
+      showError('Failed to update answer moderation state.');
     } finally {
       setModerationLoadingKey('');
     }
@@ -670,8 +1034,26 @@ const ResourcePreviewPage = () => {
         reason: `Updated from preview page (${status})`,
       });
       await loadSelectedThread(selectedQuestionId);
+      showInfo(`Comment visibility updated: ${moderationVisibilityLabel(status)}.`);
     } catch {
       setQaError('Failed to update comment moderation state.');
+      showError('Failed to update comment moderation state.');
+    } finally {
+      setModerationLoadingKey('');
+    }
+  };
+
+  const handleQuestionLifecycle = async (nextStatus) => {
+    if (!canModerate || !selectedQuestionId || moderationLoadingKey) return;
+    setModerationLoadingKey(`question-status-${selectedQuestionId}-${nextStatus}`);
+    setQaError('');
+    try {
+      await qaService.updateQuestionStatus(selectedQuestionId, { status: nextStatus });
+      await Promise.all([loadQuestions({ keepSelection: true }), loadSelectedThread(selectedQuestionId)]);
+      showSuccess(nextStatus === 'closed' ? 'Question closed. New answers and comments are now blocked.' : 'Question reopened successfully.');
+    } catch {
+      setQaError(nextStatus === 'closed' ? 'Failed to close this question.' : 'Failed to reopen this question.');
+      showError(nextStatus === 'closed' ? 'Failed to close this question.' : 'Failed to reopen this question.');
     } finally {
       setModerationLoadingKey('');
     }
@@ -918,7 +1300,28 @@ const ResourcePreviewPage = () => {
             </Button>
           </Stack>
 
-          {qaError ? <Alert severity="error" sx={{ mb: 2 }}>{qaError}</Alert> : null}
+          {qaError ? (
+            <Alert
+              severity="error"
+              sx={{ mb: 2 }}
+              action={
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => {
+                    loadQuestions({ keepSelection: true });
+                    if (selectedQuestionId) {
+                      loadSelectedThread(selectedQuestionId);
+                    }
+                  }}
+                >
+                  Retry
+                </Button>
+              }
+            >
+              {qaError}
+            </Alert>
+          ) : null}
 
           <Box sx={{ mb: 2.5 }}>
             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>Ask a question</Typography>
@@ -926,6 +1329,27 @@ const ResourcePreviewPage = () => {
               <Alert severity="info">Sign in to ask questions, answer, and comment.</Alert>
             ) : !moduleId ? (
               <Alert severity="warning">This resource is not linked to a module yet. Question creation is disabled.</Alert>
+            ) : null}
+
+            {isAuthenticated && linkedModules.length > 1 ? (
+              <FormControl size="small" fullWidth sx={{ mt: 1.25 }}>
+                <InputLabel id="qa-module-select-label">Module context</InputLabel>
+                <Select
+                  labelId="qa-module-select-label"
+                  value={String(selectedModuleId || '')}
+                  label="Module context"
+                  onChange={(event) => {
+                    const value = Number(event.target.value || 0);
+                    setSelectedModuleId(value > 0 ? value : null);
+                  }}
+                >
+                  {linkedModules.map((item) => (
+                    <MenuItem key={item.module_id} value={String(item.module_id)}>
+                      {item.module_code ? `${item.module_code} - ${item.module_title}` : item.module_title}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             ) : null}
 
             <Stack spacing={1.25} sx={{ mt: 1.25 }}>
@@ -944,6 +1368,17 @@ const ResourcePreviewPage = () => {
                 value={questionBodyInput}
                 onChange={(event) => setQuestionBodyInput(event.target.value)}
                 disabled={!isAuthenticated || !moduleId || creatingQuestion}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={questionAnonymousInput}
+                    onChange={(event) => setQuestionAnonymousInput(event.target.checked)}
+                    disabled={!isAuthenticated || !moduleId || creatingQuestion}
+                    size="small"
+                  />
+                }
+                label="Post this question anonymously"
               />
               <Box>
                 <Button
@@ -981,7 +1416,10 @@ const ResourcePreviewPage = () => {
                       <Box
                         key={question.id}
                         role="button"
-                        onClick={() => setSelectedQuestionId(question.id)}
+                        onClick={() => {
+                          setQaError('');
+                          setSelectedQuestionId(question.id);
+                        }}
                         sx={(theme) => ({
                           borderRadius: 2,
                           border: '1px solid',
@@ -993,8 +1431,15 @@ const ResourcePreviewPage = () => {
                       >
                         <Typography variant="body2" fontWeight={700}>{question.title}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.35 }}>
-                          {question.user_name || 'Unknown'} · {question.status}
+                          {question.user_name || 'Unknown'} · {QUESTION_STATUS_LABELS[question.status] || question.status}
                         </Typography>
+                        {question.is_anonymous ? (
+                          <Chip
+                            size="small"
+                            label="Anonymous"
+                            sx={{ mt: 0.6, height: 20 }}
+                          />
+                        ) : null}
                         {question.moderation_status && question.moderation_status !== 'active' ? (
                           <Chip
                             size="small"
@@ -1006,20 +1451,39 @@ const ResourcePreviewPage = () => {
                       </Box>
                     );
                   })}
+
+                  {questionsHasMore ? (
+                    <Button
+                      variant="outlined"
+                      onClick={handleLoadMoreQuestions}
+                      disabled={questionsLoadingMore || qaLoading}
+                      sx={{ textTransform: 'none', borderRadius: 2 }}
+                    >
+                      {questionsLoadingMore ? 'Loading more...' : 'Load more questions'}
+                    </Button>
+                  ) : null}
                 </Stack>
               )}
             </Box>
 
             <Box>
               {!selectedQuestion ? (
-                <Typography variant="body2" color="text.secondary">Select a question to view the full thread.</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Select a question to view the full thread. Comments are attached to a question or to a specific answer.
+                </Typography>
+              ) : threadLoading ? (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <CircularProgress size={18} />
+                  <Typography variant="body2" color="text.secondary">Loading thread...</Typography>
+                </Stack>
               ) : (
                 <Stack spacing={2}>
-                  <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
+                  <Box id={`qa-question-${selectedQuestion.id}`} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
                       <Typography variant="subtitle1" fontWeight={700}>{selectedQuestion.title}</Typography>
                       <Stack direction="row" spacing={0.6}>
-                        <Chip size="small" label={selectedQuestion.status || 'open'} color="default" />
+                        <Chip size="small" label={QUESTION_STATUS_LABELS[selectedQuestion.status] || selectedQuestion.status || 'Open'} color="default" />
+                        {selectedQuestion.is_anonymous ? <Chip size="small" label="Anonymous" color="info" /> : null}
                         {selectedQuestion.moderation_status && selectedQuestion.moderation_status !== 'active' ? (
                           <Chip
                             size="small"
@@ -1035,8 +1499,41 @@ const ResourcePreviewPage = () => {
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
                       {selectedQuestion.user_name || 'Unknown'} · {formatDateTime(selectedQuestion.created_at)}
                     </Typography>
+                    {selectedQuestion.status === 'closed' ? (
+                      <Alert severity="info" sx={{ mt: 1.25 }}>
+                        This discussion is closed. New answers and comments are no longer accepted.
+                      </Alert>
+                    ) : null}
+                    {selectedQuestion.moderation_status && selectedQuestion.moderation_status !== 'active' ? (
+                      <Alert severity={selectedQuestion.moderation_status === 'hidden' ? 'warning' : 'error'} sx={{ mt: 1.25 }}>
+                        Staff-only view: this question is currently {moderationVisibilityLabel(selectedQuestion.moderation_status).toLowerCase()}.
+                      </Alert>
+                    ) : null}
                     {canModerate ? (
                       <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                        {selectedQuestion.status === 'closed' ? (
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="primary"
+                            onClick={() => handleQuestionLifecycle('open')}
+                            disabled={Boolean(moderationLoadingKey) || selectedQuestion.moderation_status !== 'active'}
+                            sx={{ textTransform: 'none' }}
+                          >
+                            Reopen
+                          </Button>
+                        ) : (
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="secondary"
+                            onClick={() => handleQuestionLifecycle('closed')}
+                            disabled={Boolean(moderationLoadingKey) || selectedQuestion.moderation_status !== 'active'}
+                            sx={{ textTransform: 'none' }}
+                          >
+                            Close
+                          </Button>
+                        )}
                         <Button
                           size="small"
                           variant="outlined"
@@ -1075,7 +1572,20 @@ const ResourcePreviewPage = () => {
                     {questionComments.length ? (
                       <Stack spacing={0.8} sx={{ mb: 1.25 }}>
                         {questionComments.map((comment) => (
-                          <Box key={comment.id} sx={{ p: 1, borderRadius: 1.5, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06) }}>
+                          <Box
+                            id={`qa-comment-${comment.id}`}
+                            key={comment.id}
+                            sx={(theme) => ({
+                              p: 1,
+                              borderRadius: 1.5,
+                              border: highlightedCommentId === comment.id ? '1px solid' : 'none',
+                              borderColor: highlightedCommentId === comment.id ? 'warning.main' : 'transparent',
+                              bgcolor:
+                                highlightedCommentId === comment.id
+                                  ? alpha(theme.palette.warning.main, 0.18)
+                                  : alpha(theme.palette.primary.main, 0.06),
+                            })}
+                          >
                             <Typography variant="body2">{comment.body}</Typography>
                             <Typography variant="caption" color="text.secondary">
                               {comment.user_name || 'Unknown'} · {formatDateTime(comment.created_at)}
@@ -1108,12 +1618,12 @@ const ResourcePreviewPage = () => {
                         label="Add a comment"
                         value={questionCommentInput}
                         onChange={(event) => setQuestionCommentInput(event.target.value)}
-                        disabled={!isAuthenticated || creatingQuestionComment || selectedQuestion.status === 'closed'}
+                        disabled={!isAuthenticated || creatingQuestionComment || questionReadOnly}
                       />
                       <Button
                         variant="outlined"
                         onClick={handleCreateQuestionComment}
-                        disabled={!isAuthenticated || creatingQuestionComment || questionCommentInput.trim().length < 2 || selectedQuestion.status === 'closed'}
+                        disabled={!isAuthenticated || creatingQuestionComment || questionCommentInput.trim().length < 2 || questionReadOnly}
                         sx={{ textTransform: 'none', borderRadius: 2, whiteSpace: 'nowrap' }}
                       >
                         {creatingQuestionComment ? 'Posting...' : 'Comment'}
@@ -1123,8 +1633,12 @@ const ResourcePreviewPage = () => {
 
                   <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Post an answer</Typography>
-                    {selectedQuestion.status === 'closed' ? (
-                      <Alert severity="info" sx={{ mb: 1.2 }}>This question is closed. New answers and comments are disabled.</Alert>
+                    {questionReadOnly ? (
+                      <Alert severity="info" sx={{ mb: 1.2 }}>
+                        {selectedQuestion.status === 'closed'
+                          ? 'This question is closed. New answers and comments are disabled.'
+                          : 'This question is hidden from learners. Staff can review it, but new answers are disabled.'}
+                      </Alert>
                     ) : null}
                     <Stack spacing={1}>
                       <TextField
@@ -1134,13 +1648,41 @@ const ResourcePreviewPage = () => {
                         label="Your answer"
                         value={answerBodyInput}
                         onChange={(event) => setAnswerBodyInput(event.target.value)}
-                        disabled={!isAuthenticated || creatingAnswer || selectedQuestion.status === 'closed'}
+                        disabled={!isAuthenticated || creatingAnswer || questionReadOnly}
                       />
+                      {isTeacher ? (
+                        <>
+                          <TextField
+                            size="small"
+                            multiline
+                            minRows={2}
+                            label="Official explanation (min 50 chars)"
+                            value={answerExplanationInput}
+                            onChange={(event) => setAnswerExplanationInput(event.target.value)}
+                            disabled={!isAuthenticated || creatingAnswer || questionReadOnly}
+                            helperText="Teacher official answers require a detailed explanation."
+                          />
+                          <TextField
+                            size="small"
+                            label="Concrete example (min 10 chars)"
+                            value={answerExampleInput}
+                            onChange={(event) => setAnswerExampleInput(event.target.value)}
+                            disabled={!isAuthenticated || creatingAnswer || questionReadOnly}
+                          />
+                        </>
+                      ) : null}
                       <Box>
                         <Button
                           variant="contained"
                           onClick={handleCreateAnswer}
-                          disabled={!isAuthenticated || creatingAnswer || answerBodyInput.trim().length < 10 || selectedQuestion.status === 'closed'}
+                          disabled={
+                            !isAuthenticated
+                            || creatingAnswer
+                            || answerBodyInput.trim().length < 10
+                            || (isTeacher && answerExplanationInput.trim().length < 50)
+                            || (isTeacher && answerExampleInput.trim().length < 10)
+                            || questionReadOnly
+                          }
                           sx={{ textTransform: 'none', borderRadius: 2 }}
                         >
                           {creatingAnswer ? 'Posting...' : 'Post answer'}
@@ -1158,7 +1700,17 @@ const ResourcePreviewPage = () => {
                     ) : (
                       <Stack spacing={1.25}>
                         {answers.map((answer) => (
-                          <Box key={answer.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.25 }}>
+                          <Box
+                            id={`qa-answer-${answer.id}`}
+                            key={answer.id}
+                            sx={(theme) => ({
+                              border: '1px solid',
+                              borderColor: highlightedAnswerId === answer.id ? 'warning.main' : 'divider',
+                              borderRadius: 2,
+                              p: 1.25,
+                              bgcolor: highlightedAnswerId === answer.id ? alpha(theme.palette.warning.main, 0.12) : 'transparent',
+                            })}
+                          >
                             <Stack direction="row" spacing={0.75} sx={{ mb: 0.75, flexWrap: 'wrap' }}>
                               {answer.is_official ? <Chip size="small" label="Official" color="info" /> : null}
                               {answer.is_accepted ? <Chip size="small" label="Accepted" color="success" /> : null}
@@ -1171,6 +1723,26 @@ const ResourcePreviewPage = () => {
                               ) : null}
                             </Stack>
                             <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>{answer.body}</Typography>
+                            {answer.is_official ? (
+                              <Box sx={{ mt: 1, display: 'grid', gap: 0.8 }}>
+                                <Box sx={{ p: 1, borderRadius: 1.5, bgcolor: (theme) => alpha(theme.palette.info.main, 0.08) }}>
+                                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.35 }}>
+                                    Official explanation
+                                  </Typography>
+                                  <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                                    {answer.explanation || 'No explanation provided.'}
+                                  </Typography>
+                                </Box>
+                                <Box sx={{ p: 1, borderRadius: 1.5, bgcolor: (theme) => alpha(theme.palette.success.main, 0.08) }}>
+                                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.35 }}>
+                                    Concrete example
+                                  </Typography>
+                                  <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                                    {answer.example || 'No example provided.'}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            ) : null}
                             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
                               {answer.user_name || 'Unknown'} · {formatDateTime(answer.created_at)}
                             </Typography>
@@ -1201,7 +1773,20 @@ const ResourcePreviewPage = () => {
                               {Array.isArray(answerCommentsMap[answer.id]) && answerCommentsMap[answer.id].length ? (
                                 <Stack spacing={0.5} sx={{ mb: 0.8 }}>
                                   {answerCommentsMap[answer.id].map((comment) => (
-                                    <Box key={comment.id} sx={{ p: 0.75, borderRadius: 1.25, bgcolor: (theme) => alpha(theme.palette.info.main, 0.07) }}>
+                                    <Box
+                                      id={`qa-comment-${comment.id}`}
+                                      key={comment.id}
+                                      sx={(theme) => ({
+                                        p: 0.75,
+                                        borderRadius: 1.25,
+                                        border: highlightedCommentId === comment.id ? '1px solid' : 'none',
+                                        borderColor: highlightedCommentId === comment.id ? 'warning.main' : 'transparent',
+                                        bgcolor:
+                                          highlightedCommentId === comment.id
+                                            ? alpha(theme.palette.warning.main, 0.18)
+                                            : alpha(theme.palette.info.main, 0.07),
+                                      })}
+                                    >
                                       <Typography variant="caption" sx={{ display: 'block' }}>{comment.body}</Typography>
                                       <Typography variant="caption" color="text.secondary">
                                         {comment.user_name || 'Unknown'} · {formatDateTime(comment.created_at)}
@@ -1237,12 +1822,12 @@ const ResourcePreviewPage = () => {
                                   label="Comment on this answer"
                                   value={answerCommentInputs[answer.id] || ''}
                                   onChange={(event) => setAnswerCommentInputs((prev) => ({ ...prev, [answer.id]: event.target.value }))}
-                                  disabled={!isAuthenticated || creatingAnswerCommentId === answer.id || selectedQuestion.status === 'closed'}
+                                  disabled={!isAuthenticated || creatingAnswerCommentId === answer.id || questionReadOnly || answer.moderation_status !== 'active'}
                                 />
                                 <Button
                                   variant="outlined"
                                   onClick={() => handleCreateAnswerComment(answer.id)}
-                                  disabled={!isAuthenticated || creatingAnswerCommentId === answer.id || String(answerCommentInputs[answer.id] || '').trim().length < 2 || selectedQuestion.status === 'closed'}
+                                  disabled={!isAuthenticated || creatingAnswerCommentId === answer.id || String(answerCommentInputs[answer.id] || '').trim().length < 2 || questionReadOnly || answer.moderation_status !== 'active'}
                                   sx={{ textTransform: 'none', borderRadius: 2, whiteSpace: 'nowrap' }}
                                 >
                                   {creatingAnswerCommentId === answer.id ? 'Posting...' : 'Comment'}
@@ -1257,6 +1842,83 @@ const ResourcePreviewPage = () => {
                 </Stack>
               )}
             </Box>
+          </Box>
+
+          <Divider sx={{ my: 2.5 }} />
+          <Box>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+              <ReportProblem color="warning" />
+              <Typography variant="h6" fontWeight={700}>Need extra help? Confusion signal</Typography>
+            </Stack>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+              If this resource or thread is still unclear, you can escalate a confusion signal so staff can follow up through the confusion-case workflow.
+            </Typography>
+
+            {confusionFeedback.message ? (
+              <Alert severity={confusionFeedback.type || 'info'} sx={{ mb: 1.5 }}>
+                {confusionFeedback.message}
+              </Alert>
+            ) : null}
+
+            {!isAuthenticated ? (
+              <Alert severity="info">Sign in to open a confusion signal.</Alert>
+            ) : !isStudent ? (
+              <Alert severity="info">Confusion signals can be opened by student accounts.</Alert>
+            ) : !moduleId ? (
+              <Alert severity="warning">This resource is not linked to a module yet, so confusion signal creation is disabled.</Alert>
+            ) : (
+              <Stack spacing={1}>
+                <TextField
+                  size="small"
+                  multiline
+                  minRows={2}
+                  label="Optional note for staff"
+                  placeholder="Describe where you are blocked"
+                  value={confusionNoteInput}
+                  onChange={(event) => setConfusionNoteInput(event.target.value)}
+                  disabled={creatingConfusionSignal}
+                  helperText="Optional (3-1000 chars). Leave empty if not needed."
+                />
+                <Box>
+                  <Button
+                    variant="contained"
+                    color="warning"
+                    onClick={handleCreateConfusionSignal}
+                    disabled={creatingConfusionSignal}
+                    sx={{ textTransform: 'none', borderRadius: 2 }}
+                  >
+                    {creatingConfusionSignal ? 'Sending...' : "I don't understand this yet"}
+                  </Button>
+                </Box>
+              </Stack>
+            )}
+
+            {isAuthenticated && isStudent ? (
+              <Box sx={{ mt: 1.5 }}>
+                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.8 }}>
+                  My confusion cases for this resource
+                </Typography>
+                {myConfusionCasesLoading ? (
+                  <Typography variant="body2" color="text.secondary">Loading cases...</Typography>
+                ) : !myConfusionCases.length ? (
+                  <Typography variant="body2" color="text.secondary">No case yet for this resource.</Typography>
+                ) : (
+                  <Stack spacing={0.8}>
+                    {myConfusionCases.map((item) => (
+                      <Box key={item.id || `${item.case_id}-${item.status}`} sx={{ p: 1, borderRadius: 1.5, border: '1px solid', borderColor: 'divider' }}>
+                        <Stack direction="row" alignItems="center" spacing={0.8} sx={{ flexWrap: 'wrap' }}>
+                          <Typography variant="body2" fontWeight={600}>Case #{item.id || item.case_id}</Typography>
+                          <Chip size="small" label={item.status || 'nouveau'} color={String(item.status || '').toLowerCase() === 'resolu' ? 'success' : 'default'} />
+                        </Stack>
+                        <Typography variant="caption" color="text.secondary">
+                          Module {item.module_id || 'N/A'} · Updated {formatDateTime(item.updated_at || item.created_at)}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Stack>
+                )}
+              </Box>
+            ) : null}
           </Box>
         </Panel>
       </Box>

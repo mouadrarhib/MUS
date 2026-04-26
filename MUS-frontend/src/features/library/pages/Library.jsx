@@ -133,7 +133,7 @@ const Library = () => {
           title="No favorites yet"
           description="Save resources to keep your most useful materials in one place."
           actionLabel="Browse resources"
-          onAction={() => navigate('/dashboard/resources')}
+          onAction={() => navigate('/discover')}
         />
       ) : (
         <FavoritesTable

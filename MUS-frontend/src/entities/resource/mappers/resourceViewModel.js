@@ -1,3 +1,13 @@
+const parseMetadata = (metadata) => {
+  if (!metadata) return {};
+  if (typeof metadata === 'object') return metadata;
+  try {
+    return JSON.parse(metadata);
+  } catch {
+    return {};
+  }
+};
+
 export const toResourceDetailModel = (
   item,
   { defaultStatus = 'published', defaultAccessTier = 'free' } = {}
@@ -5,9 +15,14 @@ export const toResourceDetailModel = (
   if (!item) return null;
 
   const accessTier = item?.access_tier || item?.accessTier || defaultAccessTier;
+  const metadata = parseMetadata(item?.metadata);
+  const metadataAcademicContext = metadata?.academicContext && typeof metadata.academicContext === 'object'
+    ? metadata.academicContext
+    : {};
 
   return {
     ...item,
+    metadata,
     id: Number(item?.id || item?.resource_id || 0),
     title: item?.title || item?.resource_title || 'Untitled resource',
     description: item?.description || item?.resource_description || '',
@@ -25,12 +40,16 @@ export const toResourceDetailModel = (
       institution: item?.author?.institution || item?.institution_name || item?.institution,
     },
     academicContext: {
-      moduleId: item?.academicContext?.moduleId || item?.module_id,
-      moduleCode: item?.academicContext?.moduleCode || item?.module_code,
-      moduleTitle: item?.academicContext?.moduleTitle || item?.module_title,
-      difficulty: item?.academicContext?.difficulty || item?.difficulty,
-      chapter: item?.academicContext?.chapter || item?.chapter,
-      examRelated: item?.academicContext?.examRelated || item?.exam_related,
+      institutionId: String(item?.academicContext?.institutionId || metadataAcademicContext.institutionId || ''),
+      programId: String(item?.academicContext?.programId || metadataAcademicContext.programId || ''),
+      levelId: String(item?.academicContext?.levelId || metadataAcademicContext.levelId || ''),
+      semesterId: String(item?.academicContext?.semesterId || metadataAcademicContext.semesterId || ''),
+      moduleId: String(item?.academicContext?.moduleId || metadataAcademicContext.moduleId || item?.module_id || ''),
+      moduleCode: item?.academicContext?.moduleCode || metadataAcademicContext.moduleCode || item?.module_code || '',
+      moduleTitle: item?.academicContext?.moduleTitle || metadataAcademicContext.moduleTitle || item?.module_title || '',
+      difficulty: item?.academicContext?.difficulty || metadataAcademicContext.difficulty || item?.difficulty || 'medium',
+      chapter: item?.academicContext?.chapter || metadataAcademicContext.chapter || item?.chapter || '',
+      examRelated: Boolean(item?.academicContext?.examRelated ?? metadataAcademicContext.isExamRelated ?? metadataAcademicContext.examRelated ?? item?.exam_related),
     },
   };
 };

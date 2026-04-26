@@ -59,12 +59,24 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
   );
 
   const deriveNotificationTarget = (notification) => {
+    const type = String(notification?.type || '').trim().toUpperCase();
     const payload = notification?.payload || {};
+    const caseId = Number(payload.case_id || 0);
     const resourceId = Number(payload.resource_id || 0);
     const questionId = Number(payload.question_id || 0);
+    const answerId = Number(payload.answer_id || 0);
+    const commentId = Number(payload.comment_id || 0);
+    if (type.startsWith('CONFUSION_') && caseId > 0) {
+      return `/dashboard/confusion?case=${caseId}`;
+    }
     if (resourceId > 0) {
-      return questionId > 0
-        ? `/discover/resources/${resourceId}/preview?question=${questionId}`
+      const params = new URLSearchParams();
+      if (questionId > 0) params.set('question', String(questionId));
+      if (answerId > 0) params.set('answer', String(answerId));
+      if (commentId > 0) params.set('comment', String(commentId));
+      const suffix = params.toString();
+      return suffix
+        ? `/discover/resources/${resourceId}/preview?${suffix}`
         : `/discover/resources/${resourceId}/preview`;
     }
     return '/dashboard';

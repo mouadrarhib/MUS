@@ -35,6 +35,11 @@ const qaService = {
     return response?.data || null;
   },
 
+  updateQuestionStatus: async (questionId, payload) => {
+    const response = await patch(`${QA}/questions/${questionId}/status`, payload);
+    return response?.data || null;
+  },
+
   moderateQuestion: async (questionId, payload) => {
     const response = await patch(`${QA}/questions/${questionId}/moderate`, payload);
     return response?.data || null;
