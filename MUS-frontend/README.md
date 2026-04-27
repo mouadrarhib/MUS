@@ -213,6 +213,11 @@ Supported languages:
 | `VITE_API_URL` | ✅ Yes | Backend base URL (e.g. `http://localhost:5000` for local, `https://mus-mus-backend.up.railway.app` for production) |
 | `SCREENSHOT_BASE_URL` | Optional | Used by screenshot script (default: `http://127.0.0.1:5173`) |
 
+Vite mode files used by this project:
+
+- `.env.development` -> local backend (`http://localhost:5000`)
+- `.env.production` -> deployed backend (`https://mus-mus-backend.up.railway.app`)
+
 ---
 
 ## 📜 Available Scripts
@@ -220,7 +225,11 @@ Supported languages:
 | Command | Description |
 |---|---|
 | `npm run dev` | Start the Vite dev server |
+| `npm run dev:local` | Start dev server with development mode env |
+| `npm run dev:prod` | Start dev server with production mode env |
 | `npm run build` | Build for production |
+| `npm run build:dev` | Build using development mode env |
+| `npm run build:prod` | Build using production mode env |
 | `npm run preview` | Preview the production build |
 | `npm run lint` | Run ESLint |
 
