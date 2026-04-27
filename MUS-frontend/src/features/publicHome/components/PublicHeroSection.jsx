@@ -1,21 +1,10 @@
 import { useState } from "react";
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Stack, Typography, alpha } from "@mui/material";
+import { Box, Button, Paper, Stack, Typography, alpha } from "@mui/material";
 import { Search, KeyboardArrowDown } from "@mui/icons-material";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/app/providers/LanguageContext";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { keyframes } from "@mui/system";
-
-const pulseGlow = keyframes`
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(124, 92, 252, 0.35); }
-  70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(124, 92, 252, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(124, 92, 252, 0); }
-`;
-
-const shimmer = keyframes`
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-`;
+import PublicAuthPromptDialog from "@/features/publicHome/components/PublicAuthPromptDialog";
 
 const PublicHeroSection = ({ theme }) => {
   const { t } = useLanguage();
@@ -136,85 +125,20 @@ const PublicHeroSection = ({ theme }) => {
         </Stack>
       </Box>
 
-      <Dialog
+      <PublicAuthPromptDialog
         open={authPromptOpen}
         onClose={() => setAuthPromptOpen(false)}
-        keepMounted
-        transitionDuration={{ enter: 120, exit: 80 }}
-        onClose={() => setAuthPromptOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            border: "1px solid",
-            borderColor: "divider",
-            background: (theme) =>
-              theme.palette.mode === "dark"
-                ? "linear-gradient(145deg, #1b1630 0%, #131022 100%)"
-                : "linear-gradient(145deg, #ffffff 0%, #f6f8ff 100%)",
-            overflow: "hidden",
-          },
-        }}
-      >
-        <Box
-          sx={{
-            height: 3,
-            background: "linear-gradient(90deg, #7c5cfc, #3b82f6, #10b981)",
-            backgroundSize: "200% 100%",
-            animation: `${shimmer} 2.4s linear infinite`,
-          }}
-        />
-
-        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
-          <Stack direction="row" spacing={1.1} alignItems="center">
-            <Box
-              sx={{
-                width: 28,
-                height: 28,
-                borderRadius: "50%",
-                bgcolor: "rgba(124,92,252,0.14)",
-                color: "#7c5cfc",
-                display: "grid",
-                placeItems: "center",
-                animation: `${pulseGlow} 2.2s ease-in-out infinite`,
-              }}
-            >
-              <Search sx={{ fontSize: 16 }} />
-            </Box>
-            <Box component="span">
-          {t("publicHome.hero.authRequired.title", "Sign in required")}
-            </Box>
-          </Stack>
-        </DialogTitle>
-        <DialogContent>
-          <Typography color="text.secondary">
-            {t(
-              "publicHome.hero.authRequired.description",
-              "To search and access resources, please sign in first. You can also create a new account."
-            )}
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1 }}>
-          <Button onClick={() => setAuthPromptOpen(false)} sx={{ textTransform: "none", fontWeight: 600 }}>
-            {t("common.cancel", "Cancel")}
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={() => navigateToAuth("register")}
-            sx={{ borderRadius: 999, textTransform: "none", fontWeight: 700 }}
-          >
-            {t("publicHome.hero.register", "Register")}
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() => navigateToAuth("login")}
-            sx={{ borderRadius: 999, textTransform: "none", fontWeight: 700 }}
-          >
-            {t("publicHome.hero.signIn", "Sign in")}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onRegister={() => navigateToAuth("register")}
+        onLogin={() => navigateToAuth("login")}
+        title={t("publicHome.hero.authRequired.title", "Sign in required")}
+        description={t(
+          "publicHome.hero.authRequired.description",
+          "To search and access resources, please sign in first. You can also create a new account."
+        )}
+        cancelLabel={t("common.cancel", "Cancel")}
+        registerLabel={t("publicHome.hero.register", "Register")}
+        loginLabel={t("publicHome.hero.signIn", "Sign in")}
+      />
     </Box>
   );
 };

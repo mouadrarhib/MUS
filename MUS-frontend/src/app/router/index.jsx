@@ -56,9 +56,30 @@ const AppRouter = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        <Route path="/discover" element={<DiscoverResourcesPage />} />
-        <Route path="/discover/recommendations" element={<RecommendationsPage />} />
-        <Route path="/discover/resources/:id/preview" element={<ResourcePreviewPage />} />
+        <Route
+          path="/discover"
+          element={
+            <ProtectedRoute>
+              <DiscoverResourcesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/discover/recommendations"
+          element={
+            <ProtectedRoute>
+              <RecommendationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/discover/resources/:id/preview"
+          element={
+            <ProtectedRoute>
+              <ResourcePreviewPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* 3. Protected Dashboard Routes (The New Structure) */}
         <Route

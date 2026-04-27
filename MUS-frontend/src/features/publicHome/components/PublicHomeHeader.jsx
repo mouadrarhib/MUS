@@ -1,18 +1,18 @@
 import { useState } from "react";
-import { Box, Button, IconButton, Stack, Typography, alpha, Menu as MuiMenu, MenuItem, ListItemIcon } from "@mui/material";
-import { Language, DarkMode, LightMode, Check } from "@mui/icons-material";
+import { Box, Button, Stack, Typography, alpha, Menu as MuiMenu, MenuItem, ListItemIcon } from "@mui/material";
+import { Language, Check } from "@mui/icons-material";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { useThemeMode } from "@/app/providers/ThemeContext";
 import { useLanguage } from "@/app/providers/LanguageContext";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import PublicAuthPromptDialog from "@/features/publicHome/components/PublicAuthPromptDialog";
 import logo from "@/assets/images/logo.png";
 
 const PublicHomeHeader = ({ navLinks = [] }) => {
-  const { mode, toggleTheme } = useThemeMode();
   const { language, setLanguage, t } = useLanguage();
   const { isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [languageAnchorEl, setLanguageAnchorEl] = useState(null);
+  const [authPromptOpen, setAuthPromptOpen] = useState(false);
 
   const languageOpen = Boolean(languageAnchorEl);
 
@@ -32,6 +32,24 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
   const handleLogout = () => {
     navigate("/", { replace: true });
     logout();
+  };
+
+  const handleResourcesClick = (event) => {
+    if (isAuthenticated) return;
+    event.preventDefault();
+    setAuthPromptOpen(true);
+  };
+
+  const navigateToAuth = (mode) => {
+    const to = mode === "register" ? "/register" : "/login";
+    navigate(to, {
+      state: {
+        from: {
+          pathname: "/discover",
+        },
+      },
+    });
+    setAuthPromptOpen(false);
   };
 
   return (
@@ -82,6 +100,7 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
                 key={link.key || link.labelKey || link}
                 component={RouterLink}
                 to={link.key === "resources" ? "/discover" : "/"}
+                onClick={link.key === "resources" ? handleResourcesClick : undefined}
                 variant="body2"
                 sx={{
                   fontWeight: 600,
@@ -103,31 +122,8 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
           </Stack>
         </Stack>
 
-        {/* Right: Theme toggle + Sign in + Language */}
+        {/* Right: Sign in + Language */}
         <Stack direction="row" spacing={0.8} alignItems="center">
-          <IconButton
-            onClick={toggleTheme}
-            aria-label={mode === "light" ? "Switch to dark mode" : "Switch to light mode"}
-            size="small"
-            sx={{
-              color: "text.primary",
-              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
-              border: "1px solid",
-              borderColor: (theme) =>
-                theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
-              borderRadius: 2,
-              p: 0.8,
-              transition: "all 0.22s ease",
-              "&:hover": {
-                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.14),
-                borderColor: (theme) => alpha(theme.palette.primary.main, 0.3),
-                transform: "rotate(15deg)",
-              },
-            }}
-          >
-            {mode === "light" ? <DarkMode sx={{ fontSize: 18 }} /> : <LightMode sx={{ fontSize: 18, color: "warning.main" }} />}
-          </IconButton>
-
           {isAuthenticated ? (
             <>
               <Button
@@ -267,6 +263,21 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
               </MenuItem>
             ))}
           </MuiMenu>
+
+          <PublicAuthPromptDialog
+            open={authPromptOpen}
+            onClose={() => setAuthPromptOpen(false)}
+            onRegister={() => navigateToAuth("register")}
+            onLogin={() => navigateToAuth("login")}
+            title={t("publicHome.hero.authPrompt.title", "Sign in required")}
+            description={t(
+              "publicHome.hero.authPrompt.description",
+              "Please sign in or create an account to access personalized discover resources."
+            )}
+            cancelLabel={t("common.cancel", "Cancel")}
+            registerLabel={t("common.register", "Register")}
+            loginLabel={t("publicHome.header.signIn", "Sign in")}
+          />
         </Stack>
       </Box>
     </Box>

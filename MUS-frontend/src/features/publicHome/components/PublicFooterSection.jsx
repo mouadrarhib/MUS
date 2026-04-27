@@ -1,17 +1,41 @@
+import { useState } from "react";
 import { Box, Stack, Typography, IconButton, Button, alpha } from "@mui/material";
 import { LinkedIn, Instagram, X, ArrowForward } from "@mui/icons-material";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/app/providers/LanguageContext";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import PublicAuthPromptDialog from "@/features/publicHome/components/PublicAuthPromptDialog";
 import logo from "@/assets/images/logo.png";
 
 const PublicFooterSection = () => {
   const { t } = useLanguage();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [authPromptOpen, setAuthPromptOpen] = useState(false);
 
   const links = [
     { label: t("publicHome.footer.links.discover", "Discover"), to: "/discover" },
     { label: t("publicHome.footer.links.signIn", "Sign in"), to: "/login" },
     { label: t("publicHome.footer.links.register", "Register"), to: "/register" },
   ];
+
+  const handleLinkClick = (event, link) => {
+    if (link.to !== "/discover" || isAuthenticated) return;
+    event.preventDefault();
+    setAuthPromptOpen(true);
+  };
+
+  const navigateToAuth = (mode) => {
+    const to = mode === "register" ? "/register" : "/login";
+    navigate(to, {
+      state: {
+        from: {
+          pathname: "/discover",
+        },
+      },
+    });
+    setAuthPromptOpen(false);
+  };
 
   return (
     <Box
@@ -86,6 +110,7 @@ const PublicFooterSection = () => {
                 key={link.to}
                 component={RouterLink}
                 to={link.to}
+                onClick={(event) => handleLinkClick(event, link)}
                 endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
                 variant="outlined"
                 sx={{ borderRadius: 999, textTransform: "none", fontWeight: 700 }}
@@ -95,6 +120,21 @@ const PublicFooterSection = () => {
             ))}
           </Stack>
         </Stack>
+
+        <PublicAuthPromptDialog
+          open={authPromptOpen}
+          onClose={() => setAuthPromptOpen(false)}
+          onRegister={() => navigateToAuth("register")}
+          onLogin={() => navigateToAuth("login")}
+          title={t("publicHome.hero.authPrompt.title", "Sign in required")}
+          description={t(
+            "publicHome.hero.authPrompt.description",
+            "Please sign in or create an account to access personalized discover resources."
+          )}
+          cancelLabel={t("common.cancel", "Cancel")}
+          registerLabel={t("common.register", "Register")}
+          loginLabel={t("publicHome.header.signIn", "Sign in")}
+        />
 
         <Stack
           direction={{ xs: "column", sm: "row" }}
