@@ -17,7 +17,6 @@ const DashboardLayout = lazy(() => import('@/layouts/DashboardLayout'));
 const DashboardOverview = lazy(() => import('@/features/dashboard/pages/Overview'));
 const DiscoverResourcesPage = lazy(() => import('@/features/dashboard/pages/DiscoverResources'));
 const RecommendationsPage = lazy(() => import('@/features/dashboard/pages/Recommendations'));
-const ResourcePreviewPage = lazy(() => import('@/features/discover/pages/ResourcePreviewPage'));
 const UsersPage = lazy(() => import('@/features/users/pages/Users'));
 const PointsManagementPage = lazy(() => import('@/features/points/pages/PointsManagement'));
 const ResourcesPage = lazy(() => import('@/features/resources/pages/Resources'));
@@ -72,15 +71,6 @@ const AppRouter = () => {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/discover/resources/:id/preview"
-          element={
-            <ProtectedRoute>
-              <ResourcePreviewPage />
-            </ProtectedRoute>
-          }
-        />
-
         {/* 3. Protected Dashboard Routes (The New Structure) */}
         <Route
           path="/dashboard"
