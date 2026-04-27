@@ -91,19 +91,21 @@ apiClient.interceptors.response.use(
       // 1. Email verification requests (skipAuthRedirect flag)
       // 2. Login endpoint (to show error message instead of redirecting)
       // 3. Register endpoint (to show error message instead of redirecting)
-      // 4. Already on login or register pages (public auth pages)
-      const skipRedirect = error.config?.skipAuthRedirect || 
-                          error.config?.url?.includes('/login') ||
-                          error.config?.url?.includes('/register');
-      
-      const isOnPublicAuthPage = window.location.pathname === '/login' || 
-                                 window.location.pathname === '/register';
-      
-      if (!skipRedirect && !isOnPublicAuthPage) {
+      // 4. Already on public pages (home/login/register)
+      const skipRedirect = error.config?.skipAuthRedirect ||
+        error.config?.url?.includes('/login') ||
+        error.config?.url?.includes('/register');
+
+      const isOnPublicPage =
+        window.location.pathname === '/' ||
+        window.location.pathname === '/login' ||
+        window.location.pathname === '/register';
+
+      if (!skipRedirect && !isOnPublicPage) {
         localStorage.removeItem('authToken');
         localStorage.removeItem('userRoles');
         localStorage.removeItem('userData');
-        window.location.href = '/login';
+        window.location.href = '/';
       }
     }
     return Promise.reject(error);
