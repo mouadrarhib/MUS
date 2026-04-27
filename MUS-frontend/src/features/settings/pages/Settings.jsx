@@ -1,46 +1,15 @@
 // src/features/settings/pages/Settings.jsx
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert,
-  Autocomplete,
-  Box,
-  CircularProgress,
-  Typography,
-  Switch,
-  Button,
-  Select,
-  MenuItem,
-  FormControl,
-  Divider,
-  TextField,
-  Chip,
-  Slider,
-  ToggleButton,
-  ToggleButtonGroup,
+  Alert, Autocomplete, Box, CircularProgress, Typography,
+  Switch, Button, Select, MenuItem, FormControl, Divider,
+  TextField, Chip, ToggleButton, ToggleButtonGroup,
 } from '@mui/material';
 import {
-  Palette,
-  DarkMode,
-  LightMode,
-  FormatSize,
-  Notifications,
-  Email,
-  NotificationsActive,
-  NotificationsOff,
-  Security,
-  VpnKey,
-  Devices,
-  VisibilityOff,
-  Language,
-  AccessTime,
-  CalendarToday,
-  ManageAccounts,
-  Delete,
-  Download,
-  Link,
-  Check,
-  LocalOffer,
-  Settings as SettingsIcon,
+  Palette, DarkMode, LightMode, FormatSize, Notifications, Email,
+  NotificationsActive, NotificationsOff, Security, VpnKey, Devices,
+  VisibilityOff, Language, AccessTime, CalendarToday, ManageAccounts,
+  Delete, Download, Link, Check, LocalOffer, Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { useThemeMode } from '@/app/providers/ThemeContext';
 import { useAuth } from '@/features/auth/context/AuthContext';
@@ -57,158 +26,173 @@ import { PageHeader } from '@/shared/components/ui';
 import { SettingSection, SettingRow } from '@/features/settings/components/SettingLayout';
 import DeleteAccountDialog from '@/features/settings/components/DeleteAccountDialog';
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const toList = (response) => {
+  const payload = response?.data ?? response;
+  return Array.isArray(payload) ? payload : [];
+};
+
+const applyFontSize = (size) => {
+  localStorage.setItem('fontSize', size);
+  document.documentElement.style.fontSize =
+    size === 'small' ? '14px' : size === 'large' ? '18px' : '16px';
+};
+
+// ─── Settings Page ────────────────────────────────────────────────────────────
+
 const Settings = () => {
   const { mode, setThemeMode } = useThemeMode();
   const { user, isAdmin, isStudent, contributionMode, canContribute, refreshProfile } = useAuth();
   const { language, setLanguage: setAppLanguage, t } = useLanguage();
-  
-  // Theme & Appearance
-  const [fontSize, setFontSize] = useState(() => localStorage.getItem('fontSize') || 'medium');
-  
-  // Notifications
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [resourceAlerts, setResourceAlerts] = useState(true);
-  const [weeklyDigest, setWeeklyDigest] = useState(false);
-  
-  // Privacy & Security
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [showActivityStatus, setShowActivityStatus] = useState(true);
-  const [showProfile, setShowProfile] = useState(true);
-  
-  // Language & Region
-  const [timezone, setTimezone] = useState('Africa/Casablanca');
-  const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
-  
-  // Dialogs
+
+  // ── Appearance ─────────────────────────────────────────────────────────────
+  const [fontSize, setFontSize] = useState(
+    () => localStorage.getItem('fontSize') || 'medium'
+  );
+
+  // ── Notifications — grouped into one object to avoid stale closure bugs ───
+  const [notifications, setNotifications] = useState({
+    email: true,
+    push: true,
+    resourceAlerts: true,
+    weeklyDigest: false,
+  });
+
+  // ── Privacy & Security ─────────────────────────────────────────────────────
+  const [privacy, setPrivacy] = useState({
+    twoFactor: false,
+    showActivityStatus: true,
+    showProfile: true,
+  });
+
+  // ── Language & Region ──────────────────────────────────────────────────────
+  const [locale, setLocale] = useState({
+    timezone: 'Africa/Casablanca',
+    dateFormat: 'DD/MM/YYYY',
+  });
+
+  // ── Account Management ─────────────────────────────────────────────────────
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
+  const exportTimerRef = useRef(null);
+
+  // ── Tag Preferences ────────────────────────────────────────────────────────
   const [availableTags, setAvailableTags] = useState([]);
   const [preferenceTags, setPreferenceTags] = useState([]);
   const [tagPreferencesLoading, setTagPreferencesLoading] = useState(false);
   const [tagPreferencesSaving, setTagPreferencesSaving] = useState(false);
   const [tagPreferencesFeedback, setTagPreferencesFeedback] = useState({ type: '', message: '' });
+
+  // ── Academic Information ───────────────────────────────────────────────────
   const [academicLoading, setAcademicLoading] = useState(false);
   const [academicSaving, setAcademicSaving] = useState(false);
   const [academicFeedback, setAcademicFeedback] = useState({ type: '', message: '' });
   const [academicCatalogLoading, setAcademicCatalogLoading] = useState({
-    institutions: false,
-    programs: false,
-    levels: false,
-    semesters: false,
+    institutions: false, programs: false, levels: false, semesters: false,
   });
   const [academicInstitutions, setAcademicInstitutions] = useState([]);
   const [academicPrograms, setAcademicPrograms] = useState([]);
   const [academicLevels, setAcademicLevels] = useState([]);
   const [academicSemesters, setAcademicSemesters] = useState([]);
-  const [academicInstitutionId, setAcademicInstitutionId] = useState('');
-  const [academicProgramId, setAcademicProgramId] = useState('');
-  const [academicLevelId, setAcademicLevelId] = useState('');
-  const [academicSemesterId, setAcademicSemesterId] = useState('');
+  const [academicIds, setAcademicIds] = useState({
+    institution: '', program: '', level: '', semester: '',
+  });
   const [studentContributionMode, setStudentContributionMode] = useState('contributor');
   const [contributionModeSaving, setContributionModeSaving] = useState(false);
 
-  const toList = (response) => {
-    const payload = response?.data ?? response;
-    return Array.isArray(payload) ? payload : [];
-  };
+  // ── Persist helpers — stable refs, never trigger re-renders ───────────────
+  const persistAppearance = useCallback(async (values) => {
+    if (!user?.id) return;
+    try { await userSettingsService.updateAppearance(user.id, values); }
+    catch (err) { console.error('Failed to update appearance:', err); }
+  }, [user?.id]);
 
-  const loadProgramsForInstitution = async (institutionId) => {
-    if (!institutionId) {
-      setAcademicPrograms([]);
-      return [];
-    }
+  const persistNotifications = useCallback(async (values) => {
+    if (!user?.id) return;
+    try { await userSettingsService.updateNotifications(user.id, values); }
+    catch (err) { console.error('Failed to update notifications:', err); }
+  }, [user?.id]);
 
+  const persistPrivacy = useCallback(async (values) => {
+    if (!user?.id) return;
+    try { await userSettingsService.updatePrivacy(user.id, values); }
+    catch (err) { console.error('Failed to update privacy:', err); }
+  }, [user?.id]);
+
+  const persistLocale = useCallback(async (values) => {
+    if (!user?.id) return;
+    try { await userSettingsService.updateLocale(user.id, values); }
+    catch (err) { console.error('Failed to update locale:', err); }
+  }, [user?.id]);
+
+  // ── Cascade loaders ────────────────────────────────────────────────────────
+  const loadProgramsForInstitution = useCallback(async (institutionId) => {
+    if (!institutionId) { setAcademicPrograms([]); return []; }
     setAcademicCatalogLoading((prev) => ({ ...prev, programs: true }));
     try {
-      const response = await institutionProgramService.getProgramsByInstitution(institutionId);
-      const list = toList(response);
+      const list = toList(await institutionProgramService.getProgramsByInstitution(institutionId));
       setAcademicPrograms(list);
       return list;
-    } catch {
-      setAcademicPrograms([]);
-      return [];
-    } finally {
-      setAcademicCatalogLoading((prev) => ({ ...prev, programs: false }));
-    }
-  };
+    } catch { setAcademicPrograms([]); return []; }
+    finally { setAcademicCatalogLoading((prev) => ({ ...prev, programs: false })); }
+  }, []);
 
-  const loadLevelsForProgram = async (programId) => {
-    if (!programId) {
-      setAcademicLevels([]);
-      return [];
-    }
-
+  const loadLevelsForProgram = useCallback(async (programId) => {
+    if (!programId) { setAcademicLevels([]); return []; }
     setAcademicCatalogLoading((prev) => ({ ...prev, levels: true }));
     try {
-      const response = await levelService.getLevelsByProgram(programId);
-      const list = toList(response);
+      const list = toList(await levelService.getLevelsByProgram(programId));
       setAcademicLevels(list);
       return list;
-    } catch {
-      setAcademicLevels([]);
-      return [];
-    } finally {
-      setAcademicCatalogLoading((prev) => ({ ...prev, levels: false }));
-    }
-  };
+    } catch { setAcademicLevels([]); return []; }
+    finally { setAcademicCatalogLoading((prev) => ({ ...prev, levels: false })); }
+  }, []);
 
-  const loadSemestersForLevel = async (levelId) => {
-    if (!levelId) {
-      setAcademicSemesters([]);
-      return [];
-    }
-
+  const loadSemestersForLevel = useCallback(async (levelId) => {
+    if (!levelId) { setAcademicSemesters([]); return []; }
     setAcademicCatalogLoading((prev) => ({ ...prev, semesters: true }));
     try {
-      const response = await semesterService.getSemestersByLevel(levelId);
-      const list = toList(response);
+      const list = toList(await semesterService.getSemestersByLevel(levelId));
       setAcademicSemesters(list);
       return list;
-    } catch {
-      setAcademicSemesters([]);
-      return [];
-    } finally {
-      setAcademicCatalogLoading((prev) => ({ ...prev, semesters: false }));
-    }
-  };
+    } catch { setAcademicSemesters([]); return []; }
+    finally { setAcademicCatalogLoading((prev) => ({ ...prev, semesters: false })); }
+  }, []);
 
-  const applyFontSize = (size) => {
-    localStorage.setItem('fontSize', size);
-    document.documentElement.style.fontSize =
-      size === 'small' ? '14px' : size === 'large' ? '18px' : '16px';
-  };
-
-  const applyServerSettings = (settings) => {
+  // ── Apply server settings on load ─────────────────────────────────────────
+  const applyServerSettings = useCallback((settings) => {
     if (!settings) return;
-
     if ((settings.theme_mode === 'light' || settings.theme_mode === 'dark') && settings.theme_mode !== mode) {
       setThemeMode(settings.theme_mode);
     }
-
     if (settings.font_size) {
       setFontSize(settings.font_size);
       applyFontSize(settings.font_size);
     }
+    setNotifications({
+      email: Boolean(settings.email_notifications),
+      push: Boolean(settings.push_notifications),
+      resourceAlerts: Boolean(settings.resource_alerts),
+      weeklyDigest: Boolean(settings.weekly_digest),
+    });
+    setPrivacy({
+      twoFactor: Boolean(settings.two_factor_enabled),
+      showActivityStatus: Boolean(settings.show_activity_status),
+      showProfile: Boolean(settings.show_profile),
+    });
+    setAppLanguage(settings.language || 'en');
+    setLocale({
+      timezone: settings.timezone || 'Africa/Casablanca',
+      dateFormat: settings.date_format || 'DD/MM/YYYY',
+    });
+  }, [mode, setThemeMode, setAppLanguage]);
 
-    setEmailNotifications(Boolean(settings.email_notifications));
-    setPushNotifications(Boolean(settings.push_notifications));
-    setResourceAlerts(Boolean(settings.resource_alerts));
-    setWeeklyDigest(Boolean(settings.weekly_digest));
-    setTwoFactorEnabled(Boolean(settings.two_factor_enabled));
-    setShowActivityStatus(Boolean(settings.show_activity_status));
-    setShowProfile(Boolean(settings.show_profile));
-    const resolvedLanguage = settings.language || 'en';
-    setAppLanguage(resolvedLanguage);
-    setTimezone(settings.timezone || 'Africa/Casablanca');
-    setDateFormat(settings.date_format || 'DD/MM/YYYY');
-  };
-
+  // ── Sync settings on mount ─────────────────────────────────────────────────
   useEffect(() => {
-    const syncSettings = async () => {
-      if (!user?.id) return;
-
+    if (!user?.id) return;
+    (async () => {
       try {
         const existsResponse = await userSettingsService.exists(user.id);
         if (!existsResponse?.data) {
@@ -216,68 +200,51 @@ const Settings = () => {
           applyServerSettings(created?.data);
           return;
         }
-
         const loaded = await userSettingsService.getByUserId(user.id);
         applyServerSettings(loaded?.data);
-      } catch (error) {
-        console.error('Failed to sync user settings:', error);
-      }
-    };
-
-    syncSettings();
+      } catch (err) { console.error('Failed to sync user settings:', err); }
+    })();
   }, [user?.id]);
 
+  // ── Load tag preferences ───────────────────────────────────────────────────
   useEffect(() => {
-    const loadTagPreferences = async () => {
-      if (!user?.id || isAdmin) {
-        setAvailableTags([]);
-        setPreferenceTags([]);
-        setTagPreferencesFeedback({ type: '', message: '' });
-        return;
-      }
-
+    if (!user?.id || isAdmin) {
+      setAvailableTags([]);
+      setPreferenceTags([]);
+      setTagPreferencesFeedback({ type: '', message: '' });
+      return;
+    }
+    (async () => {
       setTagPreferencesLoading(true);
       setTagPreferencesFeedback({ type: '', message: '' });
-
       try {
         const [tagsCatalog, currentPreferences] = await Promise.all([
           tagService.listTags({ is_active: true, limit: 200 }, { force: true }),
           personalizationService.getMyTagPreferences(),
         ]);
-
         setAvailableTags(Array.isArray(tagsCatalog) ? tagsCatalog : []);
         setPreferenceTags(Array.isArray(currentPreferences) ? currentPreferences : []);
-      } catch (error) {
-        console.error('Failed to load tag preferences:', error);
-        setTagPreferencesFeedback({
-          type: 'error',
-          message: 'We could not load your learning interests right now.',
-        });
-      } finally {
-        setTagPreferencesLoading(false);
-      }
-    };
-
-    loadTagPreferences();
+      } catch (err) {
+        console.error('Failed to load tag preferences:', err);
+        setTagPreferencesFeedback({ type: 'error', message: 'We could not load your learning interests right now.' });
+      } finally { setTagPreferencesLoading(false); }
+    })();
   }, [user?.id, isAdmin]);
 
+  // ── Load academic information (students only) ──────────────────────────────
   useEffect(() => {
+    if (!user?.id || !isStudent) {
+      setAcademicInstitutions([]);
+      setAcademicPrograms([]);
+      setAcademicLevels([]);
+      setAcademicSemesters([]);
+      setAcademicIds({ institution: '', program: '', level: '', semester: '' });
+      setAcademicFeedback({ type: '', message: '' });
+      return;
+    }
+
     let mounted = true;
-
-    const loadAcademicInformation = async () => {
-      if (!user?.id || !isStudent) {
-        setAcademicInstitutions([]);
-        setAcademicPrograms([]);
-        setAcademicLevels([]);
-        setAcademicSemesters([]);
-        setAcademicInstitutionId('');
-        setAcademicProgramId('');
-        setAcademicLevelId('');
-        setAcademicSemesterId('');
-        setAcademicFeedback({ type: '', message: '' });
-        return;
-      }
-
+    (async () => {
       setAcademicLoading(true);
       setAcademicFeedback({ type: '', message: '' });
       setAcademicCatalogLoading((prev) => ({ ...prev, institutions: true }));
@@ -302,347 +269,196 @@ const Settings = () => {
         let levelId = String(profile?.level_id || profile?.current_level_id || '');
         if (!levelId && semesterId) {
           try {
-            const semesterDetails = await semesterService.getSemesterById(semesterId);
-            const semester = semesterDetails?.data ?? semesterDetails ?? {};
-            levelId = String(semester?.level_id || '');
-          } catch {
-            levelId = '';
-          }
+            const semDetails = await semesterService.getSemesterById(semesterId);
+            const sem = semDetails?.data ?? semDetails ?? {};
+            levelId = String(sem?.level_id || '');
+          } catch { levelId = ''; }
         }
 
         setAcademicInstitutions(institutions);
-        setAcademicInstitutionId(institutionId);
-        setAcademicProgramId(programId);
-        setAcademicLevelId(levelId);
-        setAcademicSemesterId(semesterId);
+        setAcademicIds({ institution: institutionId, program: programId, level: levelId, semester: semesterId });
 
-        if (institutionId) {
-          await loadProgramsForInstitution(institutionId);
-        }
-        if (programId) {
-          await loadLevelsForProgram(programId);
-        }
-        if (levelId) {
-          await loadSemestersForLevel(levelId);
-        }
+        if (institutionId) await loadProgramsForInstitution(institutionId);
+        if (programId) await loadLevelsForProgram(programId);
+        if (levelId) await loadSemestersForLevel(levelId);
+
       } catch {
         if (!mounted) return;
-        setAcademicFeedback({
-          type: 'error',
-          message: 'Failed to load your academic information.',
-        });
+        setAcademicFeedback({ type: 'error', message: 'Failed to load your academic information.' });
       } finally {
         if (mounted) {
           setAcademicCatalogLoading((prev) => ({ ...prev, institutions: false }));
           setAcademicLoading(false);
         }
       }
-    };
+    })();
+    return () => { mounted = false; };
+  }, [user?.id, isStudent, loadProgramsForInstitution, loadLevelsForProgram, loadSemestersForLevel]);
 
-    loadAcademicInformation();
-
-    return () => {
-      mounted = false;
-    };
-  }, [user?.id, isStudent]);
-
-  const handleAcademicInstitutionChange = async (value) => {
-    setAcademicInstitutionId(value);
-    setAcademicProgramId('');
-    setAcademicLevelId('');
-    setAcademicSemesterId('');
-    setAcademicPrograms([]);
-    setAcademicLevels([]);
-    setAcademicSemesters([]);
-    setAcademicFeedback({ type: '', message: '' });
-    await loadProgramsForInstitution(value);
-  };
-
-  const handleAcademicProgramChange = async (value) => {
-    setAcademicProgramId(value);
-    setAcademicLevelId('');
-    setAcademicSemesterId('');
-    setAcademicLevels([]);
-    setAcademicSemesters([]);
-    setAcademicFeedback({ type: '', message: '' });
-    await loadLevelsForProgram(value);
-  };
-
-  const handleAcademicLevelChange = async (value) => {
-    setAcademicLevelId(value);
-    setAcademicSemesterId('');
-    setAcademicSemesters([]);
-    setAcademicFeedback({ type: '', message: '' });
-    await loadSemestersForLevel(value);
-  };
-
-  const handleAcademicSemesterChange = (value) => {
-    setAcademicSemesterId(value);
-    setAcademicFeedback({ type: '', message: '' });
-  };
-
+  // ── Sync contribution mode ─────────────────────────────────────────────────
   useEffect(() => {
     if (!isStudent) return;
     setStudentContributionMode(contributionMode === 'learner' ? 'learner' : 'contributor');
   }, [contributionMode, isStudent]);
 
-  const handleSaveContributionMode = async () => {
-    if (!user?.id || !isStudent) return;
+  // ── Cleanup export timer on unmount ───────────────────────────────────────
+  useEffect(() => () => clearTimeout(exportTimerRef.current), []);
 
-    setContributionModeSaving(true);
-    setAcademicFeedback({ type: '', message: '' });
-    try {
-      await studentProfileService.updateStudentContributionMode(user.id, studentContributionMode);
-      await refreshProfile();
-      setAcademicFeedback({
-        type: 'success',
-        message: `Student mode updated to ${studentContributionMode}.`,
-      });
-    } catch (error) {
-      setAcademicFeedback({
-        type: 'error',
-        message: error?.response?.data?.message || 'Failed to update student mode.',
-      });
-    } finally {
-      setContributionModeSaving(false);
-    }
-  };
-
-  const handleSaveAcademicInformation = async () => {
-    if (!user?.id || !isStudent) return;
-
-    if (!academicInstitutionId || !academicProgramId || !academicSemesterId) {
-      setAcademicFeedback({
-        type: 'error',
-        message: 'Please select institution, program, and semester before saving.',
-      });
-      return;
-    }
-
-    setAcademicSaving(true);
-    setAcademicFeedback({ type: '', message: '' });
-    try {
-      await studentProfileService.updateStudentProfile(user.id, {
-        institution_id: Number(academicInstitutionId),
-        program_id: Number(academicProgramId),
-        current_semester_id: Number(academicSemesterId),
-      });
-
-      await refreshProfile();
-
-      setAcademicFeedback({
-        type: 'success',
-        message: 'Academic information updated successfully.',
-      });
-    } catch (error) {
-      setAcademicFeedback({
-        type: 'error',
-        message: error?.response?.data?.message || 'Failed to update academic information.',
-      });
-    } finally {
-      setAcademicSaving(false);
-    }
-  };
-
-  const persistNotifications = async (nextValues) => {
-    if (!user?.id) return;
-    try {
-      await userSettingsService.updateNotifications(user.id, nextValues);
-    } catch (error) {
-      console.error('Failed to update notifications settings:', error);
-    }
-  };
-
-  const persistPrivacy = async (nextValues) => {
-    if (!user?.id) return;
-    try {
-      await userSettingsService.updatePrivacy(user.id, nextValues);
-    } catch (error) {
-      console.error('Failed to update privacy settings:', error);
-    }
-  };
-
-  const persistLocale = async (nextValues) => {
-    if (!user?.id) return;
-    try {
-      await userSettingsService.updateLocale(user.id, nextValues);
-    } catch (error) {
-      console.error('Failed to update locale settings:', error);
-    }
-  };
-
-  const persistAppearance = async (nextValues) => {
-    if (!user?.id) return;
-    try {
-      await userSettingsService.updateAppearance(user.id, nextValues);
-    } catch (error) {
-      console.error('Failed to update appearance settings:', error);
-    }
-  };
-
-  const handleThemeChange = async () => {
-    const nextTheme = mode === 'dark' ? 'light' : 'dark';
-    setThemeMode(nextTheme);
-    await persistAppearance({
-      theme_mode: nextTheme,
-      font_size: fontSize,
-    });
-  };
-
-  const handleFontSizeChange = async (_event, newSize) => {
-    if (newSize) {
-      setFontSize(newSize);
-      applyFontSize(newSize);
-      await persistAppearance({
-        theme_mode: mode,
-        font_size: newSize,
-      });
-    }
-  };
-
-  const handleEmailNotificationsChange = async (value) => {
-    setEmailNotifications(value);
-    await persistNotifications({
-      email_notifications: value,
-      push_notifications: pushNotifications,
-      resource_alerts: resourceAlerts,
-      weekly_digest: weeklyDigest,
-    });
-  };
-
-  const handlePushNotificationsChange = async (value) => {
-    setPushNotifications(value);
-    await persistNotifications({
-      email_notifications: emailNotifications,
-      push_notifications: value,
-      resource_alerts: resourceAlerts,
-      weekly_digest: weeklyDigest,
-    });
-  };
-
-  const handleResourceAlertsChange = async (value) => {
-    setResourceAlerts(value);
-    await persistNotifications({
-      email_notifications: emailNotifications,
-      push_notifications: pushNotifications,
-      resource_alerts: value,
-      weekly_digest: weeklyDigest,
-    });
-  };
-
-  const handleWeeklyDigestChange = async (value) => {
-    setWeeklyDigest(value);
-    await persistNotifications({
-      email_notifications: emailNotifications,
-      push_notifications: pushNotifications,
-      resource_alerts: resourceAlerts,
-      weekly_digest: value,
-    });
-  };
-
-  const handleTwoFactorChange = async () => {
-    const next = !twoFactorEnabled;
-    setTwoFactorEnabled(next);
-    await persistPrivacy({
-      show_activity_status: showActivityStatus,
-      show_profile: showProfile,
-      two_factor_enabled: next,
-    });
-  };
-
-  const handleShowActivityStatusChange = async (value) => {
-    setShowActivityStatus(value);
-    await persistPrivacy({
-      show_activity_status: value,
-      show_profile: showProfile,
-      two_factor_enabled: twoFactorEnabled,
-    });
-  };
-
-  const handleShowProfileChange = async (value) => {
-    setShowProfile(value);
-    await persistPrivacy({
-      show_activity_status: showActivityStatus,
-      show_profile: value,
-      two_factor_enabled: twoFactorEnabled,
-    });
-  };
-
-  const handleLanguageChange = async (value) => {
-    setAppLanguage(value);
-    await persistLocale({
-      language: value,
-      timezone: timezone,
-      date_format: dateFormat,
-    });
-  };
-
-  const handleTimezoneChange = async (value) => {
-    setTimezone(value);
-    await persistLocale({
-      language: language,
-      timezone: value,
-      date_format: dateFormat,
-    });
-  };
-
-  const handleDateFormatChange = async (value) => {
-    setDateFormat(value);
-    await persistLocale({
-      language: language,
-      timezone: timezone,
-      date_format: value,
-    });
-  };
-
-  const handleExportData = async () => {
-    setExportLoading(true);
-    // Simulate export
-    setTimeout(() => {
-      setExportLoading(false);
-      // Create a dummy file download
-      const data = { user: user, exportDate: new Date().toISOString() };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'my-data-export.json';
-      a.click();
-      URL.revokeObjectURL(url);
-    }, 1500);
-  };
-
-  const tagOptions = (() => {
+  // ── Derived tag values — memoized to avoid recomputing on every render ─────
+  const tagOptions = useMemo(() => {
     const merged = [...availableTags, ...preferenceTags];
     const seen = new Set();
-
     return merged.filter((tag) => {
       const id = Number(tag?.id || tag?.tag_id);
       if (!Number.isFinite(id) || seen.has(id)) return false;
       seen.add(id);
       return true;
     });
-  })();
+  }, [availableTags, preferenceTags]);
 
-  const selectedPreferenceIds = preferenceTags
-    .map((tag) => Number(tag?.id || tag?.tag_id))
-    .filter(Number.isFinite);
+  const selectedPreferenceIds = useMemo(
+    () => preferenceTags.map((t) => Number(t?.id || t?.tag_id)).filter(Number.isFinite),
+    [preferenceTags]
+  );
 
-  const selectedPreferenceOptions = tagOptions.filter((tag) => selectedPreferenceIds.includes(Number(tag.id || tag.tag_id)));
+  const selectedPreferenceOptions = useMemo(
+    () => tagOptions.filter((tag) => selectedPreferenceIds.includes(Number(tag.id || tag.tag_id))),
+    [tagOptions, selectedPreferenceIds]
+  );
 
-  const handleTagPreferencesChange = (_event, selected) => {
+  // ── Appearance handlers ────────────────────────────────────────────────────
+  const handleThemeChange = useCallback(async () => {
+    const next = mode === 'dark' ? 'light' : 'dark';
+    setThemeMode(next);
+    await persistAppearance({ theme_mode: next, font_size: fontSize });
+  }, [mode, fontSize, setThemeMode, persistAppearance]);
+
+  const handleFontSizeChange = useCallback(async (_e, newSize) => {
+    if (!newSize) return;
+    setFontSize(newSize);
+    applyFontSize(newSize);
+    await persistAppearance({ theme_mode: mode, font_size: newSize });
+  }, [mode, persistAppearance]);
+
+  // ── Notification handler — single function, functional update avoids stale state ─
+  const handleNotificationChange = useCallback(async (key, value) => {
+    setNotifications((prev) => {
+      const next = { ...prev, [key]: value };
+      persistNotifications({
+        email_notifications: next.email,
+        push_notifications: next.push,
+        resource_alerts: next.resourceAlerts,
+        weekly_digest: next.weeklyDigest,
+      });
+      return next;
+    });
+  }, [persistNotifications]);
+
+  // ── Privacy handler — same single-function pattern ─────────────────────────
+  const handlePrivacyChange = useCallback(async (key, value) => {
+    setPrivacy((prev) => {
+      const next = { ...prev, [key]: value };
+      persistPrivacy({
+        two_factor_enabled: next.twoFactor,
+        show_activity_status: next.showActivityStatus,
+        show_profile: next.showProfile,
+      });
+      return next;
+    });
+  }, [persistPrivacy]);
+
+  // ── Language & Region handlers ─────────────────────────────────────────────
+  const handleLanguageChange = useCallback(async (value) => {
+    setAppLanguage(value);
+    await persistLocale({ language: value, timezone: locale.timezone, date_format: locale.dateFormat });
+  }, [locale, setAppLanguage, persistLocale]);
+
+  const handleLocaleChange = useCallback(async (key, value) => {
+    setLocale((prev) => {
+      const next = { ...prev, [key]: value };
+      persistLocale({ language, timezone: next.timezone, date_format: next.dateFormat });
+      return next;
+    });
+  }, [language, persistLocale]);
+
+  // ── Academic handlers ──────────────────────────────────────────────────────
+  const handleAcademicInstitutionChange = useCallback(async (value) => {
+    setAcademicIds({ institution: value, program: '', level: '', semester: '' });
+    setAcademicPrograms([]);
+    setAcademicLevels([]);
+    setAcademicSemesters([]);
+    setAcademicFeedback({ type: '', message: '' });
+    await loadProgramsForInstitution(value);
+  }, [loadProgramsForInstitution]);
+
+  const handleAcademicProgramChange = useCallback(async (value) => {
+    setAcademicIds((prev) => ({ ...prev, program: value, level: '', semester: '' }));
+    setAcademicLevels([]);
+    setAcademicSemesters([]);
+    setAcademicFeedback({ type: '', message: '' });
+    await loadLevelsForProgram(value);
+  }, [loadLevelsForProgram]);
+
+  const handleAcademicLevelChange = useCallback(async (value) => {
+    setAcademicIds((prev) => ({ ...prev, level: value, semester: '' }));
+    setAcademicSemesters([]);
+    setAcademicFeedback({ type: '', message: '' });
+    await loadSemestersForLevel(value);
+  }, [loadSemestersForLevel]);
+
+  const handleAcademicSemesterChange = useCallback((value) => {
+    setAcademicIds((prev) => ({ ...prev, semester: value }));
+    setAcademicFeedback({ type: '', message: '' });
+  }, []);
+
+  const handleSaveContributionMode = useCallback(async () => {
+    if (!user?.id || !isStudent) return;
+    setContributionModeSaving(true);
+    setAcademicFeedback({ type: '', message: '' });
+    try {
+      await studentProfileService.updateStudentContributionMode(user.id, studentContributionMode);
+      await refreshProfile();
+      setAcademicFeedback({ type: 'success', message: `Student mode updated to ${studentContributionMode}.` });
+    } catch (err) {
+      setAcademicFeedback({ type: 'error', message: err?.response?.data?.message || 'Failed to update student mode.' });
+    } finally { setContributionModeSaving(false); }
+  }, [user?.id, isStudent, studentContributionMode, refreshProfile]);
+
+  const handleSaveAcademicInformation = useCallback(async () => {
+    if (!user?.id || !isStudent) return;
+    const { institution, program, semester } = academicIds;
+    if (!institution || !program || !semester) {
+      setAcademicFeedback({ type: 'error', message: 'Please select institution, program, and semester before saving.' });
+      return;
+    }
+    setAcademicSaving(true);
+    setAcademicFeedback({ type: '', message: '' });
+    try {
+      await studentProfileService.updateStudentProfile(user.id, {
+        institution_id: Number(institution),
+        program_id: Number(program),
+        current_semester_id: Number(semester),
+      });
+      await refreshProfile();
+      setAcademicFeedback({ type: 'success', message: 'Academic information updated successfully.' });
+    } catch (err) {
+      setAcademicFeedback({ type: 'error', message: err?.response?.data?.message || 'Failed to update academic information.' });
+    } finally { setAcademicSaving(false); }
+  }, [user?.id, isStudent, academicIds, refreshProfile]);
+
+  // ── Tag preference handlers ────────────────────────────────────────────────
+  const handleTagPreferencesChange = useCallback((_e, selected) => {
     setPreferenceTags(Array.isArray(selected) ? selected : []);
     setTagPreferencesFeedback({ type: '', message: '' });
-  };
+  }, []);
 
-  const handleSaveTagPreferences = async () => {
+  const handleSaveTagPreferences = useCallback(async () => {
     const tagIds = preferenceTags
       .map((tag) => Number(tag?.id || tag?.tag_id))
       .filter(Number.isFinite);
 
     setTagPreferencesSaving(true);
     setTagPreferencesFeedback({ type: '', message: '' });
-
     try {
       const saved = await personalizationService.setMyTagPreferences(tagIds);
       setPreferenceTags(Array.isArray(saved) ? saved : []);
@@ -652,571 +468,430 @@ const Settings = () => {
           ? 'Your learning interests were updated successfully.'
           : 'Your learning interests were cleared successfully.',
       });
-    } catch (error) {
-      console.error('Failed to save tag preferences:', error);
-      setTagPreferencesFeedback({
-        type: 'error',
-        message: error?.response?.data?.message || 'Failed to save your learning interests.',
-      });
-    } finally {
-      setTagPreferencesSaving(false);
-    }
-  };
+    } catch (err) {
+      console.error('Failed to save tag preferences:', err);
+      setTagPreferencesFeedback({ type: 'error', message: err?.response?.data?.message || 'Failed to save your learning interests.' });
+    } finally { setTagPreferencesSaving(false); }
+  }, [preferenceTags]);
 
+  // ── Export handler — timer ref prevents state update on unmounted component ─
+  const handleExportData = useCallback(() => {
+    setExportLoading(true);
+    exportTimerRef.current = setTimeout(() => {
+      setExportLoading(false);
+      const data = { user, exportDate: new Date().toISOString() };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'my-data-export.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }, 1500);
+  }, [user]);
+
+  // ── Delete account ─────────────────────────────────────────────────────────
+  const handleDeleteAccount = useCallback(() => {
+    // TODO: call userSettingsService.deleteAccount(user.id)
+    setDeleteDialogOpen(false);
+    setDeleteConfirmText('');
+  }, []);
+
+  const handleDeleteDialogClose = useCallback(() => {
+    setDeleteDialogOpen(false);
+    setDeleteConfirmText('');
+  }, []);
+
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <Box sx={{ width: '100%', minHeight: '100%' }}>
+    <Box sx={{ maxWidth: 860, mx: 'auto', px: { xs: 2, sm: 3 }, py: { xs: 3, sm: 4 } }}>
       <PageHeader
-        title={t('pages.settings.title')}
-        subtitle={t('pages.settings.subtitle')}
         icon={SettingsIcon}
-        breadcrumbs={[
-          { label: t('common.dashboard'), to: '/dashboard' },
-          { label: t('common.settings') },
-        ]}
+        title={t('settings.title', 'Settings')}
+        subtitle={t('settings.subtitle', 'Manage your account preferences')}
       />
 
-      {/* Theme & Appearance */}
-      <SettingSection
-        icon={<Palette sx={{ fontSize: 24, color: 'white' }} />}
-        title="Theme & Appearance"
-        subtitle="Customize how the app looks and feels"
-        color="primary"
-      >
-        <SettingRow
-          icon={mode === 'dark' ? <DarkMode sx={{ fontSize: 20 }} /> : <LightMode sx={{ fontSize: 20 }} />}
-          title="Dark Mode"
-          description="Switch between light and dark theme"
-          action={
-            <Switch
-              checked={mode === 'dark'}
-              onChange={handleThemeChange}
-              color="primary"
-            />
-          }
-        />
-        <SettingRow
-          icon={<FormatSize sx={{ fontSize: 20 }} />}
-          title="Font Size"
-          description="Adjust the text size across the application"
-          noBorder
-          action={
-            <ToggleButtonGroup
-              value={fontSize}
-              exclusive
-              onChange={handleFontSizeChange}
-              size="small"
-              sx={{
-                '& .MuiToggleButton-root': {
-                  px: 2,
-                  textTransform: 'none',
-                  fontWeight: 600,
-                },
-              }}
-            >
-              <ToggleButton value="small">Small</ToggleButton>
-              <ToggleButton value="medium">Medium</ToggleButton>
-              <ToggleButton value="large">Large</ToggleButton>
-            </ToggleButtonGroup>
-          }
-        />
-      </SettingSection>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
-      {/* Notifications */}
-      <SettingSection
-        icon={<Notifications sx={{ fontSize: 24, color: 'white' }} />}
-        title="Notifications"
-        subtitle="Control how you receive updates and alerts"
-        color="info"
-      >
-        <SettingRow
-          icon={<Email sx={{ fontSize: 20 }} />}
-          title="Email Notifications"
-          description="Receive updates and alerts via email"
-          action={
-            <Switch
-              checked={emailNotifications}
-              onChange={(e) => handleEmailNotificationsChange(e.target.checked)}
-              color="info"
-            />
-          }
-        />
-        <SettingRow
-          icon={<NotificationsActive sx={{ fontSize: 20 }} />}
-          title="Push Notifications"
-          description="Get real-time notifications in your browser"
-          action={
-            <Switch
-              checked={pushNotifications}
-              onChange={(e) => handlePushNotificationsChange(e.target.checked)}
-              color="info"
-            />
-          }
-        />
-        <SettingRow
-          icon={<NotificationsOff sx={{ fontSize: 20 }} />}
-          title="Resource Alerts"
-          description="Notify when new resources are available"
-          action={
-            <Switch
-              checked={resourceAlerts}
-              onChange={(e) => handleResourceAlertsChange(e.target.checked)}
-              color="info"
-            />
-          }
-        />
-        <SettingRow
-          icon={<CalendarToday sx={{ fontSize: 20 }} />}
-          title="Weekly Digest"
-          description="Receive a weekly summary of activities"
-          noBorder
-          action={
-            <Switch
-              checked={weeklyDigest}
-              onChange={(e) => handleWeeklyDigestChange(e.target.checked)}
-              color="info"
-            />
-          }
-        />
-      </SettingSection>
+        {/* ── Theme & Appearance ─────────────────────────────────────────── */}
+        <SettingSection icon={<Palette />} title="Theme & Appearance" subtitle="Customize how the app looks and feels" color="primary">
+          <SettingRow
+            icon={mode === 'dark' ? <DarkMode /> : <LightMode />}
+            title="Dark Mode"
+            description="Switch between light and dark theme"
+            action={<Switch checked={mode === 'dark'} onChange={handleThemeChange} color="primary" />}
+          />
+          <SettingRow
+            icon={<FormatSize />}
+            title="Font Size"
+            description="Adjust the text size across the application"
+            noBorder
+            action={
+              <ToggleButtonGroup value={fontSize} exclusive onChange={handleFontSizeChange} size="small">
+                <ToggleButton value="small">Small</ToggleButton>
+                <ToggleButton value="medium">Medium</ToggleButton>
+                <ToggleButton value="large">Large</ToggleButton>
+              </ToggleButtonGroup>
+            }
+          />
+        </SettingSection>
 
-      {!isAdmin ? (
-        <SettingSection
-          icon={<LocalOffer sx={{ fontSize: 24, color: 'white' }} />}
-          title="Learning Interests"
-          subtitle="Choose the tags that personalize recommendations and discovery across the platform"
-          color="secondary"
-        >
-          <Box sx={{ display: 'grid', gap: 2.25 }}>
-            {tagPreferencesFeedback.message ? (
-              <Alert severity={tagPreferencesFeedback.type || 'info'} sx={{ borderRadius: 2 }}>
+        {/* ── Notifications ─────────────────────────────────────────────── */}
+        <SettingSection icon={<Notifications />} title="Notifications" subtitle="Control how you receive updates and alerts" color="info">
+          <SettingRow
+            icon={<Email />}
+            title="Email Notifications"
+            description="Receive updates and alerts via email"
+            action={<Switch checked={notifications.email} onChange={(e) => handleNotificationChange('email', e.target.checked)} color="info" />}
+          />
+          <SettingRow
+            icon={<NotificationsActive />}
+            title="Push Notifications"
+            description="Get real-time notifications in your browser"
+            action={<Switch checked={notifications.push} onChange={(e) => handleNotificationChange('push', e.target.checked)} color="info" />}
+          />
+          <SettingRow
+            icon={<NotificationsActive />}
+            title="Resource Alerts"
+            description="Notify when new resources are available"
+            action={<Switch checked={notifications.resourceAlerts} onChange={(e) => handleNotificationChange('resourceAlerts', e.target.checked)} color="info" />}
+          />
+          <SettingRow
+            icon={<NotificationsOff />}
+            title="Weekly Digest"
+            description="Receive a weekly summary of activities"
+            noBorder
+            action={<Switch checked={notifications.weeklyDigest} onChange={(e) => handleNotificationChange('weeklyDigest', e.target.checked)} color="info" />}
+          />
+        </SettingSection>
+
+        {/* ── Learning Interests (non-admins) ───────────────────────────── */}
+        {!isAdmin && (
+          <SettingSection icon={<LocalOffer />} title="Learning Interests" subtitle="Choose the tags that personalize recommendations and discovery across the platform" color="secondary">
+            {tagPreferencesFeedback.message && (
+              <Alert severity={tagPreferencesFeedback.type || 'info'} sx={{ m: 2, mb: 0 }}>
                 {tagPreferencesFeedback.message}
               </Alert>
-            ) : null}
-
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-              <Box>
-                <Typography variant="body1" fontWeight={600}>
-                  Preferred Tags
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Leave this empty, or choose one or more tags to improve your resource feed.
-                </Typography>
-              </Box>
-              <Chip
-                label={`${selectedPreferenceIds.length} selected`}
-                size="small"
-                color={selectedPreferenceIds.length >= 1 ? 'success' : 'default'}
-                variant={selectedPreferenceIds.length >= 1 ? 'filled' : 'outlined'}
-                sx={{ fontWeight: 600 }}
-              />
-            </Box>
-
-            <Autocomplete
-              multiple
-              options={tagOptions}
-              loading={tagPreferencesLoading}
-              value={selectedPreferenceOptions}
-              disableCloseOnSelect
-              filterSelectedOptions
-              isOptionEqualToValue={(option, value) => Number(option.id || option.tag_id) === Number(value.id || value.tag_id)}
-              getOptionLabel={(option) => option.name || option.tag_name || ''}
-              onChange={handleTagPreferencesChange}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip
-                    {...getTagProps({ index })}
-                    key={`pref-tag-${option.id || option.tag_id}`}
-                    label={option.name || option.tag_name}
-                    color="secondary"
-                    variant="outlined"
-                    size="small"
-                    sx={{ fontWeight: 600 }}
-                  />
-                ))
-              }
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Interest Tags"
-                  placeholder="Choose your learning interests"
-                  helperText="These tags populate user_tag_preferences and help generate better recommendations."
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {tagPreferencesLoading ? <CircularProgress color="inherit" size={18} sx={{ mr: 1 }} /> : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
-                  }}
+            )}
+            <Box sx={{ p: { xs: 2.5, sm: 3 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="body2" fontWeight={600}>Preferred Tags</Typography>
+                <Chip
+                  label={`${selectedPreferenceIds.length} selected`}
+                  size="small"
+                  color={selectedPreferenceIds.length >= 1 ? 'success' : 'default'}
+                  variant={selectedPreferenceIds.length >= 1 ? 'filled' : 'outlined'}
+                  sx={{ fontWeight: 600 }}
                 />
-              )}
-            />
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, flexWrap: 'wrap' }}>
-              <Typography variant="caption" color="text.secondary">
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                Leave this empty, or choose one or more tags to improve your resource feed.
+              </Typography>
+              <Autocomplete
+                multiple
+                options={tagOptions}
+                value={selectedPreferenceOptions}
+                loading={tagPreferencesLoading}
+                isOptionEqualToValue={(option, value) =>
+                  Number(option.id || option.tag_id) === Number(value.id || value.tag_id)
+                }
+                getOptionLabel={(option) => option.name || option.tag_name || ''}
+                onChange={handleTagPreferencesChange}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip key={option.id || option.tag_id} label={option.name || option.tag_name} size="small" {...getTagProps({ index })} />
+                  ))
+                }
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Search tags…"
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {tagPreferencesLoading ? <CircularProgress size={16} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5, mb: 2.5 }}>
                 Recommended tags for this platform include revision, practice, exam preparation, and module support themes.
               </Typography>
               <Button
                 variant="contained"
-                color="secondary"
+                size="small"
+                disabled={tagPreferencesSaving}
                 onClick={handleSaveTagPreferences}
-                disabled={tagPreferencesLoading || tagPreferencesSaving}
-                sx={{ textTransform: 'none', fontWeight: 600, boxShadow: 'none' }}
+                startIcon={tagPreferencesSaving ? <CircularProgress size={14} /> : <Check />}
               >
                 {tagPreferencesSaving ? 'Saving...' : 'Save Interests'}
               </Button>
             </Box>
-          </Box>
-        </SettingSection>
-      ) : null}
+          </SettingSection>
+        )}
 
-      {isStudent ? (
-        <SettingSection
-          icon={<ManageAccounts sx={{ fontSize: 24, color: 'white' }} />}
-          title="Academic Information"
-          subtitle="Update your institution, program, and current semester"
-          color="success"
-        >
-          <Box sx={{ display: 'grid', gap: 2.25 }}>
-            {academicFeedback.message ? (
-              <Alert severity={academicFeedback.type || 'info'} sx={{ borderRadius: 2 }}>
+        {/* ── Academic Information (students only) ──────────────────────── */}
+        {isStudent && (
+          <SettingSection icon={<ManageAccounts />} title="Academic Information" subtitle="Update your institution, program, and current semester" color="success">
+            {academicFeedback.message && (
+              <Alert severity={academicFeedback.type || 'info'} sx={{ m: 2, mb: 0 }}>
                 {academicFeedback.message}
               </Alert>
-            ) : null}
+            )}
+            <Box sx={{ p: { xs: 2.5, sm: 3 }, display: 'flex', flexDirection: 'column', gap: 3 }}>
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1.5 }}>
-              <Box sx={{ gridColumn: { xs: '1 / -1', md: '1 / -1' }, display: 'grid', gap: 1 }}>
-                <Typography variant="subtitle2" fontWeight={700}>
-                  Student Mode
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
+              {/* Student Mode */}
+              <Box>
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>Student Mode</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
                   Learner mode blocks uploads and resource contribution routes until you switch back.
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                   <ToggleButtonGroup
-                    exclusive
                     value={studentContributionMode}
-                    onChange={(_event, value) => {
+                    exclusive
+                    size="small"
+                    onChange={(_, value) => {
                       if (value) {
                         setStudentContributionMode(value);
                         setAcademicFeedback({ type: '', message: '' });
                       }
                     }}
-                    size="small"
                   >
                     <ToggleButton value="contributor">Contributor</ToggleButton>
                     <ToggleButton value="learner">Learner</ToggleButton>
                   </ToggleButtonGroup>
-                  <Chip
-                    size="small"
-                    color={canContribute ? 'success' : 'warning'}
-                    label={canContribute ? 'Currently can contribute' : 'Currently learner-only'}
-                    sx={{ fontWeight: 600 }}
-                  />
-                </Box>
-                <Box>
                   <Button
-                    variant="outlined"
-                    color="success"
+                    size="small" variant="outlined"
+                    disabled={contributionModeSaving}
                     onClick={handleSaveContributionMode}
-                    disabled={contributionModeSaving || studentContributionMode === contributionMode}
-                    sx={{ textTransform: 'none', fontWeight: 600 }}
+                    startIcon={contributionModeSaving ? <CircularProgress size={14} /> : <Check />}
                   >
                     {contributionModeSaving ? 'Saving Mode...' : 'Save Student Mode'}
                   </Button>
                 </Box>
               </Box>
 
-              <FormControl fullWidth disabled={academicLoading || academicCatalogLoading.institutions}>
+              <Divider />
+
+              {/* Institution */}
+              <FormControl fullWidth disabled={academicLoading}>
+                <Typography variant="caption" fontWeight={600} sx={{ mb: 0.75 }}>Institution</Typography>
                 <Select
-                  value={academicInstitutionId}
-                  displayEmpty
+                  value={academicIds.institution}
                   onChange={(e) => handleAcademicInstitutionChange(String(e.target.value || ''))}
-                  sx={{ borderRadius: 2 }}
+                  displayEmpty sx={{ borderRadius: 2 }}
                 >
-                  <MenuItem value="">
-                    <em>Select Institution</em>
-                  </MenuItem>
-                  {academicInstitutions.map((institution) => (
-                    <MenuItem key={institution.id} value={String(institution.id)}>
-                      {institution.name}
-                    </MenuItem>
+                  <MenuItem value="" disabled>Select Institution</MenuItem>
+                  {academicInstitutions.map((i) => (
+                    <MenuItem key={i.id} value={String(i.id)}>{i.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
 
-              <FormControl fullWidth disabled={!academicInstitutionId || academicCatalogLoading.programs}>
+              {/* Program */}
+              <FormControl fullWidth disabled={!academicIds.institution || academicCatalogLoading.programs}>
+                <Typography variant="caption" fontWeight={600} sx={{ mb: 0.75 }}>Program</Typography>
                 <Select
-                  value={academicProgramId}
-                  displayEmpty
+                  value={academicIds.program}
                   onChange={(e) => handleAcademicProgramChange(String(e.target.value || ''))}
-                  sx={{ borderRadius: 2 }}
+                  displayEmpty sx={{ borderRadius: 2 }}
                 >
-                  <MenuItem value="">
-                    <em>{academicInstitutionId ? 'Select Program' : 'Select institution first'}</em>
+                  <MenuItem value="" disabled>
+                    {academicIds.institution ? 'Select Program' : 'Select institution first'}
                   </MenuItem>
-                  {academicPrograms.map((program) => (
-                    <MenuItem key={program.id || program.program_id} value={String(program.id || program.program_id)}>
-                      {program.name || program.program_name}
-                    </MenuItem>
+                  {academicPrograms.map((p) => (
+                    <MenuItem key={p.id} value={String(p.id)}>{p.name || p.program_name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
 
-              <FormControl fullWidth disabled={!academicProgramId || academicCatalogLoading.levels}>
+              {/* Level */}
+              <FormControl fullWidth disabled={!academicIds.program || academicCatalogLoading.levels}>
+                <Typography variant="caption" fontWeight={600} sx={{ mb: 0.75 }}>Level</Typography>
                 <Select
-                  value={academicLevelId}
-                  displayEmpty
+                  value={academicIds.level}
                   onChange={(e) => handleAcademicLevelChange(String(e.target.value || ''))}
-                  sx={{ borderRadius: 2 }}
+                  displayEmpty sx={{ borderRadius: 2 }}
                 >
-                  <MenuItem value="">
-                    <em>{academicProgramId ? 'Select Level' : 'Select program first'}</em>
+                  <MenuItem value="" disabled>
+                    {academicIds.program ? 'Select Level' : 'Select program first'}
                   </MenuItem>
-                  {academicLevels.map((level) => (
-                    <MenuItem key={level.id} value={String(level.id)}>
-                      {level.name}
-                    </MenuItem>
+                  {academicLevels.map((l) => (
+                    <MenuItem key={l.id} value={String(l.id)}>{l.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
 
-              <FormControl fullWidth disabled={!academicLevelId || academicCatalogLoading.semesters}>
+              {/* Semester */}
+              <FormControl fullWidth disabled={!academicIds.level || academicCatalogLoading.semesters}>
+                <Typography variant="caption" fontWeight={600} sx={{ mb: 0.75 }}>Semester</Typography>
                 <Select
-                  value={academicSemesterId}
-                  displayEmpty
+                  value={academicIds.semester}
                   onChange={(e) => handleAcademicSemesterChange(String(e.target.value || ''))}
-                  sx={{ borderRadius: 2 }}
+                  displayEmpty sx={{ borderRadius: 2 }}
                 >
-                  <MenuItem value="">
-                    <em>{academicLevelId ? 'Select Semester' : 'Select level first'}</em>
+                  <MenuItem value="" disabled>
+                    {academicIds.level ? 'Select Semester' : 'Select level first'}
                   </MenuItem>
-                  {academicSemesters.map((semester) => (
-                    <MenuItem key={semester.id} value={String(semester.id)}>
-                      {semester.name}
-                    </MenuItem>
+                  {academicSemesters.map((s) => (
+                    <MenuItem key={s.id} value={String(s.id)}>{s.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
-            </Box>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, flexWrap: 'wrap' }}>
               <Typography variant="caption" color="text.secondary">
                 Keep this section up to date to improve your recommendations and module matching.
               </Typography>
-              <Button
-                variant="contained"
-                color="success"
-                onClick={handleSaveAcademicInformation}
-                disabled={academicLoading || academicSaving || !academicInstitutionId || !academicProgramId || !academicSemesterId}
-                sx={{ textTransform: 'none', fontWeight: 600, boxShadow: 'none' }}
-              >
-                {academicSaving ? 'Saving...' : 'Save Academic Info'}
-              </Button>
+
+              <Box>
+                <Button
+                  variant="contained" color="success"
+                  disabled={academicSaving}
+                  onClick={handleSaveAcademicInformation}
+                  startIcon={academicSaving ? <CircularProgress size={14} /> : <Check />}
+                >
+                  {academicSaving ? 'Saving...' : 'Save Academic Info'}
+                </Button>
+              </Box>
             </Box>
-          </Box>
+          </SettingSection>
+        )}
+
+        {/* ── Privacy & Security ────────────────────────────────────────── */}
+        <SettingSection icon={<Security />} title="Privacy & Security" subtitle="Manage your security preferences and privacy" color="warning">
+          <SettingRow
+            icon={<VpnKey />}
+            title="Two-Factor Authentication"
+            description="Add an extra layer of security to your account"
+            action={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {privacy.twoFactor && <Chip icon={<Check />} label="Active" size="small" color="success" />}
+                <Button
+                  size="small" variant="outlined" color="warning"
+                  onClick={() => handlePrivacyChange('twoFactor', !privacy.twoFactor)}
+                >
+                  {privacy.twoFactor ? 'Disable' : 'Enable'}
+                </Button>
+              </Box>
+            }
+          />
+          <SettingRow
+            icon={<Devices />}
+            title="Active Sessions"
+            description="View and manage your logged-in devices"
+            action={<Button size="small" variant="outlined">Manage</Button>}
+          />
+          <SettingRow
+            icon={<VisibilityOff />}
+            title="Show Activity Status"
+            description="Let others see when you're online"
+            action={<Switch checked={privacy.showActivityStatus} onChange={(e) => handlePrivacyChange('showActivityStatus', e.target.checked)} color="warning" />}
+          />
+          <SettingRow
+            icon={<VisibilityOff />}
+            title="Public Profile"
+            description="Make your profile visible to other users"
+            noBorder
+            action={<Switch checked={privacy.showProfile} onChange={(e) => handlePrivacyChange('showProfile', e.target.checked)} color="warning" />}
+          />
         </SettingSection>
-      ) : null}
 
-      {/* Privacy & Security */}
-      <SettingSection
-        icon={<Security sx={{ fontSize: 24, color: 'white' }} />}
-        title="Privacy & Security"
-        subtitle="Manage your security preferences and privacy"
-        color="warning"
-      >
-        <SettingRow
-          icon={<VpnKey sx={{ fontSize: 20 }} />}
-          title="Two-Factor Authentication"
-          description="Add an extra layer of security to your account"
-          action={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {twoFactorEnabled && (
-                <Chip label="Enabled" color="success" size="small" sx={{ fontWeight: 600 }} />
-              )}
-              <Button
-                variant={twoFactorEnabled ? "outlined" : "contained"}
-                size="small"
-                color="warning"
-                onClick={handleTwoFactorChange}
-                sx={{ textTransform: 'none', fontWeight: 600 }}
-              >
-                {twoFactorEnabled ? 'Disable' : 'Enable'}
-              </Button>
-            </Box>
-          }
-        />
-        <SettingRow
-          icon={<Devices sx={{ fontSize: 20 }} />}
-          title="Active Sessions"
-          description="View and manage your logged-in devices"
-          action={
-            <Button
-              variant="outlined"
-              size="small"
-              sx={{ textTransform: 'none', fontWeight: 600 }}
-            >
-              Manage
-            </Button>
-          }
-        />
-        <SettingRow
-          icon={<VisibilityOff sx={{ fontSize: 20 }} />}
-          title="Show Activity Status"
-          description="Let others see when you're online"
-          action={
-            <Switch
-              checked={showActivityStatus}
-              onChange={(e) => handleShowActivityStatusChange(e.target.checked)}
-              color="warning"
-            />
-          }
-        />
-        <SettingRow
-          icon={<ManageAccounts sx={{ fontSize: 20 }} />}
-          title="Public Profile"
-          description="Make your profile visible to other users"
-          noBorder
-          action={
-            <Switch
-              checked={showProfile}
-              onChange={(e) => handleShowProfileChange(e.target.checked)}
-              color="warning"
-            />
-          }
-        />
-      </SettingSection>
-
-      {/* Language & Region */}
-      <SettingSection
-        icon={<Language sx={{ fontSize: 24, color: 'white' }} />}
-        title={t('settings.languageRegion.title', 'Language & Region')}
-        subtitle={t('settings.languageRegion.subtitle', 'Set your language and regional preferences')}
-        color="success"
-      >
-        <SettingRow
-          icon={<Language sx={{ fontSize: 20 }} />}
-          title={t('settings.languageRegion.language', 'Language')}
-          description={t('settings.languageRegion.languageDesc', 'Select your preferred language')}
-          action={
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <Select
-                value={language}
-                onChange={(e) => handleLanguageChange(e.target.value)}
-                sx={{ borderRadius: 2, fontWeight: 500 }}
-              >
+        {/* ── Language & Region ─────────────────────────────────────────── */}
+        <SettingSection icon={<Language />} title={t('settings.languageRegion.title', 'Language & Region')} subtitle={t('settings.languageRegion.subtitle', 'Set your language and regional preferences')} color="success">
+          <SettingRow
+            icon={<Language />}
+            title={t('settings.languageRegion.language', 'Language')}
+            description={t('settings.languageRegion.languageDesc', 'Select your preferred language')}
+            action={
+              <Select value={language} onChange={(e) => handleLanguageChange(e.target.value)} size="small" sx={{ borderRadius: 2, fontWeight: 500 }}>
                 <MenuItem value="en">English</MenuItem>
-                <MenuItem value="fr">Francais</MenuItem>
+                <MenuItem value="fr">Français</MenuItem>
                 <MenuItem value="ar">العربية</MenuItem>
               </Select>
-            </FormControl>
-          }
-        />
-        <SettingRow
-          icon={<AccessTime sx={{ fontSize: 20 }} />}
-          title={t('settings.languageRegion.timezone', 'Timezone')}
-          description={t('settings.languageRegion.timezoneDesc', 'Set your local timezone')}
-          action={
-            <FormControl size="small" sx={{ minWidth: 180 }}>
-              <Select
-                value={timezone}
-                onChange={(e) => handleTimezoneChange(e.target.value)}
-                sx={{ borderRadius: 2, fontWeight: 500 }}
-              >
+            }
+          />
+          <SettingRow
+            icon={<AccessTime />}
+            title={t('settings.languageRegion.timezone', 'Timezone')}
+            description={t('settings.languageRegion.timezoneDesc', 'Set your local timezone')}
+            action={
+              <Select value={locale.timezone} onChange={(e) => handleLocaleChange('timezone', e.target.value)} size="small" sx={{ borderRadius: 2, fontWeight: 500 }}>
                 <MenuItem value="Africa/Casablanca">Casablanca (GMT+1)</MenuItem>
                 <MenuItem value="Europe/Paris">Paris (GMT+1)</MenuItem>
                 <MenuItem value="Europe/London">London (GMT)</MenuItem>
                 <MenuItem value="America/New_York">New York (GMT-5)</MenuItem>
               </Select>
-            </FormControl>
-          }
-        />
-        <SettingRow
-          icon={<CalendarToday sx={{ fontSize: 20 }} />}
-          title={t('settings.languageRegion.dateFormat', 'Date Format')}
-          description={t('settings.languageRegion.dateFormatDesc', 'Choose how dates are displayed')}
-          noBorder
-          action={
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <Select
-                value={dateFormat}
-                onChange={(e) => handleDateFormatChange(e.target.value)}
-                sx={{ borderRadius: 2, fontWeight: 500 }}
-              >
+            }
+          />
+          <SettingRow
+            icon={<CalendarToday />}
+            title={t('settings.languageRegion.dateFormat', 'Date Format')}
+            description={t('settings.languageRegion.dateFormatDesc', 'Choose how dates are displayed')}
+            noBorder
+            action={
+              <Select value={locale.dateFormat} onChange={(e) => handleLocaleChange('dateFormat', e.target.value)} size="small" sx={{ borderRadius: 2, fontWeight: 500 }}>
                 <MenuItem value="DD/MM/YYYY">DD/MM/YYYY</MenuItem>
                 <MenuItem value="MM/DD/YYYY">MM/DD/YYYY</MenuItem>
                 <MenuItem value="YYYY-MM-DD">YYYY-MM-DD</MenuItem>
               </Select>
-            </FormControl>
-          }
-        />
-      </SettingSection>
+            }
+          />
+        </SettingSection>
 
-      {/* Account Management */}
-      <SettingSection
-        icon={<ManageAccounts sx={{ fontSize: 24, color: 'white' }} />}
-        title="Account Management"
-        subtitle="Manage your account data and connections"
-        color="error"
-      >
-        <SettingRow
-          icon={<Download sx={{ fontSize: 20 }} />}
-          title="Export Your Data"
-          description="Download a copy of all your data"
-          action={
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={handleExportData}
-              disabled={exportLoading}
-              sx={{ textTransform: 'none', fontWeight: 600 }}
-            >
-              {exportLoading ? 'Exporting...' : 'Export Data'}
-            </Button>
-          }
-        />
-        <SettingRow
-          icon={<Link sx={{ fontSize: 20 }} />}
-          title="Linked Accounts"
-          description="Manage connected third-party services"
-          action={
-            <Button
-              variant="outlined"
-              size="small"
-              sx={{ textTransform: 'none', fontWeight: 600 }}
-            >
-              Manage
-            </Button>
-          }
-        />
-        <SettingRow
-          icon={<Delete sx={{ fontSize: 20 }} />}
-          title="Delete Account"
-          description="Permanently delete your account and all data"
-          noBorder
-          action={
-            <Button
-              variant="contained"
-              color="error"
-              size="small"
-              onClick={() => setDeleteDialogOpen(true)}
-              sx={{ textTransform: 'none', fontWeight: 600 }}
-            >
-              Delete Account
-            </Button>
-          }
-        />
-      </SettingSection>
+        {/* ── Account Management ────────────────────────────────────────── */}
+        <SettingSection icon={<ManageAccounts />} title="Account Management" subtitle="Manage your account data and connections" color="error">
+          <SettingRow
+            icon={<Download />}
+            title="Export Your Data"
+            description="Download a copy of all your data"
+            action={
+              <Button
+                size="small" variant="outlined"
+                disabled={exportLoading}
+                onClick={handleExportData}
+                startIcon={exportLoading ? <CircularProgress size={14} /> : <Download />}
+              >
+                {exportLoading ? 'Exporting...' : 'Export Data'}
+              </Button>
+            }
+          />
+          <SettingRow
+            icon={<Link />}
+            title="Linked Accounts"
+            description="Manage connected third-party services"
+            action={<Button size="small" variant="outlined">Manage</Button>}
+          />
+          <SettingRow
+            icon={<Delete />}
+            title="Delete Account"
+            description="Permanently delete your account and all data"
+            noBorder
+            action={
+              <Button
+                size="small" variant="outlined" color="error"
+                onClick={() => setDeleteDialogOpen(true)}
+                sx={{ textTransform: 'none', fontWeight: 600 }}
+              >
+                Delete Account
+              </Button>
+            }
+          />
+        </SettingSection>
 
+      </Box>
+
+      {/* ── Delete Account Dialog ──────────────────────────────────────── */}
       <DeleteAccountDialog
         open={deleteDialogOpen}
         confirmText={deleteConfirmText}
         onConfirmTextChange={setDeleteConfirmText}
-        onClose={() => {
-          setDeleteDialogOpen(false);
-          setDeleteConfirmText('');
-        }}
+        onClose={handleDeleteDialogClose}
+        onDelete={handleDeleteAccount}
       />
     </Box>
   );

@@ -1,116 +1,155 @@
+import { memo } from 'react';
 import { Box, Paper, Typography, alpha } from '@mui/material';
 import PropTypes from 'prop-types';
 
-export const SettingSection = ({ icon, title, subtitle, color, children }) => (
+// ─── SettingSection ───────────────────────────────────────────────────────────
+// Wraps a group of settings rows with a branded header (icon + title + subtitle).
+// `color` must be a valid MUI palette key: 'primary' | 'error' | 'warning' | etc.
+
+export const SettingSection = memo(({ icon, title, subtitle, color, children }) => (
   <Paper
     elevation={0}
     sx={{
-      mb: 3,
       borderRadius: 3,
+      overflow: 'hidden',
       border: '1px solid',
       borderColor: 'divider',
       background: (theme) =>
         theme.palette.mode === 'dark'
           ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
           : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-      overflow: 'hidden',
     }}
   >
+    {/* Colored top accent bar */}
+    <Box
+      aria-hidden="true"
+      sx={{
+        height: 3,
+        background: (theme) =>
+          `linear-gradient(90deg, ${theme.palette[color].main} 0%, ${theme.palette[color].light ?? theme.palette[color].main} 100%)`,
+      }}
+    />
+
+    {/* Header */}
     <Box
       sx={{
-        px: 3,
-        py: 2.5,
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-        background: (theme) => alpha(theme.palette[color].main, 0.03),
+        display: 'flex', alignItems: 'center', gap: 2,
+        px: { xs: 2.5, sm: 3 }, py: { xs: 2, sm: 2.5 },
+        borderBottom: '1px solid', borderColor: 'divider',
+        background: (theme) =>
+          `linear-gradient(135deg, ${alpha(theme.palette[color].main, 0.04)} 0%, transparent 100%)`,
       }}
     >
-      <Box display="flex" alignItems="center" gap={2}>
-        <Box
-          sx={{
-            width: 48,
-            height: 48,
-            borderRadius: 2.5,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: (theme) =>
-              `linear-gradient(135deg, ${theme.palette[color].main} 0%, ${theme.palette[color].dark} 100%)`,
-            boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette[color].main, 0.3)}`,
-          }}
-        >
-          {icon}
-        </Box>
-        <Box>
-          <Typography variant="h6" fontWeight={700}>
-            {title}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {subtitle}
-          </Typography>
-        </Box>
-      </Box>
-    </Box>
-    <Box sx={{ p: 3 }}>{children}</Box>
-  </Paper>
-);
-
-export const SettingRow = ({ icon, title, description, action, noBorder }) => (
-  <Box
-    sx={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      py: 2,
-      borderBottom: noBorder ? 'none' : '1px solid',
-      borderColor: 'divider',
-      gap: 2,
-    }}
-  >
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
+      {/* Icon badge */}
       <Box
+        aria-hidden="true"
         sx={{
-          width: 40,
-          height: 40,
-          borderRadius: 2,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-          color: 'primary.main',
+          width: 40, height: 40, borderRadius: '10px', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: (theme) =>
+            `linear-gradient(135deg, ${theme.palette[color].main} 0%, ${theme.palette[color].dark} 100%)`,
+          boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette[color].main, 0.30)}`,
         }}
       >
-        {icon}
+        {/* Clone icon to enforce white color + correct size */}
+        <Box sx={{ color: '#fff', display: 'flex', '& svg': { fontSize: 20 } }}>
+          {icon}
+        </Box>
       </Box>
-      <Box sx={{ flex: 1 }}>
-        <Typography variant="body1" fontWeight={600}>
+
+      <Box>
+        <Typography
+          component="h3"
+          sx={{ fontWeight: 700, fontSize: '0.95rem', lineHeight: 1.3, color: 'text.primary' }}
+        >
           {title}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {description}
+        <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.4 }}>
+          {subtitle}
         </Typography>
       </Box>
     </Box>
-    {action}
-  </Box>
-);
+
+    {/* Rows */}
+    <Box>{children}</Box>
+  </Paper>
+));
+
+SettingSection.displayName = 'SettingSection';
 
 SettingSection.propTypes = {
-  icon: PropTypes.node.isRequired,
-  title: PropTypes.string.isRequired,
+  icon:     PropTypes.node.isRequired,
+  title:    PropTypes.string.isRequired,
   subtitle: PropTypes.string.isRequired,
-  color: PropTypes.string.isRequired,
+  color:    PropTypes.string.isRequired,
   children: PropTypes.node.isRequired,
 };
 
+// ─── SettingRow ───────────────────────────────────────────────────────────────
+// A single setting row: icon + label/description on the left, action on the right.
+
+export const SettingRow = memo(({ icon, title, description, action, noBorder }) => (
+  <Box
+    sx={{
+      display: 'flex', alignItems: 'center', gap: 2,
+      px: { xs: 2.5, sm: 3 }, py: { xs: 1.75, sm: 2 },
+      // Bottom border between rows, absent on the last row
+      borderBottom: noBorder ? 'none' : '1px solid',
+      borderColor: 'divider',
+      transition: 'background 150ms ease',
+      '&:hover': {
+        background: (theme) => alpha(theme.palette.primary.main, 0.03),
+      },
+    }}
+  >
+    {/* Row icon */}
+    <Box
+      aria-hidden="true"
+      sx={{
+        width: 34, height: 34, borderRadius: '9px', flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: (theme) => alpha(theme.palette.primary.main, 0.07),
+        color: 'primary.main',
+        '& svg': { fontSize: 18 },
+      }}
+    >
+      {icon}
+    </Box>
+
+    {/* Label + description */}
+    <Box sx={{ flex: 1, minWidth: 0 }}>
+      <Typography
+        variant="body2"
+        sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary', lineHeight: 1.3 }}
+      >
+        {title}
+      </Typography>
+      {description && (
+        <Typography
+          variant="caption"
+          sx={{ color: 'text.secondary', lineHeight: 1.5, display: 'block', mt: 0.25 }}
+        >
+          {description}
+        </Typography>
+      )}
+    </Box>
+
+    {/* Action (button, switch, etc.) */}
+    <Box sx={{ flexShrink: 0 }}>{action}</Box>
+  </Box>
+));
+
+SettingRow.displayName = 'SettingRow';
+
 SettingRow.propTypes = {
-  icon: PropTypes.node.isRequired,
-  title: PropTypes.string.isRequired,
-  description: PropTypes.string.isRequired,
-  action: PropTypes.node.isRequired,
-  noBorder: PropTypes.bool,
+  icon:        PropTypes.node.isRequired,
+  title:       PropTypes.string.isRequired,
+  description: PropTypes.string,            // made optional — not every row needs one
+  action:      PropTypes.node.isRequired,
+  noBorder:    PropTypes.bool,
 };
 
 SettingRow.defaultProps = {
+  description: '',
   noBorder: false,
 };
