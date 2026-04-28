@@ -1,146 +1,466 @@
-import { useState } from "react";
-import { Box, Button, Paper, Stack, Typography, alpha } from "@mui/material";
-import { Search, KeyboardArrowDown } from "@mui/icons-material";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { useLanguage } from "@/app/providers/LanguageContext";
-import { useAuth } from "@/features/auth/context/AuthContext";
-import PublicAuthPromptDialog from "@/features/publicHome/components/PublicAuthPromptDialog";
+// src/features/publicHome/components/PublicHeroSection.jsx
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  useReducedMotion,
+} from 'framer-motion';
+import { alpha, Box, Button, Chip, Stack, Typography } from '@mui/material';
+import { ArrowForward, AutoStories, School, Search } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '@/app/providers/LanguageContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import PublicAuthPromptDialog from '@/features/publicHome/components/PublicAuthPromptDialog';
+import heroIllustration from '@/assets/images/hero.png';
 
-const PublicHeroSection = ({ theme }) => {
-  const { t } = useLanguage();
-  const navigate = useNavigate();
+const POPULAR_SEARCHES = ['Mathematics', 'Physics', 'Data Science', 'History', 'Programming'];
+
+// ─── Animation variants (staggered entry) ────────────────────────────────────
+const makeContainerVariants = (reduced) =>
+  reduced ? { show: {} } : { hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.04 } } };
+
+const makeItemVariants = (reduced) =>
+  reduced
+    ? { hidden: { opacity: 1, y: 0 }, show: { opacity: 1, y: 0 } }
+    : { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { type: 'spring', damping: 28, stiffness: 175 } } };
+
+const makeImageVariants = (reduced) =>
+  reduced
+    ? { hidden: { opacity: 1, scale: 1 }, show: { opacity: 1, scale: 1 } }
+    : { hidden: { opacity: 0, scale: 0.96 }, show: { opacity: 1, scale: 1, transition: { type: 'spring', damping: 22, stiffness: 110, delay: 0.18 } } };
+
+// ─── HeroSearchBar (isolated state — no lag on typing) ───────────────────────
+const HeroSearchBar = memo(({ onSearch, onPopularSearch, t }) => {
+  const [query, setQuery] = useState('');
+
+  const handleSubmit = useCallback(
+    (e) => { e?.preventDefault(); onSearch(query.trim()); },
+    [onSearch, query],
+  );
+
+  return (
+    <>
+      <Box
+        component="form"
+        onSubmit={handleSubmit}
+        role="search"
+        sx={(t) => ({
+          display: 'flex', alignItems: 'center',
+          borderRadius: '14px',
+          border: '1.5px solid',
+          borderColor: alpha(t.palette.primary.main, 0.22),
+          bgcolor: 'background.paper',
+          boxShadow: t.palette.mode === 'dark'
+            ? `0 0 0 4px ${alpha(t.palette.primary.main, 0.06)}, 0 4px 24px rgba(0,0,0,0.35)`
+            : `0 0 0 4px ${alpha(t.palette.primary.main, 0.07)}, 0 4px 24px rgba(0,0,0,0.08)`,
+          transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+          '&:focus-within': {
+            borderColor: 'primary.main',
+            boxShadow: t.palette.mode === 'dark'
+              ? `0 0 0 4px ${alpha(t.palette.primary.main, 0.12)}, 0 4px 24px rgba(0,0,0,0.4)`
+              : `0 0 0 4px ${alpha(t.palette.primary.main, 0.1)}, 0 4px 24px rgba(0,0,0,0.1)`,
+          },
+        })}
+      >
+        <Search sx={{ ml: 2, mr: 1, fontSize: 22, color: 'text.disabled', flexShrink: 0 }} />
+        <Box
+          component="input"
+          type="search"
+          aria-label={t('publicHome.hero.searchPlaceholder', 'Search for courses, quizzes, or documents')}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && onSearch(query.trim())}
+          placeholder={t('publicHome.hero.searchPlaceholder', 'Search for courses, quizzes, or documents')}
+          sx={{
+            flex: 1, border: 0, outline: 'none', bgcolor: 'transparent',
+            color: 'text.primary',
+            fontSize: { xs: '0.9375rem', md: '1rem' },
+            lineHeight: 1.4, fontFamily: 'inherit',
+            py: { xs: 1.5, md: 1.75 }, pr: 1,
+            '&::placeholder': { color: 'text.disabled', opacity: 1 },
+            '&::-webkit-search-cancel-button': { display: 'none' },
+          }}
+        />
+        <motion.div
+          whileHover={{ scale: 1.03, y: -1 }}
+          whileTap={{ scale: 0.97, y: 0 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          style={{ margin: 6, flexShrink: 0 }}
+        >
+          <Button
+            type="submit"
+            variant="contained"
+            disableElevation
+            endIcon={<ArrowForward sx={{ fontSize: '16px !important' }} />}
+            sx={{
+              borderRadius: '10px',
+              px: { xs: 2, sm: 2.5 }, py: { xs: 1.1, md: 1.25 },
+              textTransform: 'none', fontWeight: 700,
+              fontSize: { xs: '0.875rem', md: '0.9375rem' },
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t('publicHome.hero.searchAction', 'Search')}
+          </Button>
+        </motion.div>
+      </Box>
+
+      <Stack direction="row" flexWrap="wrap" spacing={1} useFlexGap sx={{ mt: 2 }}>
+        <Typography variant="caption" color="text.disabled"
+          sx={{ alignSelf: 'center', fontSize: '0.75rem' }}>
+          {t('publicHome.hero.popularLabel', 'Popular:')}
+        </Typography>
+        {POPULAR_SEARCHES.map((term) => (
+          <Chip
+            key={term}
+            label={term}
+            size="small"
+            onClick={() => onPopularSearch(term)}
+            sx={(t) => ({
+              height: 24, fontSize: '0.72rem', fontWeight: 600,
+              cursor: 'pointer', borderRadius: '8px',
+              bgcolor: t.palette.mode === 'dark'
+                ? alpha(t.palette.common.white, 0.06)
+                : alpha(t.palette.common.black, 0.05),
+              color: 'text.secondary',
+              border: '1px solid', borderColor: 'divider',
+              '&:hover': {
+                bgcolor: alpha(t.palette.primary.main, 0.09),
+                color: 'primary.main',
+                borderColor: alpha(t.palette.primary.main, 0.3),
+                transform: 'translateY(-1px)',
+              },
+              '&:active': { transform: 'translateY(0)' },
+              '& .MuiChip-label': { px: 1 },
+              transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
+            })}
+          />
+        ))}
+      </Stack>
+    </>
+  );
+});
+HeroSearchBar.displayName = 'HeroSearchBar';
+
+// ─── PublicHeroSection ────────────────────────────────────────────────────────
+const PublicHeroSection = memo(() => {
+  const { t }               = useLanguage();
+  const navigate            = useNavigate();
   const { isAuthenticated } = useAuth();
-  const [searchQuery, setSearchQuery] = useState("");
+  const reduced             = useReducedMotion();
+  const sectionRef          = useRef(null);
+
   const [authPromptOpen, setAuthPromptOpen] = useState(false);
+  const [pendingQuery, setPendingQuery]       = useState('');
+  const [isHovering, setIsHovering]           = useState(false);
+  const [size, setSize]                       = useState({ w: 1200, h: 600 });
 
-  const targetQuery = searchQuery.trim();
-  const targetSearch = targetQuery ? `?q=${encodeURIComponent(targetQuery)}` : "";
-
-  const handleSearchSubmit = (event) => {
-    event.preventDefault();
-    if (isAuthenticated) {
-      navigate(targetSearch ? `/discover${targetSearch}` : "/discover");
-      return;
-    }
-
-    setAuthPromptOpen(true);
-  };
-
-  const navigateToAuth = (mode) => {
-    const to = mode === "register" ? "/register" : "/login";
-    navigate(to, {
-      state: {
-        from: {
-          pathname: "/discover",
-          search: targetSearch,
-        },
-      },
+  // Measure section for coordinate normalization
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el || reduced) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setSize({ w: entry.contentRect.width, h: entry.contentRect.height });
     });
-    setAuthPromptOpen(false);
-  };
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [reduced]);
+
+  // Raw mouse position (no re-renders — motion values only)
+  const mouseX = useMotionValue(size.w / 2);
+  const mouseY = useMotionValue(size.h / 2);
+
+  // Spotlight: fast spring so it feels like it's chasing the cursor
+  const spotX = useSpring(mouseX, { damping: 22, stiffness: 180, mass: 0.4 });
+  const spotY = useSpring(mouseY, { damping: 22, stiffness: 180, mass: 0.4 });
+
+  // Tilt: slower spring for heavier, physical feel on the illustration
+  const tiltX = useSpring(mouseX, { damping: 32, stiffness: 100, mass: 0.9 });
+  const tiltY = useSpring(mouseY, { damping: 32, stiffness: 100, mass: 0.9 });
+
+  // Map mouse position → rotation degrees (±8° X, ±5° Y)
+  const rotateY = useTransform(tiltX, [0, size.w], [-8, 8]);
+  const rotateX = useTransform(tiltY, [0, size.h], [5, -5]);
+
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (reduced) return;
+      const rect = sectionRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      mouseX.set(e.clientX - rect.left);
+      mouseY.set(e.clientY - rect.top);
+    },
+    [mouseX, mouseY, reduced],
+  );
+
+  const handleMouseEnter = useCallback(() => { if (!reduced) setIsHovering(true); }, [reduced]);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovering(false);
+    // Spring illustration back to flat
+    mouseX.set(size.w / 2);
+    mouseY.set(size.h / 2);
+  }, [mouseX, mouseY, size]);
+
+  // Entry animation variants
+  const containerVariants = makeContainerVariants(reduced);
+  const itemVariants      = makeItemVariants(reduced);
+  const imageVariants     = makeImageVariants(reduced);
+
+  // Auth helpers
+  const buildSearch = useCallback(
+    (q) => (q ? `/discover?q=${encodeURIComponent(q)}` : '/discover'),
+    [],
+  );
+  const handleSearch = useCallback(
+    (query) => {
+      if (isAuthenticated) { navigate(buildSearch(query)); return; }
+      setPendingQuery(query);
+      setAuthPromptOpen(true);
+    },
+    [isAuthenticated, navigate, buildSearch],
+  );
+  const navigateToAuth = useCallback(
+    (mode) => {
+      navigate(mode === 'register' ? '/register' : '/login', {
+        state: { from: { pathname: '/discover', search: pendingQuery ? `?q=${encodeURIComponent(pendingQuery)}` : '' } },
+      });
+      setAuthPromptOpen(false);
+    },
+    [navigate, pendingQuery],
+  );
 
   return (
     <Box
-      sx={{
-        background:
-          theme.palette.mode === "dark"
-            ? "linear-gradient(145deg, #2a0038 0%, #190021 100%)"
-            : `linear-gradient(145deg, ${theme.palette.primary.dark} 0%, ${theme.palette.secondary.dark} 100%)`,
-        minHeight: { xs: 580, md: 740 },
-        position: "relative",
-        overflow: "hidden",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
+      ref={sectionRef}
+      component="section"
+      aria-label="Hero"
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      sx={(t) => ({
+        position: 'relative',
+        overflow: 'hidden',
+        px: { xs: 2, sm: 4, md: 6, lg: 8 },
+        pt: { xs: 6, sm: 8, md: 10 },
+        pb: { xs: 5, sm: 7, md: 9 },
+        backgroundImage: t.palette.mode === 'dark'
+          ? `radial-gradient(circle, ${alpha(t.palette.primary.main, 0.07)} 1px, transparent 1px)`
+          : `radial-gradient(circle, ${alpha(t.palette.primary.main, 0.06)} 1px, transparent 1px)`,
+        backgroundSize: '28px 28px',
+        bgcolor: 'background.default',
+      })}
     >
-      <Box data-float sx={{ position: "absolute", left: -90, top: 160, width: 220, height: 220, bgcolor: alpha(theme.palette.info.light, 0.85), borderRadius: "58% 42% 56% 44% / 45% 55% 45% 55%" }} />
-      <Box data-float sx={{ position: "absolute", left: -30, top: 320, width: 120, height: 150, bgcolor: alpha(theme.palette.secondary.light, 0.8), borderRadius: "60% 40% 50% 50% / 60% 55% 45% 40%" }} />
-      <Box data-float sx={{ position: "absolute", right: -120, top: 220, width: 380, height: 420, bgcolor: alpha(theme.palette.success.light, 0.85), borderRadius: "52% 48% 42% 58% / 46% 54% 46% 54%" }} />
-      <Box data-float sx={{ position: "absolute", right: 140, top: 210, width: 170, height: 80, bgcolor: theme.palette.warning.main, borderRadius: "58% 42% 58% 42%" }} />
-      <Box data-float sx={{ position: "absolute", right: 190, top: 355, width: 72, height: 110, bgcolor: theme.palette.success.main, borderRadius: "60% 40% 57% 43%" }} />
-      <Box data-float sx={{ position: "absolute", right: 40, bottom: -30, width: 220, height: 115, bgcolor: alpha(theme.palette.secondary.main, 0.85), borderRadius: "58% 42% 58% 42%" }} />
-
-      <Box sx={{ width: "100%", px: { xs: 1.5, sm: 2, md: 3 }, position: "relative", zIndex: 1 }}>
-        <Stack alignItems="center" spacing={2.2} sx={{ width: "100%", maxWidth: "none" }}>
-          <Typography data-hero="title" variant="h2" textAlign="center" sx={{ color: "#fff", fontWeight: 800, letterSpacing: "-0.02em", fontSize: { xs: "2.2rem", md: "4rem" }, maxWidth: { md: "70%" } }}>
-            {t("publicHome.hero.title", "Grow smarter together")}
-          </Typography>
-
-          <Typography data-hero="subtitle" variant="h5" textAlign="center" sx={{ color: "rgba(255,255,255,0.92)", maxWidth: { md: "60%" } }}>
-            {t("publicHome.hero.subtitle", "Find top-rated study notes from students taking the same courses as you.")}
-          </Typography>
-
-          <Paper
-            data-hero="search"
-            component="form"
-            onSubmit={handleSearchSubmit}
-            elevation={0}
-            sx={{
-              mt: 1,
-              width: "100%",
-              maxWidth: { xs: "100%", sm: 680, md: 760 },
-              borderRadius: 30,
-              bgcolor: "#fff",
-              px: { xs: 1.8, md: 2.3 },
-              py: 1.2,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
+      {/* ── Mouse-following spotlight (two-layer depth) ── */}
+      {!reduced && (
+        <>
+          {/* Outer ambient glow — large, very soft */}
+          <motion.div
+            aria-hidden="true"
+            animate={{ opacity: isHovering ? 1 : 0 }}
+            transition={{ duration: 0.4 }}
+            style={{
+              position: 'absolute',
+              left: spotX,
+              top: spotY,
+              x: '-50%',
+              y: '-50%',
+              width: 700,
+              height: 700,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(var(--spot-color), 0.07) 0%, transparent 70%)',
+              pointerEvents: 'none',
+              zIndex: 0,
+              // CSS variable trick so the color adapts to dark/light via the component's sx
             }}
-          >
-            <Box
-              component="input"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder={t("publicHome.hero.searchPlaceholder", "Search for courses, quizzes, or documents")}
+            sx={(t) => ({
+              '--spot-color': t.palette.mode === 'dark' ? '79,152,163' : '1,105,111',
+              background: `radial-gradient(circle, ${alpha(t.palette.primary.main, t.palette.mode === 'dark' ? 0.12 : 0.07)} 0%, transparent 70%)`,
+            })}
+          />
+          {/* Inner focused glow — smaller, slightly stronger */}
+          <motion.div
+            aria-hidden="true"
+            animate={{ opacity: isHovering ? 1 : 0 }}
+            transition={{ duration: 0.3 }}
+            style={{
+              position: 'absolute',
+              left: spotX,
+              top: spotY,
+              x: '-50%',
+              y: '-50%',
+              width: 280,
+              height: 280,
+              borderRadius: '50%',
+              pointerEvents: 'none',
+              zIndex: 0,
+            }}
+            sx={(t) => ({
+              background: `radial-gradient(circle, ${alpha(t.palette.primary.main, t.palette.mode === 'dark' ? 0.16 : 0.09)} 0%, transparent 70%)`,
+            })}
+          />
+        </>
+      )}
+
+      {/* ── Content grid ── */}
+      <Box
+        sx={{
+          position: 'relative', zIndex: 1,
+          maxWidth: 1200, mx: 'auto',
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+          alignItems: 'center',
+          gap: { xs: 5, md: 6 },
+        }}
+      >
+        {/* Left: staggered entry */}
+        <motion.div variants={containerVariants} initial="hidden" animate="show">
+          {/* Badge */}
+          <motion.div variants={itemVariants}>
+            <Box sx={(t) => ({
+              display: 'inline-flex', alignItems: 'center', gap: 0.75,
+              px: 1.5, py: 0.6, mb: 3, borderRadius: '99px',
+              border: '1px solid', borderColor: alpha(t.palette.primary.main, 0.25),
+              bgcolor: alpha(t.palette.primary.main, 0.06),
+              color: 'primary.main',
+            })}>
+              <School sx={{ fontSize: 14 }} />
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: 0.4 }}>
+                {t('publicHome.hero.badge', 'Built for students, by students')}
+              </Typography>
+            </Box>
+          </motion.div>
+
+          {/* Heading */}
+          <motion.div variants={itemVariants}>
+            <Typography
+              component="h1"
               sx={{
-                width: "100%",
-                border: 0,
-                outline: "none",
-                bgcolor: "transparent",
-                color: "#374151",
-                fontSize: { xs: "1rem", md: "1.05rem" },
-                fontFamily: "inherit",
+                fontWeight: 900, letterSpacing: -1.5, lineHeight: 1.07,
+                fontSize: { xs: '2.5rem', sm: '3.25rem', md: '3.75rem' },
+                mb: 2.5, color: 'text.primary',
               }}
-            />
-            <Button
-              type="submit"
-              sx={{ minWidth: 0, p: 0.4, borderRadius: 2, color: "#4b5563" }}
             >
-              <Search />
-            </Button>
-          </Paper>
+              {t('publicHome.hero.titleLineOne', 'Grow smarter')}{' '}
+              <Box component="span" sx={{
+                color: 'primary.main',
+                position: 'relative',
+                display: 'inline-block',
+                '&::after': {
+                  content: '""',
+                  position: 'absolute',
+                  bottom: '2px', left: 0,
+                  height: '3px', width: '100%',
+                  bgcolor: 'primary.main',
+                  borderRadius: '2px',
+                  transformOrigin: 'left center',
+                  transform: 'scaleX(0)',
+                  animation: 'underline-sweep 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.52s forwards',
+                },
+                '@keyframes underline-sweep': {
+                  from: { transform: 'scaleX(0)' },
+                  to:   { transform: 'scaleX(1)' },
+                },
+                '@media (prefers-reduced-motion: reduce)': {
+                  '&::after': { animation: 'none', transform: 'scaleX(1)' },
+                },
+              }}>
+                {t('publicHome.hero.titleLineTwo', 'together')}
+              </Box>
+            </Typography>
+          </motion.div>
 
-          <Stack direction="row" spacing={1.2}>
-            <Button component={RouterLink} to="/register" variant="contained" sx={{ borderRadius: 20, px: 3.5, fontWeight: 700 }}>
-              {t("publicHome.hero.register", "Register")}
-            </Button>
-            <Button component={RouterLink} to="/login" variant="outlined" sx={{ borderRadius: 20, px: 3.5, color: "#fff", borderColor: "rgba(255,255,255,0.6)", "&:hover": { borderColor: "#fff" } }}>
-              {t("publicHome.hero.signIn", "Sign in")}
-            </Button>
-          </Stack>
+          {/* Subtitle */}
+          <motion.div variants={itemVariants}>
+            <Typography sx={{
+              fontSize: { xs: '1rem', md: '1.125rem' },
+              color: 'text.secondary', lineHeight: 1.7, mb: 4, maxWidth: '52ch',
+            }}>
+              {t('publicHome.hero.subtitle', 'Find top-rated study notes from students taking the same courses as you.')}
+            </Typography>
+          </motion.div>
 
-          <KeyboardArrowDown sx={{ color: "#fff", fontSize: 34, mt: 1 }} />
-        </Stack>
+          {/* Search bar */}
+          <motion.div variants={itemVariants}>
+            <HeroSearchBar
+              onSearch={handleSearch}
+              onPopularSearch={handleSearch}
+              t={t}
+            />
+          </motion.div>
+
+          {/* Social proof */}
+          <motion.div variants={itemVariants}>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 4 }}>
+              <Box sx={(t) => ({
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 32, height: 32, borderRadius: '8px',
+                bgcolor: alpha(t.palette.primary.main, 0.1), color: 'primary.main',
+              })}>
+                <AutoStories sx={{ fontSize: 16 }} />
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                {t('publicHome.hero.socialProof', '10,000+ resources shared by students across Morocco')}
+              </Typography>
+            </Stack>
+          </motion.div>
+        </motion.div>
+
+        {/* Right: illustration with 3D tilt */}
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', justifyContent: 'center' }}>
+          <motion.div
+            variants={imageVariants}
+            initial="hidden"
+            animate="show"
+            style={{ width: '100%', display: 'flex', justifyContent: 'center' }}
+          >
+            {/* 3D tilt wrapper — perspective applied directly */}
+            <motion.div
+              style={{
+                rotateX: reduced ? 0 : rotateX,
+                rotateY: reduced ? 0 : rotateY,
+                transformPerspective: 900,
+              }}
+              transition={{ type: 'spring', damping: 30, stiffness: 100 }}
+            >
+              <Box
+                component="img"
+                src={heroIllustration}
+                alt="Students sharing study resources"
+                width={520}
+                height={420}
+                loading="eager"
+                decoding="async"
+                sx={{
+                  width: '100%', maxWidth: 520, height: 'auto',
+                  objectFit: 'contain',
+                  userSelect: 'none', pointerEvents: 'none',
+                  // Subtle drop-shadow that shifts with the tilt
+                  filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.12))',
+                  transition: 'filter 0.3s ease',
+                }}
+              />
+            </motion.div>
+          </motion.div>
+        </Box>
       </Box>
 
       <PublicAuthPromptDialog
         open={authPromptOpen}
         onClose={() => setAuthPromptOpen(false)}
-        onRegister={() => navigateToAuth("register")}
-        onLogin={() => navigateToAuth("login")}
-        title={t("publicHome.hero.authRequired.title", "Sign in required")}
-        description={t(
-          "publicHome.hero.authRequired.description",
-          "To search and access resources, please sign in first. You can also create a new account."
-        )}
-        cancelLabel={t("common.cancel", "Cancel")}
-        registerLabel={t("publicHome.hero.register", "Register")}
-        loginLabel={t("publicHome.hero.signIn", "Sign in")}
+        onRegister={() => navigateToAuth('register')}
+        onLogin={() => navigateToAuth('login')}
+        title={t('publicHome.hero.authRequired.title', 'Sign in required')}
+        description={t('publicHome.hero.authRequired.description', 'To search and access resources, please sign in first. You can also create a new account.')}
+        cancelLabel={t('common.cancel', 'Cancel')}
+        registerLabel={t('publicHome.hero.register', 'Register')}
+        loginLabel={t('publicHome.hero.signIn', 'Sign in')}
       />
     </Box>
   );
-};
+});
 
+PublicHeroSection.displayName = 'PublicHeroSection';
 export default PublicHeroSection;
