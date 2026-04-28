@@ -144,6 +144,7 @@ const HeroSearchBar = memo(({ onSearch, onPopularSearch, t }) => {
 });
 HeroSearchBar.displayName = 'HeroSearchBar';
 
+
 // ─── PublicHeroSection ────────────────────────────────────────────────────────
 const PublicHeroSection = memo(() => {
   const { t }               = useLanguage();
@@ -307,7 +308,7 @@ const PublicHeroSection = memo(() => {
       {/* ── Content grid ── */}
       <Box
         sx={{
-          position: 'relative', zIndex: 1,
+          position: 'relative', zIndex: 2,
           maxWidth: 1200, mx: 'auto',
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },

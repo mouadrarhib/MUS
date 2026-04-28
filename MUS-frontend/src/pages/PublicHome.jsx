@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
-import { Box, useTheme } from "@mui/material";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Box } from "@mui/material";
+import { useMotionValue, useReducedMotion } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger.js";
 import PublicHomeHeader from "@/features/publicHome/components/PublicHomeHeader";
@@ -7,13 +8,31 @@ import PublicHeroSection from "@/features/publicHome/components/PublicHeroSectio
 import PublicRoleSection from "@/features/publicHome/components/PublicRoleSection";
 import PublicStatsSection from "@/features/publicHome/components/PublicStatsSection";
 import PublicFooterSection from "@/features/publicHome/components/PublicFooterSection";
+import PublicHomeCursorFollower from "@/features/publicHome/components/PublicHomeCursorFollower";
 import { navLinks, musRolePillars } from "@/features/publicHome/data/content";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const PublicHome = () => {
-  const theme = useTheme();
   const rootRef = useRef(null);
+  const reduced = useReducedMotion();
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const [cursorVisible, setCursorVisible] = useState(false);
+
+  const handleMouseMove = useCallback((event) => {
+    if (reduced) return;
+    mouseX.set(event.clientX);
+    mouseY.set(event.clientY);
+  }, [mouseX, mouseY, reduced]);
+
+  const handleMouseEnter = useCallback(() => {
+    if (!reduced) setCursorVisible(true);
+  }, [reduced]);
+
+  const handleMouseLeave = useCallback(() => {
+    setCursorVisible(false);
+  }, []);
 
   useEffect(() => {
     if (!rootRef.current) return;
@@ -126,9 +145,21 @@ const PublicHome = () => {
   }, []);
 
   return (
-    <Box ref={rootRef} sx={{ minHeight: "100vh", bgcolor: "background.default", color: "text.primary" }}>
+    <Box
+      ref={rootRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      sx={{ minHeight: "100vh", bgcolor: "background.default", color: "text.primary" }}
+    >
+      <PublicHomeCursorFollower
+        mouseX={mouseX}
+        mouseY={mouseY}
+        isVisible={cursorVisible}
+        reduced={Boolean(reduced)}
+      />
       <PublicHomeHeader navLinks={navLinks} />
-      <PublicHeroSection theme={theme} />
+      <PublicHeroSection />
       <PublicRoleSection pillars={musRolePillars} />
       <PublicStatsSection />
       <PublicFooterSection />
