@@ -1,87 +1,120 @@
+// src/features/discover/components/ResourceDialog.jsx
+import { memo, useCallback, useEffect, useState } from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  Box,
-  Typography,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  Chip,
-  ToggleButtonGroup,
-  ToggleButton,
-  IconButton,
-  Stepper,
-  Step,
-  StepLabel,
-  Autocomplete,
-  CircularProgress,
-  alpha,
+  Dialog, TextField, Button, Box, Typography, MenuItem, Select,
+  FormControl, Chip, Stack, Divider, LinearProgress, ToggleButtonGroup,
+  ToggleButton, IconButton, Autocomplete, CircularProgress, alpha, Tooltip,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
-import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useForm, Controller } from 'react-hook-form';
 import { AsyncButton } from '@/shared/components/ui';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import institutionService from '@/services/institutionService';
+import institutionService        from '@/services/institutionService';
 import institutionProgramService from '@/services/institutionProgramService';
-import levelService from '@/services/levelService';
-import semesterService from '@/services/semesterService';
-import moduleService from '@/services/moduleService';
+import levelService              from '@/services/levelService';
+import semesterService           from '@/services/semesterService';
+import moduleService             from '@/services/moduleService';
 import {
   Description as DescriptionIcon,
-  School as SchoolIcon,
-  Settings as SettingsIcon,
-  Link as LinkIcon,
+  School      as SchoolIcon,
+  TuneRounded as SettingsIcon,
+  Link        as LinkIcon,
   CloudUpload as CloudUploadIcon,
   Close,
+  Check       as CheckIcon,
   ArrowBack,
   ArrowForward,
+  InfoOutlined as InfoIcon,
+  CheckCircle  as CheckCircleIcon,
 } from '@mui/icons-material';
 
-const steps = ['Basic Information', 'Academic Context', 'Settings'];
+// ─── Module-scope constants ───────────────────────────────────────────────────
+
+const STEPS = [
+  { label: 'Basic Info',       description: 'Title, type, format & source' },
+  { label: 'Academic Context', description: 'University, program & module' },
+  { label: 'Settings',         description: 'Status, access & visibility'  },
+];
+const STEP_ICONS = [DescriptionIcon, SchoolIcon, SettingsIcon];
 
 const EDUCATIONAL_TYPE_OPTIONS = [
-  { value: 'exam', label: 'Exam' },
-  { value: 'course', label: 'Course' },
+  { value: 'exam',       label: 'Exam'       },
+  { value: 'course',     label: 'Course'     },
   { value: 'correction', label: 'Correction' },
-  { value: 'notes', label: 'Notes' },
-  { value: 'resume', label: 'Resume' },
+  { value: 'notes',      label: 'Notes'      },
+  { value: 'resume',     label: 'Resume'     },
 ];
 
 const FORMAT_OPTIONS = [
-  { value: 'pdf', label: 'PDF' },
-  { value: 'video', label: 'Video' },
+  { value: 'pdf',        label: 'PDF'        },
+  { value: 'video',      label: 'Video'      },
   { value: 'powerpoint', label: 'PowerPoint' },
-  { value: 'word', label: 'Word' },
-  { value: 'excel', label: 'Excel' },
-  { value: 'image', label: 'Image' },
-  { value: 'audio', label: 'Audio' },
-  { value: 'zip', label: 'ZIP' },
-  { value: 'other', label: 'Other' },
+  { value: 'word',       label: 'Word'       },
+  { value: 'excel',      label: 'Excel'      },
+  { value: 'image',      label: 'Image'      },
+  { value: 'audio',      label: 'Audio'      },
+  { value: 'zip',        label: 'ZIP'        },
+  { value: 'other',      label: 'Other'      },
 ];
 
+const EXTENSION_FORMAT_MAP = {
+  pdf: 'pdf', mp4: 'video', avi: 'video', mov: 'video', mkv: 'video', webm: 'video',
+  ppt: 'powerpoint', pptx: 'powerpoint',
+  doc: 'word', docx: 'word',
+  xls: 'excel', xlsx: 'excel', csv: 'excel',
+  png: 'image', jpg: 'image', jpeg: 'image', gif: 'image', webp: 'image',
+  mp3: 'audio', wav: 'audio', ogg: 'audio',
+  zip: 'zip', rar: 'zip', '7z': 'zip',
+};
+
+const STATUS_CONFIG = {
+  published: { color: 'success', label: 'Published' },
+  draft:     { color: 'warning', label: 'Draft'     },
+  archived:  { color: 'default', label: 'Archived'  },
+  pending:   { color: 'info',    label: 'Pending'   },
+};
+const getStatusColor = (s) => STATUS_CONFIG[s]?.color || 'default';
+
+// Sidebar accent color — always consistent regardless of MUI theme mode
+const SIDEBAR_BG   = '#0f172a';
+const SIDEBAR_ACCENT = '#14b8a6';
+
+// ─── Shared field styles ──────────────────────────────────────────────────────
+
+const fieldSx = {
+  '& .MuiOutlinedInput-root': {
+    borderRadius: '10px',
+    fontSize: '0.875rem',
+    transition: 'box-shadow 0.15s ease',
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' },
+    '&.Mui-focused': {
+      boxShadow: (t) => `0 0 0 3px ${alpha(t.palette.primary.main, 0.12)}`,
+    },
+  },
+  '& .MuiInputLabel-root': { fontSize: '0.875rem' },
+};
+
+const selectSx = { borderRadius: '10px', fontSize: '0.875rem' };
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 const getDefaultValues = (resource) => ({
-  title: resource?.title || '',
-  description: resource?.description || '',
+  title:           resource?.title           || '',
+  description:     resource?.description     || '',
   educationalType: resource?.educationalType || 'notes',
-  format: resource?.format || 'pdf',
-  accessTier: resource?.access_tier || resource?.accessTier || 'free',
-  status: resource?.status || 'pending',
-  url: resource?.url || '',
+  format:          resource?.format          || 'pdf',
+  accessTier:      resource?.access_tier     || resource?.accessTier || 'free',
+  status:          resource?.status          || 'pending',
+  url:             resource?.url             || '',
   academicContext: {
     institutionId: String(resource?.academicContext?.institutionId || ''),
-    programId: String(resource?.academicContext?.programId || ''),
-    levelId: String(resource?.academicContext?.levelId || ''),
-    semesterId: String(resource?.academicContext?.semesterId || ''),
-    moduleId: String(resource?.academicContext?.moduleId || resource?.module_id || ''),
-    difficulty: resource?.academicContext?.difficulty || 'medium',
-    chapter: resource?.academicContext?.chapter || '',
+    programId:     String(resource?.academicContext?.programId     || ''),
+    levelId:       String(resource?.academicContext?.levelId       || ''),
+    semesterId:    String(resource?.academicContext?.semesterId    || ''),
+    moduleId:      String(resource?.academicContext?.moduleId || resource?.module_id || ''),
+    difficulty:    resource?.academicContext?.difficulty || 'medium',
+    chapter:       resource?.academicContext?.chapter    || '',
     isExamRelated: Boolean(resource?.academicContext?.isExamRelated || resource?.academicContext?.examRelated),
   },
   tagIds: Array.isArray(resource?.tags)
@@ -90,1095 +123,1189 @@ const getDefaultValues = (resource) => ({
 });
 
 const toList = (payload) => {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.modules)) return payload.modules;
-  if (Array.isArray(payload?.data?.modules)) return payload.data.modules;
-  if (Array.isArray(payload?.programs)) return payload.programs;
+  if (Array.isArray(payload))                 return payload;
+  if (Array.isArray(payload?.data))           return payload.data;
+  if (Array.isArray(payload?.modules))        return payload.modules;
+  if (Array.isArray(payload?.data?.modules))  return payload.data.modules;
+  if (Array.isArray(payload?.programs))       return payload.programs;
   if (Array.isArray(payload?.data?.programs)) return payload.data.programs;
   return [];
 };
 
-const ResourceDialog = ({ open, resource, onClose, onSave, saving = false, availableTags = [], tagsLoading = false }) => {
-  const { isAdmin } = useAuth();
-  const [activeStep, setActiveStep] = useState(0);
-  const [uploadMethod, setUploadMethod] = useState('url');
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [institutions, setInstitutions] = useState([]);
-  const [programs, setPrograms] = useState([]);
-  const [levels, setLevels] = useState([]);
-  const [semesters, setSemesters] = useState([]);
-  const [modules, setModules] = useState([]);
-  const [academicLoading, setAcademicLoading] = useState(false);
-  const {
-    register,
-    control,
-    reset,
-    watch,
-    getValues,
-    setValue,
-    handleSubmit,
-    trigger,
-    setError,
-    clearErrors,
-    formState: { errors },
-  } = useForm({
-    defaultValues: getDefaultValues(resource),
-    shouldUnregister: false,
-  });
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
+/** Tiny uppercase field label shown above every input */
+const FieldLabel = memo(({ children, required, hint }) => (
+  <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.75 }}>
+    <Typography
+      sx={{
+        fontSize: '0.695rem', fontWeight: 700, letterSpacing: 0.6,
+        textTransform: 'uppercase', color: 'text.secondary',
+      }}
+    >
+      {children}
+      {required && <Box component="span" sx={{ color: 'error.main', ml: 0.3 }}>*</Box>}
+    </Typography>
+    {hint && (
+      <Tooltip title={hint} placement="top" arrow>
+        <InfoIcon sx={{ fontSize: 12, color: 'text.disabled', cursor: 'help' }} />
+      </Tooltip>
+    )}
+  </Stack>
+));
+FieldLabel.displayName = 'FieldLabel';
+
+/** Dark sidebar with vertical stepper + live preview */
+const Sidebar = memo(({ steps, stepIcons, activeStep, onClose, resource, previewTitle, previewType, previewFormat }) => (
+  <Box
+    sx={{
+      width: { xs: 0, sm: 230 },
+      flexShrink: 0,
+      bgcolor: SIDEBAR_BG,
+      display: { xs: 'none', sm: 'flex' },
+      flexDirection: 'column',
+      overflow: 'hidden',
+    }}
+  >
+    {/* ── Header ── */}
+    <Box sx={{ px: 2.5, pt: 2.5, pb: 2 }}>
+      <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
+        <Box>
+          <Typography
+            sx={{ fontWeight: 800, color: 'white', fontSize: '0.9375rem', letterSpacing: -0.2, lineHeight: 1.2 }}
+          >
+            {resource ? 'Edit Resource' : 'New Resource'}
+          </Typography>
+          <Typography
+            sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.38)', mt: 0.4, display: 'block', lineHeight: 1.4, maxWidth: 150 }}
+            noWrap
+          >
+            {resource?.title || 'Fill in all three steps'}
+          </Typography>
+        </Box>
+        <IconButton
+          size="small"
+          onClick={onClose}
+          aria-label="Close dialog"
+          sx={{
+            color: 'rgba(255,255,255,0.4)',
+            borderRadius: '8px',
+            p: 0.5,
+            '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.08)' },
+          }}
+        >
+          <Close sx={{ fontSize: 16 }} />
+        </IconButton>
+      </Stack>
+    </Box>
+
+    <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+
+    {/* ── Vertical stepper ── */}
+    <Box sx={{ px: 2.5, py: 2.5, flex: 1 }}>
+      {steps.map((step, i) => {
+        const done    = i < activeStep;
+        const current = i === activeStep;
+        const Icon    = stepIcons[i];
+        return (
+          <Box key={step.label} sx={{ display: 'flex', gap: 1.5 }}>
+            {/* Circle + connector */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Box
+                sx={{
+                  width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  bgcolor: done ? SIDEBAR_ACCENT
+                         : current ? 'rgba(20,184,166,0.18)'
+                                   : 'rgba(255,255,255,0.07)',
+                  border: `1.5px solid ${done ? SIDEBAR_ACCENT : current ? SIDEBAR_ACCENT : 'rgba(255,255,255,0.1)'}`,
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {done ? (
+                  <CheckIcon sx={{ fontSize: 14, color: 'white' }} />
+                ) : (
+                  <Icon sx={{ fontSize: 14, color: current ? SIDEBAR_ACCENT : 'rgba(255,255,255,0.25)' }} />
+                )}
+              </Box>
+              {i < steps.length - 1 && (
+                <Box
+                  sx={{
+                    width: '1.5px', flex: 1, minHeight: 28, my: 0.5,
+                    bgcolor: done ? `${SIDEBAR_ACCENT}55` : 'rgba(255,255,255,0.08)',
+                    transition: 'background 0.3s ease',
+                  }}
+                />
+              )}
+            </Box>
+
+            {/* Label */}
+            <Box sx={{ pb: i < steps.length - 1 ? 2.5 : 0, pt: 0.25 }}>
+              <Typography
+                sx={{
+                  fontSize: '0.8rem',
+                  fontWeight: current ? 700 : done ? 600 : 400,
+                  color: current ? 'white' : done ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.28)',
+                  lineHeight: 1.2,
+                  transition: 'color 0.2s ease',
+                }}
+              >
+                {step.label}
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: '0.68rem', mt: 0.25, lineHeight: 1.4,
+                  color: current ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.18)',
+                }}
+              >
+                {step.description}
+              </Typography>
+            </Box>
+          </Box>
+        );
+      })}
+    </Box>
+
+    {/* ── Live preview ── */}
+    {previewTitle && (
+      <>
+        <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+        <Box sx={{ p: 2.5 }}>
+          <Typography
+            sx={{
+              fontSize: '0.62rem', fontWeight: 700, letterSpacing: 0.8,
+              textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)',
+              display: 'block', mb: 1.25,
+            }}
+          >
+            Live Preview
+          </Typography>
+          <Box
+            sx={{
+              p: 1.5, borderRadius: '10px',
+              bgcolor: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: '0.78rem', fontWeight: 700,
+                color: 'rgba(255,255,255,0.85)', lineHeight: 1.35, mb: 1,
+                display: '-webkit-box', WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical', overflow: 'hidden',
+              }}
+            >
+              {previewTitle}
+            </Typography>
+            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+              {previewType && (
+                <Chip
+                  label={previewType}
+                  size="small"
+                  sx={{
+                    height: 18, fontSize: '0.62rem', fontWeight: 700,
+                    bgcolor: `${SIDEBAR_ACCENT}2a`, color: SIDEBAR_ACCENT,
+                    border: `1px solid ${SIDEBAR_ACCENT}40`,
+                    textTransform: 'capitalize',
+                  }}
+                />
+              )}
+              {previewFormat && (
+                <Chip
+                  label={previewFormat.toUpperCase()}
+                  size="small"
+                  sx={{
+                    height: 18, fontSize: '0.62rem', fontWeight: 600,
+                    bgcolor: 'rgba(255,255,255,0.07)',
+                    color: 'rgba(255,255,255,0.45)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                  }}
+                />
+              )}
+            </Stack>
+          </Box>
+        </Box>
+      </>
+    )}
+  </Box>
+));
+Sidebar.displayName = 'Sidebar';
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+const ResourceDialog = memo(({
+  open,
+  resource,
+  onClose,
+  onSave,
+  saving        = false,
+  availableTags = [],
+  tagsLoading   = false,
+}) => {
+  const { isAdmin } = useAuth();
+
+  const [activeStep,      setActiveStep]      = useState(0);
+  const [uploadMethod,    setUploadMethod]    = useState('url');
+  const [selectedFile,    setSelectedFile]    = useState(null);
+  const [isDragging,      setIsDragging]      = useState(false);
+  const [institutions,    setInstitutions]    = useState([]);
+  const [programs,        setPrograms]        = useState([]);
+  const [levels,          setLevels]          = useState([]);
+  const [semesters,       setSemesters]       = useState([]);
+  const [modules,         setModules]         = useState([]);
+  const [academicLoading, setAcademicLoading] = useState(false);
+
+  const {
+    register, control, reset, watch, getValues, setValue,
+    handleSubmit, trigger, setError, clearErrors,
+    formState: { errors },
+  } = useForm({ defaultValues: getDefaultValues(resource), shouldUnregister: false });
+
+  const watchTitle  = watch('title');
+  const watchType   = watch('educationalType');
+  const watchFormat = watch('format');
+
+  // ── Reset on open ─────────────────────────────────────────────────────────
   useEffect(() => {
     reset(getDefaultValues(resource));
     clearErrors();
     setSelectedFile(null);
     setUploadMethod('url');
     setActiveStep(0);
+    setIsDragging(false);
   }, [resource, open, reset, clearErrors]);
 
-  const loadPrograms = async (institutionId) => {
-    if (!institutionId) {
-      setPrograms([]);
-      return [];
-    }
-    const response = await institutionProgramService.getProgramsByInstitution(institutionId);
-    const list = toList(response);
-    setPrograms(list);
-    return list;
-  };
+  // ── Data loaders ─────────────────────────────────────────────────────────
+  const loadPrograms  = useCallback(async (id) => { if (!id) { setPrograms([]);  return []; } const l = toList(await institutionProgramService.getProgramsByInstitution(id)); setPrograms(l);  return l; }, []);
+  const loadLevels    = useCallback(async (id) => { if (!id) { setLevels([]);    return []; } const l = toList(await levelService.getLevelsByProgram(id));                   setLevels(l);    return l; }, []);
+  const loadSemesters = useCallback(async (id) => { if (!id) { setSemesters([]); return []; } const l = toList(await semesterService.getSemestersByLevel(id));               setSemesters(l); return l; }, []);
+  const loadModules   = useCallback(async (id) => { if (!id) { setModules([]);   return []; } const l = toList(await moduleService.getModulesBySemester(id));                setModules(l);   return l; }, []);
 
-  const loadLevels = async (programId) => {
-    if (!programId) {
-      setLevels([]);
-      return [];
-    }
-    const response = await levelService.getLevelsByProgram(programId);
-    const list = toList(response);
-    setLevels(list);
-    return list;
-  };
-
-  const loadSemesters = async (levelId) => {
-    if (!levelId) {
-      setSemesters([]);
-      return [];
-    }
-    const response = await semesterService.getSemestersByLevel(levelId);
-    const list = toList(response);
-    setSemesters(list);
-    return list;
-  };
-
-  const loadModules = async (semesterId) => {
-    if (!semesterId) {
-      setModules([]);
-      return [];
-    }
-    const response = await moduleService.getModulesBySemester(semesterId);
-    const list = toList(response);
-    setModules(list);
-    return list;
-  };
-
+  // ── Bootstrap cascade ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-
-    const bootstrapAcademic = async () => {
+    const bootstrap = async () => {
       setAcademicLoading(true);
       try {
-        const institutionsResponse = await institutionService.getAllInstitutions();
+        const list = toList(await institutionService.getAllInstitutions());
         if (cancelled) return;
-
-        const institutionsList = toList(institutionsResponse);
-        setInstitutions(institutionsList);
-
-        const institutionId = String(getValues('academicContext.institutionId') || '');
-        const programId = String(getValues('academicContext.programId') || '');
-        const levelId = String(getValues('academicContext.levelId') || '');
-        const semesterId = String(getValues('academicContext.semesterId') || '');
-
-        if (institutionId) await loadPrograms(institutionId);
-        if (programId) await loadLevels(programId);
-        if (levelId) await loadSemesters(levelId);
-        if (semesterId) await loadModules(semesterId);
+        setInstitutions(list);
+        const iId = String(getValues('academicContext.institutionId') || '');
+        const pId = String(getValues('academicContext.programId')     || '');
+        const lId = String(getValues('academicContext.levelId')       || '');
+        const sId = String(getValues('academicContext.semesterId')    || '');
+        if (iId) await loadPrograms(iId);
+        if (pId) await loadLevels(pId);
+        if (lId) await loadSemesters(lId);
+        if (sId) await loadModules(sId);
       } catch {
-        if (cancelled) return;
-        setInstitutions([]);
-        setPrograms([]);
-        setLevels([]);
-        setSemesters([]);
-        setModules([]);
+        if (!cancelled) { setInstitutions([]); setPrograms([]); setLevels([]); setSemesters([]); setModules([]); }
       } finally {
         if (!cancelled) setAcademicLoading(false);
       }
     };
+    bootstrap();
+    return () => { cancelled = true; };
+  }, [open, resource, getValues, loadPrograms, loadLevels, loadSemesters, loadModules]);
 
-    bootstrapAcademic();
+  // ── Cascade handlers ──────────────────────────────────────────────────────
+  const handleInstitutionChange = useCallback(async (v) => {
+    setValue('academicContext.institutionId', v);
+    ['programId','levelId','semesterId','moduleId'].forEach((k) => setValue(`academicContext.${k}`, ''));
+    setPrograms([]); setLevels([]); setSemesters([]); setModules([]);
+    await loadPrograms(v);
+  }, [setValue, loadPrograms]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [open, resource, getValues]);
+  const handleProgramChange = useCallback(async (v) => {
+    setValue('academicContext.programId', v);
+    ['levelId','semesterId','moduleId'].forEach((k) => setValue(`academicContext.${k}`, ''));
+    setLevels([]); setSemesters([]); setModules([]);
+    await loadLevels(v);
+  }, [setValue, loadLevels]);
 
-  const handleInstitutionChange = async (value) => {
-    setValue('academicContext.institutionId', value);
-    setValue('academicContext.programId', '');
-    setValue('academicContext.levelId', '');
-    setValue('academicContext.semesterId', '');
-    setValue('academicContext.moduleId', '');
-    setPrograms([]);
-    setLevels([]);
-    setSemesters([]);
-    setModules([]);
-    await loadPrograms(value);
-  };
+  const handleLevelChange = useCallback(async (v) => {
+    setValue('academicContext.levelId', v);
+    ['semesterId','moduleId'].forEach((k) => setValue(`academicContext.${k}`, ''));
+    setSemesters([]); setModules([]);
+    await loadSemesters(v);
+  }, [setValue, loadSemesters]);
 
-  const handleProgramChange = async (value) => {
-    setValue('academicContext.programId', value);
-    setValue('academicContext.levelId', '');
-    setValue('academicContext.semesterId', '');
-    setValue('academicContext.moduleId', '');
-    setLevels([]);
-    setSemesters([]);
-    setModules([]);
-    await loadLevels(value);
-  };
-
-  const handleLevelChange = async (value) => {
-    setValue('academicContext.levelId', value);
-    setValue('academicContext.semesterId', '');
-    setValue('academicContext.moduleId', '');
-    setSemesters([]);
-    setModules([]);
-    await loadSemesters(value);
-  };
-
-  const handleSemesterChange = async (value) => {
-    setValue('academicContext.semesterId', value);
+  const handleSemesterChange = useCallback(async (v) => {
+    setValue('academicContext.semesterId', v);
     setValue('academicContext.moduleId', '');
     setModules([]);
-    await loadModules(value);
-  };
+    await loadModules(v);
+  }, [setValue, loadModules]);
 
-  const validateStep = async (step) => {
+  // ── Validation + navigation ───────────────────────────────────────────────
+  const validateStep = useCallback(async (step) => {
     if (step === 0) {
       const fields = ['title', 'description'];
       if (uploadMethod === 'url') fields.push('url');
       const valid = await trigger(fields);
-
       if (uploadMethod === 'file' && !selectedFile && !resource) {
-        setError('file', { type: 'manual', message: 'File is required' });
+        setError('file', { type: 'manual', message: 'Please attach a file' });
         return false;
       }
-
       clearErrors('file');
       return valid;
     }
-
-    if (step === 1) {
-      return trigger([
-        'academicContext.institutionId',
-        'academicContext.programId',
-        'academicContext.levelId',
-        'academicContext.semesterId',
-        'academicContext.moduleId',
-      ]);
-    }
-
+    if (step === 1) return trigger(['academicContext.institutionId','academicContext.programId','academicContext.levelId','academicContext.semesterId','academicContext.moduleId']);
     return true;
-  };
+  }, [uploadMethod, selectedFile, resource, trigger, setError, clearErrors]);
 
-  const handleNext = async () => {
-    if (await validateStep(activeStep)) {
-      setActiveStep((prev) => prev + 1);
-    }
-  };
+  const handleNext = useCallback(async () => {
+    if (await validateStep(activeStep)) setActiveStep((s) => s + 1);
+  }, [validateStep, activeStep]);
 
-  const handleBack = () => {
-    setActiveStep((prev) => prev - 1);
-  };
+  const handleBack = useCallback(() => setActiveStep((s) => s - 1), []);
 
-  const handleUploadMethodChange = (event, newMethod) => {
-    if (newMethod !== null) {
-      setUploadMethod(newMethod);
-      clearErrors(['url', 'file']);
-    }
-  };
+  // ── File handlers ─────────────────────────────────────────────────────────
+  const applyFile = useCallback((file) => {
+    if (!file) return;
+    setSelectedFile(file);
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (EXTENSION_FORMAT_MAP[ext]) setValue('format', EXTENSION_FORMAT_MAP[ext], { shouldDirty: true });
+    clearErrors('file');
+  }, [setValue, clearErrors]);
 
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      const extension = file.name.split('.').pop().toLowerCase();
-      const formatMap = {
-        pdf: 'pdf',
-        mp4: 'video',
-        avi: 'video',
-        mov: 'video',
-        mkv: 'video',
-        webm: 'video',
-        ppt: 'powerpoint',
-        pptx: 'powerpoint',
-        doc: 'word',
-        docx: 'word',
-        xls: 'excel',
-        xlsx: 'excel',
-        csv: 'excel',
-        png: 'image',
-        jpg: 'image',
-        jpeg: 'image',
-        gif: 'image',
-        webp: 'image',
-        mp3: 'audio',
-        wav: 'audio',
-        ogg: 'audio',
-        zip: 'zip',
-        rar: 'zip',
-        '7z': 'zip',
-      };
-      if (formatMap[extension]) {
-        setValue('format', formatMap[extension], { shouldDirty: true });
-      }
-      clearErrors('file');
-    }
-  };
+  const handleFileChange = useCallback((e) => applyFile(e.target.files?.[0]), [applyFile]);
 
-  const handleSave = async (data) => {
-    const currentValues = getValues();
-    const dataToSave = {
-      ...currentValues,
-      ...data,
-      tagIds: Array.isArray(currentValues?.tagIds) ? currentValues.tagIds : Array.isArray(data?.tagIds) ? data.tagIds : [],
-      ...(resource && { id: resource.id }),
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    applyFile(e.dataTransfer.files?.[0]);
+  }, [applyFile]);
+
+  // ── Submit ────────────────────────────────────────────────────────────────
+  const handleSave = useCallback(async (data) => {
+    const current = getValues();
+    const payload = {
+      ...current, ...data,
+      tagIds: Array.isArray(current?.tagIds) ? current.tagIds : Array.isArray(data?.tagIds) ? data.tagIds : [],
+      ...(resource   && { id: resource.id }),
       ...(uploadMethod === 'file' && selectedFile && { file: selectedFile }),
     };
+    try { await onSave(payload); onClose(); } catch { /* parent handles */ }
+  }, [getValues, resource, uploadMethod, selectedFile, onSave, onClose]);
 
-    try {
-      await onSave(dataToSave);
-      onClose();
-    } catch {
-      // Parent handles error display/logging.
-    }
-  };
+  // ─── Step 0 ──────────────────────────────────────────────────────────────
+  const renderStep0 = () => (
+    <Stack spacing={3.5}>
 
-  const getStatusColor = (status) => {
-    const colors = { published: 'success', draft: 'warning', archived: 'default' };
-    return colors[status] || 'default';
-  };
+      {/* Title */}
+      <Box>
+        <FieldLabel required>Title</FieldLabel>
+        <TextField
+          {...register('title', {
+            required: 'Title is required',
+            minLength: { value: 3, message: 'At least 3 characters' },
+          })}
+          placeholder="e.g. Advanced Algorithms — Chapter 4 Notes"
+          fullWidth size="small"
+          error={!!errors.title}
+          helperText={errors.title?.message}
+          sx={fieldSx}
+        />
+      </Box>
 
-  const getStepIcon = (step) => {
-    const icons = [
-      <DescriptionIcon sx={{ fontSize: 18 }} />,
-      <SchoolIcon sx={{ fontSize: 18 }} />,
-      <SettingsIcon sx={{ fontSize: 18 }} />,
-    ];
-    return icons[step];
-  };
+      {/* Description */}
+      <Box>
+        <FieldLabel required hint="A clear summary helps students find your resource faster.">
+          Description
+        </FieldLabel>
+        <TextField
+          {...register('description', { required: 'Description is required' })}
+          placeholder="Briefly describe what this resource covers…"
+          fullWidth multiline minRows={3} size="small"
+          error={!!errors.description}
+          helperText={errors.description?.message}
+          sx={fieldSx}
+        />
+      </Box>
 
-  const sectionCardSx = {
-    p: 2,
-    borderRadius: 3,
-    border: '1px solid',
-    borderColor: 'divider',
-    background: (theme) =>
-      theme.palette.mode === 'dark'
-        ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-        : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-  };
+      {/* Type + Format */}
+      <Grid container spacing={2}>
+        <Grid item xs={12} sm={6}>
+          <FieldLabel required>Educational Type</FieldLabel>
+          <Controller
+            name="educationalType"
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <FormControl fullWidth size="small">
+                <Select {...field} displayEmpty sx={selectSx}>
+                  {EDUCATIONAL_TYPE_OPTIONS.map((o) => (
+                    <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <FieldLabel required>Format</FieldLabel>
+          <Controller
+            name="format"
+            control={control}
+            render={({ field }) => (
+              <FormControl fullWidth size="small">
+                <Select {...field} displayEmpty sx={selectSx}>
+                  {FORMAT_OPTIONS.map((o) => (
+                    <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          />
+        </Grid>
+      </Grid>
 
-  const inputSurfaceSx = {
-    '& .MuiOutlinedInput-root': {
-      borderRadius: 2,
-      bgcolor: 'background.paper',
-      backgroundImage: 'none',
-    },
-  };
-
-  const selectSurfaceSx = {
-    borderRadius: 2,
-    bgcolor: 'background.paper',
-    backgroundImage: 'none',
-  };
-
-  const renderStepContent = (step) => {
-    switch (step) {
-      case 0:
-        return (
-          <Grid container spacing={1.5}>
-            <Grid item xs={12} md={7}>
-              <Box sx={sectionCardSx}>
-                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>
-                  Resource Details
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Resource Title"
-                          {...register('title', { required: 'Title is required' })}
-                          error={!!errors.title}
-                          helperText={errors.title?.message}
-                          required
-                          InputLabelProps={{ shrink: true }}
-                          placeholder="Enter resource title"
-                      sx={inputSurfaceSx}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Description"
-                          {...register('description', { required: 'Description is required' })}
-                          error={!!errors.description}
-                          helperText={errors.description?.message}
-                          multiline
-                          rows={4}
-                          required
-                      InputLabelProps={{ shrink: true }}
-                      placeholder="Enter resource description"
-                      sx={inputSurfaceSx}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Controller
-                      name="educationalType"
-                      control={control}
-                      render={({ field }) => (
-                        <FormControl fullWidth size="small">
-                          <InputLabel shrink>Educational Type *</InputLabel>
-                          <Select
-                            {...field}
-                            label="Educational Type *"
-                            displayEmpty
-                            notched
-                            sx={selectSurfaceSx}
-                          >
-                            {EDUCATIONAL_TYPE_OPTIONS.map((option) => (
-                              <MenuItem key={option.value} value={option.value}>
-                                {option.label}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      )}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Controller
-                      name="format"
-                      control={control}
-                      render={({ field }) => (
-                        <FormControl fullWidth size="small">
-                          <InputLabel shrink>Format *</InputLabel>
-                          <Select
-                            {...field}
-                            label="Format *"
-                            displayEmpty
-                            notched
-                            sx={selectSurfaceSx}
-                          >
-                            {FORMAT_OPTIONS.map((option) => (
-                              <MenuItem key={option.value} value={option.value}>
-                                {option.label}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      )}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Controller
-                      name="tagIds"
-                      control={control}
-                      render={({ field }) => (
-                        <Autocomplete
-                          multiple
-                          size="small"
-                          options={availableTags}
-                          loading={tagsLoading}
-                          value={availableTags.filter((tag) => (field.value || []).includes(Number(tag.id || tag.tag_id)))}
-                          isOptionEqualToValue={(option, value) => Number(option.id || option.tag_id) === Number(value.id || value.tag_id)}
-                          getOptionLabel={(option) => option.name || option.tag_name || ''}
-                          onChange={(_, value) => {
-                            const ids = (value || [])
-                              .map((tag) => Number(tag.id || tag.tag_id))
-                              .filter(Number.isFinite);
-                            field.onChange(Array.from(new Set(ids)));
-                          }}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              label="Tags"
-                              placeholder="Select tags"
-                              helperText="Use tags to improve discovery and recommendations"
-                              InputProps={{
-                                ...params.InputProps,
-                                endAdornment: (
-                                  <>
-                                    {tagsLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                                    {params.InputProps.endAdornment}
-                                  </>
-                                ),
-                              }}
-                            />
-                          )}
-                        />
-                      )}
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
-            </Grid>
-            <Grid item xs={12} md={5}>
-              <Box sx={sectionCardSx}>
-                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
-                  Upload Source
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-                  Choose a link or upload a file to attach the resource.
-                </Typography>
-                <ToggleButtonGroup
-                  value={uploadMethod}
-                  exclusive
-                  onChange={handleUploadMethodChange}
-                  size="small"
-                  fullWidth
-                  sx={{ mb: 2 }}
-                >
-                  <ToggleButton value="url" sx={{ borderRadius: 2, textTransform: 'none', py: 1 }}>
-                    <LinkIcon sx={{ fontSize: 18, mr: 1 }} />
-                    Enter URL
-                  </ToggleButton>
-                  <ToggleButton value="file" sx={{ borderRadius: 2, textTransform: 'none', py: 1 }}>
-                    <CloudUploadIcon sx={{ fontSize: 18, mr: 1 }} />
-                    Upload File
-                  </ToggleButton>
-                </ToggleButtonGroup>
-                {uploadMethod === 'url' ? (
-                  <TextField
-                    fullWidth
+      {/* Tags */}
+      <Box>
+        <FieldLabel hint="Tags help students discover your resource by topic.">Tags</FieldLabel>
+        <Controller
+          name="tagIds"
+          control={control}
+          render={({ field }) => (
+            <Autocomplete
+              multiple
+              options={availableTags}
+              loading={tagsLoading}
+              value={(availableTags || []).filter((tag) =>
+                (field.value || []).includes(Number(tag.id || tag.tag_id))
+              )}
+              isOptionEqualToValue={(o, v) => Number(o.id || o.tag_id) === Number(v.id || v.tag_id)}
+              getOptionLabel={(o) => o.name || o.tag_name || ''}
+              onChange={(_, value) => {
+                const ids = (value || []).map((t) => Number(t.id || t.tag_id)).filter(Number.isFinite);
+                field.onChange(Array.from(new Set(ids)));
+              }}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => (
+                  <Chip
+                    key={option.id || option.tag_id}
+                    label={option.name || option.tag_name}
                     size="small"
-                    label="Resource URL"
-                    {...register('url', {
-                      validate: (value) => {
-                        if (uploadMethod !== 'url') return true;
-                        return value?.trim() ? true : 'URL is required';
-                      },
-                    })}
-                    error={!!errors.url}
-                    helperText={errors.url?.message || 'Paste a direct link to the resource file.'}
-                    required
-                    InputLabelProps={{ shrink: true }}
-                    placeholder="https://example.com/resource.pdf"
-                    sx={inputSurfaceSx}
+                    {...getTagProps({ index })}
+                    sx={{ borderRadius: '6px', height: 22, fontSize: '0.72rem' }}
                   />
-                ) : (
-                  <Box>
-                    <Button
-                      component="label"
-                      variant="outlined"
-                      fullWidth
-                      sx={{
-                        py: 2,
-                        borderRadius: 2,
-                        textTransform: 'none',
-                         borderStyle: 'dashed',
-                         borderWidth: 2,
-                         borderColor: errors.file?.message ? 'error.main' : (selectedFile ? 'success.main' : 'divider'),
-                         bgcolor: selectedFile ? (theme) => alpha(theme.palette.success.main, 0.05) : 'transparent',
-                         color: selectedFile ? 'success.main' : 'text.secondary',
-                         display: 'flex',
-                        flexDirection: 'column',
-                        gap: 0.5,
-                      }}
-                    >
-                      <CloudUploadIcon sx={{ fontSize: 26 }} />
-                      <Typography variant="body2" fontWeight={600}>
-                        {selectedFile ? 'File ready' : 'Drop or browse'}
-                      </Typography>
-                      <Typography variant="caption">
-                        {selectedFile
-                          ? `${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(1)} MB)`
-                          : 'PDF, Word, PowerPoint, or Video'}
-                      </Typography>
-                       <input
-                         type="file"
-                         hidden
-                         onChange={handleFileChange}
-                         accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.mp4,.avi,.mov,.mkv,.webm,.png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.ogg,.zip,.rar,.7z"
-                       />
-                    </Button>
-                    {errors.file?.message && (
-                      <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
-                        {errors.file.message}
-                      </Typography>
-                    )}
-                  </Box>
-                )}
-              </Box>
-            </Grid>
-          </Grid>
-        );
-
-      case 1:
-        return (
-          <Box sx={sectionCardSx}>
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>
-              Academic Context
-            </Typography>
-            <Grid container spacing={1.5}>
-              <Grid item xs={12} sm={6}>
-                <Controller
-                  name="academicContext.institutionId"
-                  control={control}
-                  rules={{ required: 'Institution is required' }}
-                  render={({ field }) => (
-                    <FormControl fullWidth size="small" error={!!errors?.academicContext?.institutionId}>
-                      <InputLabel shrink>University *</InputLabel>
-                      <Select
-                        {...field}
-                        label="University *"
-                        displayEmpty
-                        notched
-                        sx={selectSurfaceSx}
-                        onChange={async (event) => {
-                          field.onChange(event);
-                          await handleInstitutionChange(String(event.target.value || ''));
-                        }}
-                      >
-                        <MenuItem value=""><em>Select university</em></MenuItem>
-                        {institutions.map((institution) => (
-                          <MenuItem key={institution.id} value={String(institution.id)}>
-                            {institution.name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                        {errors?.academicContext?.institutionId?.message || ''}
-                      </Typography>
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Controller
-                  name="academicContext.programId"
-                  control={control}
-                  rules={{ required: 'Program is required' }}
-                  render={({ field }) => (
-                    <FormControl fullWidth size="small" error={!!errors?.academicContext?.programId}>
-                      <InputLabel shrink>Program *</InputLabel>
-                      <Select
-                        {...field}
-                        label="Program *"
-                        displayEmpty
-                        notched
-                        disabled={!watch('academicContext.institutionId') || academicLoading}
-                        sx={selectSurfaceSx}
-                        onChange={async (event) => {
-                          field.onChange(event);
-                          await handleProgramChange(String(event.target.value || ''));
-                        }}
-                      >
-                        <MenuItem value=""><em>Select program</em></MenuItem>
-                        {programs.map((program) => (
-                          <MenuItem key={program.id || program.program_id} value={String(program.id || program.program_id)}>
-                            {program.name || program.program_name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                        {errors?.academicContext?.programId?.message || ''}
-                      </Typography>
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Controller
-                  name="academicContext.levelId"
-                  control={control}
-                  rules={{ required: 'Level is required' }}
-                  render={({ field }) => (
-                    <FormControl fullWidth size="small" error={!!errors?.academicContext?.levelId}>
-                      <InputLabel shrink>Level *</InputLabel>
-                      <Select
-                        {...field}
-                        label="Level *"
-                        displayEmpty
-                        notched
-                        disabled={!watch('academicContext.programId') || academicLoading}
-                        sx={selectSurfaceSx}
-                        onChange={async (event) => {
-                          field.onChange(event);
-                          await handleLevelChange(String(event.target.value || ''));
-                        }}
-                      >
-                        <MenuItem value=""><em>Select level</em></MenuItem>
-                        {levels.map((level) => (
-                          <MenuItem key={level.id || level.level_id} value={String(level.id || level.level_id)}>
-                            {level.name || level.level_name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                        {errors?.academicContext?.levelId?.message || ''}
-                      </Typography>
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Controller
-                  name="academicContext.semesterId"
-                  control={control}
-                  rules={{ required: 'Semester is required' }}
-                  render={({ field }) => (
-                    <FormControl fullWidth size="small" error={!!errors?.academicContext?.semesterId}>
-                      <InputLabel shrink>Semester *</InputLabel>
-                      <Select
-                        {...field}
-                        label="Semester *"
-                        displayEmpty
-                        notched
-                        disabled={!watch('academicContext.levelId') || academicLoading}
-                        sx={selectSurfaceSx}
-                        onChange={async (event) => {
-                          field.onChange(event);
-                          await handleSemesterChange(String(event.target.value || ''));
-                        }}
-                      >
-                        <MenuItem value=""><em>Select semester</em></MenuItem>
-                        {semesters.map((semester) => (
-                          <MenuItem key={semester.id || semester.semester_id} value={String(semester.id || semester.semester_id)}>
-                            {semester.name || semester.semester_name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                        {errors?.academicContext?.semesterId?.message || ''}
-                      </Typography>
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Controller
-                  name="academicContext.moduleId"
-                  control={control}
-                  rules={{ required: 'Module is required' }}
-                  render={({ field }) => (
-                    <FormControl fullWidth size="small" error={!!errors?.academicContext?.moduleId}>
-                      <InputLabel shrink>Module *</InputLabel>
-                      <Select
-                        {...field}
-                        label="Module *"
-                        displayEmpty
-                        notched
-                        disabled={!watch('academicContext.semesterId') || academicLoading}
-                        sx={selectSurfaceSx}
-                      >
-                        <MenuItem value=""><em>Select module</em></MenuItem>
-                        {modules.map((module) => (
-                          <MenuItem key={module.module_id || module.id} value={String(module.module_id || module.id)}>
-                            {(module.module_code || module.code) ? `${module.module_code || module.code} - ` : ''}
-                            {module.module_title || module.title}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                        {errors?.academicContext?.moduleId?.message || ''}
-                      </Typography>
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
+                ))
+              }
+              renderInput={(params) => (
                 <TextField
-                  fullWidth
+                  {...params}
+                  placeholder={field.value?.length ? '' : 'Search tags…'}
                   size="small"
-                  label="Chapter"
-                  {...register('academicContext.chapter')}
-                  InputLabelProps={{ shrink: true }}
-                  placeholder="e.g., Chapter 2"
-                  sx={inputSurfaceSx}
+                  sx={fieldSx}
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {tagsLoading ? <CircularProgress size={14} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
                 />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Controller
-                  name="academicContext.difficulty"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControl fullWidth size="small">
-                      <InputLabel shrink>Difficulty Level</InputLabel>
-                      <Select
-                        {...field}
-                        label="Difficulty Level"
-                        displayEmpty
-                        notched
-                        sx={selectSurfaceSx}
-                      >
-                        <MenuItem value="easy">Easy</MenuItem>
-                        <MenuItem value="medium">Medium</MenuItem>
-                        <MenuItem value="hard">Hard</MenuItem>
-                      </Select>
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Controller
-                  name="academicContext.isExamRelated"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControl fullWidth size="small">
-                      <InputLabel shrink>Exam Related</InputLabel>
-                      <Select
-                        value={field.value ? 'yes' : 'no'}
-                        label="Exam Related"
-                        displayEmpty
-                        notched
-                        sx={selectSurfaceSx}
-                        onChange={(event) => field.onChange(event.target.value === 'yes')}
-                      >
-                        <MenuItem value="no">No</MenuItem>
-                        <MenuItem value="yes">Yes</MenuItem>
-                      </Select>
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-            </Grid>
-          </Box>
-        );
+              )}
+            />
+          )}
+        />
+      </Box>
 
-      case 2:
-        return (
-          <Grid container spacing={1.5}>
-            <Grid item xs={12} md={7}>
-              <Box sx={sectionCardSx}>
-                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>
-                  Publication
-                </Typography>
-                <Grid container spacing={1.5}>
-                  <Grid item xs={12} sm={6}>
-                    {resource ? (
-                      <Controller
-                        name="status"
-                        control={control}
-                        render={({ field }) => (
-                          <FormControl fullWidth size="small">
-                            <InputLabel shrink>Publication Status *</InputLabel>
-                            <Select
-                              {...field}
-                              label="Publication Status *"
-                              displayEmpty
-                              notched
-                              sx={selectSurfaceSx}
-                            >
-                              <MenuItem value="pending">
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Chip label="Pending" color="info" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                                </Box>
-                              </MenuItem>
-                              <MenuItem value="draft">
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Chip label="Draft" color="warning" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                                </Box>
-                              </MenuItem>
-                              <MenuItem value="published">
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Chip label="Published" color="success" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                                </Box>
-                              </MenuItem>
-                              <MenuItem value="archived">
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Chip label="Archived" color="default" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                                </Box>
-                              </MenuItem>
-                            </Select>
-                          </FormControl>
+      <Divider />
+
+      {/* Source method — card selection */}
+      <Box>
+        <FieldLabel required>Source File</FieldLabel>
+        <Grid container spacing={1.5} sx={{ mb: 2 }}>
+          {[
+            { value: 'url',  icon: LinkIcon,        label: 'Paste a URL',   desc: 'Google Drive, Dropbox…' },
+            { value: 'file', icon: CloudUploadIcon,  label: 'Upload a File', desc: 'PDF, Word, Video & more' },
+          ].map(({ value, icon: Icon, label, desc }) => {
+            const selected = uploadMethod === value;
+            return (
+              <Grid item xs={6} key={value}>
+                <Box
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={selected}
+                  onClick={() => { setUploadMethod(value); clearErrors(['url', 'file']); }}
+                  onKeyDown={(e) => e.key === 'Enter' && setUploadMethod(value)}
+                  sx={(t) => ({
+                    p: 2, borderRadius: '12px', cursor: 'pointer',
+                    border: '1.5px solid',
+                    borderColor: selected ? 'primary.main' : 'divider',
+                    bgcolor: selected ? alpha(t.palette.primary.main, 0.05) : 'transparent',
+                    transition: 'all 0.15s ease',
+                    outline: 'none',
+                    '&:hover': { borderColor: 'primary.main', bgcolor: alpha(t.palette.primary.main, 0.03) },
+                    '&:focus-visible': { boxShadow: `0 0 0 3px ${alpha(t.palette.primary.main, 0.2)}` },
+                  })}
+                >
+                  <Icon sx={{ fontSize: 20, color: selected ? 'primary.main' : 'text.disabled', mb: 0.75 }} />
+                  <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.8125rem', color: selected ? 'primary.main' : 'text.primary' }}>
+                    {label}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">{desc}</Typography>
+                </Box>
+              </Grid>
+            );
+          })}
+        </Grid>
+
+        {/* URL input */}
+        {uploadMethod === 'url' && (
+          <TextField
+            {...register('url', {
+              validate: (v) => uploadMethod !== 'url' || v?.trim() ? true : 'URL is required',
+            })}
+            placeholder="https://drive.google.com/file/…"
+            fullWidth size="small"
+            error={!!errors.url}
+            helperText={errors.url?.message || 'Paste a publicly accessible direct link.'}
+            sx={fieldSx}
+            InputProps={{
+              startAdornment: (
+                <Box sx={{ mr: 1, color: 'text.disabled', display: 'flex' }}>
+                  <LinkIcon sx={{ fontSize: 16 }} />
+                </Box>
+              ),
+            }}
+          />
+        )}
+
+        {/* File drop zone */}
+        {uploadMethod === 'file' && (
+          <Box
+            component="label"
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            sx={(t) => ({
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              gap: 1.25, py: 4, px: 3,
+              border: '2px dashed',
+              borderColor: selectedFile
+                ? alpha(t.palette.success.main, 0.5)
+                : isDragging
+                ? t.palette.primary.main
+                : errors.file
+                ? t.palette.error.main
+                : alpha(t.palette.primary.main, 0.25),
+              borderRadius: '14px',
+              cursor: 'pointer',
+              bgcolor: isDragging
+                ? alpha(t.palette.primary.main, 0.05)
+                : selectedFile
+                ? alpha(t.palette.success.main, 0.03)
+                : 'transparent',
+              transition: 'all 0.18s ease',
+              '&:hover': {
+                borderColor: selectedFile ? 'success.main' : 'primary.main',
+                bgcolor: alpha(t.palette.primary.main, 0.03),
+              },
+            })}
+          >
+            <input type="file" hidden onChange={handleFileChange} />
+
+            {/* Icon */}
+            <Box
+              sx={(t) => ({
+                width: 48, height: 48, borderRadius: '14px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                bgcolor: selectedFile
+                  ? alpha(t.palette.success.main, 0.1)
+                  : isDragging
+                  ? alpha(t.palette.primary.main, 0.12)
+                  : alpha(t.palette.primary.main, 0.07),
+                color: selectedFile ? 'success.main' : 'primary.main',
+              })}
+            >
+              {selectedFile
+                ? <CheckCircleIcon sx={{ fontSize: 24 }} />
+                : <CloudUploadIcon sx={{ fontSize: 24 }} />}
+            </Box>
+
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="body2" fontWeight={700} color={selectedFile ? 'success.main' : 'text.primary'}>
+                {selectedFile
+                  ? selectedFile.name
+                  : isDragging
+                  ? 'Drop it here!'
+                  : 'Drag & drop or click to browse'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25, display: 'block' }}>
+                {selectedFile
+                  ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB · format auto-detected`
+                  : 'PDF, Word, PowerPoint, Video, Image and more'}
+              </Typography>
+            </Box>
+
+            {errors.file?.message && (
+              <Typography variant="caption" color="error.main">{errors.file.message}</Typography>
+            )}
+          </Box>
+        )}
+      </Box>
+    </Stack>
+  );
+
+  // ─── Step 1 ───────────────────────────────────────────────────────────────
+  const renderStep1 = () => (
+    <Stack spacing={3}>
+
+      {academicLoading && (
+        <Box>
+          <LinearProgress sx={{ borderRadius: 4, height: 3 }} />
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: 'block' }}>
+            Loading institutional data…
+          </Typography>
+        </Box>
+      )}
+
+      {/* Institution + Program */}
+      <Grid container spacing={2}>
+        <Grid item xs={12} sm={6}>
+          <FieldLabel required>University</FieldLabel>
+          <Controller
+            name="academicContext.institutionId"
+            control={control}
+            rules={{ required: 'Required' }}
+            render={({ field }) => (
+              <FormControl fullWidth size="small" error={!!errors?.academicContext?.institutionId}>
+                <Select
+                  {...field}
+                  displayEmpty sx={selectSx}
+                  onChange={async (e) => { field.onChange(e); await handleInstitutionChange(String(e.target.value || '')); }}
+                  renderValue={(v) => v
+                    ? (institutions.find((i) => String(i.id || i.institution_id) === v)?.name || v)
+                    : <Box component="span" sx={{ color: 'text.disabled' }}>Select university</Box>}
+                >
+                  {institutions.map((i) => (
+                    <MenuItem key={i.id || i.institution_id} value={String(i.id || i.institution_id)}>
+                      {i.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors?.academicContext?.institutionId && (
+                  <Typography variant="caption" color="error.main" sx={{ mt: 0.4, ml: 1.5 }}>
+                    {errors.academicContext.institutionId.message}
+                  </Typography>
+                )}
+              </FormControl>
+            )}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <FieldLabel required>Program</FieldLabel>
+          <Controller
+            name="academicContext.programId"
+            control={control}
+            rules={{ required: 'Required' }}
+            render={({ field }) => (
+              <FormControl fullWidth size="small" error={!!errors?.academicContext?.programId} disabled={!programs.length}>
+                <Select
+                  {...field}
+                  displayEmpty sx={selectSx}
+                  onChange={async (e) => { field.onChange(e); await handleProgramChange(String(e.target.value || '')); }}
+                  renderValue={(v) => v
+                    ? (programs.find((p) => String(p.id || p.program_id) === v)?.name || programs.find((p) => String(p.id || p.program_id) === v)?.program_name || v)
+                    : <Box component="span" sx={{ color: 'text.disabled' }}>Select program</Box>}
+                >
+                  {programs.map((p) => (
+                    <MenuItem key={p.id || p.program_id} value={String(p.id || p.program_id)}>
+                      {p.name || p.program_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors?.academicContext?.programId && (
+                  <Typography variant="caption" color="error.main" sx={{ mt: 0.4, ml: 1.5 }}>
+                    {errors.academicContext.programId.message}
+                  </Typography>
+                )}
+              </FormControl>
+            )}
+          />
+        </Grid>
+
+        {/* Level + Semester */}
+        <Grid item xs={12} sm={6}>
+          <FieldLabel required>Level</FieldLabel>
+          <Controller
+            name="academicContext.levelId"
+            control={control}
+            rules={{ required: 'Required' }}
+            render={({ field }) => (
+              <FormControl fullWidth size="small" error={!!errors?.academicContext?.levelId} disabled={!levels.length}>
+                <Select
+                  {...field}
+                  displayEmpty sx={selectSx}
+                  onChange={async (e) => { field.onChange(e); await handleLevelChange(String(e.target.value || '')); }}
+                  renderValue={(v) => v
+                    ? (levels.find((l) => String(l.id || l.level_id) === v)?.name || levels.find((l) => String(l.id || l.level_id) === v)?.level_name || v)
+                    : <Box component="span" sx={{ color: 'text.disabled' }}>Select level</Box>}
+                >
+                  {levels.map((l) => (
+                    <MenuItem key={l.id || l.level_id} value={String(l.id || l.level_id)}>
+                      {l.name || l.level_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors?.academicContext?.levelId && (
+                  <Typography variant="caption" color="error.main" sx={{ mt: 0.4, ml: 1.5 }}>
+                    {errors.academicContext.levelId.message}
+                  </Typography>
+                )}
+              </FormControl>
+            )}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <FieldLabel required>Semester</FieldLabel>
+          <Controller
+            name="academicContext.semesterId"
+            control={control}
+            rules={{ required: 'Required' }}
+            render={({ field }) => (
+              <FormControl fullWidth size="small" error={!!errors?.academicContext?.semesterId} disabled={!semesters.length}>
+                <Select
+                  {...field}
+                  displayEmpty sx={selectSx}
+                  onChange={async (e) => { field.onChange(e); await handleSemesterChange(String(e.target.value || '')); }}
+                  renderValue={(v) => v
+                    ? (semesters.find((s) => String(s.id || s.semester_id) === v)?.name || semesters.find((s) => String(s.id || s.semester_id) === v)?.semester_name || v)
+                    : <Box component="span" sx={{ color: 'text.disabled' }}>Select semester</Box>}
+                >
+                  {semesters.map((s) => (
+                    <MenuItem key={s.id || s.semester_id} value={String(s.id || s.semester_id)}>
+                      {s.name || s.semester_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors?.academicContext?.semesterId && (
+                  <Typography variant="caption" color="error.main" sx={{ mt: 0.4, ml: 1.5 }}>
+                    {errors.academicContext.semesterId.message}
+                  </Typography>
+                )}
+              </FormControl>
+            )}
+          />
+        </Grid>
+
+        {/* Module — full width */}
+        <Grid item xs={12}>
+          <FieldLabel required>Module</FieldLabel>
+          <Controller
+            name="academicContext.moduleId"
+            control={control}
+            rules={{ required: 'Required' }}
+            render={({ field }) => (
+              <FormControl fullWidth size="small" error={!!errors?.academicContext?.moduleId} disabled={!modules.length}>
+                <Select
+                  {...field}
+                  displayEmpty sx={selectSx}
+                  renderValue={(v) => {
+                    const m = modules.find((x) => String(x.id || x.module_id) === v);
+                    if (!m) return <Box component="span" sx={{ color: 'text.disabled' }}>Select module</Box>;
+                    const code = m.module_code || m.code;
+                    return code ? `${code} — ${m.module_title || m.title}` : m.module_title || m.title;
+                  }}
+                >
+                  {modules.map((m) => (
+                    <MenuItem key={m.id || m.module_id} value={String(m.id || m.module_id)}>
+                      <Stack>
+                        <Typography variant="body2" fontWeight={600}>{m.module_title || m.title}</Typography>
+                        {(m.module_code || m.code) && (
+                          <Typography variant="caption" color="text.secondary">{m.module_code || m.code}</Typography>
                         )}
-                      />
-                    ) : (
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Publication Status"
-                        value={isAdmin ? 'Published (auto)' : 'Pending (auto)'}
-                        InputProps={{ readOnly: true }}
-                        helperText={
-                          isAdmin
-                            ? 'Admin-created resources are published automatically.'
-                            : 'All new resources are submitted for admin review.'
-                        }
-                        sx={inputSurfaceSx}
-                      />
-                    )}
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Controller
-                      name="accessTier"
-                      control={control}
-                      render={({ field }) => (
-                        <FormControl fullWidth size="small">
-                          <InputLabel shrink>Access Tier *</InputLabel>
-                          <Select
-                            {...field}
-                            label="Access Tier *"
-                            displayEmpty
-                            notched
-                            sx={selectSurfaceSx}
-                          >
-                            <MenuItem value="free">Free</MenuItem>
-                            {isAdmin ? <MenuItem value="premium">Premium</MenuItem> : null}
-                          </Select>
-                        </FormControl>
-                      )}
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
-            </Grid>
-            <Grid item xs={12} md={5}>
-              <Box
+                      </Stack>
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors?.academicContext?.moduleId && (
+                  <Typography variant="caption" color="error.main" sx={{ mt: 0.4, ml: 1.5 }}>
+                    {errors.academicContext.moduleId.message}
+                  </Typography>
+                )}
+              </FormControl>
+            )}
+          />
+        </Grid>
+      </Grid>
+
+      <Divider />
+
+      {/* Difficulty */}
+      <Box>
+        <FieldLabel>Difficulty</FieldLabel>
+        <Controller
+          name="academicContext.difficulty"
+          control={control}
+          render={({ field }) => (
+            <ToggleButtonGroup
+              {...field}
+              exclusive fullWidth size="small"
+              sx={{
+                gap: 1,
+                '& .MuiToggleButtonGroup-grouped': { borderRadius: '10px !important', border: '1.5px solid !important', borderColor: 'divider !important' },
+                '& .MuiToggleButton-root': {
+                  textTransform: 'none', fontWeight: 600, fontSize: '0.8125rem',
+                  '&.Mui-selected[value="easy"]':   { color: 'success.main', bgcolor: (t) => alpha(t.palette.success.main, 0.08), borderColor: 'success.main !important' },
+                  '&.Mui-selected[value="medium"]': { color: 'warning.main', bgcolor: (t) => alpha(t.palette.warning.main, 0.08), borderColor: 'warning.main !important' },
+                  '&.Mui-selected[value="hard"]':   { color: 'error.main',   bgcolor: (t) => alpha(t.palette.error.main,   0.08), borderColor: 'error.main !important'   },
+                },
+              }}
+            >
+              <ToggleButton value="easy">Easy</ToggleButton>
+              <ToggleButton value="medium">Medium</ToggleButton>
+              <ToggleButton value="hard">Hard</ToggleButton>
+            </ToggleButtonGroup>
+          )}
+        />
+      </Box>
+
+      {/* Exam related + Chapter */}
+      <Grid container spacing={2}>
+        <Grid item xs={12} sm={5}>
+          <FieldLabel>Exam Related</FieldLabel>
+          <Controller
+            name="academicContext.isExamRelated"
+            control={control}
+            render={({ field }) => (
+              <ToggleButtonGroup
+                value={field.value ? 'yes' : 'no'}
+                exclusive fullWidth size="small"
+                onChange={(_, v) => { if (v !== null) field.onChange(v === 'yes'); }}
                 sx={{
-                  ...sectionCardSx,
-                  bgcolor: (theme) => alpha(theme.palette.info.main, 0.05),
-                  borderColor: (theme) => alpha(theme.palette.info.main, 0.2),
+                  gap: 1,
+                  '& .MuiToggleButtonGroup-grouped': { borderRadius: '10px !important', border: '1.5px solid !important', borderColor: 'divider !important' },
+                  '& .MuiToggleButton-root': {
+                    textTransform: 'none', fontWeight: 600, fontSize: '0.8125rem',
+                    '&.Mui-selected': { color: 'primary.main', bgcolor: (t) => alpha(t.palette.primary.main, 0.08), borderColor: 'primary.main !important' },
+                  },
                 }}
               >
-                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
-                  Visibility Guide
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.7 }}>
-                  <strong>Draft:</strong> Only visible to you<br />
-                  <strong>Published:</strong> Visible to all users<br />
-                  <strong>Archived:</strong> Hidden from public view
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        );
+                <ToggleButton value="no">No</ToggleButton>
+                <ToggleButton value="yes">Yes</ToggleButton>
+              </ToggleButtonGroup>
+            )}
+          />
+        </Grid>
+        <Grid item xs={12} sm={7}>
+          <FieldLabel hint="Optional — chapter, section, or topic within the module.">Chapter / Topic</FieldLabel>
+          <TextField
+            {...register('academicContext.chapter')}
+            placeholder="e.g. Chapter 3: Dynamic Programming"
+            fullWidth size="small" sx={fieldSx}
+          />
+        </Grid>
+      </Grid>
+    </Stack>
+  );
 
-      default:
-        return null;
-    }
-  };
+  // ─── Step 2 ───────────────────────────────────────────────────────────────
+  const renderStep2 = () => (
+    <Stack spacing={3}>
 
+      {/* Status — edit only */}
+      {resource ? (
+        <Box>
+          <FieldLabel required>Publication Status</FieldLabel>
+          <Controller
+            name="status"
+            control={control}
+            rules={{ required: 'Required' }}
+            render={({ field }) => (
+              <FormControl fullWidth size="small">
+                <Select
+                  {...field} displayEmpty sx={selectSx}
+                  renderValue={(v) => v ? (
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Chip
+                        label={STATUS_CONFIG[v]?.label || v}
+                        size="small" color={getStatusColor(v)}
+                        sx={{ height: 20, fontSize: '0.7rem', fontWeight: 700, textTransform: 'capitalize' }}
+                      />
+                    </Stack>
+                  ) : null}
+                >
+                  {Object.entries(STATUS_CONFIG).map(([val, cfg]) => (
+                    <MenuItem key={val} value={val}>
+                      <Stack direction="row" alignItems="center" spacing={1.5}>
+                        <Chip label={cfg.label} size="small" color={cfg.color} sx={{ height: 20, fontSize: '0.7rem', fontWeight: 700 }} />
+                      </Stack>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          />
+        </Box>
+      ) : (
+        <Box
+          sx={(t) => ({
+            p: 1.75, borderRadius: '12px', display: 'flex', gap: 1.5, alignItems: 'flex-start',
+            bgcolor: alpha(t.palette.info.main, 0.06),
+            border: '1px solid', borderColor: alpha(t.palette.info.main, 0.18),
+          })}
+        >
+          <InfoIcon sx={{ fontSize: 16, color: 'info.main', mt: 0.1, flexShrink: 0 }} />
+          <Typography variant="caption" color="text.secondary" lineHeight={1.65}>
+            New resources are submitted as <strong>Pending</strong> and reviewed by an admin before becoming visible to students.
+          </Typography>
+        </Box>
+      )}
+
+      {/* Access tier */}
+      <Box>
+        <FieldLabel required>Access Tier</FieldLabel>
+        <Grid container spacing={1.5}>
+          {[
+            { value: 'free',    label: 'Free',    desc: 'Accessible to all users',   dot: 'success.main', show: true     },
+            { value: 'premium', label: 'Premium', desc: 'Subscribers only',           dot: 'warning.main', show: isAdmin },
+          ].filter((o) => o.show).map(({ value, label, desc, dot }) => (
+            <Controller
+              key={value}
+              name="accessTier"
+              control={control}
+              render={({ field }) => (
+                <Grid item xs={12} sm={6}>
+                  <Box
+                    role="button" tabIndex={0}
+                    aria-pressed={field.value === value}
+                    onClick={() => field.onChange(value)}
+                    onKeyDown={(e) => e.key === 'Enter' && field.onChange(value)}
+                    sx={(t) => ({
+                      p: 2, borderRadius: '12px', cursor: 'pointer',
+                      border: '1.5px solid',
+                      borderColor: field.value === value ? 'primary.main' : 'divider',
+                      bgcolor: field.value === value ? alpha(t.palette.primary.main, 0.05) : 'transparent',
+                      transition: 'all 0.15s ease',
+                      outline: 'none',
+                      '&:hover': { borderColor: 'primary.main' },
+                      '&:focus-visible': { boxShadow: `0 0 0 3px ${alpha(t.palette.primary.main, 0.2)}` },
+                    })}
+                  >
+                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.4 }}>
+                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: dot, flexShrink: 0 }} />
+                      <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.8125rem' }}>{label}</Typography>
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary">{desc}</Typography>
+                  </Box>
+                </Grid>
+              )}
+            />
+          ))}
+        </Grid>
+      </Box>
+
+      <Divider />
+
+      {/* Visibility reference */}
+      <Box
+        sx={(t) => ({
+          p: 2, borderRadius: '12px',
+          bgcolor: t.palette.mode === 'dark' ? alpha(t.palette.common.white, 0.02) : alpha(t.palette.common.black, 0.02),
+          border: '1px solid', borderColor: 'divider',
+        })}
+      >
+        <Typography
+          sx={{
+            fontSize: '0.62rem', fontWeight: 700, letterSpacing: 0.8,
+            textTransform: 'uppercase', color: 'text.secondary',
+            display: 'block', mb: 1.5,
+          }}
+        >
+          Status Reference
+        </Typography>
+        <Stack spacing={1.25}>
+          {[
+            { status: 'pending',   desc: 'Awaiting admin review — only you can see it'  },
+            { status: 'draft',     desc: 'Work in progress — only visible to you'        },
+            { status: 'published', desc: 'Live — visible to all users on the platform'  },
+            { status: 'archived',  desc: 'Unlisted — hidden from public discovery'      },
+          ].map(({ status, desc }) => (
+            <Stack key={status} direction="row" alignItems="center" spacing={1.5}>
+              <Chip
+                label={STATUS_CONFIG[status]?.label || status}
+                size="small" color={getStatusColor(status)}
+                sx={{ height: 20, fontSize: '0.68rem', fontWeight: 700, minWidth: 74, textTransform: 'capitalize' }}
+              />
+              <Typography variant="caption" color="text.secondary">{desc}</Typography>
+            </Stack>
+          ))}
+        </Stack>
+      </Box>
+    </Stack>
+  );
+
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="lg"
+      maxWidth="md"
       fullWidth
+      transitionDuration={{ enter: 180, exit: 80 }}
       PaperProps={{
+        elevation: 0,
         sx: {
-          borderRadius: 4,
+          borderRadius: '20px',
+          border: '1px solid',
+          borderColor: 'divider',
           overflow: 'hidden',
-          bgcolor: 'background.paper',
-          backgroundImage: 'none',
-          background: (theme) =>
-            theme.palette.mode === 'dark'
-              ? 'linear-gradient(180deg, rgba(18,18,18,0.98) 0%, rgba(18,18,18,0.98) 100%)'
-              : 'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%)',
-        }
+          display: 'flex',
+          flexDirection: 'row',
+          minHeight: { sm: 560 },
+        },
       }}
-      keepMounted
-      transitionDuration={{ enter: 120, exit: 80 }}
     >
-      {/* Header */}
-      <DialogTitle sx={{ p: 0, position: 'relative' }}>
+      {/* ─── Sidebar ─────────────────────────────────────────────────────── */}
+      <Sidebar
+        steps={STEPS}
+        stepIcons={STEP_ICONS}
+        activeStep={activeStep}
+        onClose={onClose}
+        resource={resource}
+        previewTitle={watchTitle}
+        previewType={watchType}
+        previewFormat={watchFormat}
+      />
+
+      {/* ─── Form panel ──────────────────────────────────────────────────── */}
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+
+        {/* Step header */}
         <Box
-          sx={{
-            px: 2.5,
-            pr: 6,
-            py: 2,
-            background: (theme) =>
-              `linear-gradient(120deg, ${alpha(theme.palette.primary.main, 0.12)} 0%, ${alpha(
-                theme.palette.primary.main,
-                0.02
-              )} 60%)`,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-          }}
+          sx={(t) => ({
+            px: { xs: 2.5, sm: 3.5 }, pt: 3, pb: 2.25,
+            borderBottom: '1px solid', borderColor: 'divider',
+            bgcolor: t.palette.mode === 'dark'
+              ? alpha(t.palette.common.white, 0.015)
+              : alpha(t.palette.common.black, 0.01),
+          })}
         >
-          <Box display="flex" alignItems="center" gap={1.5}>
-            <Box
-              sx={{
-                width: 44,
-                height: 44,
-                borderRadius: 2.5,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: (theme) => alpha(theme.palette.primary.main, 0.1),
-              }}
-            >
-              <DescriptionIcon sx={{ fontSize: 22, color: 'primary.main' }} />
-            </Box>
-            <Box flex={1}>
-              <Typography variant="h6" fontWeight="700">
-                {resource ? 'Edit Resource' : 'Create Resource'}
+          <Stack direction="row" alignItems="center" spacing={1.25}>
+            {(() => { const Icon = STEP_ICONS[activeStep]; return <Icon sx={{ fontSize: 18, color: 'primary.main' }} />; })()}
+            <Box>
+              <Typography
+                variant="subtitle1"
+                fontWeight={800}
+                letterSpacing={-0.3}
+                sx={{ lineHeight: 1.2, fontSize: '1rem' }}
+              >
+                {STEPS[activeStep].label}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Add a resource that looks great and is easy to discover.
+              <Typography variant="caption" color="text.secondary">
+                {STEPS[activeStep].description}
               </Typography>
             </Box>
-            {resource && (
+            {resource?.status && (
               <Chip
-                label={resource.status?.charAt(0).toUpperCase() + resource.status?.slice(1)}
-                color={getStatusColor(resource.status)}
-                size="small"
-                sx={{ fontWeight: 600, fontSize: '0.7rem', height: 24, mr: 2 }}
+                label={STATUS_CONFIG[resource.status]?.label || resource.status}
+                size="small" color={getStatusColor(resource.status)}
+                sx={{ height: 20, fontSize: '0.68rem', fontWeight: 700, ml: 'auto' }}
               />
             )}
-          </Box>
+          </Stack>
         </Box>
-        <IconButton
-          onClick={onClose}
-          disabled={saving}
-          sx={{ position: 'absolute', right: 12, top: 12, color: 'text.secondary' }}
-        >
-          <Close sx={{ fontSize: 20 }} />
-        </IconButton>
-      </DialogTitle>
 
-      {/* Stepper */}
-      <Box sx={{ px: 2.5, pt: 1.5, pb: 1 }}>
-        <Stepper activeStep={activeStep} alternativeLabel>
-          {steps.map((label, index) => (
-            <Step key={label}>
-              <StepLabel
-                StepIconComponent={() => (
-                  <Box
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      bgcolor: index <= activeStep
-                        ? 'primary.main'
-                        : (theme) => alpha(theme.palette.grey[500], 0.2),
-                      color: index <= activeStep ? 'white' : 'text.secondary',
-                    }}
-                  >
-                    {getStepIcon(index)}
-                  </Box>
-                )}
-              >
-                <Typography 
-                  variant="caption" 
-                  fontWeight={index === activeStep ? 600 : 400}
-                  color={index === activeStep ? 'primary.main' : 'text.secondary'}
-                >
-                  {label}
-                </Typography>
-              </StepLabel>
-            </Step>
-          ))}
-        </Stepper>
+        {/* Scrollable form content */}
+        <Box sx={{ flex: 1, overflowY: 'auto', px: { xs: 2.5, sm: 3.5 }, py: 3 }}>
+          <form id="resource-dialog-form" onSubmit={handleSubmit(handleSave)} noValidate>
+            {activeStep === 0 && renderStep0()}
+            {activeStep === 1 && renderStep1()}
+            {activeStep === 2 && renderStep2()}
+          </form>
+        </Box>
+
+        {/* Footer */}
+        <Box
+          sx={(t) => ({
+            px: { xs: 2.5, sm: 3.5 }, py: 2,
+            display: 'flex', alignItems: 'center', gap: 1,
+            borderTop: '1px solid', borderColor: 'divider',
+            bgcolor: t.palette.mode === 'dark'
+              ? alpha(t.palette.common.white, 0.015)
+              : alpha(t.palette.common.black, 0.015),
+          })}
+        >
+          {/* Animated progress dots */}
+          <Stack direction="row" spacing={0.75} sx={{ mr: 'auto' }}>
+            {STEPS.map((_, i) => (
+              <Box
+                key={i}
+                sx={(t) => ({
+                  height: 5, borderRadius: '99px',
+                  width: i === activeStep ? 22 : 6,
+                  bgcolor: i <= activeStep ? t.palette.primary.main : t.palette.divider,
+                  transition: 'width 0.28s cubic-bezier(0.34,1.56,0.64,1), background 0.2s ease',
+                })}
+              />
+            ))}
+          </Stack>
+
+          <Button
+            variant="text" onClick={onClose}
+            sx={{ textTransform: 'none', borderRadius: '10px', fontWeight: 500, color: 'text.secondary', px: 2 }}
+          >
+            Cancel
+          </Button>
+
+          {activeStep > 0 && (
+            <Button
+              startIcon={<ArrowBack sx={{ fontSize: '15px !important' }} />}
+              variant="outlined" onClick={handleBack}
+              sx={{
+                textTransform: 'none', borderRadius: '10px', fontWeight: 600,
+                borderColor: 'divider', color: 'text.primary',
+                '&:hover': { borderColor: 'primary.main', bgcolor: (t) => alpha(t.palette.primary.main, 0.04) },
+              }}
+            >
+              Back
+            </Button>
+          )}
+
+          {activeStep < STEPS.length - 1 ? (
+            <Button
+              endIcon={<ArrowForward sx={{ fontSize: '15px !important' }} />}
+              variant="contained" disableElevation onClick={handleNext}
+              sx={{ textTransform: 'none', borderRadius: '10px', fontWeight: 700, px: 2.5 }}
+            >
+              Continue
+            </Button>
+          ) : (
+            <AsyncButton
+              loading={saving}
+              type="submit" form="resource-dialog-form"
+              variant="contained" disableElevation
+              sx={{ textTransform: 'none', borderRadius: '10px', fontWeight: 700, px: 3 }}
+            >
+              {resource ? 'Save Changes' : 'Create Resource'}
+            </AsyncButton>
+          )}
+        </Box>
       </Box>
-
-      {/* Content */}
-      <DialogContent sx={{ px: 2.5, py: 2 }}>
-        {renderStepContent(activeStep)}
-      </DialogContent>
-
-      {/* Actions */}
-      <DialogActions
-        sx={{
-          px: 2.5,
-          py: 2,
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          gap: 1,
-          background: (theme) => alpha(theme.palette.primary.main, 0.02),
-        }}
-      >
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          size="small"
-          disabled={saving}
-          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-        >
-          Cancel
-        </Button>
-        <Box flex={1} />
-        {activeStep > 0 && (
-          <Button
-            onClick={handleBack}
-            variant="outlined"
-            size="small"
-            disabled={saving}
-            startIcon={<ArrowBack sx={{ fontSize: 16 }} />}
-            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-          >
-            Back
-          </Button>
-        )}
-        {activeStep < steps.length - 1 ? (
-          <Button
-            onClick={handleNext}
-            variant="contained"
-            size="small"
-            disabled={saving}
-            endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
-            sx={{
-              borderRadius: 2,
-              textTransform: 'none',
-              fontWeight: 600,
-              boxShadow: 'none',
-              px: 2.5,
-            }}
-          >
-            Next
-          </Button>
-        ) : (
-          <AsyncButton
-            onClick={handleSubmit(handleSave)}
-            variant="contained"
-            size="small"
-            disabled={saving}
-            loading={saving}
-            loadingText={resource ? 'Updating...' : 'Creating...'}
-            sx={{
-              borderRadius: 2,
-              textTransform: 'none',
-              fontWeight: 600,
-              boxShadow: 'none',
-              px: 2.5,
-            }}
-          >
-            {resource ? 'Update' : 'Create'}
-          </AsyncButton>
-        )}
-      </DialogActions>
     </Dialog>
   );
-};
+});
+
+ResourceDialog.displayName = 'ResourceDialog';
 
 ResourceDialog.propTypes = {
-  open: PropTypes.bool.isRequired,
-  resource: PropTypes.object,
-  onClose: PropTypes.func.isRequired,
-  onSave: PropTypes.func.isRequired,
-  saving: PropTypes.bool,
+  open:          PropTypes.bool.isRequired,
+  resource:      PropTypes.object,
+  onClose:       PropTypes.func.isRequired,
+  onSave:        PropTypes.func.isRequired,
+  saving:        PropTypes.bool,
   availableTags: PropTypes.array,
-  tagsLoading: PropTypes.bool,
-};
-
-ResourceDialog.defaultProps = {
-  resource: null,
-  saving: false,
-  availableTags: [],
-  tagsLoading: false,
+  tagsLoading:   PropTypes.bool,
 };
 
 export default ResourceDialog;
