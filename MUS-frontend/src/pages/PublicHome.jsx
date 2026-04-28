@@ -13,6 +13,20 @@ import { navLinks, musRolePillars } from "@/features/publicHome/data/content";
 
 gsap.registerPlugin(ScrollTrigger);
 
+const CURSOR_HIDE_SELECTOR = [
+  "a",
+  "button",
+  "input",
+  "textarea",
+  "select",
+  "label",
+  "[role='button']",
+  "[role='link']",
+  "[data-cursor-hide='true']",
+].join(",");
+
+const CURSOR_FORCE_SELECTOR = "[data-cursor-force='true']";
+
 const PublicHome = () => {
   const rootRef = useRef(null);
   const reduced = useReducedMotion();
@@ -24,6 +38,15 @@ const PublicHome = () => {
     if (reduced) return;
     mouseX.set(event.clientX);
     mouseY.set(event.clientY);
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      setCursorVisible(true);
+      return;
+    }
+
+    const isForced = Boolean(target.closest(CURSOR_FORCE_SELECTOR));
+    const shouldHide = Boolean(target.closest(CURSOR_HIDE_SELECTOR));
+    setCursorVisible(isForced || !shouldHide);
   }, [mouseX, mouseY, reduced]);
 
   const handleMouseEnter = useCallback(() => {
