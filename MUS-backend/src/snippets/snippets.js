@@ -712,6 +712,34 @@ export const SQL = {
     GET_MODULE_STAFF: `SELECT * FROM public.sp_module_staff_assignment_get_by_module(:module_id)`,
   },
 
+  SESSION: {
+    GET_BOOKABLE_TEACHER_SLOTS: `SELECT * FROM public.sp_teacher_slot_get_bookable(:teacher_id, :start_from, :limit_value, :offset_value)`,
+
+    GET_TEACHER_SLOTS: `SELECT * FROM public.sp_teacher_slot_get_by_teacher(:teacher_id, :include_inactive)`,
+
+    CREATE_TEACHER_SLOT: `SELECT * FROM public.sp_teacher_slot_create(:teacher_id, :start_at, :end_at, :timezone)`,
+
+    UPDATE_TEACHER_SLOT: `SELECT * FROM public.sp_teacher_slot_update(:slot_id, :teacher_id, :start_at, :end_at, :timezone, :is_active)`,
+
+    DELETE_TEACHER_SLOT: `SELECT public.sp_teacher_slot_delete(:slot_id, :teacher_id) AS deleted`,
+
+    BOOK_SESSION: `SELECT * FROM public.sp_teacher_session_book(:slot_id, :student_id, :note)`,
+
+    GET_STUDENT_BOOKINGS: `SELECT * FROM public.sp_teacher_session_get_for_student(:student_id, :status, :limit_value, :offset_value)`,
+
+    GET_TEACHER_BOOKINGS: `SELECT * FROM public.sp_teacher_session_get_for_teacher(:teacher_id, :status, :limit_value, :offset_value)`,
+
+    GET_BOOKING_BY_ID: `SELECT * FROM public.sp_teacher_session_get_by_id(:booking_id)`,
+
+    CANCEL_BOOKING: `SELECT * FROM public.sp_teacher_session_cancel(:booking_id, :actor_user_id, :reason)`,
+
+    COMPLETE_BOOKING: `SELECT * FROM public.sp_teacher_session_complete(:booking_id)`,
+
+    ADD_MESSAGE: `SELECT * FROM public.sp_teacher_session_message_add(:booking_id, :sender_id, :body)`,
+
+    GET_MESSAGES: `SELECT * FROM public.sp_teacher_session_message_get(:booking_id, :limit_value, :offset_value)`,
+  },
+
   NOTIFICATION: {
     CREATE: `SELECT * FROM public.sp_notification_create(:recipient_user_id, :type, :title, :body, CAST(:payload AS jsonb))`,
 

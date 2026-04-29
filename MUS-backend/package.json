@@ -13,6 +13,7 @@
     "test:smoke:favorites": "node scripts/testFavoritesRoleAccess.js",
     "test:smoke:qa": "node scripts/qa-e2e-check.mjs",
     "test:smoke:confusion": "node scripts/confusion-e2e-check.mjs",
+    "test:smoke:sessions": "node scripts/session-e2e-check.mjs",
     "test:smoke": "npm run test:smoke:routes",
     "test:smoke:api": "npm run test:smoke:favorites && npm run test:smoke:membership",
     "test:e2e": "npm run test:smoke:qa && npm run test:smoke:confusion",

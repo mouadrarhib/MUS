@@ -25,6 +25,7 @@ import walletRoutes from "./walletRoutes.js";
 import personalizationRoutes from "./personalizationRoutes.js";
 import confusionCaseRoutes from "./confusionCaseRoutes.js";
 import notificationRoutes from "./notificationRoutes.js";
+import sessionRoutes from "./sessionRoutes.js";
 
 
 const router = Router();
@@ -45,6 +46,7 @@ router.use("/qa", qaRoutes);
 router.use("/memberships", membershipRoutes);
 router.use("/wallet", walletRoutes);
 router.use("/personalization", personalizationRoutes);
+router.use("/sessions", sessionRoutes);
 router.use("", resourceModuleMapRoutes);
 router.use("", tagRoutes);
 
