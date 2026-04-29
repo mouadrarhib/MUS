@@ -208,7 +208,9 @@ MUS/
 │   ├── database_DDL.sql   # Base schema
 │   └── migrations/        # Incremental SQL migrations
 ├── docs/
-│   └── RECOMMENDATION_ALGORITHM.md
+│   ├── RECOMMENDATION_ALGORITHM.md
+│   ├── V1_ADMIN_USERS_REWARDS_CATALOG_UPDATE.md
+│   └── V1_SESSIONS_FEATURE.md
 ├── docker-compose.yml
 └── README.md
 ```
@@ -413,6 +415,7 @@ R2_PUBLIC_BASE_URL=
 | `/dashboard/library` | All roles | Personal resource library |
 | `/dashboard/uploads` | All roles | My uploaded resources |
 | `/dashboard/wallet` | All roles | Wallet and engagement |
+| `/dashboard/sessions` | Student/Teacher | Teacher slots, booking, and session chat |
 | `/dashboard/profile` | All roles | User profile |
 | `/dashboard/settings` | All roles | Account settings |
 | `/dashboard/users` | Admin only | User management |
@@ -429,6 +432,7 @@ R2_PUBLIC_BASE_URL=
 - Ensure `CLIENT_ORIGIN` includes the frontend URL you're using.
 - For production: set strong JWT secrets and lock down CORS/origin settings.
 - Recommendation algorithm is documented in `docs/RECOMMENDATION_ALGORITHM.md`.
+- Sessions feature is documented in `docs/V1_SESSIONS_FEATURE.md`.
 
 ---
 

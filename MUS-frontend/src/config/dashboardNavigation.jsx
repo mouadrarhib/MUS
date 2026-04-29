@@ -1,8 +1,8 @@
-import { 
-  Dashboard, 
-  School, 
-  UploadFile, 
-  AccountBalanceWallet, 
+import {
+  Dashboard,
+  School,
+  UploadFile,
+  AccountBalanceWallet,
   Paid,
   AdminPanelSettings,
   Description,
@@ -10,7 +10,8 @@ import {
   People,
   Settings,
   AccountTree,
-  ReportProblem
+  ReportProblem,
+  Forum
 } from '@mui/icons-material';
 
 export const DASHBOARD_NAVIGATION = [
@@ -92,6 +93,13 @@ export const DASHBOARD_NAVIGATION = [
     path: '/dashboard/wallet',
     icon: <AccountBalanceWallet />,
     roles: ['STUDENT', 'TEACHER']
+  },
+  {
+    label: 'Sessions',
+    path: '/dashboard/sessions',
+    icon: <Forum />,
+    roles: ['STUDENT', 'TEACHER'],
+    excludeRoles: ['ADMIN'],
   },
 
   // SETTINGS - Available to all

@@ -38,7 +38,6 @@ CREATE TABLE IF NOT EXISTS public.teacher_session_bookings (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT teacher_session_bookings_status_check CHECK (status IN ('confirmed', 'cancelled', 'completed', 'no_show')),
-  CONSTRAINT teacher_session_bookings_slot_unique UNIQUE(slot_id),
   CONSTRAINT teacher_session_bookings_teacher_student_diff CHECK (teacher_id <> student_id)
 );
 
@@ -47,6 +46,10 @@ CREATE INDEX IF NOT EXISTS idx_teacher_bookings_teacher_status
 
 CREATE INDEX IF NOT EXISTS idx_teacher_bookings_student_status
   ON public.teacher_session_bookings(student_id, status, created_at DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_teacher_session_bookings_slot_confirmed
+  ON public.teacher_session_bookings(slot_id)
+  WHERE status = 'confirmed';
 
 CREATE TABLE IF NOT EXISTS public.teacher_session_messages (
   id BIGSERIAL PRIMARY KEY,

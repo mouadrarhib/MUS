@@ -32,6 +32,9 @@ const ensureBookingParticipant = (booking, user) => {
 const normalizeDbError = (error) => {
   const message = String(error?.message || "").toLowerCase();
   if (message.includes("slot already booked")) return new AppError("Slot already booked", 409);
+  if (message.includes("duplicate key value") && message.includes("ux_teacher_session_bookings_slot_confirmed")) {
+    return new AppError("Slot already booked", 409);
+  }
   if (message.includes("cannot book a past slot")) return new AppError("Cannot book a past slot", 400);
   if (message.includes("slot is not active")) return new AppError("Slot is not active", 400);
   if (message.includes("slot not found for teacher")) return new AppError("Slot not found", 404);

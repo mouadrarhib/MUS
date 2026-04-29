@@ -29,6 +29,7 @@ const CatalogManagementPage = lazy(() => import('@/features/catalog/pages/Catalo
 const WalletPage = lazy(() => import('@/features/wallet/pages/Wallet'));
 const TagsPage = lazy(() => import('@/features/tags/pages/Tags'));
 const ConfusionCasesPage = lazy(() => import('@/features/confusion/pages/ConfusionCases'));
+const SessionsPage = lazy(() => import('@/features/sessions/pages/Sessions'));
 
 const LoadingFallback = () => (
   <Box
@@ -181,6 +182,15 @@ const AppRouter = () => {
             element={
               <ProtectedRoute requiredRoles={['ADMIN', 'TEACHER']}>
                 <ConfusionCasesPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="sessions"
+            element={
+              <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER']} blockedRoles={['ADMIN']}>
+                <SessionsPage />
               </ProtectedRoute>
             }
           />
