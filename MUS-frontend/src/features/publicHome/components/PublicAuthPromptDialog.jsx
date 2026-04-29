@@ -1,5 +1,5 @@
 // src/features/publicHome/components/PublicAuthPromptDialog.jsx
-import { forwardRef, memo, useCallback } from "react";
+import { memo, useCallback } from "react";
 import {
   Box,
   Button,
@@ -14,7 +14,7 @@ import {
 import { LockOutlined } from "@mui/icons-material";
 import PropTypes from "prop-types";
 import { keyframes } from "@mui/system";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 // ─── Keyframes ─────────────────────────────────────────────────────────────────
 // floatUp stays as a CSS keyframe — it's an *idle* loop on the icon,
@@ -25,41 +25,6 @@ const floatUp = keyframes`
   50%  { transform: translateY(-7px); }
   100% { transform: translateY(0px);  }
 `;
-
-// ─── Custom MUI Dialog transition (framer-motion) ─────────────────────────────
-// MUI Dialog's TransitionComponent API: receives `in`, `onEnter`, `onEntered`,
-// `onExit`, `onExited`. We wire those to framer-motion callbacks so MUI's
-// internal state machine keeps working correctly (backdrop removal, focus trap
-// cleanup, etc.).
-
-const MotionDialogTransition = forwardRef(function MotionDialogTransition(
-  { children, in: inProp, onEnter, onEntered, onExit, onExited },
-  ref
-) {
-  return (
-    <AnimatePresence onExitComplete={onExited}>
-      {inProp && (
-        <motion.div
-          ref={ref}
-          // Enter: scale from 0.94 + slight rise — feels like the dialog surfaces
-          initial={{ opacity: 0, scale: 0.94, y: 14 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          // Exit: quick fade-down — snappier than enter so it doesn't drag
-          exit={{ opacity: 0, scale: 0.94, y: 10, transition: { duration: 0.16, ease: [0.4, 0, 1, 1] } }}
-          transition={{ type: "spring", damping: 26, stiffness: 240 }}
-          // Wire MUI lifecycle callbacks to framer-motion events
-          onAnimationStart={(def) => { if (def === "animate") onEnter?.(); }}
-          onAnimationComplete={(def) => { if (def === "animate") onEntered?.(); if (def === "exit") onExit?.(); }}
-          // `display: contents` makes this div invisible to layout — the Paper
-          // inside handles all sizing/positioning as normal.
-          style={{ display: "contents" }}
-        >
-          {children}
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-});
 
 // ─── Content stagger variants ──────────────────────────────────────────────────
 // Each child inside DialogContent enters with a spring cascade.
@@ -106,6 +71,7 @@ const PublicAuthPromptDialog = memo(({
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const isFullScreen = useMediaQuery(theme.breakpoints.down("sm"));
+  const isPhone = useMediaQuery(theme.breakpoints.down("sm"));
   const reduced = useReducedMotion();
 
   // Stable callbacks — prevents unnecessary child re-renders
@@ -136,9 +102,6 @@ const PublicAuthPromptDialog = memo(({
       open={open}
       onClose={handleClose}
       fullScreen={isFullScreen}
-      // Hand animation control entirely to MotionDialogTransition
-      TransitionComponent={MotionDialogTransition}
-      // transitionDuration={0} is NOT needed — MotionDialogTransition controls timing
       maxWidth="xs"
       fullWidth
       aria-labelledby="auth-dialog-title"
@@ -158,14 +121,42 @@ const PublicAuthPromptDialog = memo(({
           border: "1px solid",
           borderColor: tok.borderColor,
           boxShadow: tok.dialogShadow,
-          borderRadius: isFullScreen ? 0 : "20px",
+          borderRadius: isFullScreen ? "20px 20px 0 0" : "20px",
+          m: isPhone ? 0 : 2,
+          width: isPhone ? "100%" : undefined,
+          maxWidth: isPhone ? "100%" : undefined,
+          position: isPhone ? "absolute" : "relative",
+          left: isPhone ? 0 : undefined,
+          right: isPhone ? 0 : undefined,
+          bottom: isPhone ? 0 : undefined,
+          maxHeight: isPhone ? "92dvh" : undefined,
           overflow: "hidden",
           "&:focus-visible": { outline: tok.focusRing },
         },
       }}
     >
-      <DialogContent sx={{ p: 0 }}>
-        <Box sx={{ p: { xs: 3, sm: 4 } }}>
+      <DialogContent
+        sx={{
+          p: 0,
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        <Box sx={{ p: { xs: 2.25, sm: 4 }, pb: { xs: "calc(20px + env(safe-area-inset-bottom, 0px))", sm: 4 } }}>
+
+          {isPhone ? (
+            <Box
+              aria-hidden="true"
+              sx={{
+                width: 42,
+                height: 5,
+                borderRadius: "999px",
+                bgcolor: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.18)",
+                mx: "auto",
+                mb: 1.4,
+              }}
+            />
+          ) : null}
 
           {/* ── Staggered content container ─────────────────────────────── */}
           <motion.div
@@ -178,22 +169,22 @@ const PublicAuthPromptDialog = memo(({
             <motion.div variants={iconVariant} style={{ display: "flex", justifyContent: "center" }}>
               <Box
                 sx={{
-                  width: 64, height: 64,
-                  borderRadius: "18px",
+                  width: { xs: 56, sm: 64 }, height: { xs: 56, sm: 64 },
+                  borderRadius: { xs: "15px", sm: "18px" },
                   bgcolor: isDark ? "rgba(139,92,246,0.14)" : "rgba(124,58,237,0.10)",
                   border: "1px solid",
                   borderColor: isDark ? "rgba(139,92,246,0.30)" : "rgba(124,58,237,0.22)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  mb: 3,
+                  mb: { xs: 2.2, sm: 3 },
                   // Idle float — CSS keyframe is the right tool here (continuous loop)
                   animation: reduced
                     ? "none"
                     : `${floatUp} 3.2s ease-in-out infinite`,
                 }}
               >
-                <LockOutlined sx={{ fontSize: 28, color: isDark ? "#c4b5fd" : "#7c3aed" }} />
+                <LockOutlined sx={{ fontSize: { xs: 24, sm: 28 }, color: isDark ? "#c4b5fd" : "#7c3aed" }} />
               </Box>
             </motion.div>
 
@@ -204,10 +195,10 @@ const PublicAuthPromptDialog = memo(({
                 variant="h6"
                 sx={{
                   fontWeight: 700,
-                  fontSize: "1.2rem",
+                  fontSize: { xs: "1.08rem", sm: "1.2rem" },
                   letterSpacing: "-0.01em",
                   color: tok.titleColor,
-                  mb: 1,
+                  mb: 0.8,
                   textAlign: "center",
                 }}
               >
@@ -220,13 +211,13 @@ const PublicAuthPromptDialog = memo(({
               <Typography
                 id="auth-dialog-desc"
                 sx={{
-                  fontSize: "0.9rem",
+                  fontSize: { xs: "0.86rem", sm: "0.9rem" },
                   color: tok.descColor,
-                  lineHeight: 1.65,
+                  lineHeight: { xs: 1.55, sm: 1.65 },
                   textAlign: "center",
-                  maxWidth: "34ch",
+                  maxWidth: { xs: "30ch", sm: "34ch" },
                   mx: "auto",
-                  mb: 3.5,
+                  mb: { xs: 2.3, sm: 3.5 },
                 }}
               >
                 {description}
@@ -235,11 +226,11 @@ const PublicAuthPromptDialog = memo(({
 
             {/* ── Divider ───────────────────────────────────────────────── */}
             <motion.div variants={contentItem}>
-              <Divider sx={{ borderColor: tok.dividerColor, mb: 3 }} />
+              <Divider sx={{ borderColor: tok.dividerColor, mb: { xs: 2.1, sm: 3 } }} />
             </motion.div>
 
             {/* ── Buttons ───────────────────────────────────────────────── */}
-            <Stack spacing={1.5}>
+            <Stack spacing={{ xs: 1, sm: 1.5 }}>
 
               {/* PRIMARY — Sign In */}
               <motion.div
@@ -254,9 +245,9 @@ const PublicAuthPromptDialog = memo(({
                   onClick={handleLogin}
                   sx={{
                     borderRadius: "12px",
-                    py: 1.2,
+                    py: { xs: 1.15, sm: 1.2 },
                     fontWeight: 700,
-                    fontSize: "0.9375rem",
+                    fontSize: { xs: "0.92rem", sm: "0.9375rem" },
                     textTransform: "none",
                     letterSpacing: "0",
                     background: isDark
@@ -293,9 +284,9 @@ const PublicAuthPromptDialog = memo(({
                   onClick={handleRegister}
                   sx={{
                     borderRadius: "12px",
-                    py: 1.2,
+                    py: { xs: 1.15, sm: 1.2 },
                     fontWeight: 600,
-                    fontSize: "0.9375rem",
+                    fontSize: { xs: "0.92rem", sm: "0.9375rem" },
                     textTransform: "none",
                     letterSpacing: "0",
                     borderColor: isDark ? "rgba(139,92,246,0.35)" : "rgba(124,58,237,0.30)",
@@ -322,9 +313,9 @@ const PublicAuthPromptDialog = memo(({
                   onClick={handleClose}
                   sx={{
                     borderRadius: "12px",
-                    py: 0.9,
+                    py: { xs: 0.8, sm: 0.9 },
                     fontWeight: 500,
-                    fontSize: "0.875rem",
+                    fontSize: { xs: "0.84rem", sm: "0.875rem" },
                     textTransform: "none",
                     color: isDark ? "rgba(200,190,255,0.50)" : "rgba(109,40,217,0.45)",
                     transition: "color 160ms ease, background 160ms ease",

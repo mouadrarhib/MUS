@@ -219,7 +219,7 @@ const PublicFooterSection = memo(() => {
           </Grid>
 
           {/* Col 2 — Quick Links */}
-          <Grid item xs={6} md={3}>
+          <Grid item xs={12} sm={6} md={3}>
             <ColHeading>{t("publicHome.footer.nav.heading", "Navigation")}</ColHeading>
             <Stack spacing={2}>
               {NAV_LINKS.map((link) => (
@@ -235,7 +235,7 @@ const PublicFooterSection = memo(() => {
           </Grid>
 
           {/* Col 3 — Connect */}
-          <Grid item xs={6} md={4}>
+          <Grid item xs={12} sm={6} md={4}>
             <ColHeading>{t("publicHome.footer.social.heading", "Follow Us")}</ColHeading>
             <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
               {SOCIAL_LINKS.map(({ id, Icon, label, href }) => (
@@ -334,7 +334,7 @@ const PublicFooterSection = memo(() => {
             {t("publicHome.footer.copyright", "© 2026 MUS. All rights reserved.")}
           </Typography>
 
-          <Stack direction="row" spacing={3}>
+          <Stack direction="row" spacing={{ xs: 2, sm: 3 }} flexWrap="wrap" useFlexGap>
             {[
               { key: "privacy",  labelKey: "publicHome.footer.legal.privacy",  fallback: "Privacy Policy", to: "/privacy"  },
               { key: "terms",    labelKey: "publicHome.footer.legal.terms",     fallback: "Terms of Use",   to: "/terms"    },

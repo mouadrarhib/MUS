@@ -1,6 +1,21 @@
 import { useState } from "react";
-import { Box, Button, Stack, Typography, alpha, Menu as MuiMenu, MenuItem, ListItemIcon } from "@mui/material";
-import { Language, Check } from "@mui/icons-material";
+import {
+  Box,
+  Button,
+  Stack,
+  Typography,
+  alpha,
+  Menu as MuiMenu,
+  MenuItem,
+  ListItemIcon,
+  IconButton,
+  Drawer,
+  List,
+  ListItemButton,
+  ListItemText,
+  Divider,
+} from "@mui/material";
+import { Language, Check, Menu as MenuIcon, Close as CloseIcon } from "@mui/icons-material";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/app/providers/LanguageContext";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -13,6 +28,7 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
   const navigate = useNavigate();
   const [languageAnchorEl, setLanguageAnchorEl] = useState(null);
   const [authPromptOpen, setAuthPromptOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const languageOpen = Boolean(languageAnchorEl);
 
@@ -24,6 +40,8 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
 
   const handleLanguageOpen = (event) => setLanguageAnchorEl(event.currentTarget);
   const handleLanguageClose = () => setLanguageAnchorEl(null);
+  const handleMobileNavOpen = () => setMobileNavOpen(true);
+  const handleMobileNavClose = () => setMobileNavOpen(false);
   const handleLanguageSelect = (nextLanguage) => {
     setLanguage(nextLanguage);
     handleLanguageClose();
@@ -90,8 +108,8 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
       >
         {/* Left: Logo + Nav links */}
         <Stack direction="row" spacing={2} alignItems="center">
-          <Stack component={RouterLink} to="/" direction="row" alignItems="center" sx={{ textDecoration: "none" }}>
-            <Box component="img" src={logo} alt="MUS Logo" sx={{ height: 40, width: "auto", objectFit: "contain" }} />
+              <Stack component={RouterLink} to="/" direction="row" alignItems="center" sx={{ textDecoration: "none" }}>
+            <Box component="img" src={logo} alt="MUS Logo" sx={{ height: { xs: 34, sm: 40 }, width: "auto", objectFit: "contain" }} />
           </Stack>
 
           <Stack direction="row" spacing={0.5} sx={{ display: { xs: "none", md: "flex" } }}>
@@ -123,7 +141,20 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
         </Stack>
 
         {/* Right: Sign in + Language */}
-        <Stack direction="row" spacing={0.8} alignItems="center">
+          <Stack direction="row" spacing={0.8} alignItems="center">
+          <IconButton
+            onClick={handleMobileNavOpen}
+            aria-label="Open navigation menu"
+            sx={{
+              display: { xs: "inline-flex", md: "none" },
+              border: "1px solid",
+              borderColor: (theme) =>
+                theme.palette.mode === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)",
+              borderRadius: 2,
+            }}
+          >
+            <MenuIcon />
+          </IconButton>
           {isAuthenticated ? (
             <>
               <Button
@@ -131,6 +162,7 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
                 to="/discover"
                 variant="contained"
                 sx={{
+                  display: { xs: "none", sm: "inline-flex" },
                   borderRadius: 2,
                   px: 2.2,
                   py: 0.7,
@@ -151,6 +183,7 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
                 variant="outlined"
                 onClick={handleLogout}
                 sx={{
+                  display: { xs: "none", sm: "inline-flex" },
                   borderRadius: 2,
                   px: 1.8,
                   py: 0.6,
@@ -177,6 +210,7 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
               to="/login"
               variant="contained"
               sx={{
+                display: { xs: "none", sm: "inline-flex" },
                 borderRadius: 2,
                 px: 2.2,
                 py: 0.7,
@@ -203,7 +237,7 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
             sx={{
               minWidth: 0,
               borderRadius: 2,
-              px: 1.2,
+              px: { xs: 1, sm: 1.2 },
               py: 0.6,
               textTransform: "none",
               fontWeight: 700,
@@ -280,6 +314,61 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
           />
         </Stack>
       </Box>
+
+      <Drawer
+        anchor="right"
+        open={mobileNavOpen}
+        onClose={handleMobileNavClose}
+        PaperProps={{
+          sx: {
+            width: "min(86vw, 320px)",
+            px: 1.2,
+            py: 1,
+          },
+        }}
+      >
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 1, py: 0.5 }}>
+          <Typography variant="subtitle2" fontWeight={700}>Menu</Typography>
+          <IconButton onClick={handleMobileNavClose} aria-label="Close navigation menu">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Stack>
+        <Divider sx={{ mb: 1 }} />
+
+        <List>
+          {navLinks.map((link) => (
+            <ListItemButton
+              key={link.key || link.labelKey || link}
+              component={RouterLink}
+              to={link.key === "resources" ? "/discover" : "/"}
+              onClick={(event) => {
+                if (link.key === "resources") handleResourcesClick(event);
+                if (!event.defaultPrevented) handleMobileNavClose();
+              }}
+            >
+              <ListItemText primary={t(link.labelKey || "", link.key || link)} />
+            </ListItemButton>
+          ))}
+        </List>
+
+        <Divider sx={{ my: 1 }} />
+        <Stack spacing={1} sx={{ p: 1 }}>
+          {isAuthenticated ? (
+            <>
+              <Button component={RouterLink} to="/discover" variant="contained" onClick={handleMobileNavClose}>
+                {t("publicHome.nav.resources", "Resources")}
+              </Button>
+              <Button variant="outlined" onClick={() => { handleMobileNavClose(); handleLogout(); }}>
+                {t("common.logout", "Logout")}
+              </Button>
+            </>
+          ) : (
+            <Button component={RouterLink} to="/login" variant="contained" onClick={handleMobileNavClose}>
+              {t("publicHome.header.signIn", "Sign in")}
+            </Button>
+          )}
+        </Stack>
+      </Drawer>
     </Box>
   );
 };

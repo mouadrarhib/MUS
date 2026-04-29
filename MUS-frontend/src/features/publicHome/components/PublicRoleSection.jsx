@@ -236,7 +236,7 @@ const PublicRoleSection = memo(({ pillars }) => {
           display: "grid",
           gridTemplateColumns: "1fr",
           gap: "24px",
-          "@media (min-width:600px)": {
+          "@media (min-width:900px)": {
             gridTemplateColumns: "repeat(2, 1fr)",
             gap: "32px",
           },
