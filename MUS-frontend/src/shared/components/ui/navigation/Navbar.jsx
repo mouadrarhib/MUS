@@ -35,6 +35,7 @@ import notificationService from '@/services/notificationService';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import logo from '@/assets/images/logo.png';
 import { useLanguage } from '@/app/providers/LanguageContext';
+import SessionInboxMenu from '@/shared/components/ui/navigation/SessionInboxMenu';
 
 const NAVBAR_HEIGHT = 64;
 
@@ -58,6 +59,15 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
     [notifications]
   );
 
+  const sessionUnreadCount = useMemo(
+    () => notifications.reduce((total, item) => {
+      const type = String(item?.type || '').trim().toUpperCase();
+      const isSession = type.startsWith('SESSION_');
+      return total + (isSession && !item?.is_read ? 1 : 0);
+    }, 0),
+    [notifications]
+  );
+
   const deriveNotificationTarget = (notification) => {
     const type = String(notification?.type || '').trim().toUpperCase();
     const payload = notification?.payload || {};
@@ -66,6 +76,12 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
     const questionId = Number(payload.question_id || 0);
     const answerId = Number(payload.answer_id || 0);
     const commentId = Number(payload.comment_id || 0);
+    const bookingId = Number(payload.booking_id || 0);
+
+    if (type.startsWith('SESSION_')) {
+      return bookingId > 0 ? `/dashboard/sessions?booking=${bookingId}&chat=1` : '/dashboard/sessions';
+    }
+
     if (type.startsWith('CONFUSION_') && caseId > 0) {
       return `/dashboard/confusion?case=${caseId}`;
     }
@@ -345,6 +361,13 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
         >
           Discover Resources
         </Button>
+
+        <Box sx={{ mr: 1 }}>
+          <SessionInboxMenu
+            badgeCount={sessionUnreadCount}
+            onOpenBooking={(bookingId) => navigate(`/dashboard/sessions?booking=${bookingId}&chat=1`)}
+          />
+        </Box>
 
         <IconButton
           onClick={handleNotificationsOpen}

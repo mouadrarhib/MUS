@@ -7,12 +7,13 @@ import { memo, useMemo } from 'react';
 import { Box, IconButton, Stack, Tooltip, alpha } from '@mui/material';
 import { DarkMode, LightMode } from '@mui/icons-material';
 import PropTypes from 'prop-types';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useThemeMode } from '@/app/providers/ThemeContext';
 import { useNotifications } from '@/features/discover/hooks/useNotifications';
 import ResourcePreviewNavLinks  from '@/features/discover/components/ResourcePreviewNavLinks';
 import NotificationMenu          from '@/features/discover/components/NotificationMenu';
 import ResourcePreviewAuthActions from '@/features/discover/components/ResourcePreviewAuthActions';
+import SessionInboxMenu from '@/shared/components/ui/navigation/SessionInboxMenu';
 
 /**
  * Top navigation bar for the Discover section.
@@ -29,10 +30,20 @@ import ResourcePreviewAuthActions from '@/features/discover/components/ResourceP
 const DiscoverNavbar = memo(({ onLogout, isAuthenticated = true }) => {
   const { mode, toggleTheme } = useThemeMode();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // All notification state & logic extracted to a custom hook
   const { notifications, loading, unreadCount, load, handleClick } =
     useNotifications(isAuthenticated);
+
+  const sessionUnreadCount = useMemo(
+    () => notifications.reduce((total, item) => {
+      const type = String(item?.type || '').trim().toUpperCase();
+      const isSession = type.startsWith('SESSION_');
+      return total + (isSession && !item?.is_read ? 1 : 0);
+    }, 0),
+    [notifications],
+  );
 
   // Memoized so NavLinks only re-renders when the pathname changes
   const navItems = useMemo(
@@ -89,6 +100,13 @@ const DiscoverNavbar = memo(({ onLogout, isAuthenticated = true }) => {
 
         {/* ── Right: Actions ──────────────────────────────────────── */}
         <Stack direction="row" alignItems="center" spacing={0.75}>
+          {isAuthenticated && (
+            <SessionInboxMenu
+              badgeCount={sessionUnreadCount}
+              onOpenBooking={(bookingId) => navigate(`/dashboard/sessions?booking=${bookingId}&chat=1`)}
+            />
+          )}
+
           {/* Notifications (authenticated users only) */}
           {isAuthenticated && (
             <NotificationMenu

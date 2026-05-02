@@ -4,6 +4,7 @@ import { Add, AutoStories, EventAvailable } from "@mui/icons-material";
 import { EmptyState, PageHeader, useNotification } from "@/shared/components/ui";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import sessionService from "@/services/sessionService";
+import { useLocation, useNavigate } from "react-router-dom";
 import SessionSlotDialog from "@/features/sessions/components/SessionSlotDialog";
 import SessionChatDialog from "@/features/sessions/components/SessionChatDialog";
 import { PublicSlotCard, SessionBookingCard, TeacherSlotCard } from "@/features/sessions/components/SessionCards";
@@ -12,11 +13,13 @@ import { toInputDateTime } from "@/features/sessions/components/sessionUtils";
 const Sessions = () => {
   const { user, isStudent, isTeacher } = useAuth();
   const { showSuccess, showError } = useNotification();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [slots, setSlots] = useState([]);
   const [bookings, setBookings] = useState([]);
-  const [activeTab, setActiveTab] = useState(isTeacher ? 1 : 0);
+  const [activeTab, setActiveTab] = useState(isTeacher ? "my-slots" : "available");
 
   const [slotDialogOpen, setSlotDialogOpen] = useState(false);
   const [editingSlot, setEditingSlot] = useState(null);
@@ -34,8 +37,24 @@ const Sessions = () => {
   const [messages, setMessages] = useState([]);
   const [messageDraft, setMessageDraft] = useState("");
   const [messageSending, setMessageSending] = useState(false);
+  const [deepLinkHandled, setDeepLinkHandled] = useState(false);
 
   const isTeacherViewEnabled = isTeacher;
+  const requestedBookingId = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const booking = Number(params.get("booking") || 0);
+    const openChat = String(params.get("chat") || "").toLowerCase();
+    if (!booking || Number.isNaN(booking)) return null;
+    if (openChat && openChat !== "1" && openChat !== "true") return null;
+    return booking;
+  }, [location.search]);
+
+  const requestedTab = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const value = String(params.get("tab") || "").toLowerCase();
+    if (["available", "my-slots", "bookings", "chats"].includes(value)) return value;
+    return null;
+  }, [location.search]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -67,15 +86,32 @@ const Sessions = () => {
     loadData();
   }, [loadData]);
 
+  useEffect(() => {
+    if (!requestedTab) return;
+    if (requestedTab === "my-slots" && !isTeacherViewEnabled) return;
+    setActiveTab(requestedTab);
+  }, [requestedTab, isTeacherViewEnabled]);
+
   const myTeacherSlots = useMemo(() => {
     if (!isTeacherViewEnabled) return [];
     return slots.filter((slot) => slot.teacher_id === user?.id);
   }, [isTeacherViewEnabled, slots, user?.id]);
 
   const discoverSlots = useMemo(() => {
-    if (isTeacherViewEnabled && activeTab === 1) return myTeacherSlots;
+    if (isTeacherViewEnabled && activeTab === "my-slots") return myTeacherSlots;
     return slots;
   }, [activeTab, isTeacherViewEnabled, myTeacherSlots, slots]);
+
+  const chatOnlyBookings = useMemo(() => {
+    const list = Array.isArray(bookings) ? bookings : [];
+    return [...list]
+      .filter((item) => Number(item.booking_id || item.id || 0) > 0)
+      .sort((a, b) => {
+        const aTime = new Date(a.updated_at || a.start_at || 0).getTime();
+        const bTime = new Date(b.updated_at || b.start_at || 0).getTime();
+        return bTime - aTime;
+      });
+  }, [bookings]);
 
   const handleBookSlot = async (slotId) => {
     setBookingSubmittingId(slotId);
@@ -139,7 +175,7 @@ const Sessions = () => {
     }
   };
 
-  const openChat = async (booking) => {
+  const openChat = useCallback(async (booking) => {
     setChatDialogOpen(true);
     setChatBooking(booking);
     setChatLoading(true);
@@ -155,7 +191,20 @@ const Sessions = () => {
     } finally {
       setChatLoading(false);
     }
-  };
+  }, [showError]);
+
+  useEffect(() => {
+    setDeepLinkHandled(false);
+  }, [requestedBookingId]);
+
+  useEffect(() => {
+    if (!requestedBookingId || deepLinkHandled || loading || !bookings.length) return;
+    const match = bookings.find((item) => Number(item.booking_id || item.id || 0) === requestedBookingId);
+    if (!match) return;
+    setDeepLinkHandled(true);
+    openChat(match);
+    navigate("/dashboard/sessions", { replace: true });
+  }, [requestedBookingId, deepLinkHandled, loading, bookings, openChat, navigate]);
 
   const sendMessage = async () => {
     const body = messageDraft.trim();
@@ -237,16 +286,17 @@ const Sessions = () => {
       </Paper>
 
       <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ mb: 2 }}>
-        <Tab label="Available Slots" />
-        {isTeacherViewEnabled ? <Tab label="My Slots" /> : null}
-        <Tab label="My Bookings" />
+        <Tab value="available" label="Available Slots" />
+        {isTeacherViewEnabled ? <Tab value="my-slots" label="My Slots" /> : null}
+        <Tab value="bookings" label="My Bookings" />
+        <Tab value="chats" label="Chats" />
       </Tabs>
 
       {loading ? (
         <Alert severity="info">Loading sessions...</Alert>
       ) : (
         <>
-          {activeTab === 0 ? (
+          {activeTab === "available" ? (
             discoverSlots.length ? (
               <Stack spacing={1.25}>
                 {discoverSlots.map((slot, index) => (
@@ -265,7 +315,7 @@ const Sessions = () => {
             )
           ) : null}
 
-          {isTeacherViewEnabled && activeTab === 1 ? (
+          {isTeacherViewEnabled && activeTab === "my-slots" ? (
             myTeacherSlots.length ? (
               <Stack spacing={1.25}>
                 {myTeacherSlots.map((slot) => (
@@ -282,7 +332,7 @@ const Sessions = () => {
             )
           ) : null}
 
-          {activeTab === (isTeacherViewEnabled ? 2 : 1) ? (
+          {activeTab === "bookings" ? (
             bookings.length ? (
               <Stack spacing={1.25}>
                 {bookings.map((booking) => (
@@ -298,6 +348,36 @@ const Sessions = () => {
               </Stack>
             ) : (
               <EmptyState title="No bookings yet" subtitle="Booked sessions will appear here with direct chat access." />
+            )
+          ) : null}
+
+          {activeTab === "chats" ? (
+            chatOnlyBookings.length ? (
+              <Stack spacing={1.25}>
+                {chatOnlyBookings.map((booking) => (
+                  <Paper key={`chat-${booking.booking_id || booking.id}`} sx={{ p: 2, borderRadius: 2.5, border: "1px solid", borderColor: "divider" }}>
+                    <Stack direction={{ xs: "column", md: "row" }} spacing={1.2} alignItems={{ md: "center" }}>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="subtitle2" fontWeight={700} noWrap>
+                          {isTeacherViewEnabled ? booking.student_name || "Student" : booking.teacher_name || "Teacher"}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Session: {new Date(booking.start_at).toLocaleDateString()} • {String(booking.status || "confirmed")}
+                        </Typography>
+                      </Box>
+                      <Button
+                        variant="contained"
+                        onClick={() => openChat(booking)}
+                        sx={{ textTransform: "none", borderRadius: 2, fontWeight: 700 }}
+                      >
+                        Open Chat
+                      </Button>
+                    </Stack>
+                  </Paper>
+                ))}
+              </Stack>
+            ) : (
+              <EmptyState title="No chats yet" subtitle="Booked sessions will appear here as a dedicated chat inbox." />
             )
           ) : null}
         </>
