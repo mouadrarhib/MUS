@@ -18,6 +18,7 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import { useNotifications } from '@/features/discover/hooks/useNotifications';
 import NotificationMenu from '@/features/discover/components/NotificationMenu';
 import SessionInboxMenu from '@/shared/components/ui/navigation/SessionInboxMenu';
+import userSettingsService from '@/services/userSettingsService';
 import logo from '@/assets/images/logo.png';
 
 const navLinks = [
@@ -40,6 +41,23 @@ const DiscoveryHeader = () => {
     }, 0),
     [notifications]
   );
+
+  const handleThemeToggle = async () => {
+    const nextMode = mode === 'light' ? 'dark' : 'light';
+    toggleTheme();
+
+    if (!user?.id) return;
+
+    try {
+      const fontSize = localStorage.getItem('fontSize') || user?.settings?.font_size || 'medium';
+      await userSettingsService.updateAppearance(user.id, {
+        theme_mode: nextMode,
+        font_size: fontSize,
+      });
+    } catch (error) {
+      console.error('Failed to persist theme from discover navbar:', error);
+    }
+  };
 
   return (
     <Box
@@ -120,7 +138,7 @@ const DiscoveryHeader = () => {
 
           <Tooltip title={mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}>
             <IconButton
-              onClick={toggleTheme}
+              onClick={handleThemeToggle}
               aria-label={mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
               sx={{
                 color: 'text.primary',
