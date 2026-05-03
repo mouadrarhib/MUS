@@ -16,10 +16,11 @@ import { useThemeMode } from '@/app/providers/ThemeContext';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useLanguage } from '@/app/providers/LanguageContext';
 import { useNotifications } from '@/features/discover/hooks/useNotifications';
-import NotificationMenu from '@/features/discover/components/NotificationMenu';
 import SessionInboxMenu from '@/shared/components/ui/navigation/SessionInboxMenu';
+import NotificationInboxMenu from '@/shared/components/ui/navigation/NotificationInboxMenu';
 import UserProfileMenu from '@/shared/components/ui/navigation/UserProfileMenu';
 import userSettingsService from '@/services/userSettingsService';
+import sessionService from '@/services/sessionService';
 import logo from '@/assets/images/logo.png';
 
 const navLinks = [
@@ -35,7 +36,7 @@ const DiscoveryHeader = () => {
   const { user, roles, logout, isAuthenticated } = useAuth();
   const { language } = useLanguage();
   const isArabic = language === 'ar';
-  const { notifications, loading, unreadCount, load, handleClick } = useNotifications(Boolean(isAuthenticated));
+  const { notifications, loading, load, clearPersisted, handleClick } = useNotifications(Boolean(isAuthenticated));
 
   const sessionUnreadCount = useMemo(
     () => notifications.reduce((total, item) => {
@@ -126,16 +127,20 @@ const DiscoveryHeader = () => {
             <SessionInboxMenu
               badgeCount={sessionUnreadCount}
               onOpenBooking={(bookingId) => navigate(`/dashboard/sessions?booking=${bookingId}&chat=1`)}
+              onClear={async () => {
+                await sessionService.clearInbox();
+              }}
             />
           )}
 
           {isAuthenticated && (
-            <NotificationMenu
-              unreadCount={unreadCount}
-              loading={loading}
+            <NotificationInboxMenu
               notifications={notifications}
+              loading={loading}
               onRefresh={load}
               onNotificationClick={handleClick}
+              onClear={clearPersisted}
+              streamConnected
             />
           )}
 

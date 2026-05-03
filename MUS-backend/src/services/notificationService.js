@@ -42,31 +42,74 @@ export const listNotificationsForUser = async ({ userId, unreadOnly = false, lim
   const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
   const safeOffset = Math.max(Number(offset) || 0, 0);
 
-  const [rows] = await sequelize.query(SQL.NOTIFICATION.GET_FOR_USER, {
-    replacements: {
-      recipient_user_id: userId,
-      unread_only: Boolean(unreadOnly),
-      limit_value: safeLimit,
-      offset_value: safeOffset,
-    },
-  });
+  const [rows] = await sequelize.query(
+    `
+    SELECT *
+    FROM public.user_notifications
+    WHERE recipient_user_id = :recipient_user_id
+      AND is_cleared = false
+      AND (:unread_only::boolean = false OR is_read = false)
+    ORDER BY created_at DESC
+    LIMIT :limit_value OFFSET :offset_value
+    `,
+    {
+      replacements: {
+        recipient_user_id: userId,
+        unread_only: Boolean(unreadOnly),
+        limit_value: safeLimit,
+        offset_value: safeOffset,
+      },
+    }
+  );
 
   return rows;
 };
 
 export const markNotificationRead = async ({ notificationId, userId }) => {
-  const [rows] = await sequelize.query(SQL.NOTIFICATION.MARK_READ, {
-    replacements: {
-      notification_id: notificationId,
-      recipient_user_id: userId,
-    },
-  });
+  const [rows] = await sequelize.query(
+    `
+    UPDATE public.user_notifications
+    SET is_read = true,
+        read_at = COALESCE(read_at, NOW())
+    WHERE id = :notification_id
+      AND recipient_user_id = :recipient_user_id
+      AND is_cleared = false
+    RETURNING *
+    `,
+    {
+      replacements: {
+        notification_id: notificationId,
+        recipient_user_id: userId,
+      },
+    }
+  );
 
   if (!rows.length) {
     throw new AppError("Notification introuvable", 404);
   }
 
   return rows[0];
+};
+
+export const clearNotificationsForUser = async ({ userId }) => {
+  const [rows] = await sequelize.query(
+    `
+    UPDATE public.user_notifications
+    SET is_cleared = true
+    WHERE recipient_user_id = :recipient_user_id
+      AND is_cleared = false
+    RETURNING id
+    `,
+    {
+      replacements: {
+        recipient_user_id: userId,
+      },
+    }
+  );
+
+  return {
+    cleared_count: Array.isArray(rows) ? rows.length : 0,
+  };
 };
 
 export const registerPushDevice = async ({ userId, deviceToken, platform, deviceName = null }) => {

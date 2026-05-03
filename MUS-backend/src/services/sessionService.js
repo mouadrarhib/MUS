@@ -171,31 +171,134 @@ export const createSessionBooking = async ({ actor, slotId, note = null }) => {
 export const listMySessionBookings = async ({ actor, status = null, limit = 50, offset = 0 }) => {
   if (!actor?.id) throw new AppError("Authentification requise", 401);
 
-  if (hasRole(actor, "teacher")) {
-    const [rows] = await sequelize.query(SQL.SESSION.GET_TEACHER_BOOKINGS, {
+  const [teacherRowsResult, studentRowsResult] = await Promise.all([
+    sequelize.query(SQL.SESSION.GET_TEACHER_BOOKINGS, {
       replacements: {
         teacher_id: actor.id,
         status,
         limit_value: limit,
         offset_value: offset,
       },
-    });
-    return rows;
-  }
-
-  if (hasRole(actor, "student")) {
-    const [rows] = await sequelize.query(SQL.SESSION.GET_STUDENT_BOOKINGS, {
+    }),
+    sequelize.query(SQL.SESSION.GET_STUDENT_BOOKINGS, {
       replacements: {
         student_id: actor.id,
         status,
         limit_value: limit,
         offset_value: offset,
       },
-    });
-    return rows;
+    }),
+  ]);
+
+  const teacherRows = Array.isArray(teacherRowsResult?.[0]) ? teacherRowsResult[0] : [];
+  const studentRows = Array.isArray(studentRowsResult?.[0]) ? studentRowsResult[0] : [];
+
+  const merged = [...teacherRows, ...studentRows];
+  const seen = new Set();
+  const deduped = merged.filter((row) => {
+    const bookingId = Number(row?.booking_id || row?.id || 0);
+    if (!bookingId || seen.has(bookingId)) return false;
+    seen.add(bookingId);
+    return true;
+  });
+
+  deduped.sort((a, b) => {
+    const aTime = new Date(a?.updated_at || a?.start_at || 0).getTime();
+    const bTime = new Date(b?.updated_at || b?.start_at || 0).getTime();
+    return bTime - aTime;
+  });
+
+  const bookingIds = deduped.map((row) => Number(row?.booking_id || row?.id || 0)).filter((id) => id > 0);
+  let clearMap = new Map();
+  if (bookingIds.length) {
+    const [clearRows] = await sequelize.query(
+      `
+      SELECT booking_id, cleared_at
+      FROM public.user_session_inbox_clears
+      WHERE user_id = :user_id
+        AND booking_id IN (:booking_ids)
+      `,
+      {
+        replacements: {
+          user_id: actor.id,
+          booking_ids: bookingIds,
+        },
+      }
+    );
+    clearMap = new Map(
+      (clearRows || []).map((row) => [Number(row.booking_id), new Date(row.cleared_at || 0).getTime()])
+    );
   }
 
-  throw new AppError("Acces refuse", 403);
+  const visible = deduped.filter((row) => {
+    const bookingId = Number(row?.booking_id || row?.id || 0);
+    const clearedAt = clearMap.get(bookingId);
+    if (!clearedAt) return true;
+    const rowTime = new Date(row?.updated_at || row?.start_at || 0).getTime();
+    return rowTime > clearedAt;
+  });
+
+  return visible.slice(0, Math.max(Number(limit) || 50, 1));
+};
+
+export const clearSessionInbox = async ({ actor }) => {
+  if (!actor?.id) throw new AppError("Authentification requise", 401);
+
+  const [teacherRowsResult, studentRowsResult] = await Promise.all([
+    sequelize.query(SQL.SESSION.GET_TEACHER_BOOKINGS, {
+      replacements: {
+        teacher_id: actor.id,
+        status: null,
+        limit_value: 500,
+        offset_value: 0,
+      },
+    }),
+    sequelize.query(SQL.SESSION.GET_STUDENT_BOOKINGS, {
+      replacements: {
+        student_id: actor.id,
+        status: null,
+        limit_value: 500,
+        offset_value: 0,
+      },
+    }),
+  ]);
+
+  const teacherRows = Array.isArray(teacherRowsResult?.[0]) ? teacherRowsResult[0] : [];
+  const studentRows = Array.isArray(studentRowsResult?.[0]) ? studentRowsResult[0] : [];
+  const merged = [...teacherRows, ...studentRows];
+
+  const bookingIds = Array.from(new Set(
+    merged
+      .map((row) => Number(row?.booking_id || row?.id || 0))
+      .filter((id) => id > 0)
+  ));
+
+  if (!bookingIds.length) {
+    return { cleared_count: 0 };
+  }
+
+  const nowIso = new Date().toISOString();
+  await Promise.all(
+    bookingIds.map((bookingId) =>
+      sequelize.query(
+        `
+        INSERT INTO public.user_session_inbox_clears (user_id, booking_id, cleared_at, updated_at)
+        VALUES (:user_id, :booking_id, :cleared_at, NOW())
+        ON CONFLICT (user_id, booking_id)
+        DO UPDATE SET cleared_at = EXCLUDED.cleared_at, updated_at = NOW()
+        `,
+        {
+          replacements: {
+            user_id: actor.id,
+            booking_id: bookingId,
+            cleared_at: nowIso,
+          },
+        }
+      )
+    )
+  );
+
+  return { cleared_count: bookingIds.length };
 };
 
 export const getSessionBookingById = async ({ actor, bookingId }) => {

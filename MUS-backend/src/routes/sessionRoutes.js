@@ -3,6 +3,7 @@ import { body, param, query } from "express-validator";
 import {
   addSessionMessageHandler,
   cancelSessionBookingHandler,
+  clearSessionInboxHandler,
   completeSessionBookingHandler,
   createSessionBookingHandler,
   createTeacherSlotHandler,
@@ -97,6 +98,12 @@ router.get(
   ],
   validateRequest,
   listMySessionBookingsHandler
+);
+
+router.patch(
+  "/bookings/clear",
+  requireRole("student", "teacher", "admin"),
+  clearSessionInboxHandler
 );
 
 router.get(

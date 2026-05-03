@@ -24,7 +24,7 @@ const formatShortDate = (value) => {
   return date.toLocaleString();
 };
 
-const SessionInboxMenu = memo(({ badgeCount = 0, onOpenBooking }) => {
+const SessionInboxMenu = memo(({ badgeCount = 0, onOpenBooking, onClear }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -106,9 +106,26 @@ const SessionInboxMenu = memo(({ badgeCount = 0, onOpenBooking }) => {
       >
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 1.5, py: 1.2 }}>
           <Typography variant="subtitle2" fontWeight={800}>Session Chats</Typography>
-          <Button size="small" startIcon={loading ? <CircularProgress size={13} /> : <Refresh sx={{ fontSize: 14 }} />} onClick={load} sx={{ textTransform: 'none' }}>
-            Refresh
-          </Button>
+          <Stack direction="row" spacing={0.4}>
+            <Button size="small" startIcon={loading ? <CircularProgress size={13} /> : <Refresh sx={{ fontSize: 14 }} />} onClick={load} sx={{ textTransform: 'none' }}>
+              Refresh
+            </Button>
+            <Button
+              size="small"
+              onClick={async () => {
+                try {
+                  await onClear?.();
+                } finally {
+                  setBookings([]);
+                  setError('');
+                }
+              }}
+              disabled={!bookings.length}
+              sx={{ textTransform: 'none' }}
+            >
+              Clear
+            </Button>
+          </Stack>
         </Stack>
         <Divider />
         <Box sx={{ maxHeight: 430, overflowY: 'auto', py: 0.5 }}>
@@ -165,6 +182,7 @@ SessionInboxMenu.displayName = 'SessionInboxMenu';
 SessionInboxMenu.propTypes = {
   badgeCount: PropTypes.number,
   onOpenBooking: PropTypes.func.isRequired,
+  onClear: PropTypes.func,
 };
 
 export default SessionInboxMenu;

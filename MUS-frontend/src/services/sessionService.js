@@ -53,6 +53,11 @@ const sessionService = {
     return Array.isArray(response?.data) ? response.data : [];
   },
 
+  clearInbox: async () => {
+    const response = await patch('/sessions/bookings/clear');
+    return response?.data || { cleared_count: 0 };
+  },
+
   getBookingById: async (bookingId) => {
     const response = await get(`/sessions/bookings/${bookingId}`);
     return response?.data || null;

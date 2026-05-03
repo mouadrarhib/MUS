@@ -38,6 +38,11 @@ const notificationService = {
     return response?.data || null;
   },
 
+  clearAll: async () => {
+    const response = await patch(`${NOTIFICATIONS_BASE}/clear`);
+    return response?.data || { cleared_count: 0 };
+  },
+
   openStream: ({ onNotification, onError } = {}) => {
     if (typeof window === "undefined" || typeof EventSource === "undefined") {
       return () => {};

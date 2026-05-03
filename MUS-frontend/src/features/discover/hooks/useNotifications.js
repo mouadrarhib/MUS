@@ -37,7 +37,7 @@ export const deriveNotificationTarget = (notification) => {
  * Use this hook in any navbar/header component that shows notifications.
  *
  * @param {boolean} isAuthenticated - Whether the current user is signed in.
- * @returns {{ notifications, loading, unreadCount, load, handleClick }}
+ * @returns {{ notifications, loading, unreadCount, load, clear, handleClick }}
  */
 export const useNotifications = (isAuthenticated) => {
     const navigate = useNavigate();
@@ -92,6 +92,18 @@ export const useNotifications = (isAuthenticated) => {
         navigate(deriveNotificationTarget(notification));
     }, [navigate]);
 
+    const clear = useCallback(() => {
+        setNotifications([]);
+    }, []);
+
+    const clearPersisted = useCallback(async () => {
+        try {
+            await notificationService.clearAll();
+        } finally {
+            clear();
+        }
+    }, [clear]);
+
     /** Initial load + SSE stream */
     useEffect(() => {
         if (!isAuthenticated) {
@@ -116,5 +128,5 @@ export const useNotifications = (isAuthenticated) => {
         return () => { stopStream(); };
     }, [isAuthenticated, load]);
 
-    return { notifications, loading, unreadCount, load, handleClick };
+    return { notifications, loading, unreadCount, load, clear, clearPersisted, handleClick };
 };

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { body, param, query } from "express-validator";
 import validateRequest from "./validateRequest.js";
 import {
+  clearNotificationsHandler,
   listNotificationsHandler,
   listPushDevicesHandler,
   markNotificationReadHandler,
@@ -21,6 +22,11 @@ router.get(
   ],
   validateRequest,
   listNotificationsHandler
+);
+
+router.patch(
+  "/notifications/clear",
+  clearNotificationsHandler
 );
 
 router.patch(

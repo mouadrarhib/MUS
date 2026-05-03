@@ -3,6 +3,7 @@ import { successResponse } from "../helpers/response.js";
 import {
   addSessionMessage,
   cancelSessionBooking,
+  clearSessionInbox,
   completeSessionBooking,
   createSessionBooking,
   createTeacherSlot,
@@ -88,6 +89,11 @@ export const listMySessionBookingsHandler = asyncHandler(async (req, res) => {
     offset: Number(offset),
   });
   return successResponse(res, "Session bookings retrieved successfully", data);
+});
+
+export const clearSessionInboxHandler = asyncHandler(async (req, res) => {
+  const data = await clearSessionInbox({ actor: req.user });
+  return successResponse(res, "Session inbox cleared successfully", data);
 });
 
 export const getSessionBookingByIdHandler = asyncHandler(async (req, res) => {

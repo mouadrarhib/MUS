@@ -1,6 +1,7 @@
 import asyncHandler from "../helpers/asyncHandler.js";
 import { successResponse } from "../helpers/response.js";
 import {
+  clearNotificationsForUser,
   listNotificationsForUser,
   listPushDevices,
   markNotificationRead,
@@ -118,6 +119,11 @@ export const markNotificationReadHandler = asyncHandler(async (req, res) => {
   });
 
   return successResponse(res, "Notification marquee comme lue", row);
+});
+
+export const clearNotificationsHandler = asyncHandler(async (req, res) => {
+  const result = await clearNotificationsForUser({ userId: req.user.id });
+  return successResponse(res, "Notifications cleared successfully", result);
 });
 
 /**

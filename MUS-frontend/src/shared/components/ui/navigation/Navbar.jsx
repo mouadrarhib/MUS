@@ -8,9 +8,6 @@ import {
   IconButton,
   Button,
   Box,
-  Menu,
-  MenuItem,
-  Divider,
   Badge,
   CircularProgress,
   alpha
@@ -19,18 +16,18 @@ import {
   Menu as MenuIcon,
   DarkMode,
   LightMode,
-  NotificationsNone,
-  MarkEmailRead,
 } from '@mui/icons-material';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useThemeMode } from '@/app/providers/ThemeContext';
 import userSettingsService from '@/services/userSettingsService';
 import notificationService from '@/services/notificationService';
+import sessionService from '@/services/sessionService';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import logo from '@/assets/images/logo.png';
 import { useLanguage } from '@/app/providers/LanguageContext';
 import SessionInboxMenu from '@/shared/components/ui/navigation/SessionInboxMenu';
 import UserProfileMenu from '@/shared/components/ui/navigation/UserProfileMenu';
+import NotificationInboxMenu from '@/shared/components/ui/navigation/NotificationInboxMenu';
 
 const NAVBAR_HEIGHT = 64;
 
@@ -40,17 +37,10 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
   const { t, language } = useLanguage();
   const isArabic = language === 'ar';
   const navigate = useNavigate();
-  const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [notificationsError, setNotificationsError] = useState('');
   const [streamConnected, setStreamConnected] = useState(false);
-  const notificationsOpen = Boolean(notificationAnchorEl);
-
-  const unreadCount = useMemo(
-    () => notifications.reduce((total, item) => total + (item?.is_read ? 0 : 1), 0),
-    [notifications]
-  );
 
   const sessionUnreadCount = useMemo(
     () => notifications.reduce((total, item) => {
@@ -145,18 +135,25 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
     await Promise.all(unreadIds.map((id) => markNotificationAsRead(id)));
   };
 
-  const handleNotificationsOpen = (event) => {
-    setNotificationAnchorEl(event.currentTarget);
-  };
-  const handleNotificationsClose = () => setNotificationAnchorEl(null);
-
   const handleNotificationClick = async (notification) => {
     if (!notification) return;
     if (!notification.is_read) {
       await markNotificationAsRead(notification.id);
     }
-    handleNotificationsClose();
     navigate(deriveNotificationTarget(notification));
+  };
+
+  const clearNotifications = () => {
+    setNotifications([]);
+    setNotificationsError('');
+  };
+
+  const clearNotificationsPersisted = async () => {
+    try {
+      await notificationService.clearAll();
+    } finally {
+      clearNotifications();
+    }
   };
 
   const handleProfile = () => {
@@ -329,32 +326,24 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
           <SessionInboxMenu
             badgeCount={sessionUnreadCount}
             onOpenBooking={(bookingId) => navigate(`/dashboard/sessions?booking=${bookingId}&chat=1`)}
+            onClear={async () => {
+              await sessionService.clearInbox();
+            }}
           />
         </Box>
 
-        <IconButton
-          onClick={handleNotificationsOpen}
-          aria-label="Open notifications"
-          sx={{
-            mr: 1,
-            color: 'text.primary',
-            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
-            border: '1px solid',
-            borderColor: (theme) =>
-              theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-            borderRadius: 2,
-            p: 0.8,
-            transition: 'all 0.22s ease',
-            '&:hover': {
-              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.14),
-              borderColor: (theme) => alpha(theme.palette.primary.main, 0.3),
-            },
-          }}
-        >
-          <Badge badgeContent={unreadCount > 99 ? '99+' : unreadCount} color="error">
-            <NotificationsNone sx={{ fontSize: 19 }} />
-          </Badge>
-        </IconButton>
+        <Box sx={{ mr: 1 }}>
+          <NotificationInboxMenu
+            notifications={notifications}
+            loading={notificationsLoading}
+            error={notificationsError}
+            streamConnected={streamConnected}
+            onRefresh={loadNotifications}
+            onNotificationClick={handleNotificationClick}
+            onMarkAllRead={markAllVisibleAsRead}
+            onClear={clearNotificationsPersisted}
+          />
+        </Box>
 
         {/* Theme Toggle */}
         <IconButton
@@ -388,105 +377,6 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
             <LightMode sx={{ fontSize: 18, color: 'warning.main' }} />
           )}
         </IconButton>
-
-        <Menu
-          anchorEl={notificationAnchorEl}
-          open={notificationsOpen}
-          onClose={handleNotificationsClose}
-          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-          PaperProps={{
-            elevation: 0,
-            sx: {
-              width: 'min(100vw - 24px, 420px)',
-              maxWidth: 'calc(100vw - 16px)',
-              mt: 1.2,
-              borderRadius: 2.5,
-              border: '1px solid',
-              borderColor: (theme) =>
-                theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-              backdropFilter: 'blur(18px)',
-              bgcolor: (theme) =>
-                theme.palette.mode === 'dark' ? 'rgba(20,17,31,0.95)' : 'rgba(255,255,255,0.97)',
-            },
-          }}
-        >
-          <Box sx={{ px: 1.5, py: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box>
-              <Typography variant="subtitle2" fontWeight={800}>Notifications</Typography>
-              <Typography variant="caption" color="text.secondary">
-                {streamConnected ? 'Live updates connected' : 'Live updates reconnecting'}
-              </Typography>
-            </Box>
-            <Button
-              onClick={markAllVisibleAsRead}
-              disabled={!unreadCount}
-              size="small"
-              sx={{ textTransform: 'none', borderRadius: 1.5 }}
-              startIcon={<MarkEmailRead sx={{ fontSize: 16 }} />}
-            >
-              Mark all read
-            </Button>
-          </Box>
-          <Divider />
-          <Box sx={{ maxHeight: 420, overflowY: 'auto', py: 0.5 }}>
-            {notificationsLoading ? (
-              <Box sx={{ py: 3, display: 'flex', justifyContent: 'center' }}>
-                <CircularProgress size={22} />
-              </Box>
-            ) : notificationsError ? (
-              <Box sx={{ p: 1.5 }}>
-                <Typography variant="body2" color="error.main">{notificationsError}</Typography>
-              </Box>
-            ) : notifications.length === 0 ? (
-              <Box sx={{ p: 2 }}>
-                <Typography variant="body2" color="text.secondary">No notifications yet.</Typography>
-              </Box>
-            ) : (
-              notifications.map((item) => (
-                <MenuItem
-                  key={item.id}
-                  onClick={() => handleNotificationClick(item)}
-                  sx={{
-                    alignItems: 'flex-start',
-                    py: 1.1,
-                    px: 1.5,
-                    borderRadius: 0,
-                    borderLeft: '3px solid',
-                    borderLeftColor: item.is_read ? 'transparent' : 'primary.main',
-                    bgcolor: item.is_read ? 'transparent' : (theme) => alpha(theme.palette.primary.main, 0.06),
-                    whiteSpace: 'normal',
-                  }}
-                >
-                  <Box>
-                    <Typography variant="body2" fontWeight={700} sx={{ mb: 0.2 }}>
-                      {item.title || item.type || 'Notification'}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.2 }}>
-                      {item.body || 'Open to view details.'}
-                    </Typography>
-                    <Typography variant="caption" color="text.disabled">
-                      {new Date(item.created_at).toLocaleString()}
-                    </Typography>
-                  </Box>
-                </MenuItem>
-              ))
-            )}
-          </Box>
-          <Divider />
-          <Box sx={{ p: 1, display: 'flex', justifyContent: 'space-between' }}>
-            <Button
-              size="small"
-              onClick={loadNotifications}
-              sx={{ textTransform: 'none', borderRadius: 1.5 }}
-            >
-              Refresh
-            </Button>
-            <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
-              {unreadCount} unread
-            </Typography>
-          </Box>
-        </Menu>
 
         <UserProfileMenu
           user={user}
