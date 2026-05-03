@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
-  Avatar,
   Box,
   Button,
   IconButton,
@@ -15,9 +14,11 @@ import {
 import { Add, DarkMode, ExpandMore, LightMode, Search } from '@mui/icons-material';
 import { useThemeMode } from '@/app/providers/ThemeContext';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { useLanguage } from '@/app/providers/LanguageContext';
 import { useNotifications } from '@/features/discover/hooks/useNotifications';
 import NotificationMenu from '@/features/discover/components/NotificationMenu';
 import SessionInboxMenu from '@/shared/components/ui/navigation/SessionInboxMenu';
+import UserProfileMenu from '@/shared/components/ui/navigation/UserProfileMenu';
 import userSettingsService from '@/services/userSettingsService';
 import logo from '@/assets/images/logo.png';
 
@@ -31,7 +32,9 @@ const navLinks = [
 const DiscoveryHeader = () => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useThemeMode();
-  const { user, isAuthenticated } = useAuth();
+  const { user, roles, logout, isAuthenticated } = useAuth();
+  const { language } = useLanguage();
+  const isArabic = language === 'ar';
   const { notifications, loading, unreadCount, load, handleClick } = useNotifications(Boolean(isAuthenticated));
 
   const sessionUnreadCount = useMemo(
@@ -192,14 +195,22 @@ const DiscoveryHeader = () => {
             Create
           </Button>
 
-          <IconButton onClick={() => navigate('/dashboard/profile')} sx={{ p: 0 }}>
-            <Avatar src={user?.avatar_url || ''} sx={{ width: 36, height: 36 }}>
-              {user?.full_name?.charAt(0) || 'U'}
-            </Avatar>
-          </IconButton>
-          <IconButton onClick={() => navigate('/dashboard/profile')} sx={{ p: 0.4 }}>
-            <ExpandMore sx={{ color: 'text.secondary', fontSize: 18 }} />
-          </IconButton>
+          <UserProfileMenu
+            user={user}
+            roles={roles}
+            isArabic={isArabic}
+            onProfile={() => navigate('/dashboard/profile')}
+            onSettings={() => navigate('/dashboard/settings')}
+            onLogout={() => {
+              navigate('/', { replace: true });
+              logout();
+            }}
+            labels={{
+              profile: 'Profile',
+              settings: 'Settings',
+              logout: 'Logout',
+            }}
+          />
         </Stack>
       </Stack>
     </Box>
