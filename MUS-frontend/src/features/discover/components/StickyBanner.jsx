@@ -4,9 +4,12 @@ import { ArrowForward } from '@mui/icons-material';
 const StickyBanner = () => (
   <Box
     sx={{
-      position: 'sticky',
-      bottom: 10,
-      mt: 2,
+      position: 'fixed',
+      bottom: { xs: 8, md: 12 },
+      left: '50%',
+      transform: 'translateX(-50%)',
+      width: { xs: 'calc(100% - 16px)', md: 'calc(100% - 48px)' },
+      maxWidth: 1150,
       borderRadius: 3,
       background: 'linear-gradient(90deg, #4F46E5 0%, #2563EB 100%)',
       px: { xs: 2, md: 3 },
@@ -17,7 +20,7 @@ const StickyBanner = () => (
       justifyContent: 'space-between',
       gap: 2,
       boxShadow: '0 12px 28px rgba(37,99,235,0.35)',
-      zIndex: 15,
+      zIndex: 1200,
     }}
   >
     <Stack>
