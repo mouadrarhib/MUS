@@ -39,12 +39,6 @@ const getInitialParam = (search, key, fallback = 'all') => {
   return String(value).trim();
 };
 
-const getInitialNumberParam = (search, key, fallback = 0, { min = 0, max = Number.POSITIVE_INFINITY } = {}) => {
-  const value = Number(getInitialParam(search, key, ''));
-  if (!Number.isFinite(value)) return fallback;
-  return Math.min(Math.max(value, min), max);
-};
-
 const getInitialBooleanParam = (search, key, fallback = false) => {
   const raw = getInitialParam(search, key, '');
   if (!raw) return fallback;
@@ -88,7 +82,7 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
   const [selectedLanguage, setSelectedLanguage] = useState(() => getInitialParam(location.search, 'language', 'all').toLowerCase());
   const [selectedAccessTier, setSelectedAccessTier] = useState(() => getInitialParam(location.search, 'access', 'all').toLowerCase());
   const [selectedSort, setSelectedSort] = useState(() => getInitialParam(location.search, 'sort', 'recommended').toLowerCase());
-  const [minRating, setMinRating] = useState(() => getInitialNumberParam(location.search, 'rating', 0, { min: 0, max: 5 }));
+  const [selectedDifficulty, setSelectedDifficulty] = useState(() => getInitialParam(location.search, 'difficulty', 'all').toLowerCase());
   const [favoritesOnly, setFavoritesOnly] = useState(() => getInitialBooleanParam(location.search, 'favorites', false));
   const [searchQuery, setSearchQuery] = useState(() => {
     const initialParams = new URLSearchParams(location.search);
@@ -110,7 +104,7 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
   const deferredLanguage = useDeferredValue(selectedLanguage);
   const deferredAccessTier = useDeferredValue(selectedAccessTier);
   const deferredSort = useDeferredValue(selectedSort);
-  const deferredMinRating = useDeferredValue(minRating);
+  const deferredDifficulty = useDeferredValue(selectedDifficulty);
   const deferredFavoritesOnly = useDeferredValue(favoritesOnly);
   const [isPending, startTransition] = useTransition();
   const detailsCacheRef = useRef(new Map());
@@ -206,7 +200,7 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
           format: deferredFormat,
           language: deferredLanguage,
           accessTier: deferredAccessTier,
-          minRating: deferredMinRating,
+          difficulty: deferredDifficulty,
           favoritesOnly: deferredFavoritesOnly,
           sortBy: deferredSort,
           search: deferredSearchQuery,
@@ -259,7 +253,7 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     deferredFormat,
     deferredLanguage,
     deferredAccessTier,
-    deferredMinRating,
+    deferredDifficulty,
     deferredFavoritesOnly,
     deferredSort,
     deferredSearchQuery,
@@ -276,7 +270,7 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     if (selectedLanguage !== 'all') params.set('language', String(selectedLanguage));
     if (selectedAccessTier !== 'all') params.set('access', String(selectedAccessTier));
     if (selectedSort !== 'recommended') params.set('sort', String(selectedSort));
-    if (Number(minRating) > 0) params.set('rating', String(minRating));
+    if (selectedDifficulty !== 'all') params.set('difficulty', String(selectedDifficulty));
     if (favoritesOnly) params.set('favorites', '1');
     if (page > 1) params.set('page', String(page));
 
@@ -301,7 +295,7 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     selectedLanguage,
     selectedAccessTier,
     selectedSort,
-    minRating,
+    selectedDifficulty,
     favoritesOnly,
     location.pathname,
     location.search,
@@ -375,7 +369,7 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     selectedLanguage !== 'all' ||
     selectedAccessTier !== 'all' ||
     selectedSort !== 'recommended' ||
-    Number(minRating) > 0 ||
+    selectedDifficulty !== 'all' ||
     favoritesOnly ||
     Boolean(query);
   const hideRecommendationsSection =
@@ -405,7 +399,7 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     setSelectedLanguage('all');
     setSelectedAccessTier('all');
     setSelectedSort('recommended');
-    setMinRating(0);
+    setSelectedDifficulty('all');
     setFavoritesOnly(false);
     setSearchQuery('');
     setPage(1);
@@ -413,7 +407,7 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
 
   useEffect(() => {
     setPage(1);
-  }, [deferredModule, deferredType, deferredFormat, deferredLanguage, deferredAccessTier, deferredMinRating, deferredFavoritesOnly, deferredSort, deferredSearchQuery]);
+  }, [deferredModule, deferredType, deferredFormat, deferredLanguage, deferredAccessTier, deferredDifficulty, deferredFavoritesOnly, deferredSort, deferredSearchQuery]);
 
   const ensureAuthenticated = () => {
     if (isAuthenticated) return true;
@@ -537,7 +531,7 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     selectedLanguage,
     selectedAccessTier,
     selectedSort,
-    minRating,
+    selectedDifficulty,
     favoritesOnly,
     searchQuery,
     isPending,
@@ -569,7 +563,7 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     setSelectedLanguage,
     setSelectedAccessTier,
     setSelectedSort,
-    setMinRating,
+    setSelectedDifficulty,
     setFavoritesOnly,
     setSearchQuery,
     setPage,

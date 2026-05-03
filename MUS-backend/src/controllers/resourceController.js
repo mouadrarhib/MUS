@@ -967,6 +967,7 @@ export const getDiscoverBootstrapHandler = asyncHandler(async (req, res) => {
     format: req.query?.format,
     language: req.query?.language,
     accessTier: req.query?.access_tier,
+    difficulty: req.query?.difficulty,
     minRating: req.query?.min_rating,
     favoritesOnly,
     sortBy: req.query?.sort_by,

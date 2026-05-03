@@ -249,6 +249,27 @@ const enrichDiscoverResources = async (resources = []) => {
       : Promise.resolve([]),
   ]);
 
+  const difficultyRows = resourceIds.length
+    ? await sequelize.query(
+      `
+      SELECT
+        rmm.resource_id,
+        MAX(
+          CASE rmm.difficulty::text
+            WHEN 'hard' THEN 3
+            WHEN 'medium' THEN 2
+            WHEN 'easy' THEN 1
+            ELSE 0
+          END
+        ) AS difficulty_rank
+      FROM public.resource_module_map rmm
+      WHERE rmm.resource_id IN (:resource_ids)
+      GROUP BY rmm.resource_id
+      `,
+      { replacements: { resource_ids: resourceIds } }
+    ).then(([rows]) => rows)
+    : [];
+
   const avatarUrlByCreatorId = new Map();
   await Promise.all(
     (avatarRows || []).map(async (row) => {
@@ -261,6 +282,15 @@ const enrichDiscoverResources = async (resources = []) => {
 
   const viewsByResourceId = new Map(
     (downloadRows || []).map((row) => [toDiscoverInt(row?.resource_id), Number(row?.view_count || 0)])
+  );
+
+  const difficultyByResourceId = new Map(
+    (difficultyRows || []).map((row) => {
+      const resourceId = toDiscoverInt(row?.resource_id);
+      const rank = Number(row?.difficulty_rank || 0);
+      const difficulty = rank >= 3 ? 'hard' : rank === 2 ? 'medium' : rank === 1 ? 'easy' : null;
+      return [resourceId, difficulty];
+    })
   );
 
   const enrichedRows = await Promise.all(resources.map(async (resource) => {
@@ -276,6 +306,7 @@ const enrichDiscoverResources = async (resources = []) => {
       thumbnail_url: thumbnailUrl || null,
       duration_seconds,
       duration_label,
+      difficulty: pickFirstString(resource?.difficulty, difficultyByResourceId.get(resourceId)) || null,
       creator_avatar_url: pickFirstString(resource?.creator_avatar_url, avatarUrlByCreatorId.get(creatorId)) || null,
       view_count: Number(resource?.view_count || viewsByResourceId.get(resourceId) || 0),
     };
@@ -929,6 +960,13 @@ const normalizeDiscoverFilterValue = (value) => {
   return normalized && normalized !== "all" ? normalized : "all";
 };
 
+const normalizeDiscoverDifficulty = (value) => {
+  const normalized = toDiscoverText(value);
+  if (!normalized || normalized === "all") return "all";
+  if (["easy", "medium", "hard"].includes(normalized)) return normalized;
+  return "all";
+};
+
 const buildDiscoverFacets = (resources = []) => {
   const unique = (items) => Array.from(new Set(items.filter(Boolean))).sort((a, b) => a.localeCompare(b));
 
@@ -937,6 +975,7 @@ const buildDiscoverFacets = (resources = []) => {
     formats: unique(resources.map((item) => toDiscoverText(item?.format || item?.resource_format))),
     languages: unique(resources.map((item) => toDiscoverText(item?.language))),
     access_tiers: unique(resources.map((item) => toDiscoverText(item?.access_tier || item?.accessTier || "free"))),
+    difficulties: unique(resources.map((item) => toDiscoverText(item?.difficulty))),
   };
 };
 
@@ -970,6 +1009,7 @@ const matchesDiscoverFilters = (
     format,
     language,
     accessTier,
+    difficulty,
     minRating,
     favoritesOnly,
     search,
@@ -995,6 +1035,10 @@ const matchesDiscoverFilters = (
   }
 
   if (accessTier !== "all" && toDiscoverText(item?.access_tier || item?.accessTier || "free") !== accessTier) {
+    return false;
+  }
+
+  if (difficulty !== "all" && toDiscoverText(item?.difficulty) !== difficulty) {
     return false;
   }
 
@@ -1059,6 +1103,7 @@ export const getDiscoverBootstrapData = async ({
   format = "all",
   language = "all",
   accessTier = "all",
+  difficulty = "all",
   minRating = 0,
   favoritesOnly = false,
   sortBy = "recommended",
@@ -1084,6 +1129,7 @@ export const getDiscoverBootstrapData = async ({
     format: normalizeDiscoverFilterValue(format),
     language: normalizeDiscoverFilterValue(language),
     accessTier: normalizeDiscoverFilterValue(accessTier),
+    difficulty: normalizeDiscoverDifficulty(difficulty),
     minRating: Math.max(0, Math.min(parseDiscoverNumber(minRating, 0), 5)),
     favoritesOnly: Boolean(favoritesOnly),
     search: toDiscoverText(search),
@@ -1166,6 +1212,7 @@ export const getDiscoverBootstrapData = async ({
         format: effectiveFilters.format,
         language: effectiveFilters.language,
         access_tier: effectiveFilters.accessTier,
+        difficulty: effectiveFilters.difficulty,
         min_rating: effectiveFilters.minRating,
         favorites_only: effectiveFilters.favoritesOnly,
         sort_by: effectiveSort,

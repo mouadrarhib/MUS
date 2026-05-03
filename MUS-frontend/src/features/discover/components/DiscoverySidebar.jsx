@@ -25,10 +25,10 @@ const icons = {
 };
 
 const difficultyFilters = [
-  { label: 'All Levels', value: 0 },
-  { label: 'Beginner', value: 2 },
-  { label: 'Intermediate', value: 3.5 },
-  { label: 'Advanced', value: 4.5 },
+  { label: 'All Levels', value: 'all' },
+  { label: 'Beginner', value: 'easy' },
+  { label: 'Intermediate', value: 'medium' },
+  { label: 'Advanced', value: 'hard' },
 ];
 
 const toLabel = (value, fallback = 'All') => {
@@ -48,8 +48,8 @@ const DiscoverySidebar = ({
   availableLanguages = [],
   selectedLanguage = 'all',
   onLanguageChange,
-  minRating = 0,
-  onMinRatingChange,
+  selectedDifficulty = 'all',
+  onDifficultyChange,
   availableTypes = [],
   selectedType = 'all',
   onTypeChange,
@@ -144,7 +144,7 @@ const DiscoverySidebar = ({
     <Typography fontWeight={700}>Difficulty Level</Typography>
     {difficultyFilters.map((item) => (
       <Stack key={item.label} direction="row" alignItems="center" sx={{ mt: 0.4 }}>
-        <Checkbox size="small" checked={Number(minRating) === Number(item.value)} onChange={() => onMinRatingChange?.(item.value)} />
+        <Checkbox size="small" checked={String(selectedDifficulty) === String(item.value)} onChange={() => onDifficultyChange?.(item.value)} />
         <Typography variant="body2" color="text.primary">{item.label}</Typography>
       </Stack>
     ))}

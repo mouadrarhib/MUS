@@ -19,8 +19,8 @@ const DiscoverResources = () => {
     availableLanguages,
     selectedLanguage,
     setSelectedLanguage,
-    minRating,
-    setMinRating,
+    selectedDifficulty,
+    setSelectedDifficulty,
     availableTypes,
     selectedType,
     setSelectedType,
@@ -88,8 +88,8 @@ const DiscoverResources = () => {
               availableLanguages={availableLanguages}
               selectedLanguage={selectedLanguage}
               onLanguageChange={setSelectedLanguage}
-              minRating={minRating}
-              onMinRatingChange={setMinRating}
+              selectedDifficulty={selectedDifficulty}
+              onDifficultyChange={setSelectedDifficulty}
               availableTypes={availableTypes}
               selectedType={selectedType}
               onTypeChange={setSelectedType}
@@ -131,8 +131,8 @@ const DiscoverResources = () => {
             availableLanguages={availableLanguages}
             selectedLanguage={selectedLanguage}
             onLanguageChange={setSelectedLanguage}
-            minRating={minRating}
-            onMinRatingChange={setMinRating}
+            selectedDifficulty={selectedDifficulty}
+            onDifficultyChange={setSelectedDifficulty}
             availableTypes={availableTypes}
             selectedType={selectedType}
             onTypeChange={setSelectedType}
