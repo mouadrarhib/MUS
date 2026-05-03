@@ -89,6 +89,14 @@ export const toResourceCardModel = (resource) => {
     title: resource?.title || resource?.resource_title || 'Untitled resource',
     description: resource?.description || resource?.resource_description || metadata?.summary || 'No description provided.',
     category: category.label,
+    module:
+      resource?.module_title ||
+      resource?.module_code ||
+      resource?.academicContext?.moduleTitle ||
+      resource?.academicContext?.moduleCode ||
+      metadata?.academicContext?.moduleTitle ||
+      metadata?.academicContext?.moduleCode ||
+      '',
     author: resource?.creator_name || resource?.created_by_name || resource?.author?.name || resource?.author_name || 'Unknown Author',
     rating: avgRating > 0 ? Number(avgRating.toFixed(1)) : 0,
     views: formatCompact(views),
