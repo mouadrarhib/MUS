@@ -197,22 +197,28 @@ const Settings = () => {
     });
   }, [mode, setThemeMode, setAppLanguage]);
 
-  // ── Sync settings on mount ─────────────────────────────────────────────────
+  // ── Hydrate settings from auth payload first ───────────────────────────────
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !user?.settings) return;
+    applyServerSettings(user.settings);
+  }, [user?.id, user?.settings, applyServerSettings]);
+
+  // ── Fallback sync only when auth payload has no settings ───────────────────
+  useEffect(() => {
+    if (!user?.id || user?.settings) return;
     (async () => {
       try {
-        const existsResponse = await userSettingsService.exists(user.id);
-        if (!existsResponse?.data) {
-          const created = await userSettingsService.create({ user_id: user.id });
-          applyServerSettings(created?.data);
+        const loaded = await userSettingsService.getByUserId(user.id);
+        if (loaded?.data) {
+          applyServerSettings(loaded.data);
           return;
         }
-        const loaded = await userSettingsService.getByUserId(user.id);
-        applyServerSettings(loaded?.data);
+
+        const created = await userSettingsService.create({ user_id: user.id });
+        applyServerSettings(created?.data);
       } catch (err) { console.error('Failed to sync user settings:', err); }
     })();
-  }, [user?.id]);
+  }, [user?.id, user?.settings, applyServerSettings]);
 
   // ── Load tag preferences ───────────────────────────────────────────────────
   useEffect(() => {

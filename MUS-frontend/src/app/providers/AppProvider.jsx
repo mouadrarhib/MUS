@@ -39,6 +39,12 @@ const UserAppearanceBootstrap = () => {
   useEffect(() => {
     if (!user?.id) return;
 
+    if (user?.settings) {
+      setThemeMode(normalizeThemeMode(user.settings.theme_mode));
+      applyFontSize(user.settings.font_size);
+      return;
+    }
+
     let isActive = true;
 
     const syncAppearance = async () => {
@@ -71,7 +77,7 @@ const UserAppearanceBootstrap = () => {
     return () => {
       isActive = false;
     };
-  }, [user?.id, setThemeMode]);
+  }, [user?.id, user?.settings, setThemeMode]);
 
   return null;
 };

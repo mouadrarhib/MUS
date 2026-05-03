@@ -6,6 +6,7 @@ import { SQL } from "../snippets/index.js";
 import crypto from "crypto";
 import { getCurrentMembershipForUser } from "./membershipService.js";
 import { normalizeTagIds, setUserTagPreferences } from "./personalizationService.js";
+import { getUserSettingsByUserId } from "./userSettingsService.js";
 import {
   buildObjectKey,
   deleteObject,
@@ -26,6 +27,20 @@ import {
 
 const DEFAULT_ROLE = "student";
 const DEFAULT_STUDENT_CONTRIBUTION_MODE = "contributor";
+const DEFAULT_USER_SETTINGS = {
+  theme_mode: "light",
+  font_size: "medium",
+  language: "en",
+  timezone: "Africa/Casablanca",
+  date_format: "DD/MM/YYYY",
+  email_notifications: true,
+  push_notifications: true,
+  resource_alerts: true,
+  weekly_digest: false,
+  show_activity_status: true,
+  show_profile: true,
+  two_factor_enabled: false,
+};
 
 const normalizeContributionMode = (rawMode) => {
   const normalized = String(rawMode || "").trim().toLowerCase();
@@ -109,9 +124,23 @@ const buildAuthUserPayload = async (userLike, roles, transaction) => {
     }
   }
 
+  let settings = { ...DEFAULT_USER_SETTINGS };
+  try {
+    const loadedSettings = await getUserSettingsByUserId(normalizedUser.id);
+    if (loadedSettings && typeof loadedSettings === "object") {
+      settings = {
+        ...DEFAULT_USER_SETTINGS,
+        ...loadedSettings,
+      };
+    }
+  } catch {
+    settings = { ...DEFAULT_USER_SETTINGS };
+  }
+
   return {
     ...normalizedUser,
     avatar_url: resolvedAvatarUrl,
+    settings,
     roles,
     role: roles[0] || null,
     contribution_mode: contributionMode,
