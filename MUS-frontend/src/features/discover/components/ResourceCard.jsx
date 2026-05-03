@@ -66,9 +66,11 @@ const ResourceCard = ({ resource, view = 'grid', onClick }) => {
         >
           <PlayArrow />
         </IconButton>
-        <Typography sx={{ position: 'absolute', right: 10, bottom: 10, color: '#fff', bgcolor: 'rgba(0,0,0,0.68)', borderRadius: 1.25, px: 0.8, py: 0.1, fontSize: 12, fontWeight: 600 }}>
-          {resource.duration}
-        </Typography>
+        {resource.duration ? (
+          <Typography sx={{ position: 'absolute', right: 10, bottom: 10, color: '#fff', bgcolor: 'rgba(0,0,0,0.68)', borderRadius: 1.25, px: 0.8, py: 0.1, fontSize: 12, fontWeight: 600 }}>
+            {resource.duration}
+          </Typography>
+        ) : null}
       </Box>
 
       <CardContent sx={{ p: 1.6, flex: 1 }}>

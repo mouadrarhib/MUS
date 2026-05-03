@@ -23,6 +23,17 @@ const formatDuration = (resource) => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
+const isVideoResource = (resource, metadata = {}) => {
+  const formatValue = String(resource?.format || resource?.resource_format || '').toLowerCase();
+  const typeValue = String(resource?.educational_type || resource?.resource_type || '').toLowerCase();
+  const mimeValue = String(resource?.mime_type || metadata?.mime_type || metadata?.file?.mime_type || '').toLowerCase();
+  const url = String(resource?.url || '').toLowerCase();
+
+  if (formatValue.includes('video') || typeValue.includes('video') || mimeValue.startsWith('video/')) return true;
+  if (/\.(mp4|mov|avi|mkv|webm|m4v)(\?|$)/.test(url)) return true;
+  return false;
+};
+
 const toTitle = (value, fallback = 'General') => {
   const normalized = String(value || '').trim();
   if (!normalized) return fallback;
@@ -71,6 +82,7 @@ export const toResourceCardModel = (resource) => {
   const avgRating = toNumber(resource?.average_rating ?? resource?.avg_rating ?? resource?.rating, 0);
   const totalFavorites = toNumber(resource?.total_favorites ?? resource?.likes ?? resource?.favorites, 0);
   const views = toNumber(resource?.view_count ?? resource?.total_views ?? resource?.downloads ?? 0, 0);
+  const isVideo = isVideoResource(resource, metadata);
 
   return {
     id: resource?.id || resource?.resource_id || `${resource?.title || resource?.resource_title || 'resource'}-${resource?.created_at || resource?.createdAt || 'na'}`,
@@ -81,7 +93,7 @@ export const toResourceCardModel = (resource) => {
     rating: avgRating > 0 ? Number(avgRating.toFixed(1)) : 0,
     views: formatCompact(views),
     likes: formatCompact(totalFavorites),
-    duration: formatDuration(resource),
+    duration: isVideo ? formatDuration(resource) : null,
     thumb:
       resource?.thumbnail_url ||
       resource?.thumbnail ||
