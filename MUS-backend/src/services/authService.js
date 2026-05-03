@@ -7,6 +7,14 @@ import crypto from "crypto";
 import { getCurrentMembershipForUser } from "./membershipService.js";
 import { normalizeTagIds, setUserTagPreferences } from "./personalizationService.js";
 import {
+  buildObjectKey,
+  deleteObject,
+  getDownloadUrl,
+  getPublicObjectUrl,
+  isR2Configured,
+  putObjectBuffer,
+} from "./storage/r2Service.js";
+import {
   assertCanChangeUserActiveState,
   assertCanCreateUserWithRole,
   assertCanDeleteUser,
@@ -84,8 +92,26 @@ const buildAuthUserPayload = async (userLike, roles, transaction) => {
     ? await getStudentContributionMode(normalizedUser.id, transaction)
     : null;
 
+  let resolvedAvatarUrl = normalizedUser?.avatar_url || null;
+  if (!resolvedAvatarUrl && normalizedUser?.avatar_object_key) {
+    resolvedAvatarUrl = getPublicObjectUrl(normalizedUser.avatar_object_key);
+
+    if (!resolvedAvatarUrl && isR2Configured()) {
+      try {
+        const { downloadUrl } = await getDownloadUrl({
+          objectKey: normalizedUser.avatar_object_key,
+          forceDownload: false,
+        });
+        resolvedAvatarUrl = downloadUrl || null;
+      } catch {
+        resolvedAvatarUrl = null;
+      }
+    }
+  }
+
   return {
     ...normalizedUser,
+    avatar_url: resolvedAvatarUrl,
     roles,
     role: roles[0] || null,
     contribution_mode: contributionMode,
@@ -143,17 +169,37 @@ const getUserByEmail = async (email, transaction) => {
 
   if (!user) return null;
   const fullUser = user.get({ plain: true });
-  return routineUser ? { ...routineUser, password_hash: fullUser.password_hash } : fullUser;
+  return routineUser
+    ? {
+      ...routineUser,
+      password_hash: fullUser.password_hash,
+      avatar_url: fullUser.avatar_url || null,
+      avatar_object_key: fullUser.avatar_object_key || null,
+      avatar_mime_type: fullUser.avatar_mime_type || null,
+      avatar_size_bytes: fullUser.avatar_size_bytes || null,
+      avatar_updated_at: fullUser.avatar_updated_at || null,
+    }
+    : fullUser;
 };
 
 const getUserById = async (id, transaction) => {
+  const fullUserInstance = await User.findByPk(id, { transaction, rejectOnEmpty: false });
+  const fullUser = fullUserInstance ? fullUserInstance.get({ plain: true }) : null;
+
   try {
     const [rows] = await sequelize.query(SQL.USER.GET_BY_ID, {
       replacements: { id },
       transaction,
     });
     if (rows?.length) {
-      return rows[0];
+      return {
+        ...rows[0],
+        avatar_url: fullUser?.avatar_url || null,
+        avatar_object_key: fullUser?.avatar_object_key || null,
+        avatar_mime_type: fullUser?.avatar_mime_type || null,
+        avatar_size_bytes: fullUser?.avatar_size_bytes || null,
+        avatar_updated_at: fullUser?.avatar_updated_at || null,
+      };
     }
   } catch (error) {
     if (error.original?.code !== "42883") {
@@ -161,8 +207,7 @@ const getUserById = async (id, transaction) => {
     }
   }
 
-  const user = await User.findByPk(id, { transaction });
-  return user ? user.get({ plain: true }) : null;
+  return fullUser;
 };
 
 export const registerUser = async ({
@@ -380,6 +425,13 @@ export const loginUser = async ({ email, password }) => {
     const isValid = await comparePassword(password, user.password_hash);
     if (!isValid) {
       throw new AppError("Invalid credentials", 401);
+    }
+  }
+
+  if (user?.id) {
+    const fullUser = await getUserById(user.id);
+    if (fullUser) {
+      user = { ...user, ...fullUser };
     }
   }
 
@@ -623,8 +675,90 @@ export const updateProfile = async (userId, full_name) => {
     updatedUser = rows?.[0]?.get({ plain: true });
   }
 
+  if (typeof updatedUser?.avatar_url === "undefined") {
+    const fullUser = await User.findByPk(updatedUser.id, { rejectOnEmpty: false });
+    if (fullUser) {
+      const merged = fullUser.get({ plain: true });
+      updatedUser = { ...updatedUser, ...merged, password_hash: updatedUser.password_hash || merged.password_hash };
+    }
+  }
+
   const roles = await getRolesForUser(updatedUser.id);
   return { user: await buildAuthUserPayload(updatedUser, roles) };
+};
+
+export const uploadUserAvatar = async ({ userId, fileBuffer, originalName, mimeType }) => {
+  if (!isR2Configured()) {
+    throw new AppError("R2 storage is not configured", 500);
+  }
+
+  const user = await User.findByPk(userId);
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  const objectKey = buildObjectKey({
+    userId,
+    filename: originalName || "avatar.jpg",
+    prefix: `users/${userId}/avatar`,
+  });
+
+  await putObjectBuffer({
+    objectKey,
+    body: fileBuffer,
+    mimeType: mimeType || "image/jpeg",
+  });
+
+  const publicUrl = getPublicObjectUrl(objectKey);
+
+  if (user.avatar_object_key && user.avatar_object_key !== objectKey) {
+    try {
+      await deleteObject(user.avatar_object_key);
+    } catch {
+      // best effort cleanup
+    }
+  }
+
+  await User.update(
+    {
+      avatar_url: publicUrl || null,
+      avatar_object_key: objectKey,
+      avatar_mime_type: mimeType || null,
+      avatar_size_bytes: Buffer.isBuffer(fileBuffer) ? fileBuffer.length : null,
+      avatar_updated_at: new Date(),
+    },
+    { where: { id: userId } }
+  );
+
+  return getProfile(userId);
+};
+
+export const removeUserAvatar = async (userId) => {
+  const user = await User.findByPk(userId);
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  if (user.avatar_object_key) {
+    try {
+      await deleteObject(user.avatar_object_key);
+    } catch {
+      // best effort cleanup
+    }
+  }
+
+  await User.update(
+    {
+      avatar_url: null,
+      avatar_object_key: null,
+      avatar_mime_type: null,
+      avatar_size_bytes: null,
+      avatar_updated_at: null,
+    },
+    { where: { id: userId } }
+  );
+
+  return getProfile(userId);
 };
 
 export const setActive = async (userId, isActive) => {

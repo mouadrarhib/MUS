@@ -143,6 +143,7 @@ const UserDetailsDialog = ({ open, user, onClose }) => {
         >
           <Box display="flex" gap={2} alignItems="center">
             <Avatar
+              src={user.avatar_url || ''}
               sx={{
                 width: 64,
                 height: 64,
@@ -151,7 +152,7 @@ const UserDetailsDialog = ({ open, user, onClose }) => {
                 bgcolor: 'primary.main',
               }}
             >
-              {user.full_name?.charAt(0)}
+              {!user.avatar_url ? user.full_name?.charAt(0) : null}
             </Avatar>
             <Box flex={1} minWidth={0}>
               <Typography variant="h6" fontWeight="700" noWrap>

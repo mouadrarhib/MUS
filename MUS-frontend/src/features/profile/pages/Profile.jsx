@@ -190,6 +190,7 @@ const Profile = () => {
           {/* Avatar - positioned to overlap banner */}
           <Box sx={{ display: 'flex', justifyContent: { xs: 'center', sm: 'flex-start' }, mt: -8 }}>
             <Avatar
+              src={user?.avatar_url || user?.avatar || user?.avatarUrl || ''}
               sx={{
                 width: 130,
                 height: 130,
@@ -201,7 +202,7 @@ const Profile = () => {
                 boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
               }}
             >
-              {user?.full_name?.charAt(0) || 'U'}
+              {!(user?.avatar_url || user?.avatar || user?.avatarUrl) ? (user?.full_name?.charAt(0) || 'U') : null}
             </Avatar>
           </Box>
 

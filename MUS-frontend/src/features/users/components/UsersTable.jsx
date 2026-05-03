@@ -148,6 +148,7 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
                 >
                   <TableCell>
                     <Avatar
+                      src={user.avatar_url || ''}
                       sx={{ 
                         width: 36, 
                         height: 36, 
@@ -156,7 +157,7 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
                         bgcolor: 'primary.main',
                       }}
                     >
-                      {user.full_name?.charAt(0)}
+                      {!user.avatar_url ? user.full_name?.charAt(0) : null}
                     </Avatar>
                   </TableCell>
                   <TableCell>

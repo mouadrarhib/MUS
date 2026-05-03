@@ -11,6 +11,8 @@ import {
   Chip,
   Button,
   alpha,
+  Avatar,
+  Stack,
 } from '@mui/material';
 import {
   Person,
@@ -19,22 +21,34 @@ import {
   Save,
   Close,
   Verified,
+  PhotoCamera,
 } from '@mui/icons-material';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import authService from '@/services/authService';
 
 const EditProfileDialog = ({ open, onClose }) => {
-  const { user, login } = useAuth();
+  const { user, login, refreshProfile } = useAuth();
   const [editName, setEditName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
   const [error, setError] = useState('');
+  const [avatarPreview, setAvatarPreview] = useState('');
 
   useEffect(() => {
     if (open) {
       setEditName(user?.full_name || '');
       setError('');
+      setAvatarPreview(user?.avatar_url || user?.avatar || user?.avatarUrl || '');
     }
-  }, [open, user?.full_name]);
+  }, [open, user?.full_name, user?.avatar_url, user?.avatar, user?.avatarUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
 
   const handleClose = () => {
     if (loading) return;
@@ -61,6 +75,48 @@ const EditProfileDialog = ({ open, onClose }) => {
       setError(err.response?.data?.message || 'Failed to update profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAvatarUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!String(file.type || '').startsWith('image/')) {
+      setError('Please select a valid image file');
+      return;
+    }
+
+    const localPreview = URL.createObjectURL(file);
+    if (avatarPreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarPreview);
+    }
+    setAvatarPreview(localPreview);
+
+    setAvatarLoading(true);
+    setError('');
+    try {
+      await authService.uploadAvatar(file);
+      await refreshProfile();
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to upload avatar');
+      setAvatarPreview(user?.avatar_url || user?.avatar || user?.avatarUrl || '');
+    } finally {
+      setAvatarLoading(false);
+      if (event.target) event.target.value = '';
+    }
+  };
+
+  const handleAvatarRemove = async () => {
+    setAvatarLoading(true);
+    setError('');
+    try {
+      await authService.deleteAvatar();
+      await refreshProfile();
+      setAvatarPreview('');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to remove avatar');
+    } finally {
+      setAvatarLoading(false);
     }
   };
 
@@ -151,6 +207,35 @@ const EditProfileDialog = ({ open, onClose }) => {
         )}
 
         <Box sx={{ p: 3 }}>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="body2" fontWeight={600} color="text.secondary" sx={{ mb: 1 }}>
+              Profile Photo
+            </Typography>
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Avatar
+                src={avatarPreview || ''}
+                sx={{ width: 64, height: 64, fontSize: '1.3rem', fontWeight: 700 }}
+              >
+                {!avatarPreview ? (user?.full_name?.charAt(0) || 'U') : null}
+              </Avatar>
+              <Stack direction="row" spacing={1}>
+                <Button component="label" size="small" variant="outlined" startIcon={<PhotoCamera />} disabled={avatarLoading || loading}>
+                  {avatarLoading ? 'Uploading...' : 'Upload'}
+                  <input hidden type="file" accept="image/*" onChange={handleAvatarUpload} />
+                </Button>
+                <Button
+                  size="small"
+                  variant="text"
+                  color="error"
+                  disabled={avatarLoading || loading || !(user?.avatar_url || user?.avatar || user?.avatarUrl)}
+                  onClick={handleAvatarRemove}
+                >
+                  Remove
+                </Button>
+              </Stack>
+            </Stack>
+          </Box>
+
           <Box sx={{ mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <Person sx={{ fontSize: 18, color: 'text.secondary' }} />

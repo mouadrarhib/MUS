@@ -1,8 +1,8 @@
 // src/features/settings/pages/Settings.jsx
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert, Autocomplete, Box, CircularProgress, Typography,
-  Switch, Button, Select, MenuItem, FormControl, Divider,
+  Alert, Autocomplete, Avatar, Box, CircularProgress, Typography,
+  Switch, Button, Select, MenuItem, FormControl, Divider, Stack,
   TextField, Chip, ToggleButton, ToggleButtonGroup,
 } from '@mui/material';
 import {
@@ -10,6 +10,7 @@ import {
   NotificationsActive, NotificationsOff, Security, VpnKey, Devices,
   VisibilityOff, Language, AccessTime, CalendarToday, ManageAccounts,
   Delete, Download, Link, Check, LocalOffer, Settings as SettingsIcon,
+  PhotoCamera,
 } from '@mui/icons-material';
 import { useThemeMode } from '@/app/providers/ThemeContext';
 import { useAuth } from '@/features/auth/context/AuthContext';
@@ -22,6 +23,7 @@ import institutionProgramService from '@/services/institutionProgramService';
 import levelService from '@/services/levelService';
 import semesterService from '@/services/semesterService';
 import studentProfileService from '@/services/studentProfileService';
+import authService from '@/services/authService';
 import { PageHeader } from '@/shared/components/ui';
 import { SettingSection, SettingRow } from '@/features/settings/components/SettingLayout';
 import DeleteAccountDialog from '@/features/settings/components/DeleteAccountDialog';
@@ -77,6 +79,12 @@ const Settings = () => {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
   const exportTimerRef = useRef(null);
+  const avatarInputRef = useRef(null);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarFeedback, setAvatarFeedback] = useState({ type: '', message: '' });
+  const [profileName, setProfileName] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileFeedback, setProfileFeedback] = useState({ type: '', message: '' });
 
   // ── Tag Preferences ────────────────────────────────────────────────────────
   const [availableTags, setAvailableTags] = useState([]);
@@ -301,6 +309,10 @@ const Settings = () => {
     setStudentContributionMode(contributionMode === 'learner' ? 'learner' : 'contributor');
   }, [contributionMode, isStudent]);
 
+  useEffect(() => {
+    setProfileName(user?.full_name || '');
+  }, [user?.full_name]);
+
   // ── Cleanup export timer on unmount ───────────────────────────────────────
   useEffect(() => () => clearTimeout(exportTimerRef.current), []);
 
@@ -502,6 +514,67 @@ const Settings = () => {
     setDeleteConfirmText('');
   }, []);
 
+  const handleSelectAvatar = useCallback(() => {
+    avatarInputRef.current?.click();
+  }, []);
+
+  const handleAvatarFileChange = useCallback(async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!String(file.type || '').startsWith('image/')) {
+      setAvatarFeedback({ type: 'error', message: 'Please choose an image file.' });
+      return;
+    }
+
+    setAvatarLoading(true);
+    setAvatarFeedback({ type: '', message: '' });
+    try {
+      await authService.uploadAvatar(file);
+      await refreshProfile();
+      setAvatarFeedback({ type: 'success', message: 'Avatar updated successfully.' });
+    } catch (error) {
+      setAvatarFeedback({ type: 'error', message: error?.response?.data?.message || 'Failed to upload avatar.' });
+    } finally {
+      setAvatarLoading(false);
+      if (event.target) event.target.value = '';
+    }
+  }, [refreshProfile]);
+
+  const handleRemoveAvatar = useCallback(async () => {
+    setAvatarLoading(true);
+    setAvatarFeedback({ type: '', message: '' });
+    try {
+      await authService.deleteAvatar();
+      await refreshProfile();
+      setAvatarFeedback({ type: 'success', message: 'Avatar removed successfully.' });
+    } catch (error) {
+      setAvatarFeedback({ type: 'error', message: error?.response?.data?.message || 'Failed to remove avatar.' });
+    } finally {
+      setAvatarLoading(false);
+    }
+  }, [refreshProfile]);
+
+  const handleSaveProfileInfo = useCallback(async () => {
+    const nextName = String(profileName || '').trim();
+    if (!nextName) {
+      setProfileFeedback({ type: 'error', message: 'Full name is required.' });
+      return;
+    }
+
+    setProfileSaving(true);
+    setProfileFeedback({ type: '', message: '' });
+    try {
+      await authService.updateProfile(nextName);
+      await refreshProfile();
+      setProfileFeedback({ type: 'success', message: 'Profile information updated successfully.' });
+    } catch (error) {
+      setProfileFeedback({ type: 'error', message: error?.response?.data?.message || 'Failed to update profile information.' });
+    } finally {
+      setProfileSaving(false);
+    }
+  }, [profileName, refreshProfile]);
+
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <Box sx={{ maxWidth: 860, mx: 'auto', px: { xs: 2, sm: 3 }, py: { xs: 3, sm: 4 } }}>
@@ -512,6 +585,69 @@ const Settings = () => {
       />
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+
+        {/* ── Profile Information ───────────────────────────────────────── */}
+        <SettingSection icon={<ManageAccounts />} title="Profile Information" subtitle="Manage your personal account information" color="primary">
+          <Box sx={{ p: { xs: 2.5, sm: 3 }, display: 'grid', gap: 2 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'flex-start', sm: 'center' }}>
+              <Avatar src={user?.avatar_url || ''} sx={{ width: 56, height: 56 }}>
+                {user?.full_name?.charAt(0) || 'U'}
+              </Avatar>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={handleAvatarFileChange}
+                />
+                <Button size="small" variant="outlined" onClick={handleSelectAvatar} disabled={avatarLoading}>
+                  {avatarLoading ? 'Uploading...' : 'Upload Photo'}
+                </Button>
+                <Button
+                  size="small"
+                  color="error"
+                  variant="text"
+                  onClick={handleRemoveAvatar}
+                  disabled={avatarLoading || !user?.avatar_url}
+                >
+                  Remove
+                </Button>
+              </Stack>
+            </Stack>
+
+            <TextField
+              label="Full Name"
+              size="small"
+              value={profileName}
+              onChange={(event) => setProfileName(event.target.value)}
+            />
+            <TextField
+              label="Email"
+              size="small"
+              value={user?.email || ''}
+              InputProps={{ readOnly: true }}
+            />
+
+            <Box>
+              <Button
+                size="small"
+                variant="contained"
+                onClick={handleSaveProfileInfo}
+                disabled={profileSaving}
+                startIcon={profileSaving ? <CircularProgress size={14} /> : <Check />}
+              >
+                {profileSaving ? 'Saving...' : 'Save Profile'}
+              </Button>
+            </Box>
+
+            {(avatarFeedback.message || profileFeedback.message) && (
+              <Alert severity={avatarFeedback.message ? (avatarFeedback.type || 'info') : (profileFeedback.type || 'info')}>
+                {avatarFeedback.message || profileFeedback.message}
+              </Alert>
+            )}
+          </Box>
+        </SettingSection>
 
         {/* ── Theme & Appearance ─────────────────────────────────────────── */}
         <SettingSection icon={<Palette />} title="Theme & Appearance" subtitle="Customize how the app looks and feels" color="primary">

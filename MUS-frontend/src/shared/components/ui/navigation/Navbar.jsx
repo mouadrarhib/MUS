@@ -626,6 +626,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
 
             {/* Avatar */}
             <Avatar
+              src={user?.avatar_url || user?.avatar || user?.avatarUrl || ''}
               sx={{
                 width: { xs: 34, sm: 37, md: 38 },
                 height: { xs: 34, sm: 37, md: 38 },
@@ -641,7 +642,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
                 boxShadow: '0 2px 8px rgba(124,92,252,0.3)',
               }}
             >
-              {user?.full_name?.charAt(0) || 'U'}
+              {!(user?.avatar_url || user?.avatar || user?.avatarUrl) ? (user?.full_name?.charAt(0) || 'U') : null}
             </Avatar>
           </Box>
 
@@ -708,6 +709,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
 
               <Box display="flex" alignItems="center" gap={1.5} position="relative" zIndex={1}>
                 <Avatar
+                  src={user?.avatar_url || user?.avatar || user?.avatarUrl || ''}
                   sx={{
                     width: 48,
                     height: 48,
@@ -722,7 +724,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
                     boxShadow: '0 4px 14px rgba(124,92,252,0.35)',
                   }}
                 >
-                  {user?.full_name?.charAt(0) || 'U'}
+                  {!(user?.avatar_url || user?.avatar || user?.avatarUrl) ? (user?.full_name?.charAt(0) || 'U') : null}
                 </Avatar>
 
                 <Box flex={1} minWidth={0}>

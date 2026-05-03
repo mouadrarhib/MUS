@@ -15,6 +15,8 @@ const AUTH = {
   TOGGLE_ACTIVE: "/auth/active",
   DELETE_USER: "/auth/me",
   USER_BY_ID: "/auth/user",
+  AVATAR_UPLOAD: "/auth/avatar/upload-file",
+  AVATAR: "/auth/avatar",
 };
 
 export const authService = {
@@ -83,6 +85,28 @@ export const authService = {
   getUserById: (userId) => get(`${AUTH.USER_BY_ID}/${userId}`),
   updateUserById: (userId, data) => patch(`${AUTH.USER_BY_ID}/${userId}`, data),
   removeUserById: (userId) => del(`${AUTH.USER_BY_ID}/${userId}`),
+
+  uploadAvatar: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return post(AUTH.AVATAR_UPLOAD, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  deleteAvatar: () => del(AUTH.AVATAR),
+
+  uploadAvatarByUserId: (userId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return post(`${AUTH.USER_BY_ID}/${userId}/avatar/upload-file`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
 };
 
 export default authService;

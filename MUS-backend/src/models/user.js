@@ -30,6 +30,26 @@ const User = sequelize.define(
       allowNull: false,
       defaultValue: true,
     },
+    avatar_url: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    avatar_object_key: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    avatar_mime_type: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    avatar_size_bytes: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+    },
+    avatar_updated_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
     created_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,

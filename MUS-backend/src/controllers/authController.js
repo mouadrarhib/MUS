@@ -14,7 +14,9 @@ import {
   requestPasswordReset,
   resetPasswordWithToken,
   checkEmailExists,
+  removeUserAvatar,
   setActive,
+  uploadUserAvatar,
   updateProfile,
   updateUserById,
 } from "../services/authService.js";
@@ -368,6 +370,53 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
   const { full_name } = req.body;
   const result = await updateProfile(req.user.id, full_name);
   return successResponse(res, "Profile updated", result);
+});
+
+export const uploadAvatar = asyncHandler(async (req, res) => {
+  const file = req.file;
+  if (!file?.buffer) {
+    throw new AppError("Avatar file is required", 422);
+  }
+
+  if (!String(file.mimetype || "").startsWith("image/")) {
+    throw new AppError("Avatar must be an image", 422);
+  }
+
+  const result = await uploadUserAvatar({
+    userId: req.user.id,
+    fileBuffer: file.buffer,
+    originalName: file.originalname,
+    mimeType: file.mimetype,
+  });
+
+  return successResponse(res, "Avatar uploaded", result);
+});
+
+export const uploadAvatarByUserId = asyncHandler(async (req, res) => {
+  const file = req.file;
+  const { id } = req.params;
+
+  if (!file?.buffer) {
+    throw new AppError("Avatar file is required", 422);
+  }
+
+  if (!String(file.mimetype || "").startsWith("image/")) {
+    throw new AppError("Avatar must be an image", 422);
+  }
+
+  const result = await uploadUserAvatar({
+    userId: id,
+    fileBuffer: file.buffer,
+    originalName: file.originalname,
+    mimeType: file.mimetype,
+  });
+
+  return successResponse(res, "Avatar uploaded", result);
+});
+
+export const deleteAvatar = asyncHandler(async (req, res) => {
+  const result = await removeUserAvatar(req.user.id);
+  return successResponse(res, "Avatar removed", result);
 });
 
 /**

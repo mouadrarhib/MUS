@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import {
   Alert,
   alpha,
+  Avatar,
   Box,
   Button,
   Chip,
@@ -32,6 +33,7 @@ import {
   Close,
   InfoOutlined,
   PersonAdd,
+  PhotoCamera,
   School,
   SchoolOutlined,
   Security,
@@ -258,6 +260,8 @@ const UserDialog = ({
   const [programOptions, setProgramOptions] = useState([]);
   const [programsLoading, setProgramsLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [selectedAvatar, setSelectedAvatar] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState("");
 
   const {
     control,
@@ -278,7 +282,30 @@ const UserDialog = ({
   useEffect(() => {
     reset(getDefaultValues(user));
     setLoadError("");
+    setSelectedAvatar(null);
+    setAvatarPreview(user?.avatar_url || "");
   }, [user, open, reset]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
+
+  const handleAvatarChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!String(file.type || '').startsWith('image/')) return;
+
+    if (avatarPreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarPreview);
+    }
+
+    setSelectedAvatar(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
 
   useEffect(() => {
     const loadPrograms = async () => {
@@ -359,6 +386,7 @@ const UserDialog = ({
             current_semester_id: Number(data.currentSemesterId),
           }
         : {}),
+      ...(selectedAvatar ? { avatar_file: selectedAvatar } : {}),
     };
 
     await onSave(payload);
@@ -498,6 +526,24 @@ const UserDialog = ({
                   />
                 </Grid>
               ) : null}
+
+              <Grid item xs={12}>
+                <FieldLabel hint="Optional profile photo for this user account.">Profile Photo</FieldLabel>
+                <Stack direction="row" spacing={1.2} alignItems="center">
+                  <Avatar src={avatarPreview || user?.avatar_url || ''} sx={{ width: 48, height: 48 }}>
+                    {(watch('fullName') || user?.full_name || 'U').charAt(0)}
+                  </Avatar>
+                  <Button component="label" variant="outlined" size="small" startIcon={<PhotoCamera />} sx={{ textTransform: 'none' }}>
+                    {selectedAvatar ? 'Replace photo' : 'Upload photo'}
+                    <input hidden type="file" accept="image/*" onChange={handleAvatarChange} />
+                  </Button>
+                  {selectedAvatar ? (
+                    <Typography variant="caption" color="text.secondary" noWrap>
+                      {selectedAvatar.name}
+                    </Typography>
+                  ) : null}
+                </Stack>
+              </Grid>
             </Grid>
           </Box>
 

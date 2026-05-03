@@ -57,6 +57,14 @@ const normalizeContributionMode = (userLike) => {
   return 'contributor';
 };
 
+const normalizeUserAvatar = (userLike) => {
+  if (!userLike) return userLike;
+  return {
+    ...userLike,
+    avatar_url: userLike.avatar_url || userLike.avatarUrl || userLike.avatar || userLike.profile_image || null,
+  };
+};
+
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
@@ -80,7 +88,7 @@ export const AuthProvider = ({ children }) => {
     
     const normalizedUser = newUser
       ? {
-          ...newUser,
+          ...normalizeUserAvatar(newUser),
           contribution_mode: normalizeContributionMode(newUser),
         }
       : newUser;
@@ -121,7 +129,7 @@ export const AuthProvider = ({ children }) => {
       if (!profileUser) return null;
 
       const normalized = {
-        ...profileUser,
+        ...normalizeUserAvatar(profileUser),
         contribution_mode: normalizeContributionMode(profileUser),
       };
 
@@ -152,9 +160,9 @@ export const AuthProvider = ({ children }) => {
       try {
          const parsedUser = JSON.parse(storedUser);
          const normalizedStoredUser = {
-           ...parsedUser,
-           contribution_mode: normalizeContributionMode(parsedUser),
-         };
+           ...normalizeUserAvatar(parsedUser),
+            contribution_mode: normalizeContributionMode(parsedUser),
+          };
          const parsedRoles = normalizeRoles(
            storedRoles
              ? JSON.parse(storedRoles)

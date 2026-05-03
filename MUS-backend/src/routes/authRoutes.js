@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { body, param } from "express-validator";
+import multer from "multer";
 import authMiddleware from "../middleware/auth.js";
 import { requireRole } from "../middleware/authorization.js";
 import { authRateLimit, forgotPasswordRateLimit, registerRateLimit } from "../middleware/rateLimit.js";
@@ -15,14 +16,21 @@ import {
   getUserById,
   updateEmail,
   updatePassword,
+  uploadAvatar,
+  uploadAvatarByUserId,
   updateUserProfile,
   updateUser,
   checkEmail,
+  deleteAvatar,
   forgotPassword,
 } from "../controllers/authController.js";
 import validateRequest from "./validateRequest.js";
 
 const router = Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 router.post(
   "/register",
@@ -150,6 +158,29 @@ router.patch(
   [body("full_name").isString().withMessage("Full name is required")],
   validateRequest,
   updateUserProfile
+);
+
+router.post(
+  "/avatar/upload-file",
+  authMiddleware,
+  upload.single("file"),
+  uploadAvatar
+);
+
+router.post(
+  "/user/:id/avatar/upload-file",
+  authMiddleware,
+  requireRole("admin"),
+  [param("id").isUUID().withMessage("Valid user ID is required")],
+  validateRequest,
+  upload.single("file"),
+  uploadAvatarByUserId
+);
+
+router.delete(
+  "/avatar",
+  authMiddleware,
+  deleteAvatar
 );
 
 router.patch(

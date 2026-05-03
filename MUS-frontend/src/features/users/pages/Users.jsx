@@ -104,12 +104,19 @@ const Users = () => {
           is_active: userData.is_active,
         });
 
+        if (userData.avatar_file) {
+          await usersService.uploadUserAvatar(editingUser.user_id, userData.avatar_file);
+        }
+
         if (userData.role_name && userData.role_name !== editingUser.primary_role) {
           await usersService.syncSingleRole(editingUser.user_id, userData.role_name);
         }
         showSuccess('User updated successfully');
       } else {
-        await usersService.createUser(userData);
+        const createdUser = await usersService.createUser(userData);
+        if (userData.avatar_file && createdUser?.user_id) {
+          await usersService.uploadUserAvatar(createdUser.user_id, userData.avatar_file);
+        }
         showSuccess('User created successfully');
       }
       await loadUsers();

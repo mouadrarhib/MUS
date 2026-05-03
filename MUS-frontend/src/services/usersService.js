@@ -67,6 +67,7 @@ const normalizeUser = (item) => {
     user_created_at: item.user_created_at || item.created_at || item.createdAt,
     roles: rolesValue,
     primary_role: primaryRole,
+    avatar_url: item.avatar_url || item.avatar || item.avatarUrl || item.profile_image || null,
     points: Number(item.points || 0),
     total_resources_created: Number(item.total_resources_created || 0),
     total_favorites_received: Number(item.total_favorites_received || 0),
@@ -117,6 +118,12 @@ export const usersService = {
 
   updateUser: async (userId, updatedData) => {
     const response = await authService.updateUserById(userId, updatedData);
+    clearUsersOverviewCache();
+    return normalizeUser(response?.data?.user || response?.data || null);
+  },
+
+  uploadUserAvatar: async (userId, file) => {
+    const response = await authService.uploadAvatarByUserId(userId, file);
     clearUsersOverviewCache();
     return normalizeUser(response?.data?.user || response?.data || null);
   },
