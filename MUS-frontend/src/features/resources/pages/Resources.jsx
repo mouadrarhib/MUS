@@ -244,7 +244,12 @@ const Resources = () => {
     setSaving(true);
     try {
       const hasFile = Boolean(resourceData.file);
+      const hasThumbnail = Boolean(resourceData.thumbnail);
       const normalizedUrl = typeof resourceData.url === 'string' ? resourceData.url.trim() : '';
+      const uploadThumbnailIfProvided = async (resourceId) => {
+        if (!hasThumbnail) return;
+        await resourcesService.uploadThumbnailToResource(resourceId, resourceData.thumbnail);
+      };
       const existingMetadata = editingResource?.metadata && typeof editingResource.metadata === 'object'
         ? editingResource.metadata
         : {};
@@ -321,6 +326,8 @@ const Resources = () => {
           await resourcesService.uploadFileToResource(updatedResource.id, resourceData.file);
           console.log('[Resources] File uploaded via backend and attached', { resourceId: updatedResource.id });
         }
+
+        await uploadThumbnailIfProvided(updatedResource.id);
       } else {
         const createdResource = await resourcesService.createResource(payload);
         console.log('[Resources] Resource created', { resourceId: createdResource?.id, hasFile });
@@ -337,6 +344,8 @@ const Resources = () => {
           await resourcesService.attachUrlToResource(createdResource.id, payload.url);
           console.log('[Resources] URL attached to resource', { resourceId: createdResource.id, url: payload.url });
         }
+
+        await uploadThumbnailIfProvided(createdResource.id);
       }
       await queryClient.invalidateQueries({ queryKey: ['resources'] });
       handleCloseDialog();

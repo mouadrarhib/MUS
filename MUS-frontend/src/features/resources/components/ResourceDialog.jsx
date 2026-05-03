@@ -21,6 +21,7 @@ import {
   TuneRounded as SettingsIcon,
   Link        as LinkIcon,
   CloudUpload as CloudUploadIcon,
+  Image as ImageIcon,
   Close,
   Check       as CheckIcon,
   ArrowBack,
@@ -347,6 +348,7 @@ const ResourceDialog = memo(({
   const [activeStep,      setActiveStep]      = useState(0);
   const [uploadMethod,    setUploadMethod]    = useState('url');
   const [selectedFile,    setSelectedFile]    = useState(null);
+  const [selectedThumbnail, setSelectedThumbnail] = useState(null);
   const [isDragging,      setIsDragging]      = useState(false);
   const [institutions,    setInstitutions]    = useState([]);
   const [programs,        setPrograms]        = useState([]);
@@ -370,6 +372,7 @@ const ResourceDialog = memo(({
     reset(getDefaultValues(resource));
     clearErrors();
     setSelectedFile(null);
+    setSelectedThumbnail(null);
     setUploadMethod('url');
     setActiveStep(0);
     setIsDragging(false);
@@ -472,6 +475,13 @@ const ResourceDialog = memo(({
 
   const handleFileChange = useCallback((e) => applyFile(e.target.files?.[0]), [applyFile]);
 
+  const handleThumbnailChange = useCallback((e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!String(file.type || '').startsWith('image/')) return;
+    setSelectedThumbnail(file);
+  }, []);
+
   const handleDrop = useCallback((e) => {
     e.preventDefault();
     setIsDragging(false);
@@ -486,9 +496,10 @@ const ResourceDialog = memo(({
       tagIds: Array.isArray(current?.tagIds) ? current.tagIds : Array.isArray(data?.tagIds) ? data.tagIds : [],
       ...(resource   && { id: resource.id }),
       ...(uploadMethod === 'file' && selectedFile && { file: selectedFile }),
+      ...(selectedThumbnail && { thumbnail: selectedThumbnail }),
     };
     try { await onSave(payload); onClose(); } catch { /* parent handles */ }
-  }, [getValues, resource, uploadMethod, selectedFile, onSave, onClose]);
+  }, [getValues, resource, uploadMethod, selectedFile, selectedThumbnail, onSave, onClose]);
 
   // ─── Step 0 ──────────────────────────────────────────────────────────────
   const renderStep0 = () => (
@@ -750,6 +761,37 @@ const ResourceDialog = memo(({
             )}
           </Box>
         )}
+      </Box>
+
+      <Box>
+        <FieldLabel hint="Optional cover image shown in discovery cards.">Thumbnail / Cover</FieldLabel>
+        <Box
+          component="label"
+          sx={(t) => ({
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.25,
+            px: 1.5,
+            py: 1.25,
+            borderRadius: '12px',
+            border: '1.5px dashed',
+            borderColor: selectedThumbnail ? alpha(t.palette.success.main, 0.55) : alpha(t.palette.primary.main, 0.3),
+            bgcolor: selectedThumbnail ? alpha(t.palette.success.main, 0.04) : 'transparent',
+            cursor: 'pointer',
+            '&:hover': { borderColor: 'primary.main', bgcolor: alpha(t.palette.primary.main, 0.03) },
+          })}
+        >
+          <input type="file" accept="image/*" hidden onChange={handleThumbnailChange} />
+          <ImageIcon sx={{ fontSize: 20, color: selectedThumbnail ? 'success.main' : 'primary.main' }} />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="body2" fontWeight={700} color={selectedThumbnail ? 'success.main' : 'text.primary'} noWrap>
+              {selectedThumbnail ? selectedThumbnail.name : 'Upload thumbnail image'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              JPG, PNG, WEBP (recommended: 1280x720)
+            </Typography>
+          </Box>
+        </Box>
       </Box>
     </Stack>
   );

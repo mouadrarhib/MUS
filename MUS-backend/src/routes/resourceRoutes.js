@@ -40,7 +40,10 @@ import {
   confirmResourceUploadHandler,
   getResourceFileUrlHandler,
   requestResourceUploadUrlByIdHandler,
+  requestResourceThumbnailUploadUrlByIdHandler,
   attachFileToResourceHandler,
+  attachThumbnailToResourceHandler,
+  uploadThumbnailToResourceHandler,
   attachUrlToResourceHandler,
   uploadFileToResourceHandler,
   listMyResourceRejectionsHandler,
@@ -177,6 +180,22 @@ router.post(
 );
 
 router.post(
+  "/:id/thumbnail/upload-url",
+  authMiddleware,
+  requireStudentContributorOrStaff,
+  requireOwnerOrAdmin(getResourceOwnerId),
+  [
+    param("id").isInt().withMessage("Valid resource ID is required"),
+    body("filename").optional().isString().notEmpty(),
+    query("filename").optional().isString().notEmpty(),
+    body("mime_type").optional().isString(),
+    query("mime_type").optional().isString(),
+  ],
+  validateRequest,
+  requestResourceThumbnailUploadUrlByIdHandler
+);
+
+router.post(
   "/:id/attach-file",
   authMiddleware,
   requireStudentContributorOrStaff,
@@ -187,6 +206,30 @@ router.post(
   ],
   validateRequest,
   attachFileToResourceHandler
+);
+
+router.post(
+  "/:id/thumbnail/attach",
+  authMiddleware,
+  requireStudentContributorOrStaff,
+  requireOwnerOrAdmin(getResourceOwnerId),
+  [
+    param("id").isInt().withMessage("Valid resource ID is required"),
+    body("object_key").isString().notEmpty().withMessage("Object key is required"),
+  ],
+  validateRequest,
+  attachThumbnailToResourceHandler
+);
+
+router.post(
+  "/:id/thumbnail/upload-file",
+  authMiddleware,
+  requireStudentContributorOrStaff,
+  requireOwnerOrAdmin(getResourceOwnerId),
+  [param("id").isInt().withMessage("Valid resource ID is required")],
+  validateRequest,
+  upload.single("file"),
+  uploadThumbnailToResourceHandler
 );
 
 router.patch(

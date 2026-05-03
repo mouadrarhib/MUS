@@ -37,9 +37,12 @@ import {
   recordResourceDownload,
   createResourceUploadUrl,
   createResourceUploadUrlById,
+  createResourceThumbnailUploadUrlById,
   createResourceFromUploadedObject,
   getResourceFileUrl,
   attachUploadedObjectToResource,
+  attachThumbnailToResource,
+  uploadThumbnailDirectlyToResource,
   attachExternalUrlToResource,
   uploadFileDirectlyToResource,
 } from "../services/resourceService.js";
@@ -949,12 +952,16 @@ export const listPublishedResources = asyncHandler(async (req, res) => {
 export const getDiscoverBootstrapHandler = asyncHandler(async (req, res) => {
   const recommendationLimit = Math.min(Math.max(Number(req.query?.recommendation_limit || 12), 1), 100);
   const resourcesLimit = Math.min(Math.max(Number(req.query?.resources_limit || 200), 1), 500);
+  const page = Math.max(Number(req.query?.page || 1), 1);
+  const pageSize = Math.min(Math.max(Number(req.query?.page_size || 24), 1), 100);
   const favoritesOnly = String(req.query?.favorites_only || "false").toLowerCase() === "true";
 
   const result = await getDiscoverBootstrapData({
     userId: req.user.id,
     recommendationLimit,
     resourcesLimit,
+    page,
+    pageSize,
     moduleId: req.query?.module_id,
     educationalType: req.query?.educational_type,
     format: req.query?.format,
@@ -1463,6 +1470,21 @@ export const requestResourceUploadUrlByIdHandler = asyncHandler(async (req, res)
   return successResponse(res, "Upload URL generated successfully", result);
 });
 
+export const requestResourceThumbnailUploadUrlByIdHandler = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const filename = req.body?.filename || req.query?.filename || "thumbnail.jpg";
+  const mime_type = req.body?.mime_type || req.query?.mime_type || "image/jpeg";
+
+  const result = await createResourceThumbnailUploadUrlById({
+    resourceId: id,
+    filename,
+    mimeType: mime_type,
+    actor: req.user,
+  });
+
+  return successResponse(res, "Thumbnail upload URL generated successfully", result);
+});
+
 /**
  * @swagger
  * /resources/{id}/attach-file:
@@ -1504,6 +1526,42 @@ export const attachFileToResourceHandler = asyncHandler(async (req, res) => {
   });
 
   return successResponse(res, "File attached to resource successfully", result);
+});
+
+export const attachThumbnailToResourceHandler = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { object_key } = req.body;
+
+  const result = await attachThumbnailToResource({
+    resourceId: id,
+    objectKey: object_key,
+    actor: req.user,
+  });
+
+  return successResponse(res, "Thumbnail attached to resource successfully", result);
+});
+
+export const uploadThumbnailToResourceHandler = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const file = req.file;
+
+  if (!file?.buffer) {
+    throw new AppError("Thumbnail file is required", 422);
+  }
+
+  if (!String(file.mimetype || "").startsWith("image/")) {
+    throw new AppError("Thumbnail must be an image", 422);
+  }
+
+  const result = await uploadThumbnailDirectlyToResource({
+    resourceId: id,
+    fileBuffer: file.buffer,
+    originalName: file.originalname,
+    mimeType: file.mimetype,
+    actor: req.user,
+  });
+
+  return successResponse(res, "Thumbnail uploaded and attached successfully", result);
 });
 
 /**

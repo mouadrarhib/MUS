@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import resourcesService from '@/services/resourcesService';
 import favoritesService from '@/services/favoritesService';
+import moduleService from '@/services/moduleService';
 import { toResourceDetailModel } from '@/entities/resource/mappers/resourceViewModel';
 
 const getResourceId = (item) => Number(item?.id || item?.resource_id || 0);
@@ -50,6 +51,12 @@ const getInitialBooleanParam = (search, key, fallback = false) => {
   return ['1', 'true', 'yes', 'on'].includes(String(raw).toLowerCase());
 };
 
+const getInitialPageParam = (search) => {
+  const value = Number(getInitialParam(search, 'page', '1'));
+  if (!Number.isFinite(value) || value < 1) return 1;
+  return Math.floor(value);
+};
+
 const groupResources = (resources, keyGetter) => {
   const groups = new Map();
 
@@ -87,6 +94,8 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     const initialParams = new URLSearchParams(location.search);
     return initialParams.get('q') || '';
   });
+  const [page, setPage] = useState(() => getInitialPageParam(location.search));
+  const [pageSize] = useState(24);
   const [likedMap, setLikedMap] = useState({});
   const [likeLoadingId, setLikeLoadingId] = useState(null);
   const [downloadLoadingId, setDownloadLoadingId] = useState(null);
@@ -105,6 +114,46 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
   const deferredFavoritesOnly = useDeferredValue(favoritesOnly);
   const [isPending, startTransition] = useTransition();
   const detailsCacheRef = useRef(new Map());
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadModules = async () => {
+      if (!isAuthenticated) {
+        setDiscoverModules([]);
+        return;
+      }
+
+      try {
+        const response = await moduleService.getDiscoverModules();
+        const payload = Array.isArray(response?.data?.data)
+          ? response.data.data
+          : Array.isArray(response?.data)
+            ? response.data
+            : [];
+
+        if (!mounted) return;
+
+        const normalized = payload.map((item) => ({
+          module_id: item?.id,
+          module_title: item?.title || item?.code || 'Module',
+          module_code: item?.code || '',
+          resource_count: Number(item?.published_resources_count || 0),
+        }));
+
+        setDiscoverModules(normalized);
+      } catch {
+        if (!mounted) return;
+        setDiscoverModules([]);
+      }
+    };
+
+    loadModules();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     let timeoutId = null;
@@ -149,7 +198,9 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
       try {
         const bootstrap = await resourcesService.getDiscoverBootstrap({
           recommendationLimit: recommendationsOnly ? 60 : 24,
-          resourcesLimit: 220,
+          resourcesLimit: 500,
+          page,
+          pageSize,
           moduleId: deferredModule,
           educationalType: deferredType,
           format: deferredFormat,
@@ -165,7 +216,11 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
 
         setRecommendations(Array.isArray(bootstrap?.recommendations) ? bootstrap.recommendations : []);
         setDiscoverMeta(bootstrap?.meta && typeof bootstrap.meta === 'object' ? bootstrap.meta : {});
-        setDiscoverModules(Array.isArray(bootstrap?.discover_modules) ? bootstrap.discover_modules : []);
+        const bootstrapModules = Array.isArray(bootstrap?.discover_modules) ? bootstrap.discover_modules : [];
+        if (bootstrapModules.length > 0) {
+          setDiscoverModules(bootstrapModules);
+        }
+
         setResources(Array.isArray(bootstrap?.published_resources) ? bootstrap.published_resources : []);
 
         const mapped = (Array.isArray(bootstrap?.favorites) ? bootstrap.favorites : []).reduce((acc, fav) => {
@@ -197,6 +252,8 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
   }, [
     isAuthenticated,
     recommendationsOnly,
+    page,
+    pageSize,
     deferredModule,
     deferredType,
     deferredFormat,
@@ -221,6 +278,7 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     if (selectedSort !== 'recommended') params.set('sort', String(selectedSort));
     if (Number(minRating) > 0) params.set('rating', String(minRating));
     if (favoritesOnly) params.set('favorites', '1');
+    if (page > 1) params.set('page', String(page));
 
     const nextSearch = params.toString();
     const currentSearch = location.search.startsWith('?') ? location.search.slice(1) : location.search;
@@ -236,6 +294,7 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     }
   }, [
     searchQuery,
+    page,
     selectedModule,
     selectedType,
     selectedFormat,
@@ -349,7 +408,12 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     setMinRating(0);
     setFavoritesOnly(false);
     setSearchQuery('');
+    setPage(1);
   }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [deferredModule, deferredType, deferredFormat, deferredLanguage, deferredAccessTier, deferredMinRating, deferredFavoritesOnly, deferredSort, deferredSearchQuery]);
 
   const ensureAuthenticated = () => {
     if (isAuthenticated) return true;
@@ -497,6 +561,8 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     openDetailsDialog,
     viewingResource,
     feedback,
+    page,
+    pageSize,
     setSelectedModule,
     setSelectedType,
     setSelectedFormat,
@@ -506,6 +572,7 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     setMinRating,
     setFavoritesOnly,
     setSearchQuery,
+    setPage,
     resetFilters,
     startTransition,
     handleToggleLike,

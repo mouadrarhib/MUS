@@ -245,6 +245,14 @@ export const resourcesService = {
     return response?.data || {};
   },
 
+  requestThumbnailUploadUrlByResourceId: async (resourceId, { filename, mime_type }) => {
+    const response = await post(`${RESOURCE.ROOT}/${resourceId}/thumbnail/upload-url`, {
+      filename,
+      mime_type,
+    });
+    return response?.data || {};
+  },
+
   uploadFileToSignedUrl: async ({ uploadUrl, file, contentType }) => {
     const result = await fetch(uploadUrl, {
       method: "PUT",
@@ -283,6 +291,26 @@ export const resourcesService = {
 
   attachFileToResource: async (resourceId, object_key) => {
     const response = await post(`${RESOURCE.ROOT}/${resourceId}/attach-file`, { object_key });
+    clearResourceListCaches();
+    return normalizeResource(extractOne(response));
+  },
+
+  attachThumbnailToResource: async (resourceId, object_key) => {
+    const response = await post(`${RESOURCE.ROOT}/${resourceId}/thumbnail/attach`, { object_key });
+    clearResourceListCaches();
+    return normalizeResource(extractOne(response));
+  },
+
+  uploadThumbnailToResource: async (resourceId, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await post(`${RESOURCE.ROOT}/${resourceId}/thumbnail/upload-file`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
     clearResourceListCaches();
     return normalizeResource(extractOne(response));
   },
@@ -456,6 +484,8 @@ export const resourcesService = {
     const {
       recommendationLimit = 12,
       resourcesLimit = 80,
+      page = 1,
+      pageSize = 24,
       moduleId = "all",
       educationalType = "all",
       format = "all",
@@ -470,6 +500,8 @@ export const resourcesService = {
     const cacheKey = getDiscoverBootstrapCacheKey({
       recommendationLimit,
       resourcesLimit,
+      page,
+      pageSize,
       moduleId,
       educationalType,
       format,
@@ -494,6 +526,8 @@ export const resourcesService = {
       params: {
         recommendation_limit: recommendationLimit,
         resources_limit: resourcesLimit,
+        page,
+        page_size: pageSize,
         ...(moduleId && moduleId !== "all" ? { module_id: moduleId } : {}),
         ...(educationalType && educationalType !== "all" ? { educational_type: educationalType } : {}),
         ...(format && format !== "all" ? { format } : {}),

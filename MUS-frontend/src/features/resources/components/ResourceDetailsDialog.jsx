@@ -258,19 +258,21 @@ const ResourceDetailsDialog = memo(({
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="md"
+      maxWidth="lg"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 3 } }}
+      PaperProps={{
+        sx: (theme) => ({
+          borderRadius: 3,
+          border: '1px solid',
+          borderColor: 'divider',
+          backgroundImage: theme.palette.mode === 'dark'
+            ? 'linear-gradient(180deg, rgba(59,130,246,0.08) 0%, rgba(0,0,0,0) 26%)'
+            : 'linear-gradient(180deg, rgba(37,99,235,0.06) 0%, rgba(255,255,255,1) 28%)',
+        }),
+      }}
     >
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <DialogTitle
-        sx={(theme) => ({
-          bgcolor: alpha(theme.palette.primary.main, 0.03),
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          pb: 1.5,
-        })}
-      >
+      <DialogTitle sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 1.5 }}>
         <Stack direction="row" alignItems="center" spacing={1.5}>
           <Box
             sx={(theme) => ({
@@ -288,11 +290,11 @@ const ResourceDetailsDialog = memo(({
           </Box>
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="subtitle1" fontWeight={700} noWrap>
-              Resource Details
+            <Typography variant="subtitle1" fontWeight={800} noWrap>
+              {resource?.title || 'Resource Details'}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Complete information
+              Preview, metadata and actions
             </Typography>
           </Box>
 
@@ -321,21 +323,10 @@ const ResourceDetailsDialog = memo(({
       </DialogTitle>
 
       {/* ── Body ───────────────────────────────────────────────────────────── */}
-      <DialogContent dividers sx={{ p: { xs: 2, md: 3 } }}>
+      <DialogContent dividers sx={{ p: { xs: 2, md: 2.5 } }}>
 
         {/* Resource title + description + tags */}
-        <Box
-          sx={(theme) => ({
-            mb: 2.5,
-            p: 2,
-            borderRadius: 2,
-            bgcolor: theme.palette.mode === 'dark'
-              ? theme.palette.surface?.main || alpha(theme.palette.common.white, 0.03)
-              : alpha(theme.palette.common.black, 0.02),
-            border: '1px solid',
-            borderColor: 'divider',
-          })}
-        >
+        <Box sx={{ mb: 2.2, p: 2, borderRadius: 2.5, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
           <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
             {resource.status && (
               <Chip
@@ -363,7 +354,7 @@ const ResourceDetailsDialog = memo(({
             )}
           </Stack>
 
-          <Typography variant="h6" fontWeight={700} sx={{ mb: 0.75, lineHeight: 1.35 }}>
+          <Typography variant="h6" fontWeight={800} sx={{ mb: 0.75, lineHeight: 1.3 }}>
             {resource.title}
           </Typography>
 
@@ -412,16 +403,16 @@ const ResourceDetailsDialog = memo(({
         <DialogSectionTitle icon={<OpenInNewIcon />} title="Preview" />
         <Box
           sx={(theme) => ({
-            mb: 2.5,
-            borderRadius: 2,
+            mb: 2.2,
+            borderRadius: 2.5,
             border: '1px solid',
             borderColor: 'divider',
-            bgcolor: alpha(theme.palette.primary.main, 0.02),
+            bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.common.white, 0.02) : alpha(theme.palette.primary.main, 0.02),
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             overflow: 'hidden',
-            minHeight: 200,
+            minHeight: 230,
             p: 1,
           })}
         >
@@ -630,7 +621,7 @@ const ResourceDetailsDialog = memo(({
           startIcon={<DownloadIcon sx={{ fontSize: '16px !important' }} />}
           variant="contained"
           onClick={handleDownload}
-          sx={{ textTransform: 'none', borderRadius: 2, fontWeight: 700 }}
+          sx={{ textTransform: 'none', borderRadius: 99, fontWeight: 700, px: 2.2 }}
         >
           Download
         </AsyncButton>

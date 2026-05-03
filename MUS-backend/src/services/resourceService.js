@@ -92,6 +92,198 @@ const parseMetadata = (metadata) => {
   }
 };
 
+const pickFirstString = (...values) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+};
+
+const toDiscoverInt = (value) => {
+  const n = Number(value);
+  return Number.isInteger(n) ? n : 0;
+};
+
+const toDiscoverIdText = (value) => {
+  const normalized = String(value || "").trim();
+  return normalized || "";
+};
+
+const extractDiscoverThumbnailUrl = (resource = {}) => {
+  const metadata = parseMetadata(resource?.metadata);
+  return pickFirstString(
+    resource?.thumbnail_url,
+    resource?.thumbnail,
+    resource?.cover_url,
+    resource?.preview_url,
+    metadata?.thumbnail_url,
+    metadata?.thumbnailUrl,
+    metadata?.thumbnail?.url,
+    metadata?.preview?.thumbnail_url,
+    metadata?.preview?.thumbnailUrl,
+    metadata?.images?.cover,
+    metadata?.images?.thumbnail
+  );
+};
+
+const extractDiscoverThumbnailObjectKey = (resource = {}) => {
+  const metadata = parseMetadata(resource?.metadata);
+  return pickFirstString(
+    resource?.thumbnail_object_key,
+    metadata?.thumbnail?.object_key,
+    metadata?.thumbnail_object_key,
+    metadata?.preview?.thumbnail_object_key,
+    metadata?.images?.thumbnail_object_key,
+    metadata?.storage?.thumbnail_object_key
+  );
+};
+
+const resolveDiscoverThumbnailUrl = async (resource = {}) => {
+  const directUrl = extractDiscoverThumbnailUrl(resource);
+  if (directUrl) return directUrl;
+
+  const objectKey = extractDiscoverThumbnailObjectKey(resource);
+  const fallbackObjectKey = objectKey || extractObjectKeyFromResource(resource) || "";
+  if (!fallbackObjectKey) return "";
+
+  const publicUrl = getPublicObjectUrl(fallbackObjectKey);
+  if (publicUrl) return publicUrl;
+
+  if (!isR2Configured()) return "";
+
+  try {
+    const { downloadUrl } = await getDownloadUrl({ objectKey: fallbackObjectKey, forceDownload: false });
+    return downloadUrl || "";
+  } catch {
+    return "";
+  }
+};
+
+const resolveDiscoverCreatorAvatarUrl = async (creator = {}) => {
+  const directUrl = pickFirstString(creator?.avatar_url);
+  if (directUrl) return directUrl;
+
+  const objectKey = pickFirstString(creator?.avatar_object_key);
+  if (!objectKey) return "";
+
+  const publicUrl = getPublicObjectUrl(objectKey);
+  if (publicUrl) return publicUrl;
+
+  if (!isR2Configured()) return "";
+
+  try {
+    const { downloadUrl } = await getDownloadUrl({ objectKey, forceDownload: false });
+    return downloadUrl || "";
+  } catch {
+    return "";
+  }
+};
+
+const extractDiscoverDuration = (resource = {}) => {
+  const metadata = parseMetadata(resource?.metadata);
+  const durationSeconds =
+    Number(resource?.duration_seconds) ||
+    Number(resource?.durationSeconds) ||
+    Number(metadata?.duration_seconds) ||
+    Number(metadata?.durationSeconds) ||
+    Number(metadata?.video?.duration_seconds) ||
+    Number(metadata?.video?.durationSeconds) ||
+    0;
+
+  const durationLabel = pickFirstString(
+    resource?.duration_label,
+    resource?.durationLabel,
+    resource?.duration,
+    metadata?.duration_label,
+    metadata?.durationLabel,
+    metadata?.video?.duration_label,
+    metadata?.video?.durationLabel
+  );
+
+  return {
+    duration_seconds: Number.isFinite(durationSeconds) && durationSeconds > 0 ? Math.floor(durationSeconds) : null,
+    duration_label: durationLabel || null,
+  };
+};
+
+const enrichDiscoverResources = async (resources = []) => {
+  if (!Array.isArray(resources) || resources.length === 0) return [];
+
+  const resourceIds = Array.from(
+    new Set(
+      resources
+        .map((item) => toDiscoverInt(item?.id || item?.resource_id))
+        .filter((id) => id > 0)
+    )
+  );
+
+  const creatorIds = Array.from(
+    new Set(
+      resources
+        .map((item) => toDiscoverIdText(item?.created_by || item?.creator_id || item?.author?.id))
+        .filter(Boolean)
+    )
+  );
+
+  const [downloadRows, avatarRows] = await Promise.all([
+    resourceIds.length
+      ? sequelize.query(
+        `
+        SELECT rd.resource_id, COUNT(*)::BIGINT AS view_count
+        FROM public.resource_downloads rd
+        WHERE rd.resource_id IN (:resource_ids)
+        GROUP BY rd.resource_id
+        `,
+        { replacements: { resource_ids: resourceIds } }
+      ).then(([rows]) => rows)
+      : Promise.resolve([]),
+    creatorIds.length
+      ? sequelize.query(
+        `
+        SELECT u.id, u.avatar_url, u.avatar_object_key
+        FROM public.users u
+        WHERE u.id IN (:creator_ids)
+        `,
+        { replacements: { creator_ids: creatorIds } }
+      ).then(([rows]) => rows)
+      : Promise.resolve([]),
+  ]);
+
+  const avatarUrlByCreatorId = new Map();
+  await Promise.all(
+    (avatarRows || []).map(async (row) => {
+      const creatorId = toDiscoverIdText(row?.id);
+      if (!creatorId) return;
+      const resolved = await resolveDiscoverCreatorAvatarUrl(row);
+      avatarUrlByCreatorId.set(creatorId, resolved || "");
+    })
+  );
+
+  const viewsByResourceId = new Map(
+    (downloadRows || []).map((row) => [toDiscoverInt(row?.resource_id), Number(row?.view_count || 0)])
+  );
+
+  const enrichedRows = await Promise.all(resources.map(async (resource) => {
+    const resourceId = toDiscoverInt(resource?.id || resource?.resource_id);
+    const creatorId = toDiscoverIdText(resource?.created_by || resource?.creator_id || resource?.author?.id);
+    const { duration_seconds, duration_label } = extractDiscoverDuration(resource);
+    const thumbnailUrl = await resolveDiscoverThumbnailUrl(resource);
+
+    return {
+      ...resource,
+      id: resource?.id || resourceId,
+      resource_id: resource?.resource_id || resourceId,
+      thumbnail_url: thumbnailUrl || null,
+      duration_seconds,
+      duration_label,
+      creator_avatar_url: pickFirstString(resource?.creator_avatar_url, avatarUrlByCreatorId.get(creatorId)) || null,
+      view_count: Number(resource?.view_count || viewsByResourceId.get(resourceId) || 0),
+    };
+  }));
+
+  return enrichedRows;
+};
+
 const extractObjectKeyFromResource = (resource) => {
   if (!resource) return null;
 
@@ -860,6 +1052,8 @@ export const getDiscoverBootstrapData = async ({
   userId,
   recommendationLimit = 12,
   resourcesLimit = 200,
+  page = 1,
+  pageSize = 24,
   moduleId = "all",
   educationalType = "all",
   format = "all",
@@ -879,7 +1073,7 @@ export const getDiscoverBootstrapData = async ({
   });
 
   const row = rows?.[0] || {};
-  const publishedResources = toArray(row.published_resources);
+  const publishedResources = await enrichDiscoverResources(toArray(row.published_resources));
   const discoverModules = toArray(row.discover_modules);
   const recommendations = toArray(row.recommendations);
   const favorites = toArray(row.favorites);
@@ -939,10 +1133,18 @@ export const getDiscoverBootstrapData = async ({
     recommendationScoreMap
   );
 
+  const safePageSize = Math.min(Math.max(Number(pageSize) || 24, 1), 100);
+  const safePage = Math.max(Number(page) || 1, 1);
+  const totalPublished = sortedPublishedResources.length;
+  const totalPages = Math.max(Math.ceil(totalPublished / safePageSize), 1);
+  const normalizedPage = Math.min(safePage, totalPages);
+  const offset = (normalizedPage - 1) * safePageSize;
+  const paginatedPublishedResources = sortedPublishedResources.slice(offset, offset + safePageSize);
+
   const incomingMeta = row.meta && typeof row.meta === "object" ? row.meta : {};
   return {
     generated_at: row.generated_at || null,
-    published_resources: sortedPublishedResources,
+    published_resources: paginatedPublishedResources,
     discover_modules: discoverModules,
     recommendations: filteredRecommendations,
     favorites,
@@ -950,6 +1152,14 @@ export const getDiscoverBootstrapData = async ({
       ...incomingMeta,
       filtered_published_count: sortedPublishedResources.length,
       filtered_recommendations_count: filteredRecommendations.length,
+      pagination: {
+        page: normalizedPage,
+        page_size: safePageSize,
+        total_items: totalPublished,
+        total_pages: totalPages,
+        has_next_page: normalizedPage < totalPages,
+        has_prev_page: normalizedPage > 1,
+      },
       applied_filters: {
         module_id: effectiveFilters.moduleId,
         educational_type: effectiveFilters.educationalType,
@@ -1230,6 +1440,138 @@ export const createResourceUploadUrlById = async ({ resourceId, filename, mimeTy
     bucket: getR2BucketName(),
     resource_id: Number(resourceId),
   };
+};
+
+export const createResourceThumbnailUploadUrlById = async ({ resourceId, filename, mimeType, actor }) => {
+  if (!isR2Configured()) {
+    throw new AppError("R2 storage is not configured", 500);
+  }
+
+  const resource = await getResourceById(resourceId);
+  if (!resource) {
+    throw new AppError("Resource not found", 404);
+  }
+
+  assertCanModifyResourceSource(resource, actor);
+
+  const objectKey = buildObjectKey({
+    userId: resource.created_by,
+    filename,
+    prefix: `resources/${resourceId}/thumbnails`,
+  });
+
+  const { uploadUrl, expiresIn } = await getUploadUrl({ objectKey, mimeType });
+  return {
+    object_key: objectKey,
+    upload_url: uploadUrl,
+    expires_in: expiresIn,
+    bucket: getR2BucketName(),
+    resource_id: Number(resourceId),
+  };
+};
+
+export const attachThumbnailToResource = async ({ resourceId, objectKey, actor }) => {
+  if (!isR2Configured()) {
+    throw new AppError("R2 storage is not configured", 500);
+  }
+
+  const resource = await getResourceById(resourceId);
+  if (!resource) {
+    throw new AppError("Resource not found", 404);
+  }
+
+  assertCanModifyResourceSource(resource, actor);
+
+  let head;
+  try {
+    head = await headObject(objectKey);
+  } catch {
+    throw new AppError("Uploaded thumbnail object not found in storage", 404);
+  }
+
+  const publicUrl = getPublicObjectUrl(objectKey);
+  const existingMetadata = parseMetadata(resource.metadata);
+  const nextMetadata = {
+    ...existingMetadata,
+    thumbnail_url: publicUrl || null,
+    thumbnail: {
+      object_key: objectKey,
+      bucket: getR2BucketName(),
+      mime_type: head?.ContentType || null,
+      size_bytes: Number.isFinite(head?.ContentLength) ? Number(head.ContentLength) : null,
+      public_url: publicUrl || null,
+      updated_at: new Date().toISOString(),
+    },
+  };
+
+  try {
+    await sequelize.query(
+      `
+      UPDATE public.resources
+      SET
+        metadata = :metadata::jsonb,
+        updated_at = NOW(),
+        thumbnail_url = :thumbnail_url
+      WHERE id = :id
+      `,
+      {
+        replacements: {
+          id: Number(resourceId),
+          metadata: JSON.stringify(nextMetadata),
+          thumbnail_url: publicUrl,
+        },
+      }
+    );
+  } catch {
+    await sequelize.query(
+      `
+      UPDATE public.resources
+      SET
+        metadata = :metadata::jsonb,
+        updated_at = NOW()
+      WHERE id = :id
+      `,
+      {
+        replacements: {
+          id: Number(resourceId),
+          metadata: JSON.stringify(nextMetadata),
+        },
+      }
+    );
+  }
+
+  return getResourceById(resourceId);
+};
+
+export const uploadThumbnailDirectlyToResource = async ({ resourceId, fileBuffer, originalName, mimeType, actor }) => {
+  if (!isR2Configured()) {
+    throw new AppError("R2 storage is not configured", 500);
+  }
+
+  const resource = await getResourceById(resourceId);
+  if (!resource) {
+    throw new AppError("Resource not found", 404);
+  }
+
+  assertCanModifyResourceSource(resource, actor);
+
+  const objectKey = buildObjectKey({
+    userId: resource.created_by,
+    filename: originalName || "thumbnail.jpg",
+    prefix: `resources/${resourceId}/thumbnails`,
+  });
+
+  await putObjectBuffer({
+    objectKey,
+    body: fileBuffer,
+    mimeType: mimeType || "image/jpeg",
+  });
+
+  return attachThumbnailToResource({
+    resourceId,
+    objectKey,
+    actor,
+  });
 };
 
 export const createResourceFromUploadedObject = async ({

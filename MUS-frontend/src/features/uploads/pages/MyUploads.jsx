@@ -115,7 +115,13 @@ const MyUploads = () => {
     setSaving(true);
     try {
       const hasFile = Boolean(resourceData.file);
+      const hasThumbnail = Boolean(resourceData.thumbnail);
       const normalizedUrl = typeof resourceData.url === 'string' ? resourceData.url.trim() : '';
+
+      const uploadThumbnailIfProvided = async (resourceId) => {
+        if (!hasThumbnail) return;
+        await resourcesService.uploadThumbnailToResource(resourceId, resourceData.thumbnail);
+      };
 
       const payload = {
         title: resourceData.title,
@@ -145,6 +151,7 @@ const MyUploads = () => {
           await resourcesService.uploadFileToResource(updatedResource.id, resourceData.file);
           console.log('[Uploads] File uploaded via backend and attached', { resourceId: updatedResource.id });
         }
+        await uploadThumbnailIfProvided(updatedResource.id);
       } else {
         const createdResource = await resourcesService.createResource(payload);
         console.log('[Uploads] Resource created', { resourceId: createdResource?.id, hasFile });
@@ -158,6 +165,8 @@ const MyUploads = () => {
           await resourcesService.attachUrlToResource(createdResource.id, payload.url);
           console.log('[Uploads] URL attached to resource', { resourceId: createdResource.id, url: payload.url });
         }
+
+        await uploadThumbnailIfProvided(createdResource.id);
       }
 
       await loadMyResources();

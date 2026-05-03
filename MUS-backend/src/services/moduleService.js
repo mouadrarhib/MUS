@@ -121,20 +121,42 @@ export const getModuleResources = async (moduleId, actor = null, educationalType
       r.status::text AS resource_status,
       r.educational_type::text AS educational_type,
       r.url AS resource_url,
+      r.thumbnail_url,
+      r.metadata,
       r.format::text AS resource_format,
       r.resource_type_id,
       u.full_name AS creator_name,
+      u.avatar_url AS creator_avatar_url,
       m.id AS module_id,
       m.code AS module_code,
       m.title AS module_title,
       rmm.chapter,
       rmm.difficulty::text AS difficulty,
       rmm.exam_related,
+      COALESCE(ratings.average_rating, 0)::numeric(4,2) AS average_rating,
+      COALESCE(ratings.total_ratings, 0)::bigint AS total_ratings,
+      COALESCE(favorites.total_favorites, 0)::bigint AS total_favorites,
+      COALESCE(downloads.view_count, 0)::bigint AS view_count,
       rmm.created_at
     FROM public.resource_module_map rmm
     INNER JOIN public.resources r ON rmm.resource_id = r.id
     INNER JOIN public.modules m ON m.id = rmm.module_id
     LEFT JOIN public.users u ON u.id = r.created_by
+    LEFT JOIN LATERAL (
+      SELECT AVG(rr.rating)::numeric(4,2) AS average_rating, COUNT(*)::bigint AS total_ratings
+      FROM public.resource_ratings rr
+      WHERE rr.resource_id = r.id
+    ) ratings ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*)::bigint AS total_favorites
+      FROM public.resource_favorites rf
+      WHERE rf.resource_id = r.id
+    ) favorites ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*)::bigint AS view_count
+      FROM public.resource_downloads rd
+      WHERE rd.resource_id = r.id
+    ) downloads ON TRUE
     WHERE rmm.module_id = :module_id
       AND (:educational_type::text IS NULL OR r.educational_type::text = :educational_type::text)
       ${isAdmin ? "" : "AND r.status = 'published'::resource_status"}
