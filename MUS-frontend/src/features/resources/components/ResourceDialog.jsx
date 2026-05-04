@@ -1,11 +1,25 @@
 // src/features/discover/components/ResourceDialog.jsx
 import { memo, useCallback, useEffect, useState } from 'react';
-import {
-  Dialog, TextField, Button, Box, Typography, MenuItem, Select,
-  FormControl, Chip, Stack, Divider, LinearProgress, ToggleButtonGroup,
-  ToggleButton, IconButton, Autocomplete, CircularProgress, alpha, Tooltip,
-} from '@mui/material';
+import Dialog from '@mui/material/Dialog';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
+import FormControl from '@mui/material/FormControl';
+import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
+import Divider from '@mui/material/Divider';
+import LinearProgress from '@mui/material/LinearProgress';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import ToggleButton from '@mui/material/ToggleButton';
+import IconButton from '@mui/material/IconButton';
+import Autocomplete from '@mui/material/Autocomplete';
+import CircularProgress from '@mui/material/CircularProgress';
+import Tooltip from '@mui/material/Tooltip';
 import Grid from '@mui/material/Grid';
+import { alpha } from '@mui/material/styles';
 import PropTypes from 'prop-types';
 import { useForm, Controller } from 'react-hook-form';
 import { AsyncButton } from '@/shared/components/ui';
@@ -15,20 +29,19 @@ import institutionProgramService from '@/services/institutionProgramService';
 import levelService              from '@/services/levelService';
 import semesterService           from '@/services/semesterService';
 import moduleService             from '@/services/moduleService';
-import {
-  Description as DescriptionIcon,
-  School      as SchoolIcon,
-  TuneRounded as SettingsIcon,
-  Link        as LinkIcon,
-  CloudUpload as CloudUploadIcon,
-  Image as ImageIcon,
-  Close,
-  Check       as CheckIcon,
-  ArrowBack,
-  ArrowForward,
-  InfoOutlined as InfoIcon,
-  CheckCircle  as CheckCircleIcon,
-} from '@mui/icons-material';
+import DescriptionIcon from '@mui/icons-material/Description';
+import SchoolIcon from '@mui/icons-material/School';
+import SettingsIcon from '@mui/icons-material/TuneRounded';
+import LinkIcon from '@mui/icons-material/Link';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import ImageIcon from '@mui/icons-material/Image';
+import Close from '@mui/icons-material/Close';
+import CheckIcon from '@mui/icons-material/Check';
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import ArrowForward from '@mui/icons-material/ArrowForward';
+import InfoIcon from '@mui/icons-material/InfoOutlined';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+
 
 // ─── Module-scope constants ───────────────────────────────────────────────────
 
@@ -97,6 +110,38 @@ const fieldSx = {
 };
 
 const selectSx = { borderRadius: '10px', fontSize: '0.875rem' };
+
+const SIDEBAR_WRAPPER_SX = { xs: 0, sm: 230 };
+const SIDEBAR_CONTAINER_SX = { width: SIDEBAR_WRAPPER_SX, flexShrink: 0, bgcolor: SIDEBAR_BG, display: { xs: 'none', sm: 'flex' }, flexDirection: 'column', overflow: 'hidden' };
+const SIDEBAR_TITLE_SX = { fontWeight: 800, color: 'white', fontSize: '0.9375rem', letterSpacing: -0.2, lineHeight: 1.2 };
+const SIDEBAR_SUBTITLE_SX = { fontSize: '0.7rem', color: 'rgba(255,255,255,0.38)', mt: 0.4, display: 'block', lineHeight: 1.4, maxWidth: 150 };
+const CLOSE_BTN_SX = { color: 'rgba(255,255,255,0.4)', borderRadius: '8px', p: 0.5, '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.08)' } };
+const UPLOAD_CARD_SX = (selected) => (t) => ({
+  p: 2, borderRadius: '12px', cursor: 'pointer', border: '1.5px solid',
+  borderColor: selected ? 'primary.main' : 'divider',
+  bgcolor: selected ? alpha(t.palette.primary.main, 0.05) : 'transparent',
+  transition: 'all 0.15s ease', outline: 'none',
+  '&:hover': { borderColor: 'primary.main', bgcolor: alpha(t.palette.primary.main, 0.03) },
+  '&:focus-visible': { boxShadow: `0 0 0 3px ${alpha(t.palette.primary.main, 0.2)}` },
+});
+const DROP_ZONE_SX = (selectedFile, isDragging, errors) => (t) => ({
+  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.25, py: 4, px: 3,
+  border: '2px dashed',
+  borderColor: selectedFile ? alpha(t.palette.success.main, 0.5) : isDragging ? t.palette.primary.main : errors.file ? t.palette.error.main : alpha(t.palette.primary.main, 0.25),
+  borderRadius: '14px', cursor: 'pointer',
+  bgcolor: isDragging ? alpha(t.palette.primary.main, 0.05) : selectedFile ? alpha(t.palette.success.main, 0.03) : 'transparent',
+  transition: 'all 0.18s ease',
+  '&:hover': { borderColor: selectedFile ? 'success.main' : 'primary.main', bgcolor: alpha(t.palette.primary.main, 0.03) },
+});
+const THUMBNAIL_ZONE_SX = (selectedThumbnail) => (t) => ({
+  display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, py: 1.25, borderRadius: '12px', border: '1.5px dashed',
+  borderColor: selectedThumbnail ? alpha(t.palette.success.main, 0.55) : alpha(t.palette.primary.main, 0.3),
+  bgcolor: selectedThumbnail ? alpha(t.palette.success.main, 0.04) : 'transparent', cursor: 'pointer',
+  '&:hover': { borderColor: 'primary.main', bgcolor: alpha(t.palette.primary.main, 0.03) },
+});
+const TOGGLE_GROUP_SX = { gap: 1, '& .MuiToggleButtonGroup-grouped': { borderRadius: '10px !important', border: '1.5px solid !important', borderColor: 'divider !important' }, '& .MuiToggleButton-root': { textTransform: 'none', fontWeight: 600, fontSize: '0.8125rem' } };
+const DIFFICULTY_TOGGLE_SX = { ...TOGGLE_GROUP_SX, '& .MuiToggleButton-root': { ...TOGGLE_GROUP_SX['& .MuiToggleButton-root'], '&.Mui-selected[value="easy"]': { color: 'success.main', bgcolor: (t) => alpha(t.palette.success.main, 0.08), borderColor: 'success.main !important' }, '&.Mui-selected[value="medium"]': { color: 'warning.main', bgcolor: (t) => alpha(t.palette.warning.main, 0.08), borderColor: 'warning.main !important' }, '&.Mui-selected[value="hard"]': { color: 'error.main', bgcolor: (t) => alpha(t.palette.error.main, 0.08), borderColor: 'error.main !important' } } };
+const EXAM_TOGGLE_SX = { ...TOGGLE_GROUP_SX, '& .MuiToggleButton-root': { ...TOGGLE_GROUP_SX['& .MuiToggleButton-root'], '&.Mui-selected': { color: 'primary.main', bgcolor: (t) => alpha(t.palette.primary.main, 0.08), borderColor: 'primary.main !important' } } };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -645,16 +690,7 @@ const ResourceDialog = memo(({
                   aria-pressed={selected}
                   onClick={() => { setUploadMethod(value); clearErrors(['url', 'file']); }}
                   onKeyDown={(e) => e.key === 'Enter' && setUploadMethod(value)}
-                  sx={(t) => ({
-                    p: 2, borderRadius: '12px', cursor: 'pointer',
-                    border: '1.5px solid',
-                    borderColor: selected ? 'primary.main' : 'divider',
-                    bgcolor: selected ? alpha(t.palette.primary.main, 0.05) : 'transparent',
-                    transition: 'all 0.15s ease',
-                    outline: 'none',
-                    '&:hover': { borderColor: 'primary.main', bgcolor: alpha(t.palette.primary.main, 0.03) },
-                    '&:focus-visible': { boxShadow: `0 0 0 3px ${alpha(t.palette.primary.main, 0.2)}` },
-                  })}
+                  sx={UPLOAD_CARD_SX(selected)}
                 >
                   <Icon sx={{ fontSize: 20, color: selected ? 'primary.main' : 'text.disabled', mb: 0.75 }} />
                   <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.8125rem', color: selected ? 'primary.main' : 'text.primary' }}>
@@ -695,44 +731,13 @@ const ResourceDialog = memo(({
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
-            sx={(t) => ({
-              display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center',
-              gap: 1.25, py: 4, px: 3,
-              border: '2px dashed',
-              borderColor: selectedFile
-                ? alpha(t.palette.success.main, 0.5)
-                : isDragging
-                ? t.palette.primary.main
-                : errors.file
-                ? t.palette.error.main
-                : alpha(t.palette.primary.main, 0.25),
-              borderRadius: '14px',
-              cursor: 'pointer',
-              bgcolor: isDragging
-                ? alpha(t.palette.primary.main, 0.05)
-                : selectedFile
-                ? alpha(t.palette.success.main, 0.03)
-                : 'transparent',
-              transition: 'all 0.18s ease',
-              '&:hover': {
-                borderColor: selectedFile ? 'success.main' : 'primary.main',
-                bgcolor: alpha(t.palette.primary.main, 0.03),
-              },
-            })}
+            sx={DROP_ZONE_SX(selectedFile, isDragging, errors)}
           >
-            <input type="file" hidden onChange={handleFileChange} />
-
-            {/* Icon */}
             <Box
               sx={(t) => ({
-                width: 48, height: 48, borderRadius: '14px',
+                width: 48, height: 48, borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                bgcolor: selectedFile
-                  ? alpha(t.palette.success.main, 0.1)
-                  : isDragging
-                  ? alpha(t.palette.primary.main, 0.12)
-                  : alpha(t.palette.primary.main, 0.07),
+                bgcolor: selectedFile ? alpha(t.palette.success.main, 0.1) : alpha(t.palette.primary.main, 0.1),
                 color: selectedFile ? 'success.main' : 'primary.main',
               })}
             >
@@ -763,23 +768,14 @@ const ResourceDialog = memo(({
         )}
       </Box>
 
+      <Divider />
+
+      {/* Thumbnail / Cover Image */}
       <Box>
         <FieldLabel hint="Optional cover image shown in discovery cards.">Thumbnail / Cover</FieldLabel>
         <Box
           component="label"
-          sx={(t) => ({
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.25,
-            px: 1.5,
-            py: 1.25,
-            borderRadius: '12px',
-            border: '1.5px dashed',
-            borderColor: selectedThumbnail ? alpha(t.palette.success.main, 0.55) : alpha(t.palette.primary.main, 0.3),
-            bgcolor: selectedThumbnail ? alpha(t.palette.success.main, 0.04) : 'transparent',
-            cursor: 'pointer',
-            '&:hover': { borderColor: 'primary.main', bgcolor: alpha(t.palette.primary.main, 0.03) },
-          })}
+          sx={THUMBNAIL_ZONE_SX(selectedThumbnail)}
         >
           <input type="file" accept="image/*" hidden onChange={handleThumbnailChange} />
           <ImageIcon sx={{ fontSize: 20, color: selectedThumbnail ? 'success.main' : 'primary.main' }} />
@@ -993,16 +989,7 @@ const ResourceDialog = memo(({
             <ToggleButtonGroup
               {...field}
               exclusive fullWidth size="small"
-              sx={{
-                gap: 1,
-                '& .MuiToggleButtonGroup-grouped': { borderRadius: '10px !important', border: '1.5px solid !important', borderColor: 'divider !important' },
-                '& .MuiToggleButton-root': {
-                  textTransform: 'none', fontWeight: 600, fontSize: '0.8125rem',
-                  '&.Mui-selected[value="easy"]':   { color: 'success.main', bgcolor: (t) => alpha(t.palette.success.main, 0.08), borderColor: 'success.main !important' },
-                  '&.Mui-selected[value="medium"]': { color: 'warning.main', bgcolor: (t) => alpha(t.palette.warning.main, 0.08), borderColor: 'warning.main !important' },
-                  '&.Mui-selected[value="hard"]':   { color: 'error.main',   bgcolor: (t) => alpha(t.palette.error.main,   0.08), borderColor: 'error.main !important'   },
-                },
-              }}
+              sx={DIFFICULTY_TOGGLE_SX}
             >
               <ToggleButton value="easy">Easy</ToggleButton>
               <ToggleButton value="medium">Medium</ToggleButton>
@@ -1024,14 +1011,7 @@ const ResourceDialog = memo(({
                 value={field.value ? 'yes' : 'no'}
                 exclusive fullWidth size="small"
                 onChange={(_, v) => { if (v !== null) field.onChange(v === 'yes'); }}
-                sx={{
-                  gap: 1,
-                  '& .MuiToggleButtonGroup-grouped': { borderRadius: '10px !important', border: '1.5px solid !important', borderColor: 'divider !important' },
-                  '& .MuiToggleButton-root': {
-                    textTransform: 'none', fontWeight: 600, fontSize: '0.8125rem',
-                    '&.Mui-selected': { color: 'primary.main', bgcolor: (t) => alpha(t.palette.primary.main, 0.08), borderColor: 'primary.main !important' },
-                  },
-                }}
+                sx={EXAM_TOGGLE_SX}
               >
                 <ToggleButton value="no">No</ToggleButton>
                 <ToggleButton value="yes">Yes</ToggleButton>
@@ -1123,16 +1103,7 @@ const ResourceDialog = memo(({
                     aria-pressed={field.value === value}
                     onClick={() => field.onChange(value)}
                     onKeyDown={(e) => e.key === 'Enter' && field.onChange(value)}
-                    sx={(t) => ({
-                      p: 2, borderRadius: '12px', cursor: 'pointer',
-                      border: '1.5px solid',
-                      borderColor: field.value === value ? 'primary.main' : 'divider',
-                      bgcolor: field.value === value ? alpha(t.palette.primary.main, 0.05) : 'transparent',
-                      transition: 'all 0.15s ease',
-                      outline: 'none',
-                      '&:hover': { borderColor: 'primary.main' },
-                      '&:focus-visible': { boxShadow: `0 0 0 3px ${alpha(t.palette.primary.main, 0.2)}` },
-                    })}
+                    sx={UPLOAD_CARD_SX(field.value === value)}
                   >
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.4 }}>
                       <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: dot, flexShrink: 0 }} />

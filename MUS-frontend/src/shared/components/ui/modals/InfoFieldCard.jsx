@@ -35,9 +35,9 @@ export const InfoFieldCard = ({ icon, label, value, color = 'primary', fullHeigh
         <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.65rem' }}>
           {label}
         </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap={noWrap}>
+        <Box sx={{ typography: 'body2', fontWeight: 500, ...(noWrap && { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }) }}>
           {value || 'N/A'}
-        </Typography>
+        </Box>
       </Box>
     </Box>
   );
@@ -46,7 +46,7 @@ export const InfoFieldCard = ({ icon, label, value, color = 'primary', fullHeigh
 InfoFieldCard.propTypes = {
   icon: PropTypes.node.isRequired,
   label: PropTypes.string.isRequired,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  value: PropTypes.node,
   color: PropTypes.string,
   fullHeight: PropTypes.bool,
   noWrap: PropTypes.bool,
