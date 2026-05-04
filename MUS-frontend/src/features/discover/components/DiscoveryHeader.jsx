@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -23,13 +23,12 @@ import logo from '@/assets/images/logo.png';
 
 const navLinks = [
   { label: 'Discover', to: '/discover' },
-  { label: 'Recommendations', to: '/discover/recommendations' },
-  { label: 'Study Groups', to: '/dashboard/sessions' },
-  { label: 'Become a Creator', to: '/dashboard/uploads' },
+  { label: 'How to become a creator', to: '/discover/how-to-become-creator' },
 ];
 
 const DiscoveryHeader = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { mode, toggleTheme } = useThemeMode();
   const { user, roles, logout, isAuthenticated } = useAuth();
   const { language } = useLanguage();
@@ -81,24 +80,46 @@ const DiscoveryHeader = () => {
         <Stack direction="row" alignItems="center" spacing={3} sx={{ minWidth: 0 }}>
           <Box component="img" src={logo} alt="MUS" sx={{ height: 48 }} />
           <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', md: 'flex' } }}>
-            {navLinks.map((link, index) => (
-              <Button
-                key={link.label}
-                component={RouterLink}
-                to={link.to}
-                size="small"
-                sx={(theme) => ({
-                  color: index === 0 ? theme.palette.primary.main : theme.palette.text.secondary,
-                  textTransform: 'none',
-                  fontWeight: index === 0 ? 700 : 500,
-                  borderBottom: index === 0 ? `2px solid ${theme.palette.primary.main}` : '2px solid transparent',
-                  borderRadius: 0,
-                  px: 1,
-                })}
-              >
-                {link.label}
-              </Button>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = location.pathname === link.to;
+              return (
+                <Button
+                  key={link.label}
+                  component={RouterLink}
+                  to={link.to}
+                  size="small"
+                  sx={(theme) => ({
+                    position: 'relative',
+                    color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
+                    textTransform: 'none',
+                    fontWeight: isActive ? 700 : 500,
+                    borderRadius: 1,
+                    px: 1.5,
+                    py: 0.5,
+                    transition: 'color 0.2s, background-color 0.2s',
+                    '&:hover': {
+                      color: theme.palette.primary.main,
+                      bgcolor: alpha(theme.palette.primary.main, 0.04),
+                    },
+                    '&::after': {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: -4,
+                      left: 12,
+                      right: 12,
+                      height: 3,
+                      borderRadius: 3,
+                      bgcolor: theme.palette.primary.main,
+                      transform: isActive ? 'scaleX(1)' : 'scaleX(0)',
+                      transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                      transformOrigin: 'center',
+                    }
+                  })}
+                >
+                  {link.label}
+                </Button>
+              );
+            })}
           </Stack>
         </Stack>
 

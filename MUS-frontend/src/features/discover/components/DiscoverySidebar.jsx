@@ -1,7 +1,6 @@
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import {
   Box,
-  Checkbox,
   Divider,
   List,
   ListItemButton,
@@ -13,15 +12,21 @@ import {
   AutoStories,
   Calculate,
   Computer,
-  ExpandLess,
-  ExpandMore,
   Language,
+  Image,
+  Movie,
+  PictureAsPdf,
   Science,
   School,
   Slideshow,
   TextSnippet,
   TouchApp,
   Tune,
+  Description,
+  TableChart,
+  Archive,
+  AudioFile,
+  InsertDriveFile,
   WorkspacePremium,
 } from '@mui/icons-material';
 
@@ -42,21 +47,17 @@ const TYPE_ICONS = {
   Interactive: <TouchApp sx={{ fontSize: 18 }} />,
 };
 
-const LANGUAGE_FLAGS = {
-  English: '🇬🇧',
-  Spanish: '🇪🇸',
-  French: '🇫🇷',
-  Arabic: '🇲🇦',
+const FORMAT_ICONS = {
+  PDF: <PictureAsPdf sx={{ fontSize: 18 }} />,
+  Video: <Movie sx={{ fontSize: 18 }} />,
+  Image: <Image sx={{ fontSize: 18 }} />,
+  Word: <Description sx={{ fontSize: 18 }} />,
+  PowerPoint: <Slideshow sx={{ fontSize: 18 }} />,
+  Excel: <TableChart sx={{ fontSize: 18 }} />,
+  Audio: <AudioFile sx={{ fontSize: 18 }} />,
+  Zip: <Archive sx={{ fontSize: 18 }} />,
+  Other: <InsertDriveFile sx={{ fontSize: 18 }} />,
 };
-
-const DIFFICULTY_FILTERS = [
-  { label: 'All Levels', value: 'all' },
-  { label: 'Beginner', value: 'easy' },
-  { label: 'Intermediate', value: 'medium' },
-  { label: 'Advanced', value: 'hard' },
-];
-
-const LANG_PREVIEW_COUNT = 4;
 
 const toLabel = (value, fallback = 'All') => {
   const normalized = String(value || '').trim();
@@ -80,17 +81,19 @@ const SECTION_TITLE_SX = {
 
 const DIVIDER_SX = { my: 1.75 };
 
-const VIEW_MORE_SX = { borderRadius: '10px', py: 0.4, px: 1.25, mt: 0.25 };
-
-const VIEW_MORE_LABEL_SX = {
-  fontSize: '0.8rem',
-  color: 'text.secondary',
-  fontWeight: 500,
+const formatLabel = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) return 'Unknown';
+  if (['pdf'].includes(normalized)) return 'PDF';
+  if (['doc', 'docx', 'word'].includes(normalized)) return 'Word';
+  if (['ppt', 'pptx', 'powerpoint'].includes(normalized)) return 'PowerPoint';
+  if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'image'].includes(normalized)) return 'Image';
+  if (['mp4', 'mov', 'avi', 'mkv', 'webm', 'video'].includes(normalized)) return 'Video';
+  if (['xls', 'xlsx', 'excel'].includes(normalized)) return 'Excel';
+  if (['mp3', 'wav', 'ogg', 'audio'].includes(normalized)) return 'Audio';
+  if (['zip', 'rar', '7z'].includes(normalized)) return 'Zip';
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 };
-
-const EXPAND_ICON_SX = { fontSize: 16, ml: 0.5, color: 'text.secondary' };
-
-const DIFFICULTY_WRAP_SX = { px: 0.5 };
 
 // ─── Memoized Sub-components ───
 
@@ -170,26 +173,6 @@ const FilterRow = memo(({ icon, label, count, active, onClick }) => (
 ));
 FilterRow.displayName = 'FilterRow';
 
-const DifficultyRow = memo(({ label, checked, onChange }) => (
-  <Stack
-    direction="row"
-    alignItems="center"
-    spacing={0.5}
-    sx={{ py: 0.3, cursor: 'pointer', userSelect: 'none' }}
-    onClick={onChange}
-  >
-    <Checkbox
-      checked={checked}
-      onChange={onChange}
-      onClick={(e) => e.stopPropagation()}
-      size="small"
-      sx={{ p: 0.4 }}
-    />
-    <Typography sx={{ fontSize: '0.875rem', color: 'text.primary' }}>{label}</Typography>
-  </Stack>
-));
-DifficultyRow.displayName = 'DifficultyRow';
-
 // ─── Main Component ───
 
 const DiscoverySidebar = ({
@@ -197,16 +180,13 @@ const DiscoverySidebar = ({
   allSubjectsCount = null,
   selectedModule = 'all',
   onModuleChange,
-  availableLanguages = [],
-  selectedLanguage = 'all',
-  onLanguageChange,
-  selectedDifficulty = 'all',
-  onDifficultyChange,
   availableTypes = [],
   selectedType = 'all',
   onTypeChange,
+  availableFormats = [],
+  selectedFormat = 'all',
+  onFormatChange,
 }) => {
-  const [showAllLanguages, setShowAllLanguages] = useState(false);
 
   // Memoized derived data
   const moduleRows = useMemo(
@@ -233,15 +213,8 @@ const DiscoverySidebar = ({
 
   // Stable callbacks — won't cause child re-renders from new function references
   const handleModuleAll = useCallback(() => onModuleChange?.('all'), [onModuleChange]);
-  const handleLangAll = useCallback(() => onLanguageChange?.('all'), [onLanguageChange]);
   const handleTypeAll = useCallback(() => onTypeChange?.('all'), [onTypeChange]);
-  const toggleShowLanguages = useCallback(() => setShowAllLanguages((v) => !v), []);
-
-  const visibleLanguages = showAllLanguages
-    ? availableLanguages
-    : availableLanguages.slice(0, LANG_PREVIEW_COUNT);
-
-  const hasMoreLanguages = availableLanguages.length > LANG_PREVIEW_COUNT;
+  const handleFormatAll = useCallback(() => onFormatChange?.('all'), [onFormatChange]);
 
   return (
     <Box
@@ -299,67 +272,6 @@ const DiscoverySidebar = ({
 
       <Divider sx={DIVIDER_SX} />
 
-      {/* ── Language ── */}
-      <SectionTitle>Language</SectionTitle>
-      <List disablePadding dense>
-        <FilterRow
-          icon={<Language sx={{ fontSize: 18 }} />}
-          label="All Languages"
-          active={selectedLanguage === 'all'}
-          onClick={handleLangAll}
-        />
-        {visibleLanguages.map((item) => {
-          const value = String(item || '').toLowerCase();
-          const label = toLabel(value);
-          const flag = LANGUAGE_FLAGS[label];
-          return (
-            <FilterRow
-              key={value}
-              icon={
-                flag ? (
-                  <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{flag}</Typography>
-                ) : (
-                  <Language sx={{ fontSize: 18 }} />
-                )
-              }
-              label={label}
-              active={selectedLanguage === value}
-              onClick={() => onLanguageChange?.(value)}
-            />
-          );
-        })}
-      </List>
-
-      {hasMoreLanguages && (
-        <ListItemButton onClick={toggleShowLanguages} dense sx={VIEW_MORE_SX}>
-          <Typography sx={VIEW_MORE_LABEL_SX}>
-            {showAllLanguages ? 'Show less' : 'View more'}
-          </Typography>
-          {showAllLanguages ? (
-            <ExpandLess sx={EXPAND_ICON_SX} />
-          ) : (
-            <ExpandMore sx={EXPAND_ICON_SX} />
-          )}
-        </ListItemButton>
-      )}
-
-      <Divider sx={DIVIDER_SX} />
-
-      {/* ── Difficulty Level ── */}
-      <SectionTitle>Difficulty Level</SectionTitle>
-      <Box sx={DIFFICULTY_WRAP_SX}>
-        {DIFFICULTY_FILTERS.map((item) => (
-          <DifficultyRow
-            key={item.value}
-            label={item.label}
-            checked={selectedDifficulty === item.value}
-            onChange={() => onDifficultyChange?.(item.value)}
-          />
-        ))}
-      </Box>
-
-      <Divider sx={DIVIDER_SX} />
-
       {/* ── Content Type ── */}
       <SectionTitle>Content Type</SectionTitle>
       <List disablePadding dense>
@@ -379,6 +291,32 @@ const DiscoverySidebar = ({
               label={label}
               active={selectedType === value}
               onClick={() => onTypeChange?.(value)}
+            />
+          );
+        })}
+      </List>
+
+      <Divider sx={DIVIDER_SX} />
+
+      {/* ── Format ── */}
+      <SectionTitle>Format</SectionTitle>
+      <List disablePadding dense>
+        <FilterRow
+          icon={<InsertDriveFile sx={{ fontSize: 18 }} />}
+          label="All Formats"
+          active={selectedFormat === 'all'}
+          onClick={handleFormatAll}
+        />
+        {availableFormats.map((item) => {
+          const value = String(item || '').toLowerCase();
+          const label = formatLabel(value);
+          return (
+            <FilterRow
+              key={value}
+              icon={FORMAT_ICONS[label] ?? <InsertDriveFile sx={{ fontSize: 18 }} />}
+              label={label}
+              active={selectedFormat === value}
+              onClick={() => onFormatChange?.(value)}
             />
           );
         })}

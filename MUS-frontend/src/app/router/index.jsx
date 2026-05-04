@@ -17,6 +17,7 @@ const DashboardLayout = lazy(() => import('@/layouts/DashboardLayout'));
 const DashboardOverview = lazy(() => import('@/features/dashboard/pages/Overview'));
 const DiscoverResourcesPage = lazy(() => import('@/features/dashboard/pages/DiscoverResources'));
 const RecommendationsPage = lazy(() => import('@/features/dashboard/pages/Recommendations'));
+const CreatorGuidePage = lazy(() => import('@/features/discover/pages/CreatorGuide'));
 const UsersPage = lazy(() => import('@/features/users/pages/Users'));
 const PointsManagementPage = lazy(() => import('@/features/points/pages/PointsManagement'));
 const ResourcesPage = lazy(() => import('@/features/resources/pages/Resources'));
@@ -69,6 +70,14 @@ const AppRouter = () => {
           element={
             <ProtectedRoute>
               <RecommendationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/discover/how-to-become-creator"
+          element={
+            <ProtectedRoute>
+              <CreatorGuidePage />
             </ProtectedRoute>
           }
         />

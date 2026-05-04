@@ -15,14 +15,12 @@ const DiscoverResources = () => {
     discoverModules,
     selectedModule,
     setSelectedModule,
-    availableLanguages,
-    selectedLanguage,
-    setSelectedLanguage,
-    selectedDifficulty,
-    setSelectedDifficulty,
     availableTypes,
     selectedType,
     setSelectedType,
+    availableFormats,
+    selectedFormat,
+    setSelectedFormat,
     searchQuery,
     setSearchQuery,
     selectedSort,
@@ -84,14 +82,12 @@ const DiscoverResources = () => {
               allSubjectsCount={allSubjectsCount}
               selectedModule={selectedModule}
               onModuleChange={setSelectedModule}
-              availableLanguages={availableLanguages}
-              selectedLanguage={selectedLanguage}
-              onLanguageChange={setSelectedLanguage}
-              selectedDifficulty={selectedDifficulty}
-              onDifficultyChange={setSelectedDifficulty}
               availableTypes={availableTypes}
               selectedType={selectedType}
               onTypeChange={setSelectedType}
+              availableFormats={availableFormats}
+              selectedFormat={selectedFormat}
+              onFormatChange={setSelectedFormat}
             />
           </Box>
 
@@ -126,14 +122,12 @@ const DiscoverResources = () => {
             allSubjectsCount={allSubjectsCount}
             selectedModule={selectedModule}
             onModuleChange={setSelectedModule}
-            availableLanguages={availableLanguages}
-            selectedLanguage={selectedLanguage}
-            onLanguageChange={setSelectedLanguage}
-            selectedDifficulty={selectedDifficulty}
-            onDifficultyChange={setSelectedDifficulty}
             availableTypes={availableTypes}
             selectedType={selectedType}
             onTypeChange={setSelectedType}
+            availableFormats={availableFormats}
+            selectedFormat={selectedFormat}
+            onFormatChange={setSelectedFormat}
           />
         </Box>
       </Drawer>
