@@ -28,6 +28,31 @@ CREATE TABLE public.institution_types (
 );
 
 
+-- public.membership_plans definition
+
+-- Drop table
+
+-- DROP TABLE public.membership_plans;
+
+CREATE TABLE public.membership_plans (
+	id bigserial NOT NULL,
+	code text NOT NULL,
+	"name" text NOT NULL,
+	description text NULL,
+	price_cents int4 DEFAULT 0 NOT NULL,
+	currency text DEFAULT 'USD'::text NOT NULL,
+	duration_days int4 NULL,
+	is_active bool DEFAULT true NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT membership_plans_code_key UNIQUE (code),
+	CONSTRAINT membership_plans_code_not_empty CHECK ((length(TRIM(BOTH FROM code)) > 0)),
+	CONSTRAINT membership_plans_name_not_empty CHECK ((length(TRIM(BOTH FROM name)) > 0)),
+	CONSTRAINT membership_plans_pkey PRIMARY KEY (id),
+	CONSTRAINT membership_plans_price_non_negative CHECK ((price_cents >= 0))
+);
+
+
 -- public.resource_types definition
 
 -- Drop table
@@ -77,9 +102,15 @@ CREATE TABLE public.users (
 	created_at timestamptz DEFAULT now() NULL,
 	updated_at timestamptz DEFAULT now() NULL,
 	points int4 DEFAULT 0 NULL,
+	avatar_url text NULL,
+	avatar_object_key text NULL,
+	avatar_mime_type text NULL,
+	avatar_size_bytes int8 NULL,
+	avatar_updated_at timestamptz NULL,
 	CONSTRAINT users_email_key UNIQUE (email),
 	CONSTRAINT users_pkey PRIMARY KEY (id)
 );
+CREATE INDEX idx_users_avatar_object_key ON public.users USING btree (avatar_object_key) WHERE (avatar_object_key IS NOT NULL);
 
 -- Table Triggers
 
@@ -218,7 +249,7 @@ CREATE TABLE public.resources (
 	created_at timestamptz DEFAULT now() NULL,
 	updated_at timestamptz DEFAULT now() NULL,
 	educational_type public."resource_educational_type" NULL,
-	format public."resource_format" NULL,
+	"format" public."resource_format" NULL,
 	resource_type_id int4 NULL,
 	metadata jsonb DEFAULT '{}'::jsonb NULL,
 	storage_provider text NULL,
@@ -230,10 +261,13 @@ CREATE TABLE public.resources (
 	original_filename text NULL,
 	is_public bool DEFAULT false NULL,
 	upload_status text DEFAULT 'uploaded'::text NULL,
+	access_tier text DEFAULT 'free'::text NOT NULL,
+	CONSTRAINT resources_access_tier_check CHECK ((access_tier = ANY (ARRAY['free'::text, 'premium'::text]))),
 	CONSTRAINT resources_pkey PRIMARY KEY (id),
 	CONSTRAINT resources_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
 	CONSTRAINT resources_resource_type_id_fkey FOREIGN KEY (resource_type_id) REFERENCES public.resource_types(id)
 );
+CREATE INDEX idx_resources_access_tier_status ON public.resources USING btree (access_tier, status);
 CREATE INDEX idx_resources_created_at ON public.resources USING btree (created_at DESC);
 CREATE INDEX idx_resources_created_by ON public.resources USING btree (created_by);
 CREATE INDEX idx_resources_created_by_status ON public.resources USING btree (created_by, status);
@@ -242,6 +276,7 @@ CREATE INDEX idx_resources_educational_type ON public.resources USING btree (edu
 CREATE INDEX idx_resources_format ON public.resources USING btree (format);
 CREATE INDEX idx_resources_object_key ON public.resources USING btree (object_key);
 CREATE INDEX idx_resources_status ON public.resources USING btree (status);
+CREATE INDEX idx_resources_status_created_at ON public.resources USING btree (status, created_at DESC);
 
 -- Table Triggers
 
@@ -283,6 +318,177 @@ create trigger trg_tags_set_updated_at before
 update
     on
     public.tags for each row execute function sp_tag_set_updated_at();
+
+
+-- public.teacher_availability_slots definition
+
+-- Drop table
+
+-- DROP TABLE public.teacher_availability_slots;
+
+CREATE TABLE public.teacher_availability_slots (
+	id bigserial NOT NULL,
+	teacher_id uuid NOT NULL,
+	start_at timestamptz NOT NULL,
+	end_at timestamptz NOT NULL,
+	timezone text DEFAULT 'UTC'::text NOT NULL,
+	is_active bool DEFAULT true NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT teacher_availability_slots_pkey PRIMARY KEY (id),
+	CONSTRAINT teacher_availability_slots_time_check CHECK ((end_at > start_at)),
+	CONSTRAINT teacher_availability_slots_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_teacher_slots_bookable ON public.teacher_availability_slots USING btree (is_active, start_at) WHERE (is_active = true);
+CREATE INDEX idx_teacher_slots_teacher_start ON public.teacher_availability_slots USING btree (teacher_id, start_at);
+
+-- Table Triggers
+
+create trigger trg_teacher_availability_slots_set_updated_at before
+update
+    on
+    public.teacher_availability_slots for each row execute function sp_teacher_session_set_updated_at();
+
+
+-- public.teacher_session_bookings definition
+
+-- Drop table
+
+-- DROP TABLE public.teacher_session_bookings;
+
+CREATE TABLE public.teacher_session_bookings (
+	id bigserial NOT NULL,
+	slot_id int8 NOT NULL,
+	teacher_id uuid NOT NULL,
+	student_id uuid NOT NULL,
+	status text DEFAULT 'confirmed'::text NOT NULL,
+	booked_at timestamptz DEFAULT now() NOT NULL,
+	cancelled_at timestamptz NULL,
+	cancelled_by uuid NULL,
+	cancel_reason text NULL,
+	completed_at timestamptz NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT teacher_session_bookings_pkey PRIMARY KEY (id),
+	CONSTRAINT teacher_session_bookings_status_check CHECK ((status = ANY (ARRAY['confirmed'::text, 'cancelled'::text, 'completed'::text, 'no_show'::text]))),
+	CONSTRAINT teacher_session_bookings_teacher_student_diff CHECK ((teacher_id <> student_id)),
+	CONSTRAINT teacher_session_bookings_cancelled_by_fkey FOREIGN KEY (cancelled_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT teacher_session_bookings_slot_id_fkey FOREIGN KEY (slot_id) REFERENCES public.teacher_availability_slots(id) ON DELETE CASCADE,
+	CONSTRAINT teacher_session_bookings_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.users(id) ON DELETE CASCADE,
+	CONSTRAINT teacher_session_bookings_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_teacher_bookings_student_status ON public.teacher_session_bookings USING btree (student_id, status, created_at DESC);
+CREATE INDEX idx_teacher_bookings_teacher_status ON public.teacher_session_bookings USING btree (teacher_id, status, created_at DESC);
+CREATE UNIQUE INDEX ux_teacher_session_bookings_slot_confirmed ON public.teacher_session_bookings USING btree (slot_id) WHERE (status = 'confirmed'::text);
+
+-- Table Triggers
+
+create trigger trg_teacher_session_bookings_set_updated_at before
+update
+    on
+    public.teacher_session_bookings for each row execute function sp_teacher_session_set_updated_at();
+
+
+-- public.teacher_session_messages definition
+
+-- Drop table
+
+-- DROP TABLE public.teacher_session_messages;
+
+CREATE TABLE public.teacher_session_messages (
+	id bigserial NOT NULL,
+	booking_id int8 NOT NULL,
+	sender_id uuid NOT NULL,
+	body text NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT teacher_session_messages_body_check CHECK ((length(btrim(body)) > 0)),
+	CONSTRAINT teacher_session_messages_pkey PRIMARY KEY (id),
+	CONSTRAINT teacher_session_messages_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.teacher_session_bookings(id) ON DELETE CASCADE,
+	CONSTRAINT teacher_session_messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_teacher_session_messages_booking_created ON public.teacher_session_messages USING btree (booking_id, created_at);
+
+
+-- public.user_memberships definition
+
+-- Drop table
+
+-- DROP TABLE public.user_memberships;
+
+CREATE TABLE public.user_memberships (
+	id bigserial NOT NULL,
+	user_id uuid NOT NULL,
+	plan_id int8 NOT NULL,
+	status text DEFAULT 'active'::text NOT NULL,
+	starts_at timestamptz DEFAULT now() NOT NULL,
+	ends_at timestamptz NULL,
+	"source" text DEFAULT 'admin'::text NOT NULL,
+	notes text NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT user_memberships_period_check CHECK (((ends_at IS NULL) OR (ends_at > starts_at))),
+	CONSTRAINT user_memberships_pkey PRIMARY KEY (id),
+	CONSTRAINT user_memberships_source_not_empty CHECK ((length(TRIM(BOTH FROM source)) > 0)),
+	CONSTRAINT user_memberships_status_check CHECK ((status = ANY (ARRAY['active'::text, 'expired'::text, 'cancelled'::text, 'grace'::text]))),
+	CONSTRAINT user_memberships_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.membership_plans(id) ON DELETE RESTRICT,
+	CONSTRAINT user_memberships_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_user_memberships_plan_status ON public.user_memberships USING btree (plan_id, status);
+CREATE INDEX idx_user_memberships_user_status_end ON public.user_memberships USING btree (user_id, status, ends_at DESC NULLS LAST);
+
+
+-- public.user_notifications definition
+
+-- Drop table
+
+-- DROP TABLE public.user_notifications;
+
+CREATE TABLE public.user_notifications (
+	id bigserial NOT NULL,
+	recipient_user_id uuid NOT NULL,
+	"type" text NOT NULL,
+	title text NOT NULL,
+	body text NOT NULL,
+	payload jsonb NULL,
+	is_read bool DEFAULT false NOT NULL,
+	read_at timestamptz NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT user_notifications_pkey PRIMARY KEY (id),
+	CONSTRAINT user_notifications_recipient_user_id_fkey FOREIGN KEY (recipient_user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_notifications_recipient_unread_created ON public.user_notifications USING btree (recipient_user_id, is_read, created_at DESC);
+
+
+-- public.user_push_devices definition
+
+-- Drop table
+
+-- DROP TABLE public.user_push_devices;
+
+CREATE TABLE public.user_push_devices (
+	id bigserial NOT NULL,
+	user_id uuid NOT NULL,
+	device_token text NOT NULL,
+	platform text NOT NULL,
+	device_name text NULL,
+	is_active bool DEFAULT true NOT NULL,
+	last_seen_at timestamptz DEFAULT now() NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT user_push_devices_pkey PRIMARY KEY (id),
+	CONSTRAINT user_push_devices_platform_check CHECK ((platform = ANY (ARRAY['web'::text, 'android'::text, 'ios'::text]))),
+	CONSTRAINT user_push_devices_user_id_device_token_key UNIQUE (user_id, device_token),
+	CONSTRAINT user_push_devices_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_user_push_devices_token ON public.user_push_devices USING btree (device_token);
+CREATE INDEX idx_user_push_devices_user_active ON public.user_push_devices USING btree (user_id, is_active, updated_at DESC);
+
+-- Table Triggers
+
+create trigger trg_user_push_devices_set_updated_at before
+update
+    on
+    public.user_push_devices for each row execute function set_user_push_device_updated_at();
 
 
 -- public.user_roles definition
@@ -338,6 +544,50 @@ update
     public.user_settings for each row execute function sp_user_settings_set_updated_at();
 
 
+-- public.user_tag_preferences definition
+
+-- Drop table
+
+-- DROP TABLE public.user_tag_preferences;
+
+CREATE TABLE public.user_tag_preferences (
+	user_id uuid NOT NULL,
+	tag_id int8 NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT user_tag_preferences_pkey PRIMARY KEY (user_id, tag_id),
+	CONSTRAINT user_tag_preferences_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES public.tags(id) ON DELETE CASCADE,
+	CONSTRAINT user_tag_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_user_tag_preferences_tag ON public.user_tag_preferences USING btree (tag_id);
+CREATE INDEX idx_user_tag_preferences_user ON public.user_tag_preferences USING btree (user_id);
+
+
+-- public.wallet_points_events definition
+
+-- Drop table
+
+-- DROP TABLE public.wallet_points_events;
+
+CREATE TABLE public.wallet_points_events (
+	id bigserial NOT NULL,
+	user_id uuid NOT NULL,
+	actor_user_id uuid NULL,
+	resource_id int8 NULL,
+	event_type text NOT NULL,
+	points_change int4 NOT NULL,
+	occurred_at timestamptz DEFAULT now() NOT NULL,
+	metadata jsonb NULL,
+	CONSTRAINT wallet_points_events_event_type_check CHECK ((event_type = ANY (ARRAY['download_reward'::text, 'favorite_added_reward'::text, 'favorite_removed_penalty'::text]))),
+	CONSTRAINT wallet_points_events_pkey PRIMARY KEY (id),
+	CONSTRAINT wallet_points_events_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT wallet_points_events_resource_id_fkey FOREIGN KEY (resource_id) REFERENCES public.resources(id) ON DELETE SET NULL,
+	CONSTRAINT wallet_points_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_wallet_points_events_event_type ON public.wallet_points_events USING btree (event_type);
+CREATE INDEX idx_wallet_points_events_resource_occurred ON public.wallet_points_events USING btree (resource_id, occurred_at DESC);
+CREATE INDEX idx_wallet_points_events_user_occurred ON public.wallet_points_events USING btree (user_id, occurred_at DESC);
+
+
 -- public.favorites definition
 
 -- Drop table
@@ -354,6 +604,7 @@ CREATE TABLE public.favorites (
 );
 CREATE INDEX idx_favorites_resource_created_by ON public.favorites USING btree (resource_id);
 CREATE INDEX idx_favorites_resource_id ON public.favorites USING btree (resource_id);
+CREATE INDEX idx_favorites_user_created_at ON public.favorites USING btree (user_id, created_at DESC);
 CREATE INDEX idx_favorites_user_id ON public.favorites USING btree (user_id);
 CREATE INDEX idx_favorites_user_resource ON public.favorites USING btree (user_id, resource_id);
 
@@ -390,6 +641,40 @@ CREATE TABLE public.levels (
 	CONSTRAINT levels_program_id_name_key UNIQUE (program_id, name),
 	CONSTRAINT levels_program_id_fkey FOREIGN KEY (program_id) REFERENCES public.programs(id) ON DELETE CASCADE
 );
+
+
+-- public.notification_deliveries definition
+
+-- Drop table
+
+-- DROP TABLE public.notification_deliveries;
+
+CREATE TABLE public.notification_deliveries (
+	id bigserial NOT NULL,
+	notification_id int8 NOT NULL,
+	channel text NOT NULL,
+	destination text NULL,
+	status text NOT NULL,
+	provider_message_id text NULL,
+	error_message text NULL,
+	attempts int4 DEFAULT 1 NOT NULL,
+	sent_at timestamptz NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT notification_deliveries_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'push'::text]))),
+	CONSTRAINT notification_deliveries_pkey PRIMARY KEY (id),
+	CONSTRAINT notification_deliveries_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'sent'::text, 'failed'::text, 'skipped'::text]))),
+	CONSTRAINT notification_deliveries_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES public.user_notifications(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_notification_deliveries_channel_status ON public.notification_deliveries USING btree (channel, status, created_at DESC);
+CREATE INDEX idx_notification_deliveries_notification ON public.notification_deliveries USING btree (notification_id, created_at DESC);
+
+-- Table Triggers
+
+create trigger trg_notification_deliveries_set_updated_at before
+update
+    on
+    public.notification_deliveries for each row execute function set_notification_delivery_updated_at();
 
 
 -- public.ratings definition
@@ -502,9 +787,9 @@ CREATE TABLE public.student_profiles (
 	institution_id int8 NULL,
 	program_id int8 NULL,
 	current_semester_id int8 NULL,
-	contribution_mode text DEFAULT 'contributor'::text NOT NULL,
 	created_at timestamptz DEFAULT now() NULL,
 	updated_at timestamptz DEFAULT now() NULL,
+	contribution_mode text DEFAULT 'contributor'::text NOT NULL,
 	CONSTRAINT student_profiles_contribution_mode_check CHECK ((contribution_mode = ANY (ARRAY['learner'::text, 'contributor'::text]))),
 	CONSTRAINT student_profiles_pkey PRIMARY KEY (user_id),
 	CONSTRAINT student_profiles_current_semester_id_fkey FOREIGN KEY (current_semester_id) REFERENCES public.semesters(id),
@@ -612,6 +897,31 @@ CREATE TABLE public.resource_module_map (
 	CONSTRAINT resource_module_map_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.modules(id) ON DELETE CASCADE,
 	CONSTRAINT resource_module_map_resource_id_fkey FOREIGN KEY (resource_id) REFERENCES public.resources(id) ON DELETE CASCADE
 );
+CREATE INDEX idx_resource_module_map_resource_created_at ON public.resource_module_map USING btree (resource_id, created_at DESC);
+
+
+-- public.module_staff_assignments definition
+
+-- Drop table
+
+-- DROP TABLE public.module_staff_assignments;
+
+CREATE TABLE public.module_staff_assignments (
+	id bigserial NOT NULL,
+	module_id int8 NOT NULL,
+	user_id uuid NOT NULL,
+	assignment_role text NOT NULL,
+	is_primary bool DEFAULT false NOT NULL,
+	is_active bool DEFAULT true NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT module_staff_assignments_assignment_role_check CHECK ((assignment_role = ANY (ARRAY['teacher_referent'::text, 'admin_referent'::text]))),
+	CONSTRAINT module_staff_assignments_module_id_user_id_assignment_role_key UNIQUE (module_id, user_id, assignment_role),
+	CONSTRAINT module_staff_assignments_pkey PRIMARY KEY (id),
+	CONSTRAINT module_staff_assignments_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.modules(id) ON DELETE CASCADE,
+	CONSTRAINT module_staff_assignments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_module_staff_module_role_active ON public.module_staff_assignments USING btree (module_id, assignment_role, is_active);
+CREATE UNIQUE INDEX uq_module_staff_primary_active ON public.module_staff_assignments USING btree (module_id, assignment_role) WHERE ((is_primary = true) AND (is_active = true));
 
 
 -- public.qa_answers definition
@@ -702,55 +1012,6 @@ update
     public.qa_comments for each row execute function set_updated_at_column();
 
 
--- public.confusion_case_status enum definition
-
--- DROP TYPE public.confusion_case_status;
-
-CREATE TYPE public.confusion_case_status AS ENUM (
-	'nouveau',
-	'assigne',
-	'en_cours',
-	'repondu_officiel',
-	'resolu'
-);
-
-
--- public.confusion_case_priority enum definition
-
--- DROP TYPE public.confusion_case_priority;
-
-CREATE TYPE public.confusion_case_priority AS ENUM (
-	'basse',
-	'normale',
-	'haute',
-	'critique'
-);
-
-
--- public.module_staff_assignments definition
-
--- Drop table
-
--- DROP TABLE public.module_staff_assignments;
-
-CREATE TABLE public.module_staff_assignments (
-	id bigserial NOT NULL,
-	module_id int8 NOT NULL,
-	user_id uuid NOT NULL,
-	assignment_role text NOT NULL,
-	is_primary bool DEFAULT false NOT NULL,
-	is_active bool DEFAULT true NOT NULL,
-	created_at timestamptz DEFAULT now() NOT NULL,
-	CONSTRAINT module_staff_assignments_assignment_role_check CHECK ((assignment_role = ANY (ARRAY['teacher_referent'::text, 'admin_referent'::text]))),
-	CONSTRAINT module_staff_assignments_module_id_user_id_assignment_role_key UNIQUE (module_id, user_id, assignment_role),
-	CONSTRAINT module_staff_assignments_pkey PRIMARY KEY (id),
-	CONSTRAINT module_staff_assignments_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.modules(id) ON DELETE CASCADE,
-	CONSTRAINT module_staff_assignments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
-);
-CREATE INDEX idx_module_staff_module_role_active ON public.module_staff_assignments USING btree (module_id, assignment_role, is_active);
-CREATE UNIQUE INDEX uq_module_staff_primary_active ON public.module_staff_assignments USING btree (module_id, assignment_role) WHERE ((is_primary = true) AND (is_active = true));
-
-
 -- public.resource_confusion_cases definition
 
 -- Drop table
@@ -787,19 +1048,6 @@ CREATE UNIQUE INDEX uq_confusion_case_open ON public.resource_confusion_cases US
 
 -- Table Triggers
 
--- DROP FUNCTION public.set_confusion_case_updated_at();
-
-CREATE OR REPLACE FUNCTION public.set_confusion_case_updated_at()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$
-BEGIN
-  NEW.updated_at := NOW();
-  RETURN NEW;
-END;
-$function$
-;
-
 create trigger trg_confusion_cases_set_updated_at before
 update
     on
@@ -825,117 +1073,3 @@ CREATE TABLE public.resource_confusion_case_events (
 	CONSTRAINT resource_confusion_case_events_case_id_fkey FOREIGN KEY (case_id) REFERENCES public.resource_confusion_cases(id) ON DELETE CASCADE
 );
 CREATE INDEX idx_confusion_case_events_case_created ON public.resource_confusion_case_events USING btree (case_id, created_at DESC);
-
-
--- public.user_notifications definition
-
--- Drop table
-
--- DROP TABLE public.user_notifications;
-
-CREATE TABLE public.user_notifications (
-	id bigserial NOT NULL,
-	recipient_user_id uuid NOT NULL,
-	"type" text NOT NULL,
-	title text NOT NULL,
-	body text NOT NULL,
-	payload jsonb NULL,
-	is_read bool DEFAULT false NOT NULL,
-	read_at timestamptz NULL,
-	created_at timestamptz DEFAULT now() NOT NULL,
-	CONSTRAINT user_notifications_pkey PRIMARY KEY (id),
-	CONSTRAINT user_notifications_recipient_user_id_fkey FOREIGN KEY (recipient_user_id) REFERENCES public.users(id) ON DELETE CASCADE
-);
-CREATE INDEX idx_notifications_recipient_unread_created ON public.user_notifications USING btree (recipient_user_id, is_read, created_at DESC);
-
-
--- public.user_push_devices definition
-
--- Drop table
-
--- DROP TABLE public.user_push_devices;
-
-CREATE TABLE public.user_push_devices (
-	id bigserial NOT NULL,
-	user_id uuid NOT NULL,
-	device_token text NOT NULL,
-	platform text NOT NULL,
-	device_name text NULL,
-	is_active bool DEFAULT true NOT NULL,
-	last_seen_at timestamptz DEFAULT now() NOT NULL,
-	created_at timestamptz DEFAULT now() NOT NULL,
-	updated_at timestamptz DEFAULT now() NOT NULL,
-	CONSTRAINT user_push_devices_pkey PRIMARY KEY (id),
-	CONSTRAINT user_push_devices_platform_check CHECK ((platform = ANY (ARRAY['web'::text, 'android'::text, 'ios'::text]))),
-	CONSTRAINT user_push_devices_user_id_device_token_key UNIQUE (user_id, device_token),
-	CONSTRAINT user_push_devices_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
-);
-CREATE INDEX idx_user_push_devices_token ON public.user_push_devices USING btree (device_token);
-CREATE INDEX idx_user_push_devices_user_active ON public.user_push_devices USING btree (user_id, is_active, updated_at DESC);
-
--- Table Triggers
-
--- DROP FUNCTION public.set_user_push_device_updated_at();
-
-CREATE OR REPLACE FUNCTION public.set_user_push_device_updated_at()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$
-BEGIN
-  NEW.updated_at := NOW();
-  RETURN NEW;
-END;
-$function$
-;
-
-create trigger trg_user_push_devices_set_updated_at before
-update
-    on
-    public.user_push_devices for each row execute function set_user_push_device_updated_at();
-
-
--- public.notification_deliveries definition
-
--- Drop table
-
--- DROP TABLE public.notification_deliveries;
-
-CREATE TABLE public.notification_deliveries (
-	id bigserial NOT NULL,
-	notification_id int8 NOT NULL,
-	channel text NOT NULL,
-	destination text NULL,
-	status text NOT NULL,
-	provider_message_id text NULL,
-	error_message text NULL,
-	attempts int4 DEFAULT 1 NOT NULL,
-	sent_at timestamptz NULL,
-	created_at timestamptz DEFAULT now() NOT NULL,
-	updated_at timestamptz DEFAULT now() NOT NULL,
-	CONSTRAINT notification_deliveries_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'push'::text]))),
-	CONSTRAINT notification_deliveries_pkey PRIMARY KEY (id),
-	CONSTRAINT notification_deliveries_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'sent'::text, 'failed'::text, 'skipped'::text]))),
-	CONSTRAINT notification_deliveries_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES public.user_notifications(id) ON DELETE CASCADE
-);
-CREATE INDEX idx_notification_deliveries_channel_status ON public.notification_deliveries USING btree (channel, status, created_at DESC);
-CREATE INDEX idx_notification_deliveries_notification ON public.notification_deliveries USING btree (notification_id, created_at DESC);
-
--- Table Triggers
-
--- DROP FUNCTION public.set_notification_delivery_updated_at();
-
-CREATE OR REPLACE FUNCTION public.set_notification_delivery_updated_at()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$
-BEGIN
-  NEW.updated_at := NOW();
-  RETURN NEW;
-END;
-$function$
-;
-
-create trigger trg_notification_deliveries_set_updated_at before
-update
-    on
-    public.notification_deliveries for each row execute function set_notification_delivery_updated_at();
