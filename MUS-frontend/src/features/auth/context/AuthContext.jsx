@@ -65,6 +65,25 @@ const normalizeUserAvatar = (userLike) => {
   };
 };
 
+const isJwtExpired = (rawToken) => {
+  const token = String(rawToken || '').trim();
+  if (!token) return true;
+
+  const parts = token.split('.');
+  if (parts.length < 2) return false;
+
+  try {
+    const payloadBase64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const normalized = payloadBase64.padEnd(payloadBase64.length + ((4 - (payloadBase64.length % 4)) % 4), '=');
+    const payload = JSON.parse(window.atob(normalized));
+    const exp = Number(payload?.exp || 0);
+    if (!Number.isFinite(exp) || exp <= 0) return false;
+    return Date.now() >= exp * 1000;
+  } catch {
+    return false;
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
@@ -154,6 +173,14 @@ export const AuthProvider = ({ children }) => {
 
       if (!storedToken || !storedUser) {
         if (mounted) setLoading(false);
+        return;
+      }
+
+      if (isJwtExpired(storedToken)) {
+        if (mounted) {
+          logout();
+          setLoading(false);
+        }
         return;
       }
 
