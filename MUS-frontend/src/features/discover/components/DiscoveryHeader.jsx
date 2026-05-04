@@ -4,14 +4,12 @@ import {
   Box,
   Button,
   IconButton,
-  InputBase,
-  Paper,
   Stack,
   Tooltip,
   Typography,
   alpha,
 } from '@mui/material';
-import { Add, DarkMode, ExpandMore, LightMode, Search } from '@mui/icons-material';
+import { Add, DarkMode, ExpandMore, LightMode } from '@mui/icons-material';
 import { useThemeMode } from '@/app/providers/ThemeContext';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useLanguage } from '@/app/providers/LanguageContext';
@@ -105,24 +103,6 @@ const DiscoveryHeader = () => {
         </Stack>
 
         <Stack direction="row" alignItems="center" spacing={1.2}>
-          <Paper
-            sx={(theme) => ({
-              display: { xs: 'none', lg: 'flex' },
-              alignItems: 'center',
-              px: 1.5,
-              py: 0.5,
-              borderRadius: 99,
-              border: '1px solid',
-              borderColor: theme.palette.divider,
-              width: 260,
-              boxShadow: 'none',
-              bgcolor: theme.palette.background.paper,
-            })}
-          >
-            <Search sx={{ color: 'text.disabled', fontSize: 20 }} />
-            <InputBase placeholder="Search resources..." sx={{ ml: 1, fontSize: 14 }} />
-          </Paper>
-
           {isAuthenticated && (
             <SessionInboxMenu
               badgeCount={sessionUnreadCount}

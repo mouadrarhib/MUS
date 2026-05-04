@@ -4,7 +4,6 @@ import { Menu } from '@mui/icons-material';
 import DiscoveryHeader from '@/features/discover/components/DiscoveryHeader';
 import DiscoverySidebar from '@/features/discover/components/DiscoverySidebar';
 import DiscoveryMainContent from '@/features/discover/components/DiscoveryMainContent';
-import StickyBanner from '@/features/discover/components/StickyBanner';
 import { useDiscoverResourcesController } from '@/features/dashboard/hooks/useDiscoverResourcesController';
 import ResourceDetailsDialog from '@/features/resources/components/ResourceDetailsDialog';
 
@@ -96,7 +95,7 @@ const DiscoverResources = () => {
             />
           </Box>
 
-          <Box sx={{ flex: 1, width: '100%' }}>
+          <Box sx={{ flex: 1, width: '100%', pl: { xs: 0, lg: 2 } }}>
             <DiscoveryMainContent
               resources={resources}
               loading={loadingResources}
@@ -109,7 +108,6 @@ const DiscoverResources = () => {
               onPageChange={setPage}
               onResourceOpen={handleOpenDetails}
             />
-            <StickyBanner />
           </Box>
         </Stack>
       </Box>

@@ -3,6 +3,7 @@ import {
   Box,
   Card,
   CardContent,
+  Chip,
   Divider,
   IconButton,
   Stack,
@@ -15,11 +16,247 @@ import {
   MoreVert,
   PlayArrow,
   Star,
+  Visibility,
 } from '@mui/icons-material';
 
-const ResourceCard = ({ resource, view = 'grid', onClick }) => {
-  const isList = view === 'list';
+const ResourceCard = ({ resource, view, viewMode, onClick, onOpen }) => {
+  // Support both prop naming conventions
+  const resolvedView = view || viewMode || 'grid';
+  const handleClick = onClick || onOpen;
+  const isList = resolvedView === 'list';
+  const moduleLabel = String(resource?.module || '').trim();
 
+  // ─── LIST VIEW ────────────────────────────────────────────────────────────────
+  if (isList) {
+    return (
+      <Card
+        sx={(theme) => ({
+          borderRadius: '16px',
+          border: '1px solid',
+          borderColor: theme.palette.mode === 'dark'
+            ? 'rgba(255,255,255,0.07)'
+            : 'rgba(0,0,0,0.06)',
+          bgcolor: theme.palette.background.paper,
+          boxShadow: theme.palette.mode === 'dark'
+            ? '0 2px 12px rgba(0,0,0,0.28)'
+            : '0 2px 12px rgba(17,24,39,0.05)',
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          cursor: handleClick ? 'pointer' : 'default',
+          overflow: 'hidden',
+          transition: 'transform 220ms cubic-bezier(0.16,1,0.3,1), box-shadow 220ms cubic-bezier(0.16,1,0.3,1), border-color 220ms ease',
+          '&:hover': handleClick
+            ? {
+                transform: 'translateY(-2px)',
+                boxShadow: theme.palette.mode === 'dark'
+                  ? '0 8px 28px rgba(0,0,0,0.40)'
+                  : '0 8px 28px rgba(17,24,39,0.10)',
+                borderColor: alpha(resource.color, 0.35),
+              }
+            : undefined,
+        })}
+        onClick={handleClick}
+      >
+        {/* ── Thumbnail ── */}
+        <Box
+          sx={{
+            position: 'relative',
+            width: { xs: '100%', sm: 240, md: 280 },
+            minHeight: { xs: 160, sm: 'auto' },
+            flexShrink: 0,
+            overflow: 'hidden',
+            bgcolor: 'action.hover',
+          }}
+        >
+          <Box
+            component="img"
+            src={resource.thumb}
+            alt={resource.title}
+            loading="lazy"
+            sx={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+              transition: 'transform 350ms cubic-bezier(0.16,1,0.3,1)',
+              '.MuiCard-root:hover &': { transform: 'scale(1.04)' },
+            }}
+          />
+          {/* Play overlay */}
+          {resource.duration && (
+            <IconButton
+              aria-label="Play video"
+              onClick={(e) => e.stopPropagation()}
+              sx={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                bgcolor: 'rgba(255,255,255,0.88)',
+                width: 44,
+                height: 44,
+                backdropFilter: 'blur(4px)',
+                '&:hover': {
+                  bgcolor: 'rgba(255,255,255,0.97)',
+                  transform: 'translate(-50%, -50%) scale(1.08)',
+                },
+                transition: 'background 180ms ease, transform 180ms cubic-bezier(0.16,1,0.3,1)',
+              }}
+            >
+              <PlayArrow sx={{ fontSize: 22, color: 'rgba(0,0,0,0.8)', ml: '2px' }} />
+            </IconButton>
+          )}
+          {/* Duration badge */}
+          {resource.duration && (
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: 8,
+                right: 8,
+                bgcolor: 'rgba(0,0,0,0.75)',
+                color: '#fff',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                px: 0.85,
+                py: 0.3,
+                borderRadius: '6px',
+                letterSpacing: '0.02em',
+                backdropFilter: 'blur(4px)',
+              }}
+            >
+              {resource.duration}
+            </Box>
+          )}
+        </Box>
+
+        {/* ── Content ── */}
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            p: { xs: 2, sm: 2.5 },
+          }}
+        >
+          {/* Top: category badge + rating */}
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.75 }}>
+            <Chip
+              label={resource.category}
+              size="small"
+              sx={(theme) => ({
+                bgcolor: theme.palette.mode === 'dark'
+                  ? alpha(resource.color, 0.18)
+                  : alpha(resource.color, 0.10),
+                color: resource.color,
+                fontWeight: 700,
+                fontSize: '0.75rem',
+                height: 24,
+                borderRadius: '6px',
+                '& .MuiChip-label': { px: 1 },
+              })}
+            />
+            {resource.rating > 0 && (
+              <Stack direction="row" alignItems="center" spacing={0.4}>
+                <Star sx={{ fontSize: 16, color: '#F59E0B' }} />
+                <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'text.primary' }}>
+                  {resource.rating}
+                </Typography>
+              </Stack>
+            )}
+          </Stack>
+
+          {/* Title */}
+          <Typography
+            sx={{
+              fontWeight: 700,
+              fontSize: { xs: '0.95rem', sm: '1.05rem' },
+              lineHeight: 1.35,
+              color: 'text.primary',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              mb: 0.5,
+            }}
+          >
+            {resource.title}
+          </Typography>
+
+          {/* Description */}
+          <Typography
+            sx={{
+              fontSize: '0.84rem',
+              color: 'text.secondary',
+              lineHeight: 1.55,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              mb: 1.25,
+            }}
+          >
+            {resource.description}
+          </Typography>
+
+          {/* Author + Stats row */}
+          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mt: 'auto' }}>
+            <Avatar
+              src={resource.avatar}
+              alt={resource.author}
+              sx={{ width: 30, height: 30, fontSize: '0.7rem' }}
+            >
+              {resource.author?.charAt(0)}
+            </Avatar>
+            <Typography sx={{ fontWeight: 600, fontSize: '0.84rem', color: 'text.primary' }}>
+              {resource.author}
+            </Typography>
+
+            {/* Separator dot */}
+            <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled', flexShrink: 0 }} />
+
+            {/* Views */}
+            <Stack direction="row" alignItems="center" spacing={0.4}>
+              <Visibility sx={{ fontSize: 15, color: 'text.disabled' }} />
+              <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', fontWeight: 500 }}>
+                {resource.views}
+              </Typography>
+            </Stack>
+
+            {/* Likes */}
+            <Stack direction="row" alignItems="center" spacing={0.4}>
+              <FavoriteBorder sx={{ fontSize: 15, color: 'text.disabled' }} />
+              <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', fontWeight: 500 }}>
+                {resource.likes}
+              </Typography>
+            </Stack>
+
+            {/* Spacer + actions */}
+            <Box sx={{ flex: 1 }} />
+            <IconButton
+              size="small"
+              aria-label="Save resource"
+              onClick={(e) => e.stopPropagation()}
+              sx={{ p: 0.4 }}
+            >
+              <BookmarkBorder sx={{ fontSize: 18 }} />
+            </IconButton>
+            <IconButton
+              size="small"
+              aria-label="More options"
+              onClick={(e) => e.stopPropagation()}
+              sx={{ p: 0.4 }}
+            >
+              <MoreVert sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Stack>
+        </Box>
+      </Card>
+    );
+  }
+
+  // ─── GRID VIEW (default) ──────────────────────────────────────────────────────
   return (
     <Card
       sx={(theme) => ({
@@ -32,11 +269,11 @@ const ResourceCard = ({ resource, view = 'grid', onClick }) => {
         boxShadow: theme.palette.mode === 'dark'
           ? '0 4px 20px rgba(0,0,0,0.32)'
           : '0 4px 20px rgba(17,24,39,0.07)',
-        display: isList ? { xs: 'block', md: 'flex' } : 'block',
-        cursor: onClick ? 'pointer' : 'default',
+        display: 'block',
+        cursor: handleClick ? 'pointer' : 'default',
         overflow: 'hidden',
         transition: 'transform 220ms cubic-bezier(0.16,1,0.3,1), box-shadow 220ms cubic-bezier(0.16,1,0.3,1)',
-        '&:hover': onClick
+        '&:hover': handleClick
           ? {
               transform: 'translateY(-4px)',
               boxShadow: theme.palette.mode === 'dark'
@@ -45,15 +282,15 @@ const ResourceCard = ({ resource, view = 'grid', onClick }) => {
             }
           : undefined,
       })}
-      onClick={onClick}
+      onClick={handleClick}
     >
       {/* ── Thumbnail ── */}
       <Box
         sx={{
           position: 'relative',
-          width: isList ? { md: 220 } : '100%',
+          width: '100%',
           flexShrink: 0,
-          aspectRatio: isList ? undefined : '16/9',
+          aspectRatio: '16/9',
           overflow: 'hidden',
           bgcolor: 'action.hover',
         }}
@@ -164,6 +401,23 @@ const ResourceCard = ({ resource, view = 'grid', onClick }) => {
         >
           {resource.title}
         </Typography>
+
+        {moduleLabel ? (
+          <Typography
+            sx={{
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              lineHeight: 1.35,
+              color: 'text.secondary',
+              display: '-webkit-box',
+              WebkitLineClamp: 1,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            {moduleLabel}
+          </Typography>
+        ) : null}
 
         {/* Description */}
         <Typography
