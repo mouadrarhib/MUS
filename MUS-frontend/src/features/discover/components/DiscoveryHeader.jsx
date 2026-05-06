@@ -132,7 +132,7 @@ const DiscoveryHeader = () => {
             Dashboard
           </Button>
 
-          <Button variant="contained" startIcon={<Add />} sx={CREATE_BTN_SX}>
+          <Button component={RouterLink} to="/dashboard/uploads" variant="contained" startIcon={<Add />} sx={CREATE_BTN_SX}>
             Create
           </Button>
 
