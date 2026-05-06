@@ -521,9 +521,40 @@ export const getResourceById = async (id) => {
 
   const item = results[0];
   const accessTier = item.access_tier || (await getResourceAccessTier(id));
+
+  // Enrich with creator name and primary role if not already included in the SP result
+  let creatorName = item.creator_name || null;
+  let creatorPrimaryRole = item.primary_role || item.creator_primary_role || null;
+
+  if ((!creatorName || !creatorPrimaryRole) && item.created_by) {
+    try {
+      const sql = [
+        'SELECT',
+        '  u.full_name AS creator_name,',
+        '  (SELECT r.name FROM public.user_roles ur',
+        '   JOIN public.roles r ON r.id = ur.role_id',
+        '   WHERE ur.user_id = u.id ORDER BY r.id ASC LIMIT 1) AS primary_role',
+        'FROM public.users u',
+        'WHERE u.id = :creator_id',
+        'LIMIT 1',
+      ].join(' ');
+      const [creatorRows] = await sequelize.query(sql, {
+        replacements: { creator_id: item.created_by },
+      });
+      if (creatorRows.length) {
+        creatorName = creatorName || creatorRows[0].creator_name || null;
+        creatorPrimaryRole = creatorPrimaryRole || creatorRows[0].primary_role || null;
+      }
+    } catch {
+      // Non-blocking: silently ignore if enrichment fails
+    }
+  }
+
   return {
     ...item,
     access_tier: normalizeAccessTier(accessTier),
+    creator_name: creatorName,
+    primary_role: creatorPrimaryRole,
   };
 };
 
