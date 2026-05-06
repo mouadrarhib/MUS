@@ -16,6 +16,7 @@ const DashboardLayout = lazy(() => import('@/layouts/DashboardLayout'));
 // (Make sure to create src/features/dashboard/pages/Overview.jsx)
 const DashboardOverview = lazy(() => import('@/features/dashboard/pages/Overview'));
 const DiscoverResourcesPage = lazy(() => import('@/features/dashboard/pages/DiscoverResources'));
+const ResourcePreviewPage = lazy(() => import('@/features/discover/pages/ResourcePreview'));
 const RecommendationsPage = lazy(() => import('@/features/dashboard/pages/Recommendations'));
 const CreatorGuidePage = lazy(() => import('@/features/discover/pages/CreatorGuide'));
 const UsersPage = lazy(() => import('@/features/users/pages/Users'));
@@ -78,6 +79,14 @@ const AppRouter = () => {
           element={
             <ProtectedRoute>
               <CreatorGuidePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/discover/resources/:id/preview"
+          element={
+            <ProtectedRoute>
+              <ResourcePreviewPage />
             </ProtectedRoute>
           }
         />
