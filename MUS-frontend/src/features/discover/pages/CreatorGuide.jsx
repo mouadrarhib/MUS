@@ -1,83 +1,252 @@
-import { Box, Button, Paper, Stack, Typography, Accordion, AccordionSummary, AccordionDetails, Divider, Chip } from '@mui/material';
-import { ArrowForward, ExpandMore, EmojiEvents, Settings, UploadFile, LockOpen, Recommend, MilitaryTech, AccountCircle } from '@mui/icons-material';
+import { Box, Button, Paper, Stack, Typography, Accordion, AccordionSummary, AccordionDetails, Divider } from '@mui/material';
+import { ArrowForward, ExpandMore, Star, TrendingUp, EmojiEvents, AttachMoney, LockOpen, AccountBalanceWallet } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 import DiscoveryHeader from '@/features/discover/components/DiscoveryHeader';
 
+import folderIcon from '@/assets/images/folderIcon.png';
+import videoIcon from '@/assets/images/videoIcon.png';
+import trophyIcon from '@/assets/images/trophyIcon.png';
+import coinStack from '@/assets/images/coinStack.png';
+
 const steps = [
   {
-    title: 'Complete your profile',
-    description: 'Navigate to your Settings and add your real name, upload an avatar, and confirm your academic context (Institution, Program, Level, and Semester).',
-    icon: <AccountCircle color="primary" sx={{ mt: 0.2 }} />
+    num: 1,
+    title: 'Share to Unlock',
+    description: 'Post summaries, exercises, explanations',
+    badgeText: 'Earn points â†’ unlock resources',
+    badgeIcon: <Star sx={{ fontSize: 16 }} />,
+    badgeColor: '#10B981', // green
+    badgeBg: 'rgba(16, 185, 129, 0.08)',
+    image: folderIcon,
   },
   {
-    title: 'Enable Contributor Mode',
-    description: 'Go to Settings > Academic Information. Under the "Student Mode" section, switch your toggle from Learner to Contributor.',
-    icon: <Settings color="primary" sx={{ mt: 0.2 }} />
+    num: 2,
+    title: 'Become a Creator',
+    description: 'Upload lesson videos, help others learn',
+    badgeText: 'The more you help, the more you grow',
+    badgeIcon: <TrendingUp sx={{ fontSize: 16 }} />,
+    badgeColor: '#3B82F6', // blue
+    badgeBg: 'rgba(59, 130, 246, 0.08)',
+    image: videoIcon,
   },
   {
-    title: 'Prepare & Upload',
-    description: 'Navigate to the newly unlocked Uploads page. Attach your files, provide a thumbnail if applicable, and use clear titles and relevant tags.',
-    icon: <UploadFile color="primary" sx={{ mt: 0.2 }} />
+    num: 3,
+    title: 'Grow Your Rank',
+    description: 'Earn points, increase visibility',
+    badgeText: 'Top students become recognized creators',
+    badgeIcon: <EmojiEvents sx={{ fontSize: 16 }} />, // crown approx
+    badgeColor: '#F59E0B', // yellow/orange
+    badgeBg: 'rgba(245, 158, 11, 0.08)',
+    image: trophyIcon,
   },
   {
-    title: 'Respond to feedback',
-    description: 'Our Admin team will review the content. If reviewers request changes, update your content and resubmit quickly. Once approved, your resource is published globally!',
-    icon: <MilitaryTech color="primary" sx={{ mt: 0.2 }} />
+    num: 4,
+    title: 'Start Earning',
+    description: 'Offer consultations, premium content',
+    badgeText: 'Turn knowledge into income',
+    badgeIcon: <AttachMoney sx={{ fontSize: 16 }} />,
+    badgeColor: '#8B5CF6', // purple
+    badgeBg: 'rgba(139, 92, 246, 0.08)',
+    image: coinStack,
   },
 ];
 
 const faqs = [
   {
-    q: "Do I need to fill out a separate application form to become a creator?",
+    q: "Do I need to fill out a separate application form?",
     a: "No! Any registered student can become a creator simply by navigating to their Settings and switching their Student Mode from Learner to Contributor."
   },
   {
-    q: "Why can't I access the Uploads page?",
-    a: "If you are getting redirected to the dashboard when trying to access uploads, it means your account is currently in Learner mode. You must enable Contributor mode in your settings first."
-  },
-  {
     q: "Are my uploaded resources published immediately?",
-    a: "No. To maintain platform quality, all uploaded resources are put into a 'Pending' queue. Administrators review and verify the content through the Content Verification portal before it becomes visible to all students."
-  },
-  {
-    q: "Can I switch back to being just a Learner?",
-    a: "Yes. You can toggle back to Learner mode at any time in your Settings. However, doing so will block your access to the Uploads area until you switch back."
-  },
-  {
-    q: "What information is visible to other students when I upload?",
-    a: "When your resource is published, the platform will display your Full Name, Avatar, and your Primary Role on the resource card, giving you full credit for your contribution."
+    a: "To maintain platform quality, all uploaded resources are put into a 'Pending' queue. Administrators review the content before it becomes visible to all students."
   },
   {
     q: "How do I earn points and access premium resources?",
-    a: "As a Creator, you earn points whenever another user downloads or favorites your uploaded resources. You can then use these accumulated points from your wallet to download premium resources without needing a paid premium membership."
+    a: "You earn points whenever another user downloads or favorites your uploaded resources. You can then use these accumulated points to download premium resources without needing a paid membership."
   }
 ];
+
+const StepCard = ({ step, isLast }) => (
+  <Box sx={{ display: 'flex', alignItems: 'stretch', position: 'relative', width: { xs: '100%', sm: 300, lg: '25%' } }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', height: '100%' }}>
+      {/* Number Badge */}
+      <Box 
+        sx={{ 
+          width: 36, 
+          height: 36, 
+          borderRadius: '50%', 
+          bgcolor: 'background.paper', 
+          color: '#6366F1', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          fontWeight: 800,
+          fontSize: '1.1rem',
+          mb: 1.5,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+          zIndex: 2,
+        }}
+      >
+        {step.num}
+      </Box>
+      
+      {/* Card */}
+      <Paper
+        sx={(theme) => ({
+          p: 3,
+          width: '100%',
+          flex: 1, // ensure it grows
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          borderRadius: 4,
+          border: '1px solid',
+          borderColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+          boxShadow: theme.palette.mode === 'dark' ? '0 12px 32px rgba(0,0,0,0.3)' : '0 12px 32px rgba(17,24,39,0.04)',
+          bgcolor: theme.palette.background.paper,
+        })}
+      >
+        <Box component="img" src={step.image} alt={step.title} sx={{ width: 140, height: 140, objectFit: 'contain', mb: 2 }} />
+        <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: 'primary.main', mb: 0.5 }}>
+          {step.title}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 'auto', lineHeight: 1.5 }}>
+          {step.description}
+        </Typography>
+        
+        {/* Bottom Badge */}
+        <Box 
+          sx={{ 
+            mt: 3,
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1,
+            px: 1.5,
+            py: 0.75,
+            borderRadius: 2,
+            bgcolor: step.badgeBg,
+            color: step.badgeColor,
+          }}
+        >
+          {step.badgeIcon}
+          <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, lineHeight: 1.2 }}>
+            {step.badgeText}
+          </Typography>
+        </Box>
+      </Paper>
+    </Box>
+
+    {/* Arrow Connector (Desktop only) */}
+    {!isLast && (
+      <ArrowForward 
+        sx={{ 
+          display: { xs: 'none', lg: 'block' }, 
+          position: 'absolute', 
+          right: -16, 
+          top: '50%', 
+          transform: 'translateY(-50%)',
+          color: 'text.disabled',
+          zIndex: 1,
+        }} 
+      />
+    )}
+  </Box>
+);
 
 const CreatorGuide = () => {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <DiscoveryHeader />
 
-      <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 2, md: 3 }, py: { xs: 4, md: 6 } }}>
+      <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 3 }, py: { xs: 4, md: 6 } }}>
         
-        {/* ── Hero Section ── */}
+        {/* â”€â”€ Hero Section â”€â”€ */}
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Typography 
-            variant="h3" 
+            variant="h2" 
             sx={{ 
               fontWeight: 800, 
-              mb: 2, 
+              mb: 1.5, 
               background: 'linear-gradient(92deg, #1D72F2 0%, #7C3AED 100%)', 
               WebkitBackgroundClip: 'text', 
               WebkitTextFillColor: 'transparent',
-              fontSize: { xs: '2rem', md: '3rem' }
+              fontSize: { xs: '2.5rem', md: '4rem' },
+              letterSpacing: '-0.02em',
             }}
           >
-            Share your knowledge.<br/>Help others. Earn recognition.
+            Become a Creator
           </Typography>
-          <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500, mb: 4 }}>
-            Join our community of student educators today!
+          <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500, fontSize: { xs: '1.1rem', md: '1.3rem' } }}>
+            Share your knowledge. Help others. Earn recognition.
           </Typography>
+        </Box>
+
+        {/* â”€â”€ Cards Journey â”€â”€ */}
+        <Stack 
+          direction={{ xs: 'column', lg: 'row' }} 
+          spacing={{ xs: 6, lg: 2 }} 
+          alignItems={{ xs: 'center', lg: 'stretch' }}
+          justifyContent="center"
+          sx={{ mb: 6, position: 'relative' }}
+        >
+          {steps.map((step, index) => (
+            <StepCard key={step.title} step={step} isLast={index === steps.length - 1} />
+          ))}
+        </Stack>
+
+        {/* â”€â”€ Rewards Strip â”€â”€ */}
+        <Paper 
+          sx={(theme) => ({ 
+            p: 0,
+            borderRadius: 4, 
+            mb: 6, 
+            border: '1px solid', 
+            borderColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', 
+            boxShadow: theme.palette.mode === 'dark' ? '0 8px 24px rgba(0,0,0,0.2)' : '0 8px 24px rgba(17,24,39,0.03)',
+            overflow: 'hidden',
+          })}
+        >
+          <Stack 
+            direction={{ xs: 'column', md: 'row' }} 
+            divider={<Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', md: 'block' } }} />}
+          >
+            <Box sx={{ flex: 1, p: { xs: 3, md: 4 }, display: 'flex', gap: 2.5, alignItems: 'flex-start' }}>
+              <EmojiEvents sx={{ fontSize: 40, color: '#2563EB' }} />
+              <Box>
+                <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', mb: 0.5 }}>Rewards & Gamification</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+                  Earn points when users download or favorite your content.
+                </Typography>
+              </Box>
+            </Box>
+            <Divider sx={{ display: { xs: 'block', md: 'none' } }} />
+            <Box sx={{ flex: 1, p: { xs: 3, md: 4 }, display: 'flex', gap: 2.5, alignItems: 'flex-start' }}>
+              <LockOpen sx={{ fontSize: 40, color: '#F59E0B' }} />
+              <Box>
+                <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', mb: 0.5 }}>Unlock Premium Resources</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+                  Use your points to unlock and download premium resources.
+                </Typography>
+              </Box>
+            </Box>
+            <Divider sx={{ display: { xs: 'block', md: 'none' } }} />
+            <Box sx={{ flex: 1, p: { xs: 3, md: 4 }, display: 'flex', gap: 2.5, alignItems: 'flex-start' }}>
+              <AccountBalanceWallet sx={{ fontSize: 40, color: '#10B981' }} />
+              <Box>
+                <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', mb: 0.5 }}>Your Earnings</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+                  Points are stored in your wallet. More contribution, more rewards!
+                </Typography>
+              </Box>
+            </Box>
+          </Stack>
+        </Paper>
+
+        {/* â”€â”€ Main CTA â”€â”€ */}
+        <Box sx={{ textAlign: 'center', mb: 8 }}>
           <Button
             component={RouterLink}
             to="/dashboard/settings"
@@ -88,153 +257,49 @@ const CreatorGuide = () => {
               textTransform: 'none', 
               fontWeight: 700, 
               borderRadius: 99, 
-              px: 4, 
-              py: 1.5, 
-              fontSize: '1.1rem',
+              px: 4.5, 
+              py: 1.6, 
+              fontSize: '1.15rem',
               background: 'linear-gradient(92deg, #1D72F2 0%, #7C3AED 100%)', 
-              boxShadow: '0 4px 20px rgba(29,114,242,0.3)',
-              transition: 'transform 0.2s',
-              '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 6px 24px rgba(29,114,242,0.4)' }
+              boxShadow: '0 8px 24px rgba(29,114,242,0.3)',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 12px 32px rgba(29,114,242,0.4)' }
             }}
           >
             Become a Creator
           </Button>
         </Box>
 
-        {/* ── What is a Creator ── */}
-        <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: 4, mb: 4, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, mb: 2 }}>What is a Creator on MUS?</Typography>
-          <Typography color="text.secondary" sx={{ mb: 2, fontSize: '1.05rem', lineHeight: 1.6 }}>
-            A <strong>Creator</strong> on the MUS platform is a student who actively contributes to the learning ecosystem by sharing their own study materials.
-          </Typography>
-          <Typography color="text.secondary" sx={{ mb: 2 }}>
-            While standard students (Learner Mode) can browse, discover, and save resources, Creators (Contributor Mode) have elevated permissions that allow them to:
-          </Typography>
-          <Box component="ul" sx={{ color: 'text.secondary', pl: 3, m: 0, '& li': { mb: 1 } }}>
-            <li>Access the dedicated <strong>My Uploads</strong> portal.</li>
-            <li>Upload study files, thumbnails, and learning materials.</li>
-            <li>Categorize content by institution, program, level, and specific modules.</li>
-            <li>Have their name, avatar, and academic role publicly credited on the resources they author.</li>
+        {/* â”€â”€ Short FAQ â”€â”€ */}
+        <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+          <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, textAlign: 'center' }}>Frequently Asked Questions</Typography>
+          <Box>
+            {faqs.map((faq, index) => (
+              <Accordion 
+                key={index} 
+                disableGutters
+                sx={{ 
+                  border: '1px solid', 
+                  borderColor: 'divider', 
+                  bgcolor: 'transparent',
+                  boxShadow: 'none',
+                  '&:before': { display: 'none' },
+                  '&:first-of-type': { borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+                  '&:last-of-type': { borderBottomLeftRadius: 16, borderBottomRightRadius: 16 },
+                  mb: '-1px'
+                }}
+              >
+                <AccordionSummary expandIcon={<ExpandMore />} sx={{ px: 3, py: 1 }}>
+                  <Typography sx={{ fontWeight: 600 }}>{faq.q}</Typography>
+                </AccordionSummary>
+                <AccordionDetails sx={{ px: 3, pb: 3, pt: 0 }}>
+                  <Typography color="text.secondary" sx={{ lineHeight: 1.6 }}>{faq.a}</Typography>
+                </AccordionDetails>
+              </Accordion>
+            ))}
           </Box>
-        </Paper>
-
-        {/* ── Gamification & Rewards ── */}
-        <Paper sx={{ 
-          p: { xs: 3, md: 4 }, 
-          borderRadius: 4, 
-          mb: 4, 
-          border: '1.5px solid', 
-          borderColor: 'primary.main', 
-          background: 'linear-gradient(145deg, rgba(29,114,242,0.03) 0%, rgba(124,58,237,0.03) 100%)',
-          boxShadow: 'none' 
-        }}>
-          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
-            <EmojiEvents color="primary" sx={{ fontSize: 32 }} />
-            <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main' }}>Rewards & Gamification</Typography>
-          </Stack>
-          <Typography color="text.secondary" sx={{ mb: 3, fontSize: '1.05rem', lineHeight: 1.6 }}>
-            As a Creator, your contributions directly earn you rewards on the platform! You gain <strong>points</strong> whenever another user interacts with your approved content:
-          </Typography>
-          
-          <Stack spacing={2} sx={{ mb: 4 }}>
-            <Paper sx={{ p: 2, borderRadius: 3, display: 'flex', gap: 2, alignItems: 'center', border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-              <Chip label="+10 pts" color="success" sx={{ fontWeight: 700, borderRadius: 2 }} />
-              <Typography color="text.secondary"><strong>Downloads:</strong> Earn points every time a unique user downloads your resource.</Typography>
-            </Paper>
-            <Paper sx={{ p: 2, borderRadius: 3, display: 'flex', gap: 2, alignItems: 'center', border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-              <Chip label="+2 pts" color="info" sx={{ fontWeight: 700, borderRadius: 2 }} />
-              <Typography color="text.secondary"><strong>Favorites:</strong> Earn points every time a user adds your resource to their library.</Typography>
-            </Paper>
-          </Stack>
-
-          <Divider sx={{ mb: 3 }} />
-          
-          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1.5 }}>
-            <LockOpen color="warning" />
-            <Typography sx={{ fontWeight: 800, fontSize: '1.1rem' }}>Unlock Premium Resources</Typography>
-          </Stack>
-          <Typography color="text.secondary" sx={{ lineHeight: 1.6 }}>
-            The points you accumulate are deposited into your personal wallet. These points can be used to <strong>unlock and download Premium resources</strong> on the platform without needing a paid membership! Sharing your own study materials pays for the premium materials you need to succeed.
-          </Typography>
-        </Paper>
-
-        {/* ── Step-by-Step ── */}
-        <Typography variant="h5" sx={{ fontWeight: 800, mb: 3, mt: 5 }}>Step-by-Step Guide</Typography>
-        <Stack spacing={2} sx={{ mb: 5 }}>
-          {steps.map((step, index) => (
-            <Paper
-              key={step.title}
-              sx={(theme) => ({
-                p: 3,
-                borderRadius: 4,
-                border: '1px solid',
-                borderColor: theme.palette.divider,
-                boxShadow: 'none',
-                display: 'flex',
-                gap: 2,
-                alignItems: 'flex-start',
-              })}
-            >
-              {step.icon}
-              <Box>
-                <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', mb: 0.5 }}>
-                  {index + 1}. {step.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-                  {step.description}
-                </Typography>
-              </Box>
-            </Paper>
-          ))}
-        </Stack>
-
-        {/* ── FAQ ── */}
-        <Typography variant="h5" sx={{ fontWeight: 800, mb: 3, mt: 5 }}>Frequently Asked Questions</Typography>
-        <Box sx={{ mb: 6 }}>
-          {faqs.map((faq, index) => (
-            <Accordion 
-              key={index} 
-              disableGutters
-              sx={{ 
-                border: '1px solid', 
-                borderColor: 'divider', 
-                boxShadow: 'none',
-                '&:before': { display: 'none' },
-                '&:first-of-type': { borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-                '&:last-of-type': { borderBottomLeftRadius: 16, borderBottomRightRadius: 16 },
-                mb: '-1px'
-              }}
-            >
-              <AccordionSummary expandIcon={<ExpandMore />} sx={{ px: 3, py: 1 }}>
-                <Typography sx={{ fontWeight: 600 }}>{faq.q}</Typography>
-              </AccordionSummary>
-              <AccordionDetails sx={{ px: 3, pb: 3, pt: 0 }}>
-                <Typography color="text.secondary" sx={{ lineHeight: 1.6 }}>{faq.a}</Typography>
-              </AccordionDetails>
-            </Accordion>
-          ))}
         </Box>
 
-        {/* ── Bottom Actions ── */}
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" sx={{ mt: 4 }}>
-          <Button
-            component={RouterLink}
-            to="/dashboard/uploads"
-            variant="contained"
-            endIcon={<ArrowForward />}
-            sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 99, px: 3, py: 1.2 }}
-          >
-            Go to My Uploads
-          </Button>
-          <Button
-            component={RouterLink}
-            to="/discover"
-            variant="outlined"
-            sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 99, px: 3, py: 1.2 }}
-          >
-            Back to discover
-          </Button>
-        </Stack>
       </Box>
     </Box>
   );

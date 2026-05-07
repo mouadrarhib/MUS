@@ -9,7 +9,6 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
-import Grid from '@mui/material/Grid';
 import { alpha } from '@mui/material/styles';
 
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -270,7 +269,14 @@ const ResourceDetailsDialog = memo(({ open, resource, onClose, onOpenPreviewPage
             
             <Box sx={{ px: { xs: 2, md: 4 }, pb: { xs: 2, md: 4 }, flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: 600 }}>
               <DialogSectionTitle icon={<OpenInNewIcon />} title="Preview" />
-              <Box sx={{ ...PREVIEW_BOX_SX, flexGrow: 1, mb: 0, p: (normalizedFormat === 'pdf' || isOfficeFormat) ? 0 : 2 }}>
+              <Box
+                sx={(theme) => ({
+                  ...PREVIEW_BOX_SX(theme),
+                  flexGrow: 1,
+                  mb: 0,
+                  p: normalizedFormat === 'pdf' || isOfficeFormat ? 0 : 2,
+                })}
+              >
               {(normalizedFormat === 'pdf' || isOfficeFormat) && previewUrl && !previewError && (
                  <Box sx={{ width: '100%', borderBottom: '1px solid', borderColor: 'divider', bgcolor: (theme) => theme.palette.mode === 'dark' ? alpha(theme.palette.background.paper, 0.4) : alpha(theme.palette.common.white, 0.6), px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                    {normalizedFormat === 'pdf' ? <DescriptionIcon color="error" sx={{ fontSize: 18 }} /> : <DescriptionIcon color="info" sx={{ fontSize: 18 }} />}
