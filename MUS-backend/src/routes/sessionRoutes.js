@@ -9,10 +9,12 @@ import {
   createTeacherSlotHandler,
   deleteTeacherSlotHandler,
   getSessionBookingByIdHandler,
+  getTutorPricingProfileHandler,
   listBookableSlotsHandler,
   listMySessionBookingsHandler,
   listSessionMessagesHandler,
   listTeacherSlotsHandler,
+  upsertMyTutorPricingProfileHandler,
   updateTeacherSlotHandler,
 } from "../controllers/sessionController.js";
 import authMiddleware from "../middleware/auth.js";
@@ -33,11 +35,30 @@ router.get(
   listBookableSlotsHandler
 );
 
+router.get(
+  "/tutors/:tutorId/pricing",
+  [param("tutorId").isUUID().withMessage("Valid tutor UUID is required")],
+  validateRequest,
+  getTutorPricingProfileHandler
+);
+
 router.use(authMiddleware);
+
+router.put(
+  "/tutors/me/pricing",
+  requireRole("teacher", "student", "admin"),
+  [
+    body("base_rate_per_hour").isFloat({ min: 0 }).withMessage("base_rate_per_hour must be >= 0"),
+    body("currency").optional().isString().isLength({ min: 3, max: 8 }).withMessage("currency must be 3-8 characters"),
+    body("is_active").optional().isBoolean().withMessage("is_active must be boolean"),
+  ],
+  validateRequest,
+  upsertMyTutorPricingProfileHandler
+);
 
 router.get(
   "/teacher/slots",
-  requireRole("teacher", "admin"),
+  requireRole("teacher", "student", "admin"),
   [query("include_inactive").optional().isBoolean().withMessage("include_inactive must be boolean")],
   validateRequest,
   listTeacherSlotsHandler
@@ -45,7 +66,7 @@ router.get(
 
 router.post(
   "/teacher/slots",
-  requireRole("teacher"),
+  requireRole("teacher", "student", "admin"),
   [
     body("start_at").isISO8601().withMessage("start_at must be valid ISO datetime"),
     body("end_at").isISO8601().withMessage("end_at must be valid ISO datetime"),
@@ -57,7 +78,7 @@ router.post(
 
 router.patch(
   "/teacher/slots/:slotId",
-  requireRole("teacher"),
+  requireRole("teacher", "student", "admin"),
   [
     param("slotId").isInt({ min: 1 }).withMessage("slotId must be a positive integer"),
     body("start_at").optional().isISO8601().withMessage("start_at must be valid ISO datetime"),
@@ -71,7 +92,7 @@ router.patch(
 
 router.delete(
   "/teacher/slots/:slotId",
-  requireRole("teacher"),
+  requireRole("teacher", "student", "admin"),
   [param("slotId").isInt({ min: 1 }).withMessage("slotId must be a positive integer")],
   validateRequest,
   deleteTeacherSlotHandler
@@ -83,6 +104,11 @@ router.post(
   [
     body("slot_id").isInt({ min: 1 }).withMessage("slot_id must be a positive integer"),
     body("note").optional().isString().isLength({ max: 2000 }).withMessage("note must be <= 2000 characters"),
+    body("duration_minutes").optional().isIn([30, 60, 90, 120]).withMessage("duration_minutes must be one of 30,60,90,120"),
+    body("session_mode").optional().isIn(["remote"]).withMessage("session_mode must be remote"),
+    body("subject_module").optional().isString().isLength({ max: 200 }).withMessage("subject_module must be <= 200 characters"),
+    body("pricing_snapshot").optional().isObject().withMessage("pricing_snapshot must be an object"),
+    body("booking_metadata").optional().isObject().withMessage("booking_metadata must be an object"),
   ],
   validateRequest,
   createSessionBookingHandler

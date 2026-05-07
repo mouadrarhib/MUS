@@ -13,6 +13,8 @@ import {
   listMySessionBookings,
   listSessionMessages,
   listTeacherSlots,
+  getTutorPricingProfile,
+  upsertMyTutorPricingProfile,
   updateTeacherSlot,
 } from "../services/sessionService.js";
 
@@ -25,6 +27,23 @@ export const listBookableSlotsHandler = asyncHandler(async (req, res) => {
     offset: Number(offset),
   });
   return successResponse(res, "Bookable slots retrieved successfully", data);
+});
+
+export const getTutorPricingProfileHandler = asyncHandler(async (req, res) => {
+  const { tutorId } = req.params;
+  const data = await getTutorPricingProfile({ tutorId });
+  return successResponse(res, "Tutor pricing profile retrieved successfully", data);
+});
+
+export const upsertMyTutorPricingProfileHandler = asyncHandler(async (req, res) => {
+  const { base_rate_per_hour, currency = "USD", is_active = true } = req.body;
+  const data = await upsertMyTutorPricingProfile({
+    actor: req.user,
+    baseRatePerHour: base_rate_per_hour,
+    currency,
+    isActive: is_active,
+  });
+  return successResponse(res, "Tutor pricing profile updated successfully", data);
 });
 
 export const listTeacherSlotsHandler = asyncHandler(async (req, res) => {
@@ -71,11 +90,24 @@ export const deleteTeacherSlotHandler = asyncHandler(async (req, res) => {
 });
 
 export const createSessionBookingHandler = asyncHandler(async (req, res) => {
-  const { slot_id, note } = req.body;
+  const {
+    slot_id,
+    note,
+    duration_minutes,
+    session_mode,
+    subject_module,
+    pricing_snapshot,
+    booking_metadata,
+  } = req.body;
   const data = await createSessionBooking({
     actor: req.user,
     slotId: Number(slot_id),
     note,
+    durationMinutes: duration_minutes,
+    sessionMode: session_mode,
+    subjectModule: subject_module,
+    pricingSnapshot: pricing_snapshot,
+    bookingMetadata: booking_metadata,
   });
   return successResponse(res, "Session booked successfully", data, 201);
 });

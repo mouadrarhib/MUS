@@ -23,6 +23,7 @@ import logo from '@/assets/images/logo.png';
 
 const navLinks = [
   { label: 'Discover', to: '/discover' },
+  { label: 'Tutors', to: '/discover/tutors' },
   { label: 'How to become a creator', to: '/discover/how-to-become-creator' },
 ];
 

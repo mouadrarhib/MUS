@@ -19,6 +19,7 @@ const DiscoverResourcesPage = lazy(() => import('@/features/dashboard/pages/Disc
 const ResourcePreviewPage = lazy(() => import('@/features/discover/pages/ResourcePreview'));
 const RecommendationsPage = lazy(() => import('@/features/dashboard/pages/Recommendations'));
 const CreatorGuidePage = lazy(() => import('@/features/discover/pages/CreatorGuide'));
+const DiscoverTutorsPage = lazy(() => import('@/features/discover/pages/DiscoverTutors'));
 const UsersPage = lazy(() => import('@/features/users/pages/Users'));
 const PointsManagementPage = lazy(() => import('@/features/points/pages/PointsManagement'));
 const ResourcesPage = lazy(() => import('@/features/resources/pages/Resources'));
@@ -79,6 +80,14 @@ const AppRouter = () => {
           element={
             <ProtectedRoute>
               <CreatorGuidePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/discover/tutors"
+          element={
+            <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER']} blockedRoles={['ADMIN']}>
+              <DiscoverTutorsPage />
             </ProtectedRoute>
           }
         />

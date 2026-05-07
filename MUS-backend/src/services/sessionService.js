@@ -21,6 +21,28 @@ const requireStudent = (user) => {
   if (!hasRole(user, "student")) throw new AppError("Acces refuse", 403);
 };
 
+const isContributorStudent = async (userId) => {
+  const [rows] = await sequelize.query(
+    `
+    SELECT contribution_mode
+    FROM public.student_profiles
+    WHERE user_id = :user_id
+    LIMIT 1
+    `,
+    { replacements: { user_id: userId } }
+  );
+
+  const mode = String(rows?.[0]?.contribution_mode || "").trim().toLowerCase();
+  return mode === "contributor";
+};
+
+const requireTutor = async (user) => {
+  if (!user?.id) throw new AppError("Authentification requise", 401);
+  if (hasRole(user, "teacher") || hasRole(user, "admin")) return;
+  if (hasRole(user, "student") && (await isContributorStudent(user.id))) return;
+  throw new AppError("Acces refuse", 403);
+};
+
 const ensureBookingParticipant = (booking, user) => {
   const isAdmin = hasRole(user, "admin");
   if (isAdmin) return;
@@ -67,6 +89,24 @@ const notifySessionParticipants = async ({ actorId, booking, type, title, body, 
   }
 };
 
+const DURATION_MINUTES = [30, 60, 90, 120];
+const PLATFORM_FEE_FIXED = 2;
+
+const buildPricingTiers = (baseRatePerHour, currency = "USD") => {
+  const base = Number(baseRatePerHour || 0);
+  return DURATION_MINUTES.map((duration) => {
+    const sessionAmount = Number(((base * duration) / 60).toFixed(2));
+    const totalAmount = Number((sessionAmount + PLATFORM_FEE_FIXED).toFixed(2));
+    return {
+      duration_minutes: duration,
+      session_amount: sessionAmount,
+      platform_fee: PLATFORM_FEE_FIXED,
+      total_amount: totalAmount,
+      currency,
+    };
+  });
+};
+
 export const listBookableSlots = async ({ teacherId = null, startFrom = null, limit = 50, offset = 0 }) => {
   const [rows] = await sequelize.query(SQL.SESSION.GET_BOOKABLE_TEACHER_SLOTS, {
     replacements: {
@@ -79,8 +119,82 @@ export const listBookableSlots = async ({ teacherId = null, startFrom = null, li
   return rows;
 };
 
+export const getTutorPricingProfile = async ({ tutorId }) => {
+  const [rows] = await sequelize.query(
+    `
+    SELECT user_id, base_rate_per_hour, currency, is_active, updated_at
+    FROM public.tutor_pricing_profiles
+    WHERE user_id = :user_id
+    LIMIT 1
+    `,
+    { replacements: { user_id: tutorId } }
+  );
+
+  const row = rows?.[0] || null;
+  const baseRatePerHour = Number(row?.base_rate_per_hour || 25);
+  const currency = String(row?.currency || "USD").toUpperCase();
+  const isActive = row?.is_active !== false;
+
+  return {
+    tutor_id: tutorId,
+    base_rate_per_hour: baseRatePerHour,
+    currency,
+    is_active: isActive,
+    durations_supported: DURATION_MINUTES,
+    pricing_tiers: buildPricingTiers(baseRatePerHour, currency),
+    updated_at: row?.updated_at || null,
+  };
+};
+
+export const upsertMyTutorPricingProfile = async ({ actor, baseRatePerHour, currency = "USD", isActive = true }) => {
+  await requireTutor(actor);
+
+  const safeBaseRate = Number(baseRatePerHour);
+  if (!Number.isFinite(safeBaseRate) || safeBaseRate < 0) {
+    throw new AppError("base_rate_per_hour must be a non-negative number", 400);
+  }
+
+  const safeCurrency = String(currency || "USD").trim().toUpperCase();
+  if (safeCurrency.length < 3 || safeCurrency.length > 8) {
+    throw new AppError("currency must be 3-8 characters", 400);
+  }
+
+  const [rows] = await sequelize.query(
+    `
+    INSERT INTO public.tutor_pricing_profiles (user_id, base_rate_per_hour, currency, is_active)
+    VALUES (:user_id, :base_rate_per_hour, :currency, :is_active)
+    ON CONFLICT (user_id)
+    DO UPDATE SET
+      base_rate_per_hour = EXCLUDED.base_rate_per_hour,
+      currency = EXCLUDED.currency,
+      is_active = EXCLUDED.is_active,
+      updated_at = NOW()
+    RETURNING user_id, base_rate_per_hour, currency, is_active, updated_at
+    `,
+    {
+      replacements: {
+        user_id: actor.id,
+        base_rate_per_hour: safeBaseRate,
+        currency: safeCurrency,
+        is_active: Boolean(isActive),
+      },
+    }
+  );
+
+  const row = rows?.[0] || null;
+  return {
+    tutor_id: row?.user_id || actor.id,
+    base_rate_per_hour: Number(row?.base_rate_per_hour || safeBaseRate),
+    currency: String(row?.currency || safeCurrency).toUpperCase(),
+    is_active: row?.is_active !== false,
+    durations_supported: DURATION_MINUTES,
+    pricing_tiers: buildPricingTiers(Number(row?.base_rate_per_hour || safeBaseRate), String(row?.currency || safeCurrency).toUpperCase()),
+    updated_at: row?.updated_at || null,
+  };
+};
+
 export const listTeacherSlots = async ({ actor, includeInactive = true }) => {
-  requireTeacher(actor);
+  await requireTutor(actor);
   const [rows] = await sequelize.query(SQL.SESSION.GET_TEACHER_SLOTS, {
     replacements: {
       teacher_id: actor.id,
@@ -91,7 +205,7 @@ export const listTeacherSlots = async ({ actor, includeInactive = true }) => {
 };
 
 export const createTeacherSlot = async ({ actor, startAt, endAt, timezone = "UTC" }) => {
-  requireTeacher(actor);
+  await requireTutor(actor);
   try {
     const [rows] = await sequelize.query(SQL.SESSION.CREATE_TEACHER_SLOT, {
       replacements: {
@@ -108,7 +222,7 @@ export const createTeacherSlot = async ({ actor, startAt, endAt, timezone = "UTC
 };
 
 export const updateTeacherSlot = async ({ actor, slotId, startAt = null, endAt = null, timezone = null, isActive = null }) => {
-  requireTeacher(actor);
+  await requireTutor(actor);
   try {
     const [rows] = await sequelize.query(SQL.SESSION.UPDATE_TEACHER_SLOT, {
       replacements: {
@@ -127,7 +241,7 @@ export const updateTeacherSlot = async ({ actor, slotId, startAt = null, endAt =
 };
 
 export const deleteTeacherSlot = async ({ actor, slotId }) => {
-  requireTeacher(actor);
+  await requireTutor(actor);
   try {
     const [rows] = await sequelize.query(SQL.SESSION.DELETE_TEACHER_SLOT, {
       replacements: {
@@ -141,8 +255,37 @@ export const deleteTeacherSlot = async ({ actor, slotId }) => {
   }
 };
 
-export const createSessionBooking = async ({ actor, slotId, note = null }) => {
+export const createSessionBooking = async ({
+  actor,
+  slotId,
+  note = null,
+  durationMinutes = 60,
+  sessionMode = "remote",
+  subjectModule = null,
+  pricingSnapshot = null,
+  bookingMetadata = null,
+}) => {
   requireStudent(actor);
+
+  const safeDuration = Number(durationMinutes || 60);
+  if (![30, 60, 90, 120].includes(safeDuration)) {
+    throw new AppError("duration_minutes must be one of 30,60,90,120", 400);
+  }
+
+  const safeSessionMode = String(sessionMode || "remote").trim().toLowerCase();
+  if (safeSessionMode !== "remote") {
+    throw new AppError("session_mode must be remote", 400);
+  }
+
+  const safeSubjectModule = subjectModule == null ? null : String(subjectModule).trim().slice(0, 200);
+
+  const safePricingSnapshot = pricingSnapshot && typeof pricingSnapshot === "object"
+    ? pricingSnapshot
+    : {};
+  const safeBookingMetadata = bookingMetadata && typeof bookingMetadata === "object"
+    ? bookingMetadata
+    : {};
+
   try {
     const [rows] = await sequelize.query(SQL.SESSION.BOOK_SESSION, {
       replacements: {
@@ -151,7 +294,35 @@ export const createSessionBooking = async ({ actor, slotId, note = null }) => {
         note,
       },
     });
-    const booking = rows[0] || null;
+    let booking = rows[0] || null;
+    if (booking?.id) {
+      const [metaRows] = await sequelize.query(
+        `
+        UPDATE public.teacher_session_bookings
+        SET
+          duration_minutes = :duration_minutes,
+          session_mode = :session_mode,
+          subject_module = :subject_module,
+          pricing_snapshot = CAST(:pricing_snapshot AS jsonb),
+          booking_metadata = CAST(:booking_metadata AS jsonb),
+          updated_at = NOW()
+        WHERE id = :booking_id
+        RETURNING *
+        `,
+        {
+          replacements: {
+            booking_id: booking.id,
+            duration_minutes: safeDuration,
+            session_mode: safeSessionMode,
+            subject_module: safeSubjectModule,
+            pricing_snapshot: JSON.stringify(safePricingSnapshot || {}),
+            booking_metadata: JSON.stringify(safeBookingMetadata || {}),
+          },
+        }
+      );
+      booking = metaRows?.[0] || booking;
+    }
+
     if (booking) {
       await notifySessionParticipants({
         actorId: actor.id,

@@ -1,4 +1,4 @@
-import { del, get, patch, post } from "@/services/http";
+import { del, get, patch, post, put } from "@/services/http";
 
 const sessionService = {
   listBookableSlots: async ({ teacherId, startFrom, limit = 80, offset = 0 } = {}) => {
@@ -11,6 +11,20 @@ const sessionService = {
       },
     });
     return Array.isArray(response?.data) ? response.data : [];
+  },
+
+  getTutorPricingProfile: async (tutorId) => {
+    const response = await get(`/sessions/tutors/${tutorId}/pricing`);
+    return response?.data || null;
+  },
+
+  upsertMyTutorPricingProfile: async ({ base_rate_per_hour, currency = "USD", is_active = true }) => {
+    const response = await put('/sessions/tutors/me/pricing', {
+      base_rate_per_hour,
+      currency,
+      is_active,
+    });
+    return response?.data || null;
   },
 
   listTeacherSlots: async ({ includeInactive = true } = {}) => {
@@ -37,8 +51,16 @@ const sessionService = {
     return response?.data || null;
   },
 
-  createBooking: async ({ slot_id, note }) => {
-    const response = await post("/sessions/bookings", { slot_id, note });
+  createBooking: async ({ slot_id, note, duration_minutes, session_mode, subject_module, pricing_snapshot, booking_metadata }) => {
+    const response = await post("/sessions/bookings", {
+      slot_id,
+      note,
+      duration_minutes,
+      session_mode,
+      subject_module,
+      pricing_snapshot,
+      booking_metadata,
+    });
     return response?.data || null;
   },
 
