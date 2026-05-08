@@ -120,30 +120,48 @@ export const listBookableSlots = async ({ teacherId = null, startFrom = null, li
 };
 
 export const getTutorPricingProfile = async ({ tutorId }) => {
-  const [rows] = await sequelize.query(
-    `
-    SELECT user_id, base_rate_per_hour, currency, is_active, updated_at
-    FROM public.tutor_pricing_profiles
-    WHERE user_id = :user_id
-    LIMIT 1
-    `,
-    { replacements: { user_id: tutorId } }
-  );
+  try {
+    const [rows] = await sequelize.query(
+      `
+      SELECT user_id, base_rate_per_hour, currency, is_active, updated_at
+      FROM public.tutor_pricing_profiles
+      WHERE user_id = :user_id
+      LIMIT 1
+      `,
+      { replacements: { user_id: tutorId } }
+    );
 
-  const row = rows?.[0] || null;
-  const baseRatePerHour = Number(row?.base_rate_per_hour || 25);
-  const currency = String(row?.currency || "USD").toUpperCase();
-  const isActive = row?.is_active !== false;
+    const row = rows?.[0] || null;
+    const baseRatePerHour = Number(row?.base_rate_per_hour || 25);
+    const currency = String(row?.currency || "USD").toUpperCase();
+    const isActive = row?.is_active !== false;
 
-  return {
-    tutor_id: tutorId,
-    base_rate_per_hour: baseRatePerHour,
-    currency,
-    is_active: isActive,
-    durations_supported: DURATION_MINUTES,
-    pricing_tiers: buildPricingTiers(baseRatePerHour, currency),
-    updated_at: row?.updated_at || null,
-  };
+    return {
+      tutor_id: tutorId,
+      base_rate_per_hour: baseRatePerHour,
+      currency,
+      is_active: isActive,
+      durations_supported: DURATION_MINUTES,
+      pricing_tiers: buildPricingTiers(baseRatePerHour, currency),
+      updated_at: row?.updated_at || null,
+    };
+  } catch (error) {
+    const message = String(error?.message || "").toLowerCase();
+    if (message.includes("relation") && message.includes("tutor_pricing_profiles")) {
+      const fallbackBase = 25;
+      const fallbackCurrency = "USD";
+      return {
+        tutor_id: tutorId,
+        base_rate_per_hour: fallbackBase,
+        currency: fallbackCurrency,
+        is_active: true,
+        durations_supported: DURATION_MINUTES,
+        pricing_tiers: buildPricingTiers(fallbackBase, fallbackCurrency),
+        updated_at: null,
+      };
+    }
+    throw error;
+  }
 };
 
 export const upsertMyTutorPricingProfile = async ({ actor, baseRatePerHour, currency = "USD", isActive = true }) => {

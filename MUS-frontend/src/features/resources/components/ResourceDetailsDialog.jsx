@@ -31,6 +31,7 @@ import PropTypes from 'prop-types';
 import resourcesService from '@/services/resourcesService';
 import favoritesService from '@/services/favoritesService';
 import { AsyncButton, DialogSectionTitle, InfoFieldCard } from '@/shared/components/ui';
+import { useNavigate } from 'react-router-dom';
 
 // ─── Static Styles ────────────────────────────────────────────────────────────
 
@@ -108,6 +109,7 @@ RoleBadge.propTypes = { role: PropTypes.string };
 // ─── Main component ──────────────────────────────────────────────────────────
 
 const ResourceDetailsDialog = memo(({ open, resource, onClose, onOpenPreviewPage = null }) => {
+  const navigate = useNavigate();
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
@@ -211,6 +213,28 @@ const ResourceDetailsDialog = memo(({ open, resource, onClose, onOpenPreviewPage
       onOpenPreviewPage(resource, resolvedPreviewUrl);
     }
   }, [onOpenPreviewPage, resource, previewUrl]);
+
+  const uploaderId = useMemo(
+    () => String(resource?.author?.id || resource?.created_by || resource?.creator_id || '').trim(),
+    [resource?.author?.id, resource?.created_by, resource?.creator_id]
+  );
+
+  const handleOpenTutorProfile = useCallback(() => {
+    if (!uploaderId) return;
+    onClose?.();
+    navigate(`/discover/tutors/${uploaderId}`, {
+      state: {
+        tutor: {
+          id: uploaderId,
+          name: resource?.author?.name || 'Tutor',
+          avatar: resource?.author?.avatar || resource?.author?.avatar_url || '',
+          role: resource?.author?.role || '',
+          institution: resource?.author?.institution || '',
+        },
+        subjectModule: resource?.academicContext?.moduleTitle || resource?.academicContext?.moduleCode || '',
+      },
+    });
+  }, [navigate, onClose, resource?.academicContext?.moduleCode, resource?.academicContext?.moduleTitle, resource?.author?.avatar, resource?.author?.avatar_url, resource?.author?.institution, resource?.author?.name, resource?.author?.role, uploaderId]);
 
   if (!resource) return null;
 
@@ -346,6 +370,13 @@ const ResourceDetailsDialog = memo(({ open, resource, onClose, onOpenPreviewPage
                     <InfoCard icon={<PersonIcon />} label="Name" value={resource.author.name} color="primary" />
                     <InfoCard icon={<SchoolIcon />} label="Role" value={<RoleBadge role={resource.author.role} />} color="info" />
                     {resource.author.institution && <InfoCard icon={<BusinessIcon />} label="Institution" value={resource.author.institution} color="success" />}
+                    <Button
+                      variant="contained"
+                      onClick={handleOpenTutorProfile}
+                      sx={{ textTransform: 'none', borderRadius: 2, fontWeight: 700 }}
+                    >
+                      View Creator Profile & Book
+                    </Button>
                   </Stack>
                 </Box>
               )}
