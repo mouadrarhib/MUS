@@ -14,6 +14,7 @@ import ResourcesStatsCards from '@/features/resources/components/ResourcesStatsC
 import ResourcesTable from '@/features/resources/components/ResourcesTable';
 import ResourceDialog from '@/features/resources/components/ResourceDialog';
 import ResourceDetailsDialog from '@/features/resources/components/ResourceDetailsDialog';
+import ResourceReviewNoticeDialog from '@/features/resources/components/ResourceReviewNoticeDialog';
 import { toResourceDetailModel } from '@/entities/resource/mappers/resourceViewModel';
 import { AsyncButton, EmptyState, PageHeader } from '@/shared/components/ui';
 import { useLanguage } from '@/app/providers/LanguageContext';
@@ -27,26 +28,59 @@ const asList = (payload, key = null) => {
 };
 
 const getAcademicContextFromResource = (resource) => {
-  const metadataAcademicContext = resource?.metadata?.academicContext && typeof resource.metadata.academicContext === 'object'
-    ? resource.metadata.academicContext
+  const parsedMetadata = (() => {
+    if (!resource?.metadata) return {};
+    if (typeof resource.metadata === 'object') return resource.metadata;
+    if (typeof resource.metadata === 'string') {
+      try {
+        return JSON.parse(resource.metadata);
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  })();
+
+  const metadataAcademicContext = parsedMetadata?.academicContext && typeof parsedMetadata.academicContext === 'object'
+    ? parsedMetadata.academicContext
     : {};
+
+  const topLevelAcademicContext = resource?.academic_context && typeof resource.academic_context === 'object'
+    ? resource.academic_context
+    : {};
+
   return {
-    institutionId: String(resource?.academicContext?.institutionId || metadataAcademicContext.institutionId || ''),
-    programId: String(resource?.academicContext?.programId || metadataAcademicContext.programId || ''),
-    levelId: String(resource?.academicContext?.levelId || metadataAcademicContext.levelId || ''),
-    semesterId: String(resource?.academicContext?.semesterId || metadataAcademicContext.semesterId || ''),
-    moduleId: String(resource?.academicContext?.moduleId || metadataAcademicContext.moduleId || resource?.module_id || ''),
-    moduleCode: resource?.academicContext?.moduleCode || metadataAcademicContext.moduleCode || resource?.module_code || '',
-    moduleTitle: resource?.academicContext?.moduleTitle || metadataAcademicContext.moduleTitle || resource?.module_title || '',
-    chapter: resource?.academicContext?.chapter || metadataAcademicContext.chapter || '',
-    difficulty: resource?.academicContext?.difficulty || metadataAcademicContext.difficulty || 'medium',
+    institutionId: String(resource?.academicContext?.institutionId || topLevelAcademicContext.institution_id || metadataAcademicContext.institutionId || metadataAcademicContext.institution_id || ''),
+    programId: String(resource?.academicContext?.programId || topLevelAcademicContext.program_id || metadataAcademicContext.programId || metadataAcademicContext.program_id || ''),
+    levelId: String(resource?.academicContext?.levelId || topLevelAcademicContext.level_id || metadataAcademicContext.levelId || metadataAcademicContext.level_id || ''),
+    semesterId: String(resource?.academicContext?.semesterId || topLevelAcademicContext.semester_id || metadataAcademicContext.semesterId || metadataAcademicContext.semester_id || ''),
+    moduleId: String(resource?.academicContext?.moduleId || topLevelAcademicContext.module_id || metadataAcademicContext.moduleId || metadataAcademicContext.module_id || resource?.module_id || ''),
+    moduleCode: resource?.academicContext?.moduleCode || topLevelAcademicContext.module_code || metadataAcademicContext.moduleCode || metadataAcademicContext.module_code || resource?.module_code || '',
+    moduleTitle: resource?.academicContext?.moduleTitle || topLevelAcademicContext.module_title || metadataAcademicContext.moduleTitle || metadataAcademicContext.module_title || resource?.module_title || '',
+    chapter: resource?.academicContext?.chapter || topLevelAcademicContext.chapter || metadataAcademicContext.chapter || '',
+    difficulty: resource?.academicContext?.difficulty || topLevelAcademicContext.difficulty || metadataAcademicContext.difficulty || 'medium',
     isExamRelated: Boolean(
       resource?.academicContext?.isExamRelated
       ?? resource?.academicContext?.examRelated
+      ?? topLevelAcademicContext.is_exam_related
+      ?? topLevelAcademicContext.exam_related
       ?? metadataAcademicContext.isExamRelated
       ?? metadataAcademicContext.examRelated
+      ?? metadataAcademicContext.is_exam_related
+      ?? metadataAcademicContext.exam_related
       ?? false
     ),
+  };
+};
+
+const buildEditSeed = (resource) => {
+  const academicContext = getAcademicContextFromResource(resource);
+  return {
+    ...resource,
+    educationalType: resource?.educationalType || resource?.educational_type || 'notes',
+    accessTier: resource?.accessTier || resource?.access_tier || 'free',
+    status: resource?.status || 'pending',
+    academicContext,
   };
 };
 
@@ -75,6 +109,9 @@ const Resources = () => {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [openReviewNotice, setOpenReviewNotice] = useState(false);
+  const [createdResourceSummary, setCreatedResourceSummary] = useState({ id: null, title: '' });
+  const [reviewNoticeMode, setReviewNoticeMode] = useState('created');
 
   const hydrateResourcesWithTags = useCallback(async (items) => {
     const list = Array.isArray(items) ? items : [];
@@ -123,7 +160,8 @@ const Resources = () => {
   const handleEditResource = useCallback(async (resource) => {
     if (!resource?.id) return;
 
-    let enriched = { ...resource };
+    const seed = buildEditSeed(resource);
+    let enriched = { ...seed };
     const baseAcademicContext = getAcademicContextFromResource(resource);
 
     try {
@@ -154,8 +192,11 @@ const Resources = () => {
       }
 
       enriched = {
-        ...resource,
+        ...seed,
         ...resourceDetails,
+        educationalType: resourceDetails?.educationalType || resourceDetails?.educational_type || seed.educationalType,
+        accessTier: resourceDetails?.accessTier || resourceDetails?.access_tier || seed.accessTier,
+        status: resourceDetails?.status || seed.status,
         academicContext: {
           ...baseAcademicContext,
           ...resourceAcademicContext,
@@ -177,7 +218,7 @@ const Resources = () => {
         },
       };
     } catch {
-      enriched = { ...resource };
+      enriched = { ...seed };
     }
 
     setEditingResource(enriched);
@@ -294,6 +335,10 @@ const Resources = () => {
       }
 
       if (editingResource) {
+        const wasPublished = String(editingResource?.status || '').toLowerCase() === 'published';
+        if (wasPublished && !isAdmin) {
+          payload.status = 'pending';
+        }
         const updatedResource = await resourcesService.updateResource(editingResource.id, payload);
         console.log('[Resources] Resource updated', { resourceId: updatedResource?.id, hasFile });
 
@@ -328,6 +373,16 @@ const Resources = () => {
         }
 
         await uploadThumbnailIfProvided(updatedResource.id);
+
+        const isNowPending = String(updatedResource?.status || '').toLowerCase() === 'pending';
+        if ((wasPublished && !isAdmin) || isNowPending) {
+          setCreatedResourceSummary({
+            id: Number(updatedResource?.id || 0) || null,
+            title: String(updatedResource?.title || resourceData?.title || 'Your resource'),
+          });
+          setReviewNoticeMode('republished');
+          setOpenReviewNotice(true);
+        }
       } else {
         const createdResource = await resourcesService.createResource(payload);
         console.log('[Resources] Resource created', { resourceId: createdResource?.id, hasFile });
@@ -346,6 +401,12 @@ const Resources = () => {
         }
 
         await uploadThumbnailIfProvided(createdResource.id);
+        setCreatedResourceSummary({
+          id: Number(createdResource?.id || 0) || null,
+          title: String(createdResource?.title || resourceData?.title || 'Your resource'),
+        });
+        setReviewNoticeMode('created');
+        setOpenReviewNotice(true);
       }
       await queryClient.invalidateQueries({ queryKey: ['resources'] });
       handleCloseDialog();
@@ -484,6 +545,18 @@ const Resources = () => {
         resource={viewingResource}
         onClose={handleCloseDetailsDialog}
         onOpenPreviewPage={handleOpenPreviewPage}
+      />
+
+      <ResourceReviewNoticeDialog
+        open={openReviewNotice}
+        onClose={() => setOpenReviewNotice(false)}
+        title={reviewNoticeMode === 'republished' ? 'Update Sent for Review' : 'Resource Submitted for Review'}
+        message={reviewNoticeMode === 'republished'
+          ? 'Your published resource was updated and moved back to pending for admin verification.'
+          : 'Your resource was uploaded successfully and is now pending admin verification.'}
+        statusLabel="Status: Pending"
+        resourceTitle={createdResourceSummary.title}
+        note="You will receive a notification once an admin approves or rejects this submission."
       />
 
       {/* Delete Confirmation Dialog */}

@@ -771,9 +771,12 @@ export const updateResource = async (
     throw new AppError("Acces refuse", 403);
   }
 
-  if (!admin && !["draft", "rejected"].includes(normalizeStatus(resource.status))) {
-    throw new AppError("Vous ne pouvez modifier que les ressources en brouillon ou rejetees", 403);
+  if (!admin && !["draft", "rejected", "published", "pending"].includes(normalizeStatus(resource.status))) {
+    throw new AppError("Vous ne pouvez modifier que les ressources en brouillon, publiees, en attente ou rejetees", 403);
   }
+
+  const currentStatus = normalizeStatus(resource.status);
+  const ownerPublishedUpdate = !admin && owner && currentStatus === "published";
 
   if (!admin && typeof accessTier !== "undefined") {
     const requestedTier = normalizeAccessTier(accessTier);
@@ -788,7 +791,7 @@ export const updateResource = async (
       id,
       title: title ?? null,
       description: description ?? null,
-      status: admin ? status : null,
+      status: admin ? status : ownerPublishedUpdate ? "pending" : null,
       url: url ?? null,
       language: language ?? null,
       license: license ?? null,

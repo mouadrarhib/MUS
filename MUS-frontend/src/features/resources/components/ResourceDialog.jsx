@@ -1,5 +1,5 @@
 // src/features/discover/components/ResourceDialog.jsx
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import Dialog from '@mui/material/Dialog';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
@@ -145,28 +145,63 @@ const EXAM_TOGGLE_SX = { ...TOGGLE_GROUP_SX, '& .MuiToggleButton-root': { ...TOG
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const getDefaultValues = (resource) => ({
-  title:           resource?.title           || '',
-  description:     resource?.description     || '',
-  educationalType: resource?.educationalType || 'notes',
-  format:          resource?.format          || 'pdf',
-  accessTier:      resource?.access_tier     || resource?.accessTier || 'free',
-  status:          resource?.status          || 'pending',
-  url:             resource?.url             || '',
-  academicContext: {
-    institutionId: String(resource?.academicContext?.institutionId || ''),
-    programId:     String(resource?.academicContext?.programId     || ''),
-    levelId:       String(resource?.academicContext?.levelId       || ''),
-    semesterId:    String(resource?.academicContext?.semesterId    || ''),
-    moduleId:      String(resource?.academicContext?.moduleId || resource?.module_id || ''),
-    difficulty:    resource?.academicContext?.difficulty || 'medium',
-    chapter:       resource?.academicContext?.chapter    || '',
-    isExamRelated: Boolean(resource?.academicContext?.isExamRelated || resource?.academicContext?.examRelated),
-  },
-  tagIds: Array.isArray(resource?.tags)
-    ? resource.tags.map((tag) => Number(tag.tag_id || tag.id)).filter(Number.isFinite)
-    : [],
-});
+const getDefaultValues = (resource) => {
+  const parsedMetadata = (() => {
+    if (!resource?.metadata) return {};
+    if (typeof resource.metadata === 'object') return resource.metadata;
+    if (typeof resource.metadata === 'string') {
+      try {
+        return JSON.parse(resource.metadata);
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  })();
+
+  const metadataAcademic = parsedMetadata?.academicContext && typeof parsedMetadata.academicContext === 'object'
+    ? parsedMetadata.academicContext
+    : {};
+  const academic = resource?.academicContext && typeof resource.academicContext === 'object'
+    ? resource.academicContext
+    : {};
+  const snakeAcademic = resource?.academic_context && typeof resource.academic_context === 'object'
+    ? resource.academic_context
+    : {};
+
+  return {
+    title:           resource?.title           || '',
+    description:     resource?.description     || '',
+    educationalType: resource?.educationalType || resource?.educational_type || 'notes',
+    format:          resource?.format          || 'pdf',
+    accessTier:      resource?.access_tier     || resource?.accessTier || 'free',
+    status:          resource?.status          || 'pending',
+    url:             resource?.url             || '',
+    academicContext: {
+      institutionId: String(academic.institutionId || snakeAcademic.institution_id || metadataAcademic.institutionId || metadataAcademic.institution_id || ''),
+      programId:     String(academic.programId || snakeAcademic.program_id || metadataAcademic.programId || metadataAcademic.program_id || ''),
+      levelId:       String(academic.levelId || snakeAcademic.level_id || metadataAcademic.levelId || metadataAcademic.level_id || ''),
+      semesterId:    String(academic.semesterId || snakeAcademic.semester_id || metadataAcademic.semesterId || metadataAcademic.semester_id || ''),
+      moduleId:      String(academic.moduleId || snakeAcademic.module_id || metadataAcademic.moduleId || metadataAcademic.module_id || resource?.module_id || ''),
+      difficulty:    academic.difficulty || snakeAcademic.difficulty || metadataAcademic.difficulty || 'medium',
+      chapter:       academic.chapter || snakeAcademic.chapter || metadataAcademic.chapter || '',
+      isExamRelated: Boolean(
+        academic.isExamRelated
+        ?? academic.examRelated
+        ?? snakeAcademic.is_exam_related
+        ?? snakeAcademic.exam_related
+        ?? metadataAcademic.isExamRelated
+        ?? metadataAcademic.examRelated
+        ?? metadataAcademic.is_exam_related
+        ?? metadataAcademic.exam_related
+        ?? false
+      ),
+    },
+    tagIds: Array.isArray(resource?.tags)
+      ? resource.tags.map((tag) => Number(tag.tag_id || tag.id)).filter(Number.isFinite)
+      : [],
+  };
+};
 
 const toList = (payload) => {
   if (Array.isArray(payload))                 return payload;
@@ -412,6 +447,7 @@ const ResourceDialog = memo(({
   const [semesters,       setSemesters]       = useState([]);
   const [modules,         setModules]         = useState([]);
   const [academicLoading, setAcademicLoading] = useState(false);
+  const [academicLoadFailed, setAcademicLoadFailed] = useState(false);
 
   const {
     register, control, reset, watch, getValues, setValue,
@@ -422,6 +458,11 @@ const ResourceDialog = memo(({
   const watchTitle  = watch('title');
   const watchType   = watch('educationalType');
   const watchFormat = watch('format');
+  const selectedInstitutionId = String(watch('academicContext.institutionId') || '');
+  const selectedProgramId = String(watch('academicContext.programId') || '');
+  const selectedLevelId = String(watch('academicContext.levelId') || '');
+  const selectedSemesterId = String(watch('academicContext.semesterId') || '');
+  const selectedModuleId = String(watch('academicContext.moduleId') || '');
   const existingThumbnailRef = String(
     resource?.thumbnail_url || resource?.thumbnail || resource?.cover_image || resource?.image_url || ''
   ).trim();
@@ -432,6 +473,20 @@ const ResourceDialog = memo(({
       ? extractFileNameFromUrl(existingThumbnailRef)
       : 'Upload thumbnail image';
 
+  const ensureSelectedOption = useCallback((list, selectedId, fallbackLabel) => {
+    const source = Array.isArray(list) ? list : [];
+    if (!selectedId) return source;
+    const exists = source.some((item) => String(item?.id || item?.institution_id || item?.program_id || item?.level_id || item?.semester_id || item?.module_id) === selectedId);
+    if (exists) return source;
+    return [{ id: selectedId, name: fallbackLabel || selectedId }, ...source];
+  }, []);
+
+  const institutionOptions = useMemo(() => ensureSelectedOption(institutions, selectedInstitutionId, resource?.academicContext?.institutionName || 'Saved institution'), [ensureSelectedOption, institutions, selectedInstitutionId, resource?.academicContext?.institutionName]);
+  const programOptions = useMemo(() => ensureSelectedOption(programs, selectedProgramId, resource?.academicContext?.programName || 'Saved program'), [ensureSelectedOption, programs, selectedProgramId, resource?.academicContext?.programName]);
+  const levelOptions = useMemo(() => ensureSelectedOption(levels, selectedLevelId, resource?.academicContext?.levelName || 'Saved level'), [ensureSelectedOption, levels, selectedLevelId, resource?.academicContext?.levelName]);
+  const semesterOptions = useMemo(() => ensureSelectedOption(semesters, selectedSemesterId, resource?.academicContext?.semesterName || 'Saved semester'), [ensureSelectedOption, semesters, selectedSemesterId, resource?.academicContext?.semesterName]);
+  const moduleOptions = useMemo(() => ensureSelectedOption(modules, selectedModuleId, resource?.academicContext?.moduleTitle || resource?.module_title || 'Saved module'), [ensureSelectedOption, modules, selectedModuleId, resource?.academicContext?.moduleTitle, resource?.module_title]);
+
   // ── Reset on open ─────────────────────────────────────────────────────────
   useEffect(() => {
     reset(getDefaultValues(resource));
@@ -441,6 +496,7 @@ const ResourceDialog = memo(({
     setUploadMethod('url');
     setActiveStep(0);
     setIsDragging(false);
+    setAcademicLoadFailed(false);
   }, [resource, open, reset, clearErrors]);
 
   // ── Data loaders ─────────────────────────────────────────────────────────
@@ -455,6 +511,7 @@ const ResourceDialog = memo(({
     let cancelled = false;
     const bootstrap = async () => {
       setAcademicLoading(true);
+      setAcademicLoadFailed(false);
       try {
         const list = toList(await institutionService.getAllInstitutions());
         if (cancelled) return;
@@ -468,7 +525,7 @@ const ResourceDialog = memo(({
         if (lId) await loadSemesters(lId);
         if (sId) await loadModules(sId);
       } catch {
-        if (!cancelled) { setInstitutions([]); setPrograms([]); setLevels([]); setSemesters([]); setModules([]); }
+        if (!cancelled) { setInstitutions([]); setPrograms([]); setLevels([]); setSemesters([]); setModules([]); setAcademicLoadFailed(true); }
       } finally {
         if (!cancelled) setAcademicLoading(false);
       }
@@ -659,15 +716,18 @@ const ResourceDialog = memo(({
                 field.onChange(Array.from(new Set(ids)));
               }}
               renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip
-                    key={option.id || option.tag_id}
-                    label={option.name || option.tag_name}
-                    size="small"
-                    {...getTagProps({ index })}
-                    sx={{ borderRadius: '6px', height: 22, fontSize: '0.72rem' }}
-                  />
-                ))
+                value.map((option, index) => {
+                  const { key: _chipKey, ...chipProps } = getTagProps({ index });
+                  return (
+                    <Chip
+                      key={option.id || option.tag_id}
+                      label={option.name || option.tag_name}
+                      size="small"
+                      {...chipProps}
+                      sx={{ borderRadius: '6px', height: 22, fontSize: '0.72rem' }}
+                    />
+                  );
+                })
               }
               renderInput={(params) => (
                 <TextField
@@ -834,6 +894,14 @@ const ResourceDialog = memo(({
         </Box>
       )}
 
+      {academicLoadFailed && (
+        <Box sx={(t) => ({ p: 1.25, borderRadius: 1.5, border: '1px solid', borderColor: alpha(t.palette.warning.main, 0.3), bgcolor: alpha(t.palette.warning.main, 0.08) })}>
+          <Typography variant="caption" color="warning.dark">
+            Catalog data is temporarily unavailable. Showing saved academic context values.
+          </Typography>
+        </Box>
+      )}
+
       {/* Institution + Program */}
       <Grid container spacing={2}>
         <Grid item xs={12} sm={6}>
@@ -849,10 +917,10 @@ const ResourceDialog = memo(({
                   displayEmpty sx={selectSx}
                   onChange={async (e) => { field.onChange(e); await handleInstitutionChange(String(e.target.value || '')); }}
                   renderValue={(v) => v
-                    ? (institutions.find((i) => String(i.id || i.institution_id) === v)?.name || v)
+                    ? (institutionOptions.find((i) => String(i.id || i.institution_id) === v)?.name || v)
                     : <Box component="span" sx={{ color: 'text.disabled' }}>Select university</Box>}
                 >
-                  {institutions.map((i) => (
+                  {institutionOptions.map((i) => (
                     <MenuItem key={i.id || i.institution_id} value={String(i.id || i.institution_id)}>
                       {i.name}
                     </MenuItem>
@@ -875,16 +943,16 @@ const ResourceDialog = memo(({
             control={control}
             rules={{ required: 'Required' }}
             render={({ field }) => (
-              <FormControl fullWidth size="small" error={!!errors?.academicContext?.programId} disabled={!programs.length}>
+              <FormControl fullWidth size="small" error={!!errors?.academicContext?.programId} disabled={!programOptions.length}>
                 <Select
                   {...field}
                   displayEmpty sx={selectSx}
                   onChange={async (e) => { field.onChange(e); await handleProgramChange(String(e.target.value || '')); }}
                   renderValue={(v) => v
-                    ? (programs.find((p) => String(p.id || p.program_id) === v)?.name || programs.find((p) => String(p.id || p.program_id) === v)?.program_name || v)
+                    ? (programOptions.find((p) => String(p.id || p.program_id) === v)?.name || programOptions.find((p) => String(p.id || p.program_id) === v)?.program_name || v)
                     : <Box component="span" sx={{ color: 'text.disabled' }}>Select program</Box>}
                 >
-                  {programs.map((p) => (
+                  {programOptions.map((p) => (
                     <MenuItem key={p.id || p.program_id} value={String(p.id || p.program_id)}>
                       {p.name || p.program_name}
                     </MenuItem>
@@ -908,16 +976,16 @@ const ResourceDialog = memo(({
             control={control}
             rules={{ required: 'Required' }}
             render={({ field }) => (
-              <FormControl fullWidth size="small" error={!!errors?.academicContext?.levelId} disabled={!levels.length}>
+              <FormControl fullWidth size="small" error={!!errors?.academicContext?.levelId} disabled={!levelOptions.length}>
                 <Select
                   {...field}
                   displayEmpty sx={selectSx}
                   onChange={async (e) => { field.onChange(e); await handleLevelChange(String(e.target.value || '')); }}
                   renderValue={(v) => v
-                    ? (levels.find((l) => String(l.id || l.level_id) === v)?.name || levels.find((l) => String(l.id || l.level_id) === v)?.level_name || v)
+                    ? (levelOptions.find((l) => String(l.id || l.level_id) === v)?.name || levelOptions.find((l) => String(l.id || l.level_id) === v)?.level_name || v)
                     : <Box component="span" sx={{ color: 'text.disabled' }}>Select level</Box>}
                 >
-                  {levels.map((l) => (
+                  {levelOptions.map((l) => (
                     <MenuItem key={l.id || l.level_id} value={String(l.id || l.level_id)}>
                       {l.name || l.level_name}
                     </MenuItem>
@@ -940,16 +1008,16 @@ const ResourceDialog = memo(({
             control={control}
             rules={{ required: 'Required' }}
             render={({ field }) => (
-              <FormControl fullWidth size="small" error={!!errors?.academicContext?.semesterId} disabled={!semesters.length}>
+              <FormControl fullWidth size="small" error={!!errors?.academicContext?.semesterId} disabled={!semesterOptions.length}>
                 <Select
                   {...field}
                   displayEmpty sx={selectSx}
                   onChange={async (e) => { field.onChange(e); await handleSemesterChange(String(e.target.value || '')); }}
                   renderValue={(v) => v
-                    ? (semesters.find((s) => String(s.id || s.semester_id) === v)?.name || semesters.find((s) => String(s.id || s.semester_id) === v)?.semester_name || v)
+                    ? (semesterOptions.find((s) => String(s.id || s.semester_id) === v)?.name || semesterOptions.find((s) => String(s.id || s.semester_id) === v)?.semester_name || v)
                     : <Box component="span" sx={{ color: 'text.disabled' }}>Select semester</Box>}
                 >
-                  {semesters.map((s) => (
+                  {semesterOptions.map((s) => (
                     <MenuItem key={s.id || s.semester_id} value={String(s.id || s.semester_id)}>
                       {s.name || s.semester_name}
                     </MenuItem>
@@ -973,18 +1041,18 @@ const ResourceDialog = memo(({
             control={control}
             rules={{ required: 'Required' }}
             render={({ field }) => (
-              <FormControl fullWidth size="small" error={!!errors?.academicContext?.moduleId} disabled={!modules.length}>
+              <FormControl fullWidth size="small" error={!!errors?.academicContext?.moduleId} disabled={!moduleOptions.length}>
                 <Select
                   {...field}
                   displayEmpty sx={selectSx}
                   renderValue={(v) => {
-                    const m = modules.find((x) => String(x.id || x.module_id) === v);
+                    const m = moduleOptions.find((x) => String(x.id || x.module_id) === v);
                     if (!m) return <Box component="span" sx={{ color: 'text.disabled' }}>Select module</Box>;
                     const code = m.module_code || m.code;
                     return code ? `${code} — ${m.module_title || m.title}` : m.module_title || m.title;
                   }}
                 >
-                  {modules.map((m) => (
+                  {moduleOptions.map((m) => (
                     <MenuItem key={m.id || m.module_id} value={String(m.id || m.module_id)}>
                       <Stack>
                         <Typography variant="body2" fontWeight={600}>{m.module_title || m.title}</Typography>

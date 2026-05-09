@@ -2,13 +2,73 @@ import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActi
 import { useEffect, useState } from 'react';
 import { Add, Delete as DeleteIcon, Warning as WarningIcon, UploadFile, ErrorOutline, CloudUpload, GppBad as GppBadIcon } from '@mui/icons-material';
 import resourcesService from '@/services/resourcesService';
+import resourceModuleMapService from '@/services/resourceModuleMapService';
+import moduleService from '@/services/moduleService';
+import institutionProgramService from '@/services/institutionProgramService';
 import tagService from '@/services/tagService';
 import ResourcesStatsCards from '@/features/resources/components/ResourcesStatsCards';
 import ResourcesTable from '@/features/resources/components/ResourcesTable';
 import ResourceDialog from '@/features/resources/components/ResourceDialog';
 import ResourceDetailsDialog from '@/features/resources/components/ResourceDetailsDialog';
+import ResourceReviewNoticeDialog from '@/features/resources/components/ResourceReviewNoticeDialog';
 import { AsyncButton, EmptyState, PageHeader } from '@/shared/components/ui';
 import { useLanguage } from '@/app/providers/LanguageContext';
+
+const asList = (payload, key = null) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (key && Array.isArray(payload?.[key])) return payload[key];
+  if (key && Array.isArray(payload?.data?.[key])) return payload.data[key];
+  return [];
+};
+
+const getAcademicContextFromResource = (resource) => {
+  const parsedMetadata = (() => {
+    if (!resource?.metadata) return {};
+    if (typeof resource.metadata === 'object') return resource.metadata;
+    if (typeof resource.metadata === 'string') {
+      try {
+        return JSON.parse(resource.metadata);
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  })();
+
+  const metadataAcademic = parsedMetadata?.academicContext && typeof parsedMetadata.academicContext === 'object'
+    ? parsedMetadata.academicContext
+    : {};
+  const academic = resource?.academicContext && typeof resource.academicContext === 'object'
+    ? resource.academicContext
+    : {};
+  const snakeAcademic = resource?.academic_context && typeof resource.academic_context === 'object'
+    ? resource.academic_context
+    : {};
+
+  return {
+    institutionId: String(academic.institutionId || snakeAcademic.institution_id || metadataAcademic.institutionId || metadataAcademic.institution_id || ''),
+    programId: String(academic.programId || snakeAcademic.program_id || metadataAcademic.programId || metadataAcademic.program_id || ''),
+    levelId: String(academic.levelId || snakeAcademic.level_id || metadataAcademic.levelId || metadataAcademic.level_id || ''),
+    semesterId: String(academic.semesterId || snakeAcademic.semester_id || metadataAcademic.semesterId || metadataAcademic.semester_id || ''),
+    moduleId: String(academic.moduleId || snakeAcademic.module_id || metadataAcademic.moduleId || metadataAcademic.module_id || resource?.module_id || ''),
+    moduleCode: academic.moduleCode || snakeAcademic.module_code || metadataAcademic.moduleCode || metadataAcademic.module_code || resource?.module_code || '',
+    moduleTitle: academic.moduleTitle || snakeAcademic.module_title || metadataAcademic.moduleTitle || metadataAcademic.module_title || resource?.module_title || '',
+    chapter: academic.chapter || snakeAcademic.chapter || metadataAcademic.chapter || '',
+    difficulty: academic.difficulty || snakeAcademic.difficulty || metadataAcademic.difficulty || 'medium',
+    isExamRelated: Boolean(
+      academic.isExamRelated
+      ?? academic.examRelated
+      ?? snakeAcademic.is_exam_related
+      ?? snakeAcademic.exam_related
+      ?? metadataAcademic.isExamRelated
+      ?? metadataAcademic.examRelated
+      ?? metadataAcademic.is_exam_related
+      ?? metadataAcademic.exam_related
+      ?? false
+    ),
+  };
+};
 
 const MyUploads = () => {
   const { t } = useLanguage();
@@ -27,6 +87,7 @@ const MyUploads = () => {
   const [tagsLoading, setTagsLoading] = useState(false);
   const [rejections, setRejections] = useState([]);
   const [rejectionsLoading, setRejectionsLoading] = useState(false);
+  const [openReviewNotice, setOpenReviewNotice] = useState(false);
 
   useEffect(() => {
     loadMyResources();
@@ -91,8 +152,75 @@ const MyUploads = () => {
     setOpenDialog(true);
   };
 
-  const handleEditResource = (resource) => {
-    setEditingResource(resource);
+  const handleEditResource = async (resource) => {
+    if (!resource?.id) return;
+
+    let enriched = { ...resource };
+    const baseAcademicContext = getAcademicContextFromResource(resource);
+
+    try {
+      const [resourceDetails, moduleMapResponse] = await Promise.all([
+        resourcesService.getResourceById(resource.id),
+        resourceModuleMapService.getModulesByResource(resource.id),
+      ]);
+
+      const resourceAcademicContext = getAcademicContextFromResource(resourceDetails || resource);
+      const modules = asList(moduleMapResponse, 'modules');
+      const primaryModule = modules[0] || null;
+
+      let moduleDetails = null;
+      let institutionId = resourceAcademicContext.institutionId || baseAcademicContext.institutionId || '';
+      if (primaryModule?.module_id) {
+        try {
+          const detailsResponse = await moduleService.getModuleDetails(primaryModule.module_id);
+          moduleDetails = detailsResponse?.data || detailsResponse || null;
+          if (!institutionId && moduleDetails?.program_id) {
+            const institutionsResponse = await institutionProgramService.getInstitutionsByProgram(moduleDetails.program_id);
+            const institutions = asList(institutionsResponse);
+            institutionId = String(institutions[0]?.id || institutions[0]?.institution_id || '');
+          }
+        } catch {
+          moduleDetails = null;
+        }
+      }
+
+      enriched = {
+        ...resource,
+        ...resourceDetails,
+        educationalType: resourceDetails?.educationalType || resourceDetails?.educational_type || resource?.educationalType || resource?.educational_type || 'notes',
+        accessTier: resourceDetails?.accessTier || resourceDetails?.access_tier || resource?.accessTier || resource?.access_tier || 'free',
+        status: resourceDetails?.status || resource?.status || 'pending',
+        academicContext: {
+          ...baseAcademicContext,
+          ...resourceAcademicContext,
+          institutionId,
+          programId: String(resourceAcademicContext.programId || moduleDetails?.program_id || ''),
+          levelId: String(resourceAcademicContext.levelId || moduleDetails?.level_id || ''),
+          semesterId: String(resourceAcademicContext.semesterId || moduleDetails?.semester_id || ''),
+          moduleId: String(primaryModule?.module_id || resourceAcademicContext.moduleId || resourceDetails?.module_id || resource?.module_id || ''),
+          moduleCode: primaryModule?.module_code || resourceAcademicContext.moduleCode || resourceDetails?.module_code || resource?.module_code || '',
+          moduleTitle: primaryModule?.module_title || resourceAcademicContext.moduleTitle || resourceDetails?.module_title || resource?.module_title || '',
+          chapter: primaryModule?.chapter || resourceAcademicContext.chapter || '',
+          difficulty: primaryModule?.difficulty || resourceAcademicContext.difficulty || 'medium',
+          isExamRelated: Boolean(
+            primaryModule?.exam_related
+            ?? resourceAcademicContext.isExamRelated
+            ?? resourceAcademicContext.examRelated
+            ?? resourceDetails?.exam_related
+          ),
+        },
+      };
+    } catch {
+      enriched = {
+        ...resource,
+        educationalType: resource?.educationalType || resource?.educational_type || 'notes',
+        accessTier: resource?.accessTier || resource?.access_tier || 'free',
+        status: resource?.status || 'pending',
+        academicContext: baseAcademicContext,
+      };
+    }
+
+    setEditingResource(enriched);
     setOpenDialog(true);
   };
 
@@ -142,6 +270,10 @@ const MyUploads = () => {
       }
 
       if (editingResource) {
+        const wasPublished = String(editingResource?.status || '').toLowerCase() === 'published';
+        if (wasPublished) {
+          payload.status = 'pending';
+        }
         const updatedResource = await resourcesService.updateResource(editingResource.id, payload);
         console.log('[Uploads] Resource updated', { resourceId: updatedResource?.id, hasFile });
 
@@ -152,6 +284,11 @@ const MyUploads = () => {
           console.log('[Uploads] File uploaded via backend and attached', { resourceId: updatedResource.id });
         }
         await uploadThumbnailIfProvided(updatedResource.id);
+
+        const isNowPending = String(updatedResource?.status || '').toLowerCase() === 'pending';
+        if (wasPublished || isNowPending) {
+          setOpenReviewNotice(true);
+        }
       } else {
         const createdResource = await resourcesService.createResource(payload);
         console.log('[Uploads] Resource created', { resourceId: createdResource?.id, hasFile });
@@ -378,6 +515,15 @@ const MyUploads = () => {
         saving={saving}
         availableTags={availableTags}
         tagsLoading={tagsLoading}
+      />
+
+      <ResourceReviewNoticeDialog
+        open={openReviewNotice}
+        onClose={() => setOpenReviewNotice(false)}
+        title="Update Sent for Review"
+        message="Since this resource was already published, your new changes require admin verification before going live again."
+        statusLabel="Status: Pending"
+        note="You will receive a notification after the admin approves or rejects this update."
       />
 
       <ResourceDetailsDialog open={openDetailsDialog} resource={viewingResource} onClose={handleCloseDetailsDialog} />
