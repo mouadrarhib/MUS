@@ -178,6 +178,17 @@ const toList = (payload) => {
   return [];
 };
 
+const extractFileNameFromUrl = (value) => {
+  if (!value) return '';
+  try {
+    const raw = String(value).split('?')[0].split('#')[0];
+    const parts = raw.split('/').filter(Boolean);
+    return decodeURIComponent(parts[parts.length - 1] || 'Current thumbnail');
+  } catch {
+    return 'Current thumbnail';
+  }
+};
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 /** Tiny uppercase field label shown above every input */
@@ -411,6 +422,15 @@ const ResourceDialog = memo(({
   const watchTitle  = watch('title');
   const watchType   = watch('educationalType');
   const watchFormat = watch('format');
+  const existingThumbnailRef = String(
+    resource?.thumbnail_url || resource?.thumbnail || resource?.cover_image || resource?.image_url || ''
+  ).trim();
+  const hasThumbnail = Boolean(selectedThumbnail || existingThumbnailRef);
+  const thumbnailLabel = selectedThumbnail
+    ? selectedThumbnail.name
+    : existingThumbnailRef
+      ? extractFileNameFromUrl(existingThumbnailRef)
+      : 'Upload thumbnail image';
 
   // ── Reset on open ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -780,16 +800,20 @@ const ResourceDialog = memo(({
         <FieldLabel hint="Optional cover image shown in discovery cards.">Thumbnail / Cover</FieldLabel>
         <Box
           component="label"
-          sx={THUMBNAIL_ZONE_SX(selectedThumbnail)}
+          sx={THUMBNAIL_ZONE_SX(hasThumbnail)}
         >
           <input type="file" accept="image/*" hidden onChange={handleThumbnailChange} />
-          <ImageIcon sx={{ fontSize: 20, color: selectedThumbnail ? 'success.main' : 'primary.main' }} />
+          <ImageIcon sx={{ fontSize: 20, color: hasThumbnail ? 'success.main' : 'primary.main' }} />
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="body2" fontWeight={700} color={selectedThumbnail ? 'success.main' : 'text.primary'} noWrap>
-              {selectedThumbnail ? selectedThumbnail.name : 'Upload thumbnail image'}
+            <Typography variant="body2" fontWeight={700} color={hasThumbnail ? 'success.main' : 'text.primary'} noWrap>
+              {thumbnailLabel}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              JPG, PNG, WEBP (recommended: 1280x720)
+              {selectedThumbnail
+                ? 'Ready to replace thumbnail'
+                : existingThumbnailRef
+                  ? 'Current thumbnail saved - click to replace'
+                  : 'JPG, PNG, WEBP (recommended: 1280x720)'}
             </Typography>
           </Box>
         </Box>
