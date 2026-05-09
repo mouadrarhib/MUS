@@ -733,6 +733,11 @@ const ResourceDialog = memo(({
             onDrop={handleDrop}
             sx={DROP_ZONE_SX(selectedFile, isDragging, errors)}
           >
+            <input
+              type="file"
+              hidden
+              onChange={handleFileChange}
+            />
             <Box
               sx={(t) => ({
                 width: 48, height: 48, borderRadius: '50%',
