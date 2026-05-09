@@ -4,7 +4,9 @@ import { SQL } from "../snippets/index.js";
 import { createNotificationsBulk } from "./notificationService.js";
 
 const SESSION_NOTIFICATION_TYPES = {
-  BOOKING_CREATED: "SESSION_BOOKING_CREATED",
+  BOOKING_REQUESTED: "SESSION_BOOKING_REQUESTED",
+  BOOKING_CONFIRMED: "SESSION_BOOKING_CONFIRMED",
+  BOOKING_REJECTED: "SESSION_BOOKING_REJECTED",
   BOOKING_CANCELLED: "SESSION_BOOKING_CANCELLED",
   MESSAGE_CREATED: "SESSION_MESSAGE_CREATED",
 };
@@ -61,6 +63,10 @@ const normalizeDbError = (error) => {
   if (message.includes("slot is not active")) return new AppError("Slot is not active", 400);
   if (message.includes("slot not found for teacher")) return new AppError("Slot not found", 404);
   if (message.includes("slot not found")) return new AppError("Slot not found", 404);
+  if (message.includes("booking not found")) return new AppError("Booking not found", 404);
+  if (message.includes("booking not pending")) return new AppError("Booking not pending", 400);
+  if (message.includes("only slot owner can confirm booking")) return new AppError("Only slot owner can confirm booking", 403);
+  if (message.includes("only slot owner can reject booking")) return new AppError("Only slot owner can reject booking", 403);
   if (message.includes("booking not found or not cancellable")) return new AppError("Booking not cancellable", 400);
   if (message.includes("booking not found or not completable")) return new AppError("Booking not completable", 400);
   if (message.includes("message body is required")) return new AppError("Message body is required", 400);
@@ -345,10 +351,10 @@ export const createSessionBooking = async ({
       await notifySessionParticipants({
         actorId: actor.id,
         booking,
-        type: SESSION_NOTIFICATION_TYPES.BOOKING_CREATED,
-        title: "New session booking",
-        body: "A student booked one of your available session slots.",
-        payload: { booking_id: booking.id, slot_id: booking.slot_id, action: "booking_created" },
+        type: SESSION_NOTIFICATION_TYPES.BOOKING_REQUESTED,
+        title: "New booking request",
+        body: "A student requested one of your available session slots.",
+        payload: { booking_id: booking.id, slot_id: booking.slot_id, action: "booking_requested" },
       });
     }
     return booking;
@@ -531,7 +537,7 @@ export const cancelSessionBooking = async ({ actor, bookingId, reason = null }) 
 };
 
 export const completeSessionBooking = async ({ actor, bookingId }) => {
-  requireTeacher(actor);
+  await requireTutor(actor);
   const booking = await getSessionBookingById({ actor, bookingId });
   if (booking.teacher_id !== actor.id && !hasRole(actor, "admin")) {
     throw new AppError("Acces refuse", 403);
@@ -547,8 +553,74 @@ export const completeSessionBooking = async ({ actor, bookingId }) => {
   }
 };
 
+export const confirmSessionBooking = async ({ actor, bookingId }) => {
+  await requireTutor(actor);
+  const booking = await getSessionBookingById({ actor, bookingId });
+  if (booking.teacher_id !== actor.id && !hasRole(actor, "admin")) {
+    throw new AppError("Acces refuse", 403);
+  }
+
+  try {
+    const [rows] = await sequelize.query(SQL.SESSION.CONFIRM_BOOKING, {
+      replacements: {
+        booking_id: bookingId,
+        actor_user_id: actor.id,
+      },
+    });
+    const confirmed = rows[0] || null;
+    if (confirmed) {
+      await notifySessionParticipants({
+        actorId: actor.id,
+        booking,
+        type: SESSION_NOTIFICATION_TYPES.BOOKING_CONFIRMED,
+        title: "Booking confirmed",
+        body: "Your tutoring booking request was confirmed.",
+        payload: { booking_id: bookingId, slot_id: booking.slot_id, action: "booking_confirmed" },
+      });
+    }
+    return confirmed;
+  } catch (error) {
+    throw normalizeDbError(error);
+  }
+};
+
+export const rejectSessionBooking = async ({ actor, bookingId, reason = null }) => {
+  await requireTutor(actor);
+  const booking = await getSessionBookingById({ actor, bookingId });
+  if (booking.teacher_id !== actor.id && !hasRole(actor, "admin")) {
+    throw new AppError("Acces refuse", 403);
+  }
+
+  try {
+    const [rows] = await sequelize.query(SQL.SESSION.REJECT_BOOKING, {
+      replacements: {
+        booking_id: bookingId,
+        actor_user_id: actor.id,
+        reason,
+      },
+    });
+    const rejected = rows[0] || null;
+    if (rejected) {
+      await notifySessionParticipants({
+        actorId: actor.id,
+        booking,
+        type: SESSION_NOTIFICATION_TYPES.BOOKING_REJECTED,
+        title: "Booking request rejected",
+        body: "Your tutoring booking request was rejected by the tutor.",
+        payload: { booking_id: bookingId, slot_id: booking.slot_id, action: "booking_rejected", reason: reason || null },
+      });
+    }
+    return rejected;
+  } catch (error) {
+    throw normalizeDbError(error);
+  }
+};
+
 export const listSessionMessages = async ({ actor, bookingId, limit = 100, offset = 0 }) => {
-  await getSessionBookingById({ actor, bookingId });
+  const booking = await getSessionBookingById({ actor, bookingId });
+  if (!['confirmed', 'completed'].includes(String(booking?.status || '').toLowerCase())) {
+    throw new AppError('Chat is available only for confirmed sessions', 403);
+  }
   const [rows] = await sequelize.query(SQL.SESSION.GET_MESSAGES, {
     replacements: {
       booking_id: bookingId,
@@ -561,6 +633,9 @@ export const listSessionMessages = async ({ actor, bookingId, limit = 100, offse
 
 export const addSessionMessage = async ({ actor, bookingId, body }) => {
   const booking = await getSessionBookingById({ actor, bookingId });
+  if (!['confirmed', 'completed'].includes(String(booking?.status || '').toLowerCase())) {
+    throw new AppError('Chat is available only for confirmed sessions', 403);
+  }
   try {
     const [rows] = await sequelize.query(SQL.SESSION.ADD_MESSAGE, {
       replacements: {

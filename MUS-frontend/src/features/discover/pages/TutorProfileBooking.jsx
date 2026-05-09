@@ -23,6 +23,10 @@ import Lock from '@mui/icons-material/Lock';
 import ChevronLeft from '@mui/icons-material/ChevronLeft';
 import ChevronRight from '@mui/icons-material/ChevronRight';
 import StarBorder from '@mui/icons-material/StarBorder';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import sessionService from '@/services/sessionService';
+import DiscoveryHeader from '@/features/discover/components/DiscoveryHeader';
+import { useNotification } from '@/shared/components/ui';
 
 // ─── brand tokens ─────────────────────────────────────────────────────────────
 const BRAND_BLUE = '#2563EB';
@@ -33,16 +37,19 @@ const SOFT_BLUE_BG = 'rgba(37, 99, 235, 0.10)';
 
 const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const TABS = ['Profile', 'Resources', 'Playlist', 'Booking'];
-const TIME_SLOTS = [
-  '09:00 AM', '10:30 AM', '12:00 PM',
-  '01:30 PM', '02:00 PM', '03:30 PM',
-  '04:30 PM', '06:00 PM', '07:30 PM',
-  '08:00 PM', '09:00 PM',
-];
+const DURATION_OPTIONS = [30, 60, 90, 120];
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const toDateKey = (d) => new Date(d).toISOString().slice(0, 10);
 const formatMonthYear = (d) => d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+const formatSlotTimeLabel = (dateValue) => {
+  const date = new Date(dateValue);
+  const h = date.getHours();
+  const m = date.getMinutes();
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 || 12;
+  return `${String(hour12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${suffix}`;
+};
 
 // ─── shared sx constants ──────────────────────────────────────────────────────
 const sectionLabelSx = {
@@ -60,7 +67,7 @@ const summaryRowSx = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-const TutorBookingPage = ({
+const TutorBookingPageView = ({
   tutorName = 'Rohan K.',
   tutorAvatar = '',
   subject = 'Chemistry',
@@ -148,7 +155,9 @@ const TutorBookingPage = ({
   };
 
   return (
-    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 3, px: { xs: 1, sm: 3, md: 6 } }}>
+    <>
+      <DiscoveryHeader />
+      <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 3, px: { xs: 1, sm: 3, md: 6 } }}>
       <Paper elevation={1} sx={{ maxWidth: 1100, mx: 'auto', borderRadius: 3, overflow: 'hidden' }}>
 
         {/* ── Tutor Header ─────────────────────────────────────────────────── */}
@@ -413,56 +422,58 @@ const TutorBookingPage = ({
                     : ''}
                 </Typography>
 
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
-                  {TIME_SLOTS.map((slot) => {
-                    const available = todaySlots.includes(slot);
-                    const active = selectedTime === slot;
-                    return (
-                      <Button
-                        key={slot}
-                        variant="outlined"
-                        disabled={!available}
-                        onClick={() => setSelectedTime(slot)}
-                        sx={(theme) => ({
-                          textTransform: 'none',
-                          borderRadius: 1.5,
-                          py: 0.6,
-                          px: 0.5,
-                          fontSize: '0.82rem',
-                          fontWeight: active ? 700 : 500,
-                          justifyContent: 'center',
-                          borderColor: active
-                            ? BRAND_GREEN
-                            : available
-                              ? 'rgba(34, 197, 94, 0.5)'
-                              : theme.palette.divider,
-                          bgcolor: active
-                            ? 'rgba(34, 197, 94, 0.18)'
-                            : available
-                              ? SOFT_GREEN_BG
-                              : 'transparent',
-                          color: available ? '#15803d' : 'text.disabled',
-                          '&:hover': {
-                            bgcolor: active
-                              ? 'rgba(34, 197, 94, 0.26)'
-                              : available
-                                ? 'rgba(34, 197, 94, 0.22)'
-                                : alpha(theme.palette.action.active, 0.04),
-                            borderColor: active
-                              ? BRAND_GREEN
-                              : available
-                                ? 'rgba(34, 197, 94, 0.7)'
-                                : undefined,
-                          },
-                          '&.Mui-disabled': { color: 'text.disabled' },
-                          transition: 'all 0.15s ease',
-                        })}
-                      >
-                        {slot}
-                      </Button>
-                    );
-                  })}
-                </Box>
+                {todaySlots.length ? (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
+                    {todaySlots.map((slot) => {
+                      const active = selectedTime === slot;
+                      return (
+                        <Button
+                          key={slot}
+                          variant="outlined"
+                          onClick={() => setSelectedTime(slot)}
+                          sx={(theme) => ({
+                            textTransform: 'none',
+                            borderRadius: 1.5,
+                            py: 0.8,
+                            px: 0.6,
+                            fontSize: '0.84rem',
+                            fontWeight: active ? 700 : 600,
+                            justifyContent: 'center',
+                            borderColor: active ? BRAND_GREEN : 'rgba(34, 197, 94, 0.45)',
+                            bgcolor: active ? 'rgba(34, 197, 94, 0.20)' : SOFT_GREEN_BG,
+                            color: '#15803d',
+                            '&:hover': {
+                              bgcolor: active
+                                ? 'rgba(34, 197, 94, 0.26)'
+                                : 'rgba(34, 197, 94, 0.22)',
+                              borderColor: active ? BRAND_GREEN : 'rgba(34, 197, 94, 0.72)',
+                            },
+                            '&.Mui-disabled': { color: 'text.disabled' },
+                            transition: 'all 0.15s ease',
+                          })}
+                        >
+                          {slot}
+                        </Button>
+                      );
+                    })}
+                  </Box>
+                ) : (
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      borderStyle: 'dashed',
+                      borderRadius: 2,
+                      py: 2,
+                      px: 1.5,
+                      textAlign: 'center',
+                      bgcolor: 'rgba(148, 163, 184, 0.08)',
+                    }}
+                  >
+                    <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                      No time slots available for this date
+                    </Typography>
+                  </Paper>
+                )}
 
                 <Typography
                   variant="caption"
@@ -476,6 +487,34 @@ const TutorBookingPage = ({
               {/* ── 3. Choose Your Plan ────────────────────────────────────── */}
               <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                 <Typography sx={sectionLabelSx}>3. Choose Your Plan</Typography>
+
+                <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                  Session Duration
+                </Typography>
+                <Stack direction="row" spacing={1} mb={1.5} flexWrap="wrap" useFlexGap>
+                  {DURATION_OPTIONS.map((minutes) => {
+                    const active = durationMinutes === minutes;
+                    return (
+                      <Button
+                        key={minutes}
+                        size="small"
+                        variant={active ? 'contained' : 'outlined'}
+                        onClick={() => setDurationMinutes(minutes)}
+                        sx={{
+                          textTransform: 'none',
+                          borderRadius: 2,
+                          fontWeight: 700,
+                          minWidth: 68,
+                          bgcolor: active ? BRAND_BLUE : undefined,
+                          borderColor: active ? BRAND_BLUE : 'divider',
+                          '&:hover': { bgcolor: active ? '#1d4ed8' : undefined },
+                        }}
+                      >
+                        {minutes}m
+                      </Button>
+                    );
+                  })}
+                </Stack>
 
                 <Stack spacing={1.5}>
 
@@ -733,7 +772,133 @@ const TutorBookingPage = ({
         )}
 
       </Paper>
-    </Box>
+      </Box>
+    </>
+  );
+};
+
+const TutorBookingPage = () => {
+  const { tutorId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { showError, showInfo, showSuccess } = useNotification();
+
+  const tutor = location.state?.tutor || {};
+  const subjectModule = String(location.state?.subjectModule || '').trim();
+
+  const [slots, setSlots] = useState([]);
+  const [baseRatePerHour, setBaseRatePerHour] = useState(25);
+  const [currency, setCurrency] = useState('USD');
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!tutorId) return;
+      try {
+        const [slotRows, pricing] = await Promise.all([
+          sessionService.listBookableSlots({ teacherId: tutorId, limit: 300 }),
+          sessionService.getTutorPricingProfile(tutorId).catch(() => null),
+        ]);
+        if (cancelled) return;
+        const safeSlots = Array.isArray(slotRows) ? slotRows : [];
+        setSlots(safeSlots);
+        setBaseRatePerHour(Number(pricing?.base_rate_per_hour || 25));
+        setCurrency(String(pricing?.currency || 'USD').toUpperCase());
+      } catch {
+        if (!cancelled) {
+          setSlots([]);
+          setBaseRatePerHour(25);
+          setCurrency('USD');
+        }
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [tutorId]);
+
+  const slotIndex = useMemo(() => {
+    const map = {};
+    slots.forEach((slot) => {
+      const dateKey = toDateKey(slot.start_at);
+      const timeLabel = formatSlotTimeLabel(slot.start_at);
+      if (!map[dateKey]) map[dateKey] = {};
+      map[dateKey][timeLabel] = slot;
+    });
+    return map;
+  }, [slots]);
+
+  const availableDates = useMemo(() => Object.keys(slotIndex).sort(), [slotIndex]);
+  const availableSlots = useMemo(() => {
+    const out = {};
+    Object.entries(slotIndex).forEach(([date, timeMap]) => {
+      out[date] = Object.keys(timeMap).sort((a, b) => new Date(`2000-01-01 ${a}`).getTime() - new Date(`2000-01-01 ${b}`).getTime());
+    });
+    return out;
+  }, [slotIndex]);
+
+  const handleMessage = async () => {
+    try {
+      const rows = await sessionService.listMyBookings({ status: 'confirmed', limit: 200 });
+      const match = (Array.isArray(rows) ? rows : []).find((b) => String(b?.teacher_id || '') === String(tutorId));
+      if (!match) {
+        showInfo('No confirmed session with this tutor yet.');
+        return;
+      }
+      const bookingId = Number(match.booking_id || match.id || 0);
+      if (!bookingId) return;
+      navigate(`/dashboard/sessions?booking=${bookingId}&chat=1`);
+    } catch (error) {
+      showError(error?.response?.data?.message || error?.message || 'Unable to open chat.');
+    }
+  };
+
+  const handleBook = async ({ date, time, plan, duration, total, currency: selectedCurrency }) => {
+    const slot = slotIndex?.[date]?.[time] || null;
+    if (!slot?.id) {
+      showError('Selected time is not available with tutor slots.');
+      return;
+    }
+    try {
+      const payload = {
+        slot_id: Number(slot.id),
+        duration_minutes: Number(duration || 60),
+        session_mode: 'remote',
+        subject_module: subjectModule || 'Resource support',
+        pricing_snapshot: {
+          duration_minutes: Number(duration || 60),
+          session_amount: Number(total || 0),
+          platform_fee: 2,
+          total_amount: Number((Number(total || 0) + 2).toFixed(2)),
+          currency: selectedCurrency || currency,
+          plan,
+        },
+        booking_metadata: { source: 'tutor_profile_page' },
+      };
+      const booking = await sessionService.createBooking(payload);
+      const bookingId = Number(booking?.booking_id || booking?.id || 0);
+      showSuccess('Booking request sent. Waiting tutor confirmation.');
+      if (bookingId > 0) {
+        navigate(`/dashboard/sessions?booking=${bookingId}`);
+      }
+    } catch (error) {
+      showError(error?.response?.data?.message || error?.message || 'Failed to create booking request.');
+    }
+  };
+
+  return (
+    <TutorBookingPageView
+      tutorName={String(tutor?.name || slots?.[0]?.teacher_name || 'Tutor')}
+      tutorAvatar={String(tutor?.avatar || tutor?.avatar_url || slots?.[0]?.teacher_avatar_url || '')}
+      subject={subjectModule || 'Chemistry'}
+      baseRatePerHour={baseRatePerHour}
+      currency={currency}
+      availableDates={availableDates}
+      availableSlots={availableSlots}
+      onBook={handleBook}
+      onMessage={handleMessage}
+    />
   );
 };
 

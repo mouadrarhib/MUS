@@ -4,6 +4,7 @@ import {
   addSessionMessageHandler,
   cancelSessionBookingHandler,
   clearSessionInboxHandler,
+  confirmSessionBookingHandler,
   completeSessionBookingHandler,
   createSessionBookingHandler,
   createTeacherSlotHandler,
@@ -14,6 +15,7 @@ import {
   listMySessionBookingsHandler,
   listSessionMessagesHandler,
   listTeacherSlotsHandler,
+  rejectSessionBookingHandler,
   upsertMyTutorPricingProfileHandler,
   updateTeacherSlotHandler,
 } from "../controllers/sessionController.js";
@@ -118,7 +120,7 @@ router.get(
   "/bookings",
   requireRole("student", "teacher", "admin"),
   [
-    query("status").optional().isIn(["confirmed", "cancelled", "completed", "no_show"]).withMessage("status is invalid"),
+    query("status").optional().isIn(["pending", "confirmed", "rejected", "cancelled", "completed", "no_show"]).withMessage("status is invalid"),
     query("limit").optional().isInt({ min: 1, max: 200 }).withMessage("limit must be between 1 and 200"),
     query("offset").optional().isInt({ min: 0 }).withMessage("offset must be >= 0"),
   ],
@@ -153,10 +155,29 @@ router.patch(
 
 router.patch(
   "/bookings/:bookingId/complete",
-  requireRole("teacher", "admin"),
+  requireRole("teacher", "student", "admin"),
   [param("bookingId").isInt({ min: 1 }).withMessage("bookingId must be a positive integer")],
   validateRequest,
   completeSessionBookingHandler
+);
+
+router.patch(
+  "/bookings/:bookingId/confirm",
+  requireRole("teacher", "student", "admin"),
+  [param("bookingId").isInt({ min: 1 }).withMessage("bookingId must be a positive integer")],
+  validateRequest,
+  confirmSessionBookingHandler
+);
+
+router.patch(
+  "/bookings/:bookingId/reject",
+  requireRole("teacher", "student", "admin"),
+  [
+    param("bookingId").isInt({ min: 1 }).withMessage("bookingId must be a positive integer"),
+    body("reason").optional().isString().isLength({ min: 3, max: 1000 }).withMessage("reason must contain 3-1000 characters"),
+  ],
+  validateRequest,
+  rejectSessionBookingHandler
 );
 
 router.get(

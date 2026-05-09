@@ -725,6 +725,10 @@ export const SQL = {
 
     BOOK_SESSION: `SELECT * FROM public.sp_teacher_session_book(:slot_id, :student_id, :note)`,
 
+    CONFIRM_BOOKING: `SELECT * FROM public.sp_teacher_session_confirm(:booking_id, :actor_user_id)`,
+
+    REJECT_BOOKING: `SELECT * FROM public.sp_teacher_session_reject(:booking_id, :actor_user_id, :reason)`,
+
     GET_STUDENT_BOOKINGS: `SELECT * FROM public.sp_teacher_session_get_for_student(:student_id, :status, :limit_value, :offset_value)`,
 
     GET_TEACHER_BOOKINGS: `SELECT * FROM public.sp_teacher_session_get_for_teacher(:teacher_id, :status, :limit_value, :offset_value)`,

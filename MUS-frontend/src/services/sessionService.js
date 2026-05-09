@@ -95,6 +95,16 @@ const sessionService = {
     return response?.data || null;
   },
 
+  confirmBooking: async (bookingId) => {
+    const response = await patch(`/sessions/bookings/${bookingId}/confirm`);
+    return response?.data || null;
+  },
+
+  rejectBooking: async (bookingId, reason = "") => {
+    const response = await patch(`/sessions/bookings/${bookingId}/reject`, { reason });
+    return response?.data || null;
+  },
+
   listMessages: async (bookingId, { limit = 200, offset = 0 } = {}) => {
     const response = await get(`/sessions/bookings/${bookingId}/messages`, {
       params: { limit, offset },

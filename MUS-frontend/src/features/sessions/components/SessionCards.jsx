@@ -66,7 +66,7 @@ export const TeacherSlotCard = ({ slot, onEdit, onDelete }) => (
   </Paper>
 );
 
-export const SessionBookingCard = ({ booking, isTeacherViewEnabled, onOpenChat, onCancel, onComplete }) => {
+export const SessionBookingCard = ({ booking, isTeacherViewEnabled, onOpenChat, onCancel, onComplete, onConfirm, onReject }) => {
   const bookingId = booking.booking_id || booking.id;
 
   return (
@@ -83,16 +83,32 @@ export const SessionBookingCard = ({ booking, isTeacherViewEnabled, onOpenChat, 
             {formatDate(booking.start_at)} - {formatDate(booking.end_at)}
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-          <Button
-            variant="outlined"
-            startIcon={<Chat sx={{ fontSize: 16 }} />}
-            onClick={() => onOpenChat(booking)}
-            sx={{ textTransform: "none" }}
-          >
-            Open Chat
-          </Button>
-          {String(booking.status) === "confirmed" ? (
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <Button
+              variant="outlined"
+              startIcon={<Chat sx={{ fontSize: 16 }} />}
+              onClick={() => onOpenChat(booking)}
+              disabled={!['confirmed', 'completed'].includes(String(booking.status || '').toLowerCase())}
+              sx={{ textTransform: "none" }}
+            >
+              Open Chat
+            </Button>
+            {String(booking.status || '').toLowerCase() === 'pending' ? (
+              <>
+                <Chip size="small" color="warning" label={isTeacherViewEnabled ? 'Awaiting your review' : 'Awaiting tutor confirmation'} />
+                {isTeacherViewEnabled ? (
+                  <>
+                    <Button variant="contained" size="small" onClick={() => onConfirm(bookingId)} sx={{ textTransform: 'none' }}>
+                      Confirm
+                    </Button>
+                    <Button variant="outlined" color="error" size="small" onClick={() => onReject(bookingId)} sx={{ textTransform: 'none' }}>
+                      Reject
+                    </Button>
+                  </>
+                ) : null}
+              </>
+            ) : null}
+            {String(booking.status) === "confirmed" ? (
             <>
               <Button variant="text" color="error" onClick={() => onCancel(bookingId)} sx={{ textTransform: "none" }}>
                 Cancel
@@ -136,4 +152,6 @@ SessionBookingCard.propTypes = {
   onOpenChat: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,
   onComplete: PropTypes.func.isRequired,
+  onConfirm: PropTypes.func.isRequired,
+  onReject: PropTypes.func.isRequired,
 };

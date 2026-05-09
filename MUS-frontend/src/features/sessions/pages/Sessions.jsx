@@ -105,6 +105,7 @@ const Sessions = () => {
   const chatOnlyBookings = useMemo(() => {
     const list = Array.isArray(bookings) ? bookings : [];
     return [...list]
+      .filter((item) => ['confirmed', 'completed'].includes(String(item?.status || '').toLowerCase()))
       .filter((item) => Number(item.booking_id || item.id || 0) > 0)
       .sort((a, b) => {
         const aTime = new Date(a.updated_at || a.start_at || 0).getTime();
@@ -117,7 +118,7 @@ const Sessions = () => {
     setBookingSubmittingId(slotId);
     try {
       await sessionService.createBooking({ slot_id: slotId });
-      showSuccess("Session booked successfully.");
+      showSuccess("Booking request sent. Waiting tutor confirmation.");
       await loadData();
     } catch (error) {
       showError(error?.response?.data?.message || error?.message || "Failed to book this session.");
@@ -136,7 +137,7 @@ const Sessions = () => {
     setSlotDialogOpen(true);
   };
 
-  const handleSaveSlot = async () => {
+  const handleSaveSlot = async (bulkSlots = null) => {
     setSlotSubmitting(true);
     try {
       const payload = {
@@ -149,8 +150,19 @@ const Sessions = () => {
         await sessionService.updateTeacherSlot(editingSlot.id, payload);
         showSuccess("Slot updated successfully.");
       } else {
-        await sessionService.createTeacherSlot(payload);
-        showSuccess("Slot created successfully.");
+        const entries = Array.isArray(bulkSlots) && bulkSlots.length
+          ? bulkSlots
+          : [{ start_at: slotDraft.start_at, end_at: slotDraft.end_at, timezone: slotDraft.timezone }];
+        await Promise.all(
+          entries.map((entry) =>
+            sessionService.createTeacherSlot({
+              start_at: new Date(entry.start_at).toISOString(),
+              end_at: new Date(entry.end_at).toISOString(),
+              timezone: entry.timezone || slotDraft.timezone,
+            })
+          )
+        );
+        showSuccess(entries.length > 1 ? `${entries.length} slots created successfully.` : "Slot created successfully.");
       }
 
       setSlotDialogOpen(false);
@@ -176,6 +188,11 @@ const Sessions = () => {
   };
 
   const openChat = useCallback(async (booking) => {
+    const status = String(booking?.status || '').toLowerCase();
+    if (!['confirmed', 'completed'].includes(status)) {
+      showError('Chat becomes available once the tutor confirms the booking.');
+      return;
+    }
     setChatDialogOpen(true);
     setChatBooking(booking);
     setChatLoading(true);
@@ -242,11 +259,31 @@ const Sessions = () => {
     }
   };
 
+  const confirmBooking = async (bookingId) => {
+    try {
+      await sessionService.confirmBooking(bookingId);
+      showSuccess('Booking confirmed.');
+      await loadData();
+    } catch (error) {
+      showError(error?.response?.data?.message || error?.message || 'Failed to confirm booking.');
+    }
+  };
+
+  const rejectBooking = async (bookingId) => {
+    try {
+      await sessionService.rejectBooking(bookingId, 'Tutor unavailable for requested time');
+      showSuccess('Booking request rejected.');
+      await loadData();
+    } catch (error) {
+      showError(error?.response?.data?.message || error?.message || 'Failed to reject booking.');
+    }
+  };
+
   return (
     <Box>
       <PageHeader
-        title="Teacher Sessions"
-        subtitle="Book 1:1 academic sessions, manage availability slots, and chat directly after booking."
+        title="Tutor Sessions"
+        subtitle="Book 1:1 tutoring sessions, manage availability slots, and chat directly after booking."
         icon={AutoStories}
         actions={
           isTeacherViewEnabled ? (
@@ -279,8 +316,8 @@ const Sessions = () => {
           <EventAvailable color="primary" />
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             {isStudent
-              ? "Choose a confirmed teacher slot to instantly start your session journey."
-              : "Publish clean time slots to let students book you instantly with auto-confirmation."}
+              ? "Choose a tutor slot and send a booking request. Chat unlocks once confirmed."
+              : "Publish your tutoring slots and review incoming student requests before confirming."}
           </Typography>
         </Stack>
       </Paper>
@@ -311,7 +348,7 @@ const Sessions = () => {
                 ))}
               </Stack>
             ) : (
-              <EmptyState title="No slots available" subtitle="Teachers have not published upcoming slots yet." />
+              <EmptyState title="No slots available" subtitle="Tutors have not published upcoming slots yet." />
             )
           ) : null}
 
@@ -328,7 +365,7 @@ const Sessions = () => {
                 ))}
               </Stack>
             ) : (
-              <EmptyState title="No teacher slots yet" subtitle="Create your first slot to start receiving bookings." />
+              <EmptyState title="No tutor slots yet" subtitle="Create your first slot to start receiving bookings." />
             )
           ) : null}
 
@@ -343,6 +380,8 @@ const Sessions = () => {
                     onOpenChat={openChat}
                     onCancel={cancelBooking}
                     onComplete={completeBooking}
+                    onConfirm={confirmBooking}
+                    onReject={rejectBooking}
                   />
                 ))}
               </Stack>

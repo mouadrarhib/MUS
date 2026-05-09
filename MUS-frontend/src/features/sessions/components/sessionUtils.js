@@ -1,12 +1,16 @@
 export const statusColor = {
+  pending: "warning",
   confirmed: "success",
+  rejected: "error",
   cancelled: "default",
   completed: "secondary",
   no_show: "warning",
 };
 
 export const statusLabel = {
+  pending: "Pending",
   confirmed: "Confirmed",
+  rejected: "Rejected",
   cancelled: "Cancelled",
   completed: "Completed",
   no_show: "No show",

@@ -105,7 +105,7 @@ const SessionInboxMenu = memo(({ badgeCount = 0, onOpenBooking, onClear }) => {
         }}
       >
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 1.5, py: 1.2 }}>
-          <Typography variant="subtitle2" fontWeight={800}>Session Chats</Typography>
+          <Typography variant="subtitle2" fontWeight={800}>Sessions Inbox</Typography>
           <Stack direction="row" spacing={0.4}>
             <Button size="small" startIcon={loading ? <CircularProgress size={13} /> : <Refresh sx={{ fontSize: 14 }} />} onClick={load} sx={{ textTransform: 'none' }}>
               Refresh
@@ -140,10 +140,13 @@ const SessionInboxMenu = memo(({ badgeCount = 0, onOpenBooking, onClear }) => {
           ) : bookings.length ? (
             bookings.map((booking) => {
               const bookingId = Number(booking.booking_id || booking.id || 0);
+              const status = String(booking?.status || '').toLowerCase();
+              const canChat = status === 'confirmed' || status === 'completed';
               return (
                 <MenuItem
                   key={bookingId}
                   onClick={() => {
+                    if (!canChat) return;
                     handleClose();
                     onOpenBooking(bookingId);
                   }}
@@ -152,16 +155,22 @@ const SessionInboxMenu = memo(({ badgeCount = 0, onOpenBooking, onClear }) => {
                     alignItems: 'flex-start',
                     py: 1.1,
                     borderLeft: '3px solid',
-                    borderLeftColor: String(booking?.status || '') === 'confirmed' ? 'secondary.main' : 'transparent',
+                    borderLeftColor: canChat ? 'secondary.main' : 'warning.main',
+                    opacity: canChat ? 1 : 0.92,
                   }}
                 >
                   <Box>
                     <Typography variant="body2" fontWeight={700}>
-                      {(booking.teacher_name || booking.student_name || 'Session')} • {String(booking.status || 'confirmed')}
+                      {(booking.teacher_name || booking.student_name || 'Session')} • {String(booking.status || 'pending')}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                       {formatShortDate(booking.start_at)}
                     </Typography>
+                    {!canChat ? (
+                      <Typography variant="caption" color="warning.main" sx={{ display: 'block', mt: 0.2 }}>
+                        Awaiting tutor confirmation
+                      </Typography>
+                    ) : null}
                   </Box>
                 </MenuItem>
               );

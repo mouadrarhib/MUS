@@ -4,6 +4,7 @@ import {
   addSessionMessage,
   cancelSessionBooking,
   clearSessionInbox,
+  confirmSessionBooking,
   completeSessionBooking,
   createSessionBooking,
   createTeacherSlot,
@@ -13,6 +14,7 @@ import {
   listMySessionBookings,
   listSessionMessages,
   listTeacherSlots,
+  rejectSessionBooking,
   getTutorPricingProfile,
   upsertMyTutorPricingProfile,
   updateTeacherSlot,
@@ -155,6 +157,26 @@ export const completeSessionBookingHandler = asyncHandler(async (req, res) => {
     bookingId: Number(bookingId),
   });
   return successResponse(res, "Session booking completed successfully", data);
+});
+
+export const confirmSessionBookingHandler = asyncHandler(async (req, res) => {
+  const { bookingId } = req.params;
+  const data = await confirmSessionBooking({
+    actor: req.user,
+    bookingId: Number(bookingId),
+  });
+  return successResponse(res, "Session booking confirmed successfully", data);
+});
+
+export const rejectSessionBookingHandler = asyncHandler(async (req, res) => {
+  const { bookingId } = req.params;
+  const { reason = null } = req.body;
+  const data = await rejectSessionBooking({
+    actor: req.user,
+    bookingId: Number(bookingId),
+    reason,
+  });
+  return successResponse(res, "Session booking rejected successfully", data);
 });
 
 export const listSessionMessagesHandler = asyncHandler(async (req, res) => {
