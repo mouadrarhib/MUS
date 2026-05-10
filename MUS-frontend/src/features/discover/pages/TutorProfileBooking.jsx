@@ -124,16 +124,49 @@ const TutorBookingPageView = ({
   const calendarCells = useMemo(() => {
     const y = displayMonth.getFullYear();
     const m = displayMonth.getMonth();
+    
+    // First weekday of current month (0 = Sun, 6 = Sat)
     const startWeekday = new Date(y, m, 1).getDay();
+    // Total days in current month
     const daysInMonth = new Date(y, m + 1, 0).getDate();
+    // Total days in previous month
+    const daysInPrevMonth = new Date(y, m, 0).getDate();
+    
     const cells = [];
-    for (let i = 0; i < startWeekday; i++) cells.push(null);
+    
+    // 1. Fill previous month's trailing days
+    for (let i = startWeekday - 1; i >= 0; i--) {
+      const day = daysInPrevMonth - i;
+      const dt = new Date(y, m - 1, day);
+      cells.push({
+        day,
+        key: toDateKey(dt),
+        isCurrentMonth: false,
+      });
+    }
+    
+    // 2. Fill current month's days
     for (let day = 1; day <= daysInMonth; day++) {
       const dt = new Date(y, m, day);
-      const key = toDateKey(dt);
-      cells.push({ day, key });
+      cells.push({
+        day,
+        key: toDateKey(dt),
+        isCurrentMonth: true,
+      });
     }
-    while (cells.length % 7 !== 0) cells.push(null);
+    
+    // 3. Fill next month's leading days to make a complete week grid
+    let nextMonthDay = 1;
+    while (cells.length % 7 !== 0) {
+      const dt = new Date(y, m + 1, nextMonthDay);
+      cells.push({
+        day: nextMonthDay,
+        key: toDateKey(dt),
+        isCurrentMonth: false,
+      });
+      nextMonthDay++;
+    }
+    
     return cells;
   }, [displayMonth]);
 
@@ -364,9 +397,8 @@ const TutorBookingPageView = ({
 
                 {/* Calendar days */}
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.3 }}>
-                  {calendarCells.map((cell, idx) => {
-                    if (!cell) return <Box key={`empty-${idx}`} />;
-                    const isAvailable = availableDates.includes(cell.key);
+                  {calendarCells.map((cell) => {
+                    const isAvailable = cell.isCurrentMonth && availableDates.includes(cell.key);
                     const isSelected = selectedDate === cell.key;
                     return (
                       <Button
@@ -379,12 +411,14 @@ const TutorBookingPageView = ({
                           height: 30,
                           borderRadius: '50%',
                           fontSize: '0.78rem',
-                          fontWeight: isSelected ? 700 : 400,
+                          fontWeight: isSelected ? 700 : 500,
                           color: isSelected
                             ? '#fff'
                             : isAvailable
-                              ? 'text.primary'
-                              : 'text.disabled',
+                              ? '#22C55E'
+                              : cell.isCurrentMonth
+                                ? 'text.primary'
+                                : 'text.disabled',
                           bgcolor: isSelected
                             ? BRAND_BLUE
                             : isAvailable
@@ -395,9 +429,13 @@ const TutorBookingPageView = ({
                               ? '#1d4ed8'
                               : isAvailable
                                 ? 'rgba(34, 197, 94, 0.22)'
-                                : alpha(theme.palette.action.active, 0.04),
+                                : 'transparent',
                           },
-                          '&.Mui-disabled': { color: 'text.disabled', bgcolor: 'transparent' },
+                          '&.Mui-disabled': {
+                            color: cell.isCurrentMonth ? 'text.primary' : 'text.disabled',
+                            bgcolor: 'transparent',
+                            opacity: cell.isCurrentMonth ? 1.0 : 0.4,
+                          },
                           transition: 'all 0.15s ease',
                         })}
                       >
@@ -449,16 +487,18 @@ const TutorBookingPageView = ({
                             py: 0.8,
                             px: 0.6,
                             fontSize: '0.84rem',
-                            fontWeight: active ? 700 : 600,
+                            fontWeight: active ? 700 : 500,
                             justifyContent: 'center',
-                            borderColor: active ? BRAND_GREEN : 'rgba(34, 197, 94, 0.45)',
-                            bgcolor: active ? 'rgba(34, 197, 94, 0.20)' : SOFT_GREEN_BG,
-                            color: '#15803d',
+                            borderColor: active ? BRAND_GREEN : 'rgba(0,0,0,0.08)',
+                            bgcolor: active ? 'rgba(34, 197, 94, 0.08)' : 'background.paper',
+                            color: active ? '#16a34a' : 'text.primary',
+                            boxShadow: 'none',
                             '&:hover': {
                               bgcolor: active
-                                ? 'rgba(34, 197, 94, 0.26)'
-                                : 'rgba(34, 197, 94, 0.22)',
-                              borderColor: active ? BRAND_GREEN : 'rgba(34, 197, 94, 0.72)',
+                                ? 'rgba(34, 197, 94, 0.14)'
+                                : 'rgba(34, 197, 94, 0.03)',
+                              borderColor: active ? BRAND_GREEN : BRAND_GREEN,
+                              color: active ? '#16a34a' : '#16a34a',
                             },
                             '&.Mui-disabled': { color: 'text.disabled' },
                             transition: 'all 0.15s ease',
