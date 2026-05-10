@@ -45,7 +45,7 @@ const formatDateTime = (value) =>
 // ---------------------------------------------------------------------------
 const STEPS = ['Choose tutor', 'Choose time', 'Session details', 'Confirm'];
 const DURATIONS = [30, 60, 90, 120];
-const USE_VIRTUAL_TUTOR_DATA_WHEN_EMPTY = true;
+const USE_VIRTUAL_TUTOR_DATA_WHEN_EMPTY = false;
 
 const VIRTUAL_TUTOR_SLOTS = [
   {
