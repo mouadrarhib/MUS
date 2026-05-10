@@ -40,7 +40,18 @@ const TABS = ['Profile', 'Resources', 'Playlist', 'Booking'];
 const DURATION_OPTIONS = [30, 60, 90, 120];
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-const toDateKey = (d) => new Date(d).toISOString().slice(0, 10);
+const toDateKey = (d) => {
+  const date = new Date(d);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+const formatLocalDateString = (dateStr, options) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', options);
+};
 const formatMonthYear = (d) => d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 const formatSlotTimeLabel = (dateValue) => {
   const date = new Date(dateValue);
@@ -98,7 +109,8 @@ const TutorBookingPageView = ({
     if (!selectedDate && availableDates.length) {
       const first = availableDates[0];
       setSelectedDate(first);
-      const dt = new Date(first);
+      const [year, month, day] = first.split('-').map(Number);
+      const dt = new Date(year, month - 1, day);
       setDisplayMonth(new Date(dt.getFullYear(), dt.getMonth(), 1));
     }
   }, [availableDates, selectedDate]);
@@ -414,7 +426,7 @@ const TutorBookingPageView = ({
                 <Typography variant="caption" color="text.secondary" display="block" mb={1.5}>
                   Available Time Slots
                   {selectedDate
-                    ? ` (${new Date(selectedDate).toLocaleDateString('en-US', {
+                    ? ` (${formatLocalDateString(selectedDate, {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',
@@ -681,7 +693,7 @@ const TutorBookingPageView = ({
                   {
                     label: 'Date',
                     value: selectedDate
-                      ? new Date(selectedDate).toLocaleDateString('en-US', {
+                      ? formatLocalDateString(selectedDate, {
                         month: 'long',
                         day: 'numeric',
                         year: 'numeric',
