@@ -24,7 +24,22 @@ import levelService from '@/services/levelService';
 import semesterService from '@/services/semesterService';
 import studentProfileService from '@/services/studentProfileService';
 import authService from '@/services/authService';
-import { PageHeader } from '@/shared/components/ui';
+import { PageHeader, useNotification } from '@/shared/components/ui';
+import { SettingSection, SettingRow } from '@/features/settings/components/SettingLayout';
+import DeleteAccountDialog from '@/features/settings/components/DeleteAccountDialog';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const toList = (response) => {
+  const payload = response?.data ?? response;
+  return Array.isArray(payload) ? payload : [];
+};
+
+const applyFontSize = (size) => {
+  localStorage.setItem('fontSize', size);
+  document.documentElement.style.fontSize =
+    size === 'small' ? '14px' : size === 'large' ? '18px' : '16px';
+import { PageHeader, useNotification } from '@/shared/components/ui';
 import { SettingSection, SettingRow } from '@/features/settings/components/SettingLayout';
 import DeleteAccountDialog from '@/features/settings/components/DeleteAccountDialog';
 
@@ -45,8 +60,9 @@ const applyFontSize = (size) => {
 
 const Settings = () => {
   const { mode, setThemeMode } = useThemeMode();
-  const { user, isAdmin, isStudent, contributionMode, canContribute, refreshProfile } = useAuth();
+  const { user, isAdmin, isStudent, contributionMode, canContribute, refreshProfile, logout } = useAuth();
   const { language, setLanguage: setAppLanguage, t } = useLanguage();
+  const { showError } = useNotification();
 
   // ── Appearance ─────────────────────────────────────────────────────────────
   const [fontSize, setFontSize] = useState(
@@ -509,11 +525,18 @@ const Settings = () => {
   }, [user]);
 
   // ── Delete account ─────────────────────────────────────────────────────────
-  const handleDeleteAccount = useCallback(() => {
-    // TODO: call userSettingsService.deleteAccount(user.id)
-    setDeleteDialogOpen(false);
-    setDeleteConfirmText('');
-  }, []);
+  const handleDeleteAccount = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      await userSettingsService.remove(user.id);
+      await logout();
+    } catch (err) {
+      showError(err?.response?.data?.message || 'Failed to delete account. Please contact support.');
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeleteConfirmText('');
+    }
+  }, [user?.id, logout, showError]);
 
   const handleDeleteDialogClose = useCallback(() => {
     setDeleteDialogOpen(false);
