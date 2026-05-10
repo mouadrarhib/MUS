@@ -168,7 +168,7 @@ const SessionInboxMenu = memo(({ badgeCount = 0, onOpenBooking, onClear }) => {
                     </Typography>
                     {!canChat ? (
                       <Typography variant="caption" color="warning.main" sx={{ display: 'block', mt: 0.2 }}>
-                        Awaiting tutor confirmation
+                        Confirmed ✔️
                       </Typography>
                     ) : null}
                   </Box>

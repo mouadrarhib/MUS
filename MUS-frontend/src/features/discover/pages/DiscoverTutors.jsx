@@ -559,7 +559,7 @@ const DiscoverTutors = () => {
       };
       const booking = await sessionService.createBooking(payload);
       const bookingId = Number(booking?.booking_id || booking?.id || 0);
-      showSuccess('Booking request sent. Waiting tutor confirmation.');
+      showSuccess('Session booked successfully!');
       navigate(
         bookingId > 0
           ? `/dashboard/sessions?booking=${bookingId}&chat=1`

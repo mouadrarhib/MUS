@@ -95,7 +95,7 @@ export const SessionBookingCard = ({ booking, isTeacherViewEnabled, onOpenChat, 
             </Button>
             {String(booking.status || '').toLowerCase() === 'pending' ? (
               <>
-                <Chip size="small" color="warning" label={isTeacherViewEnabled ? 'Awaiting your review' : 'Awaiting tutor confirmation'} />
+                <Chip size="small" color="success" label="Confirmed ✔️" />
                 {isTeacherViewEnabled ? (
                   <>
                     <Button variant="contained" size="small" onClick={() => onConfirm(bookingId)} sx={{ textTransform: 'none' }}>

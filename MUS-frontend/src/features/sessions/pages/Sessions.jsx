@@ -118,7 +118,7 @@ const Sessions = () => {
     setBookingSubmittingId(slotId);
     try {
       await sessionService.createBooking({ slot_id: slotId });
-      showSuccess("Booking request sent. Waiting tutor confirmation.");
+      showSuccess("Session booked successfully!");
       await loadData();
     } catch (error) {
       showError(error?.response?.data?.message || error?.message || "Failed to book this session.");
@@ -190,7 +190,7 @@ const Sessions = () => {
   const openChat = useCallback(async (booking) => {
     const status = String(booking?.status || '').toLowerCase();
     if (!['confirmed', 'completed'].includes(status)) {
-      showError('Chat becomes available once the tutor confirms the booking.');
+      showError('Chat is available for confirmed bookings.');
       return;
     }
     setChatDialogOpen(true);
@@ -316,8 +316,8 @@ const Sessions = () => {
           <EventAvailable color="primary" />
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             {isStudent
-              ? "Choose a tutor slot and send a booking request. Chat unlocks once confirmed."
-              : "Publish your tutoring slots and review incoming student requests before confirming."}
+              ? "Choose a tutor slot to book your session. Chat unlocks immediately."
+              : "Publish your tutoring slots to receive auto-confirmed student bookings."}
           </Typography>
         </Stack>
       </Paper>
