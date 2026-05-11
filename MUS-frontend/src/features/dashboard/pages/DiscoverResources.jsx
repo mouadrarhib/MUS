@@ -27,9 +27,33 @@ const DiscoverResources = () => {
 
   // OPTIMIZED: Memoized to prevent heavy loop on every render
   const fallbackModules = useMemo(() => resources.reduce((acc, item) => {
-    const moduleTitle = String(item?.module_title || item?.moduleTitle || item?.module_code || item?.moduleCode || '').trim();
-    if (!moduleTitle) return acc;
-    const moduleId = String(item?.module_id || item?.moduleId || moduleTitle.toLowerCase().replace(/\s+/g, '-')).trim();
+    const moduleTitle = String(
+      item?.module_title ||
+      item?.moduleTitle ||
+      item?.academicContext?.moduleTitle ||
+      item?.module_code ||
+      item?.moduleCode ||
+      item?.academicContext?.moduleCode ||
+      ''
+    ).trim();
+    if (!moduleTitle) {
+      const uncategorizedId = '__uncategorized__';
+      if (!acc[uncategorizedId]) {
+        acc[uncategorizedId] = {
+          module_id: uncategorizedId,
+          module_title: 'Unassigned Module',
+          resource_count: 0,
+        };
+      }
+      acc[uncategorizedId].resource_count += 1;
+      return acc;
+    }
+    const moduleId = String(
+      item?.module_id ||
+      item?.moduleId ||
+      item?.academicContext?.moduleId ||
+      `module:${moduleTitle.toLowerCase().replace(/\s+/g, '-')}`
+    ).trim();
 
     if (!acc[moduleId]) acc[moduleId] = { module_id: moduleId, module_title: moduleTitle, resource_count: 0 };
     acc[moduleId].resource_count += 1;

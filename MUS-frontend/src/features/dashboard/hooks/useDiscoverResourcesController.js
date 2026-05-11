@@ -23,6 +23,35 @@ const getEducationalType = (item) => {
   return String(raw || '').trim().toLowerCase() || 'other';
 };
 
+const normalizeFacetValues = (facet, preferredKeys = []) => {
+  if (Array.isArray(facet)) {
+    return facet
+      .map((entry) => {
+        if (typeof entry === 'string' || typeof entry === 'number') return String(entry).trim().toLowerCase();
+        if (!entry || typeof entry !== 'object') return '';
+
+        for (const key of preferredKeys) {
+          const candidate = entry?.[key];
+          if (candidate != null && String(candidate).trim()) {
+            return String(candidate).trim().toLowerCase();
+          }
+        }
+
+        const firstPrimitive = Object.values(entry).find((value) => typeof value === 'string' || typeof value === 'number');
+        return firstPrimitive != null ? String(firstPrimitive).trim().toLowerCase() : '';
+      })
+      .filter(Boolean);
+  }
+
+  if (facet && typeof facet === 'object') {
+    return Object.keys(facet)
+      .map((key) => String(key).trim().toLowerCase())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
 const formatTypeLabel = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
   if (!normalized || normalized === 'all') return 'All Types';
@@ -305,11 +334,12 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
   const rankedResources = useMemo(() => resources, [resources]);
 
   const availableTypes = useMemo(() => {
-    const fromMeta = Array.isArray(discoverMeta?.facets?.educational_types)
-      ? discoverMeta.facets.educational_types
-      : [];
+    const fromMeta = normalizeFacetValues(
+      discoverMeta?.facets?.educational_types,
+      ['educational_type', 'educationalType', 'type', 'value', 'name']
+    );
     if (fromMeta.length > 0) {
-      return fromMeta;
+      return Array.from(new Set(fromMeta)).sort((a, b) => a.localeCompare(b));
     }
 
     const set = new Set();
@@ -320,8 +350,8 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
   }, [discoverMeta, resources]);
 
   const availableFormats = useMemo(() => {
-    const fromMeta = Array.isArray(discoverMeta?.facets?.formats) ? discoverMeta.facets.formats : [];
-    if (fromMeta.length > 0) return fromMeta;
+    const fromMeta = normalizeFacetValues(discoverMeta?.facets?.formats, ['format', 'resource_format', 'value', 'name']);
+    if (fromMeta.length > 0) return Array.from(new Set(fromMeta)).sort((a, b) => a.localeCompare(b));
 
     const set = new Set();
     resources.forEach((item) => {

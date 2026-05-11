@@ -315,6 +315,155 @@ const enrichDiscoverResources = async (resources = []) => {
   return enrichedRows;
 };
 
+const hydrateDiscoverResourceModules = async (resources = []) => {
+  if (!Array.isArray(resources) || resources.length === 0) return [];
+
+  const resourceIds = Array.from(
+    new Set(resources.map((item) => toDiscoverInt(item?.id || item?.resource_id)).filter((id) => id > 0))
+  );
+  if (resourceIds.length === 0) return resources;
+
+  const [moduleRows] = await sequelize.query(
+    `
+    SELECT DISTINCT ON (rmm.resource_id)
+      rmm.resource_id,
+      m.id AS module_id,
+      m.code AS module_code,
+      m.title AS module_title
+    FROM public.resource_module_map rmm
+    INNER JOIN public.modules m ON m.id = rmm.module_id
+    WHERE rmm.resource_id IN (:resource_ids)
+    ORDER BY rmm.resource_id, rmm.created_at DESC NULLS LAST, m.id ASC
+    `,
+    {
+      replacements: { resource_ids: resourceIds },
+    }
+  );
+
+  const moduleByResourceId = new Map(
+    (moduleRows || []).map((row) => [
+      toDiscoverInt(row?.resource_id),
+      {
+        module_id: toDiscoverInt(row?.module_id) || null,
+        module_code: pickFirstString(row?.module_code) || null,
+        module_title: pickFirstString(row?.module_title) || null,
+      },
+    ])
+  );
+
+  const [metadataRows] = await sequelize.query(
+    `
+    SELECT r.id AS resource_id, r.metadata
+    FROM public.resources r
+    WHERE r.id IN (:resource_ids)
+    `,
+    {
+      replacements: { resource_ids: resourceIds },
+    }
+  );
+
+  const metadataByResourceId = new Map(
+    (metadataRows || []).map((row) => [toDiscoverInt(row?.resource_id), parseMetadata(row?.metadata)])
+  );
+
+  const metadataModuleIds = Array.from(
+    new Set(
+      Array.from(metadataByResourceId.values())
+        .map((metadata) => metadata?.academicContext?.moduleId)
+        .map((value) => toDiscoverInt(value))
+        .filter((id) => id > 0)
+    )
+  );
+
+  const [moduleCatalogRows] = metadataModuleIds.length
+    ? await sequelize.query(
+      `
+      SELECT m.id, m.code, m.title
+      FROM public.modules m
+      WHERE m.id IN (:module_ids)
+      `,
+      {
+        replacements: { module_ids: metadataModuleIds },
+      }
+    )
+    : [[]];
+
+  const moduleById = new Map(
+    (moduleCatalogRows || []).map((row) => [
+      toDiscoverInt(row?.id),
+      {
+        module_id: toDiscoverInt(row?.id) || null,
+        module_code: pickFirstString(row?.code) || null,
+        module_title: pickFirstString(row?.title) || null,
+      },
+    ])
+  );
+
+  return resources.map((resource) => {
+    const resourceId = toDiscoverInt(resource?.id || resource?.resource_id);
+    const mappedFromMap = moduleByResourceId.get(resourceId);
+    const metadata = metadataByResourceId.get(resourceId) || parseMetadata(resource?.metadata);
+    const metadataContext = metadata?.academicContext && typeof metadata.academicContext === "object"
+      ? metadata.academicContext
+      : {};
+    const metadataModuleId = toDiscoverInt(metadataContext?.moduleId || metadataContext?.module_id);
+    const mappedFromMetadata = moduleById.get(metadataModuleId) || null;
+
+    const module_id =
+      toDiscoverInt(resource?.module_id || resource?.moduleId) ||
+      mappedFromMap?.module_id ||
+      mappedFromMetadata?.module_id ||
+      (metadataModuleId > 0 ? metadataModuleId : null);
+    const module_code =
+      pickFirstString(resource?.module_code, resource?.moduleCode) ||
+      mappedFromMap?.module_code ||
+      pickFirstString(metadataContext?.moduleCode, metadataContext?.module_code) ||
+      mappedFromMetadata?.module_code ||
+      null;
+    const module_title =
+      pickFirstString(resource?.module_title, resource?.moduleTitle) ||
+      mappedFromMap?.module_title ||
+      pickFirstString(metadataContext?.moduleTitle, metadataContext?.module_title) ||
+      mappedFromMetadata?.module_title ||
+      null;
+
+    if (!module_id && !module_code && !module_title) return resource;
+
+    return {
+      ...resource,
+      module_id,
+      module_code,
+      module_title,
+    };
+  });
+};
+
+const buildDiscoverModulesFromResources = (resources = []) => {
+  if (!Array.isArray(resources) || resources.length === 0) return [];
+
+  const moduleMap = new Map();
+  resources.forEach((item) => {
+    const moduleId = toDiscoverInt(item?.module_id || item?.moduleId);
+    if (moduleId <= 0) return;
+
+    const existing = moduleMap.get(moduleId) || {
+      id: moduleId,
+      code: pickFirstString(item?.module_code, item?.moduleCode) || null,
+      title: pickFirstString(item?.module_title, item?.moduleTitle) || `Module ${moduleId}`,
+      description: null,
+      semester_id: null,
+      published_resources_count: 0,
+    };
+
+    existing.published_resources_count += 1;
+    moduleMap.set(moduleId, existing);
+  });
+
+  return Array.from(moduleMap.values()).sort((a, b) =>
+    String(a.title || '').localeCompare(String(b.title || ''))
+  );
+};
+
 const extractObjectKeyFromResource = (resource) => {
   if (!resource) return null;
 
@@ -1153,8 +1302,13 @@ export const getDiscoverBootstrapData = async ({
   });
 
   const row = rows?.[0] || {};
-  const publishedResources = await enrichDiscoverResources(toArray(row.published_resources));
-  const discoverModules = toArray(row.discover_modules);
+  const basePublishedResources = toArray(row.published_resources);
+  const publishedResourcesWithModules = await hydrateDiscoverResourceModules(basePublishedResources);
+  const publishedResources = await enrichDiscoverResources(publishedResourcesWithModules);
+  const discoverModulesFromPayload = toArray(row.discover_modules);
+  const discoverModules = discoverModulesFromPayload.length > 0
+    ? discoverModulesFromPayload
+    : buildDiscoverModulesFromResources(publishedResourcesWithModules);
   const recommendations = toArray(row.recommendations);
   const favorites = toArray(row.favorites);
   const effectiveSort = normalizeDiscoverSort(sortBy);
@@ -1231,6 +1385,7 @@ export const getDiscoverBootstrapData = async ({
     favorites,
     meta: {
       ...incomingMeta,
+      modules_count: discoverModules.length,
       filtered_published_count: sortedPublishedResources.length,
       filtered_recommendations_count: filteredRecommendations.length,
       pagination: {
