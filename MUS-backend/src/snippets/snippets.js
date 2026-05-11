@@ -255,6 +255,15 @@ export const SQL = {
     BOOTSTRAP: `SELECT * FROM public.sp_discover_bootstrap(:user_id, :recommendation_limit, :resources_limit)`,
   },
 
+  TUTOR_PROFILE: {
+    GET_PUBLIC_BY_USER_ID: `SELECT * FROM public.vw_user_profile_public WHERE user_id = :user_id LIMIT 1`,
+    GET_MY_PROFILE: `SELECT * FROM public.sp_tutor_profile_get_by_user_id(:user_id)`,
+    UPSERT: `SELECT * FROM public.sp_tutor_profile_upsert(:user_id, :headline, :bio, :years_experience, :hourly_rate, :currency, :response_time_minutes, :visibility_status)`,
+    SET_VISIBILITY: `SELECT * FROM public.sp_tutor_profile_set_visibility(:user_id, :visibility_status)`,
+    REPLACE_SKILLS: `SELECT * FROM public.sp_tutor_profile_replace_skills(:user_id, :skills::text[])`,
+    REPLACE_EDUCATION: `SELECT * FROM public.sp_tutor_profile_replace_education(:user_id, :education::jsonb)`,
+  },
+
   ROLE: {
     CREATE: `SELECT * FROM public.sp_role_create(:name, :description)`,
 
