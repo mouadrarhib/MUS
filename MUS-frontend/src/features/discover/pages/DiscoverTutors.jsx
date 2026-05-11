@@ -24,6 +24,7 @@ import ShieldIcon from '@mui/icons-material/Shield';
 import { useNavigate } from 'react-router-dom';
 import DiscoveryHeader from '@/features/discover/components/DiscoveryHeader';
 import sessionService from '@/services/sessionService';
+import tutorProfileService from '@/services/tutorProfileService';
 import { useNotification } from '@/shared/components/ui';
 
 // ---------------------------------------------------------------------------
@@ -166,6 +167,25 @@ const getTutorMeta = (tutorId) => VIRTUAL_TUTOR_META[tutorId] || DEFAULT_META;
 const getVirtualProfile = (tutorId) =>
   VIRTUAL_PRICING_PROFILES[tutorId] || VIRTUAL_PRICING_PROFILES['virtual-teacher-rohan'];
 
+const getTutorMetaFromProfile = (profile, tutorId) => {
+  if (!profile) return getTutorMeta(tutorId);
+
+  const expertiseFromSkills = Array.isArray(profile.skills)
+    ? profile.skills.map((entry) => String(entry?.skill_name || '').trim()).filter(Boolean)
+    : [];
+
+  const expertise = profile?.headline || expertiseFromSkills[0] || DEFAULT_META.expertise;
+  const topics = expertiseFromSkills.length > 0
+    ? expertiseFromSkills.slice(0, 4).join(' · ')
+    : (profile?.bio ? String(profile.bio).slice(0, 120) : DEFAULT_META.topics);
+
+  return {
+    rating: Number(profile?.rating_avg || DEFAULT_META.rating),
+    expertise,
+    topics,
+  };
+};
+
 // ---------------------------------------------------------------------------
 // Shared style helpers
 // ---------------------------------------------------------------------------
@@ -283,8 +303,9 @@ const StepperBar = () => (
 );
 
 /** Single tutor row in the left panel */
-const TutorRow = ({ tutor, active, pricingProfile, onSelect }) => {
-  const meta = getTutorMeta(tutor.tutor_id);
+const TutorRow = ({ tutor, active, pricingProfile, profileMap, onSelect }) => {
+  const profile = profileMap?.[tutor.tutor_id] || null;
+  const meta = getTutorMetaFromProfile(profile, tutor.tutor_id);
   const rate =
     pricingProfile?.tutor_id === tutor.tutor_id
       ? pricingProfile.base_rate_per_hour
@@ -327,7 +348,7 @@ const TutorRow = ({ tutor, active, pricingProfile, onSelect }) => {
           sx={{ fontSize: '0.82rem', fontWeight: 500, color: active ? 'primary.dark' : 'text.primary' }}
           noWrap
         >
-          {tutor.tutor_name}
+          {profile?.full_name || tutor.tutor_name}
         </Typography>
         <Typography
           sx={{ fontSize: '0.72rem', color: active ? 'primary.main' : 'text.secondary' }}
@@ -407,6 +428,7 @@ const DiscoverTutors = () => {
   const [pricingProfile, setPricingProfile] = useState(null);
   const [pricingLoading, setPricingLoading] = useState(false);
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
+  const [tutorProfileMap, setTutorProfileMap] = useState({});
 
   // Load slots on mount
   useEffect(() => {
@@ -475,6 +497,11 @@ const DiscoverTutors = () => {
     () => tutors.find((t) => t.tutor_id === selectedTutorId) ?? null,
     [tutors, selectedTutorId]
   );
+  const selectedTutorProfile = useMemo(() => tutorProfileMap?.[selectedTutorId] || null, [tutorProfileMap, selectedTutorId]);
+  const selectedTutorMeta = useMemo(
+    () => getTutorMetaFromProfile(selectedTutorProfile, selectedTutorId),
+    [selectedTutorProfile, selectedTutorId]
+  );
 
   const selectedSlot = useMemo(() => {
     if (!selectedTutor) return null;
@@ -527,6 +554,35 @@ const DiscoverTutors = () => {
     loadPricing();
     return () => { mounted = false; };
   }, [selectedTutorId]);
+
+  useEffect(() => {
+    if (!Array.isArray(tutors) || tutors.length === 0) {
+      setTutorProfileMap({});
+      return;
+    }
+
+    let mounted = true;
+    const loadProfiles = async () => {
+      const ids = Array.from(new Set(tutors.map((item) => String(item?.tutor_id || '').trim()).filter(Boolean)));
+      const entries = await Promise.all(
+        ids.map(async (id) => {
+          if (id.startsWith('virtual-')) return [id, null];
+          try {
+            const profile = await tutorProfileService.getPublicTutorProfile(id);
+            return [id, profile || null];
+          } catch {
+            return [id, null];
+          }
+        })
+      );
+
+      if (!mounted) return;
+      setTutorProfileMap(Object.fromEntries(entries));
+    };
+
+    loadProfiles();
+    return () => { mounted = false; };
+  }, [tutors]);
 
   const handleBookSession = async () => {
     if (!selectedSlot?.id) {
@@ -641,6 +697,7 @@ const DiscoverTutors = () => {
                     tutor={tutor}
                     active={tutor.tutor_id === selectedTutorId}
                     pricingProfile={pricingProfile}
+                    profileMap={tutorProfileMap}
                     onSelect={setSelectedTutorId}
                   />
                 ))}
@@ -687,12 +744,12 @@ const DiscoverTutors = () => {
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                           <Stack direction="row" spacing={1} alignItems="center">
                             <Typography sx={{ fontWeight: 500, fontSize: '0.9rem' }}>
-                              {selectedTutor.tutor_name}
+                              {selectedTutorProfile?.full_name || selectedTutor.tutor_name}
                             </Typography>
                             <Stack direction="row" spacing={0.25} alignItems="center">
                               <StarIcon sx={{ fontSize: 12, color: '#BA7517' }} />
                               <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                                {getTutorMeta(selectedTutor.tutor_id).rating}
+                                {selectedTutorMeta.rating}
                               </Typography>
                             </Stack>
                           </Stack>
@@ -701,7 +758,7 @@ const DiscoverTutors = () => {
                             color="text.secondary"
                             sx={{ display: 'block', mt: 0.25 }}
                           >
-                            {getTutorMeta(selectedTutor.tutor_id).topics}
+                            {selectedTutorMeta.topics}
                           </Typography>
                         </Box>
                         <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
@@ -858,10 +915,10 @@ const DiscoverTutors = () => {
                       </Avatar>
                       <Box>
                         <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>
-                          {selectedTutor.tutor_name}
+                          {selectedTutorProfile?.full_name || selectedTutor.tutor_name}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {getTutorMeta(selectedTutor.tutor_id).expertise}
+                          {selectedTutorMeta.expertise}
                         </Typography>
                       </Box>
                     </Stack>
