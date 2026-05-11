@@ -145,6 +145,7 @@ const TutorBookingPageView = ({
   education = [],
   sessionsCount = 0,
   responseTimeMinutes = null,
+  hasPublicProfile = true,
   baseRatePerHour = 25,
   currency = 'USD',
   availableDates = [],
@@ -770,6 +771,25 @@ const TutorBookingPageView = ({
         {/* ── Profile Panel ────────────────────────────────────────────────── */}
         {activeTab === 'Profile' && (
           <Box sx={{ p: { xs: 2, sm: 4 } }}>
+            {!hasPublicProfile ? (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'background.paper',
+                }}
+              >
+                <Typography variant="h6" fontWeight={700} sx={{ mb: 0.75 }}>
+                  Tutor profile unavailable
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  This tutor has not published a public profile yet. You can still check available slots and book a session.
+                </Typography>
+              </Paper>
+            ) : (
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '2fr 1.2fr' }, gap: 5 }}>
               
               {/* Left Column: About & Timeline */}
@@ -926,6 +946,7 @@ const TutorBookingPageView = ({
 
               </Stack>
             </Box>
+            )}
           </Box>
         )}
 
@@ -1121,6 +1142,7 @@ const TutorBookingPage = () => {
         education={Array.isArray(publicTutorProfile?.education) ? publicTutorProfile.education : []}
         sessionsCount={Number(publicTutorProfile?.sessions_taught_count || 0)}
         responseTimeMinutes={publicTutorProfile?.response_time_minutes ?? null}
+        hasPublicProfile={Boolean(publicTutorProfile)}
         baseRatePerHour={baseRatePerHour}
         currency={currency}
         availableDates={availableDates}

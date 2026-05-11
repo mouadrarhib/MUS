@@ -706,6 +706,46 @@ const Settings = () => {
       .filter((entry) => entry.degree && entry.institution);
 
     const visibilityStatus = targetVisibility || tutorProfileForm.visibility_status || 'draft';
+    const yearsExperience = tutorProfileForm.years_experience === '' ? null : Number(tutorProfileForm.years_experience);
+    const hourlyRate = tutorProfileForm.hourly_rate === '' ? null : Number(tutorProfileForm.hourly_rate);
+    const responseTimeMinutes = tutorProfileForm.response_time_minutes === '' ? null : Number(tutorProfileForm.response_time_minutes);
+    const currencyCode = String(tutorProfileForm.currency || 'USD').trim().toUpperCase();
+
+    if (currencyCode.length !== 3) {
+      setTutorProfileFeedback({ type: 'error', message: 'Currency must be a 3-letter code (e.g. USD).' });
+      return;
+    }
+    if (yearsExperience != null && (!Number.isFinite(yearsExperience) || yearsExperience < 0 || yearsExperience > 100)) {
+      setTutorProfileFeedback({ type: 'error', message: 'Years of experience must be between 0 and 100.' });
+      return;
+    }
+    if (hourlyRate != null && (!Number.isFinite(hourlyRate) || hourlyRate < 0)) {
+      setTutorProfileFeedback({ type: 'error', message: 'Hourly rate must be a positive number.' });
+      return;
+    }
+    if (responseTimeMinutes != null && (!Number.isFinite(responseTimeMinutes) || responseTimeMinutes < 0 || responseTimeMinutes > 10080)) {
+      setTutorProfileFeedback({ type: 'error', message: 'Response time must be between 0 and 10080 minutes.' });
+      return;
+    }
+    if (skills.length > 50 || skills.some((skill) => skill.length > 120)) {
+      setTutorProfileFeedback({ type: 'error', message: 'Use at most 50 skills, each up to 120 characters.' });
+      return;
+    }
+    for (const row of education) {
+      if (row.start_year != null && (row.start_year < 1900 || row.start_year > 2200)) {
+        setTutorProfileFeedback({ type: 'error', message: 'Education start year must be between 1900 and 2200.' });
+        return;
+      }
+      if (row.end_year != null && (row.end_year < 1900 || row.end_year > 2200)) {
+        setTutorProfileFeedback({ type: 'error', message: 'Education end year must be between 1900 and 2200.' });
+        return;
+      }
+      if (row.start_year != null && row.end_year != null && row.end_year < row.start_year) {
+        setTutorProfileFeedback({ type: 'error', message: 'Education end year cannot be earlier than start year.' });
+        return;
+      }
+    }
+
     if (visibilityStatus === 'published') {
       if (!String(tutorProfileForm.headline || '').trim() || !String(tutorProfileForm.bio || '').trim()) {
         setTutorProfileFeedback({ type: 'error', message: 'Headline and bio are required before publishing.' });
@@ -719,10 +759,10 @@ const Settings = () => {
       await tutorProfileService.upsertMyTutorProfile({
         headline: String(tutorProfileForm.headline || '').trim(),
         bio: String(tutorProfileForm.bio || '').trim(),
-        years_experience: tutorProfileForm.years_experience === '' ? undefined : Number(tutorProfileForm.years_experience),
-        hourly_rate: tutorProfileForm.hourly_rate === '' ? undefined : Number(tutorProfileForm.hourly_rate),
-        currency: String(tutorProfileForm.currency || 'USD').trim().toUpperCase(),
-        response_time_minutes: tutorProfileForm.response_time_minutes === '' ? undefined : Number(tutorProfileForm.response_time_minutes),
+        years_experience: yearsExperience ?? undefined,
+        hourly_rate: hourlyRate ?? undefined,
+        currency: currencyCode,
+        response_time_minutes: responseTimeMinutes ?? undefined,
         visibility_status: visibilityStatus,
       });
 
