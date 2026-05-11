@@ -19,12 +19,19 @@ import {
   Visibility,
 } from '@mui/icons-material';
 
+const getAuthorName = (author) => {
+  if (typeof author === 'string') return author;
+  return author?.name || 'Unknown';
+};
+
 const ResourceCard = ({ resource, view, viewMode, onClick, onOpen }) => {
   // Support both prop naming conventions
   const resolvedView = view || viewMode || 'grid';
   const handleClick = onClick || onOpen;
   const isList = resolvedView === 'list';
   const moduleLabel = String(resource?.module || '').trim();
+  const authorName = getAuthorName(resource?.author);
+  const safeColor = resource?.color || '#2563EB';
 
   // ─── LIST VIEW ────────────────────────────────────────────────────────────────
   if (isList) {
@@ -51,7 +58,7 @@ const ResourceCard = ({ resource, view, viewMode, onClick, onOpen }) => {
                 boxShadow: theme.palette.mode === 'dark'
                   ? '0 8px 28px rgba(0,0,0,0.40)'
                   : '0 8px 28px rgba(17,24,39,0.10)',
-                borderColor: alpha(resource.color, 0.35),
+                borderColor: alpha(safeColor, 0.35),
               }
             : undefined,
         })}
@@ -147,9 +154,9 @@ const ResourceCard = ({ resource, view, viewMode, onClick, onOpen }) => {
               size="small"
               sx={(theme) => ({
                 bgcolor: theme.palette.mode === 'dark'
-                  ? alpha(resource.color, 0.18)
-                  : alpha(resource.color, 0.10),
-                color: resource.color,
+                  ? alpha(safeColor, 0.18)
+                  : alpha(safeColor, 0.10),
+                color: safeColor,
                 fontWeight: 700,
                 fontSize: '0.75rem',
                 height: 24,
@@ -204,13 +211,13 @@ const ResourceCard = ({ resource, view, viewMode, onClick, onOpen }) => {
           <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mt: 'auto' }}>
             <Avatar
               src={resource.avatar}
-              alt={resource.author}
+              alt={authorName}
               sx={{ width: 30, height: 30, fontSize: '0.7rem' }}
             >
-              {resource.author?.charAt(0)}
+              {authorName.charAt(0)}
             </Avatar>
             <Typography sx={{ fontWeight: 600, fontSize: '0.84rem', color: 'text.primary' }}>
-              {resource.author}
+              {authorName}
             </Typography>
 
             {/* Separator dot */}
@@ -374,9 +381,9 @@ const ResourceCard = ({ resource, view, viewMode, onClick, onOpen }) => {
             py: 0.35,
             borderRadius: '8px',
             bgcolor: theme.palette.mode === 'dark'
-              ? alpha(resource.color, 0.18)
-              : alpha(resource.color, 0.10),
-            color: resource.color,
+              ? alpha(safeColor, 0.18)
+              : alpha(safeColor, 0.10),
+            color: safeColor,
             fontSize: '0.78rem',
             fontWeight: 700,
             letterSpacing: '0.01em',
@@ -438,18 +445,18 @@ const ResourceCard = ({ resource, view, viewMode, onClick, onOpen }) => {
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.5 }}>
           <Avatar
             src={resource.avatar}
-            alt={resource.author}
+            alt={authorName}
             sx={{ width: 32, height: 32, fontSize: '0.75rem' }}
           >
-            {resource.author?.charAt(0)}
+            {authorName.charAt(0)}
           </Avatar>
           <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary', flex: 1 }}>
-            {resource.author}
+            {authorName}
           </Typography>
           {resource.rating > 0 && (
             <Stack direction="row" alignItems="center" spacing={0.4}>
-              <Star sx={{ fontSize: 16, color: resource.color }} />
-              <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: resource.color }}>
+              <Star sx={{ fontSize: 16, color: safeColor }} />
+              <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: safeColor }}>
                 {resource.rating}
               </Typography>
             </Stack>

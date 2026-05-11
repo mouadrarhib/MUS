@@ -65,12 +65,9 @@ try {
   let count = 0;
   for (const date of dates) {
     for (const range of timeRanges) {
-      const startAt = `${date}T${range.start}.000Z`;
-      const endAt = `${date}T${range.end}.000Z`;
-      
       await client.query(
-        "SELECT * FROM public.sp_teacher_slot_create($1, $2, $3, $4)",
-        [teacherId, startAt, endAt, "Africa/Casablanca"]
+        "SELECT * FROM public.sp_teacher_slot_create($1, $2, $3, $4, $5, $6)",
+        [teacherId, date, range.start, 60, 25.00, "Africa/Casablanca"]
       );
       count++;
     }

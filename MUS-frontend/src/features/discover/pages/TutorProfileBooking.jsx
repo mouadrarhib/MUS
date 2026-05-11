@@ -23,9 +23,18 @@ import Lock from '@mui/icons-material/Lock';
 import ChevronLeft from '@mui/icons-material/ChevronLeft';
 import ChevronRight from '@mui/icons-material/ChevronRight';
 import StarBorder from '@mui/icons-material/StarBorder';
+import PersonIcon from '@mui/icons-material/Person';
+import SchoolIcon from '@mui/icons-material/School';
+import CodeIcon from '@mui/icons-material/Code';
+import TimelineIcon from '@mui/icons-material/Timeline';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import sessionService from '@/services/sessionService';
 import DiscoveryHeader from '@/features/discover/components/DiscoveryHeader';
+import resourcesService from '@/services/resourcesService';
+import ResourceCard from '@/features/discover/components/ResourceCard';
+import { toResourceCardModel } from '@/features/discover/components/resourceCardMapper';
+import { toResourceDetailModel } from '@/entities/resource/mappers/resourceViewModel';
+import ResourceDetailsDialog from '@/features/resources/components/ResourceDetailsDialog';
 import { useNotification } from '@/shared/components/ui';
 
 // ─── brand tokens ─────────────────────────────────────────────────────────────
@@ -36,7 +45,7 @@ const SOFT_GREEN_BG = 'rgba(34, 197, 94, 0.14)';
 const SOFT_BLUE_BG = 'rgba(37, 99, 235, 0.10)';
 
 const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-const TABS = ['Profile', 'Resources', 'Playlist', 'Booking'];
+const TABS = ['Profile', 'Resources', 'Booking'];
 const DURATION_OPTIONS = [30, 60, 90, 120];
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -60,6 +69,50 @@ const formatSlotTimeLabel = (dateValue) => {
   const suffix = h >= 12 ? 'PM' : 'AM';
   const hour12 = h % 12 || 12;
   return `${String(hour12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${suffix}`;
+};
+
+const parseMetadata = (metadata) => {
+  if (!metadata) return {};
+  if (typeof metadata === 'object') return metadata;
+  if (typeof metadata === 'string') {
+    try {
+      return JSON.parse(metadata);
+    } catch {
+      return {};
+    }
+  }
+  return {};
+};
+
+const toTutorResourceDetail = (resource) => {
+  const base = toResourceDetailModel(resource || {});
+  const metadata = parseMetadata(resource?.metadata);
+  const mdAcademic = metadata?.academicContext && typeof metadata.academicContext === 'object' ? metadata.academicContext : {};
+  return {
+    ...base,
+    id: Number(resource?.id || resource?.resource_id || base?.id || 0),
+    educationalType: resource?.educational_type || base?.educationalType || 'notes',
+    createdAt: resource?.created_at || base?.createdAt,
+    author: {
+      id: String(resource?.created_by || base?.author?.id || ''),
+      name: resource?.creator_name || base?.author?.name || 'Creator',
+      avatar: resource?.creator_avatar_url || base?.author?.avatar || '',
+      avatar_url: resource?.creator_avatar_url || base?.author?.avatar_url || '',
+      role: resource?.creator_role || base?.author?.role || 'creator',
+      institution: base?.author?.institution || '',
+    },
+    academicContext: {
+      ...(base?.academicContext || {}),
+      institutionId: String(base?.academicContext?.institutionId || mdAcademic.institutionId || mdAcademic.institution_id || ''),
+      programId: String(base?.academicContext?.programId || mdAcademic.programId || mdAcademic.program_id || ''),
+      levelId: String(base?.academicContext?.levelId || mdAcademic.levelId || mdAcademic.level_id || ''),
+      semesterId: String(base?.academicContext?.semesterId || mdAcademic.semesterId || mdAcademic.semester_id || ''),
+      moduleId: String(base?.academicContext?.moduleId || mdAcademic.moduleId || mdAcademic.module_id || resource?.module_id || ''),
+      chapter: base?.academicContext?.chapter || mdAcademic.chapter || '',
+      difficulty: base?.academicContext?.difficulty || mdAcademic.difficulty || resource?.difficulty || '',
+      isExamRelated: Boolean(base?.academicContext?.isExamRelated ?? mdAcademic.isExamRelated ?? mdAcademic.examRelated ?? false),
+    },
+  };
 };
 
 // ─── shared sx constants ──────────────────────────────────────────────────────
@@ -90,19 +143,26 @@ const TutorBookingPageView = ({
   currency = 'USD',
   availableDates = [],
   availableSlots = {},
+  slotIndex = {},
+  resources = [],
+  initialTab = 'Booking',
+  onResourceOpen = () => {},
   onBook = () => { },
   onMessage = () => { },
   onSave = () => { },
 }) => {
-  const [activeTab, setActiveTab] = useState('Booking');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [displayMonth, setDisplayMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState('standard');
-  const [durationMinutes, setDurationMinutes] = useState(60);
+  const cardResources = useMemo(() => (Array.isArray(resources) ? resources : []).map(toResourceCardModel), [resources]);
+
+  useEffect(() => {
+    setActiveTab(TABS.includes(initialTab) ? initialTab : 'Booking');
+  }, [initialTab]);
 
   // Auto-select first available date
   useEffect(() => {
@@ -172,16 +232,26 @@ const TutorBookingPageView = ({
 
   const todaySlots = availableSlots[selectedDate] || [];
 
-  const pricing = useMemo(() => {
-    const sessionBase = Number(((baseRatePerHour * durationMinutes) / 60).toFixed(2));
-    const premiumBase = Number((sessionBase * 1.4).toFixed(2));
-    return {
-      standard: { rate: baseRatePerHour, total: sessionBase },
-      premium: { rate: Math.round(baseRatePerHour * 1.4), total: premiumBase },
-    };
-  }, [baseRatePerHour, durationMinutes]);
+  const selectedSlot = useMemo(() => {
+    if (!selectedDate || !selectedTime) return null;
+    return slotIndex?.[selectedDate]?.[selectedTime] || null;
+  }, [selectedDate, selectedTime, slotIndex]);
 
-  const selectedPrice = pricing[selectedPlan] || pricing.standard;
+  const pricing = useMemo(() => {
+    if (selectedSlot) {
+      const price = Number(selectedSlot.price || 0);
+      return {
+        session_amount: price,
+        platform_fee: 2,
+        total_amount: price + 2,
+      };
+    }
+    return {
+      session_amount: 0,
+      platform_fee: 2,
+      total_amount: 2,
+    };
+  }, [selectedSlot]);
 
   const handleSelectDate = (dateKey) => {
     setSelectedDate(dateKey);
@@ -192,40 +262,59 @@ const TutorBookingPageView = ({
     onBook({
       date: selectedDate,
       time: selectedTime,
-      plan: selectedPlan,
-      duration: durationMinutes,
-      total: selectedPrice.total,
-      currency,
     });
   };
 
   return (
     <>
       <DiscoveryHeader />
-      <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 3, px: { xs: 1, sm: 3, md: 6 } }}>
-      <Paper elevation={1} sx={{ maxWidth: 1100, mx: 'auto', borderRadius: 3, overflow: 'hidden' }}>
-
-        {/* ── Tutor Header ─────────────────────────────────────────────────── */}
-        <Box sx={{ px: { xs: 2, sm: 4 }, pt: 3, pb: 2 }}>
+      <Box sx={{ 
+        background: `linear-gradient(135deg, rgba(37,99,235,0.03) 0%, rgba(124,58,237,0.04) 100%)`, 
+        minHeight: '100vh', 
+        py: { xs: 3, md: 6 }, 
+        px: { xs: 1, sm: 3, md: 6 } 
+      }}>
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          maxWidth: 1100, 
+          mx: 'auto', 
+          borderRadius: 4, 
+          overflow: 'hidden',
+          border: '1px solid rgba(255,255,255,0.4)',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.05)',
+          bgcolor: 'background.paper'
+        }}
+      >
+        {/* ── Tutor Cover & Header ───────────────────────────────────────── */}
+        <Box sx={{ height: 140, background: `linear-gradient(90deg, ${BRAND_BLUE} 0%, ${BRAND_PURPLE} 100%)`, opacity: 0.9 }} />
+        <Box sx={{ px: { xs: 2, sm: 4 }, pt: 0, pb: 3, mt: -6 }}>
           <Stack
-            direction="row"
-            alignItems="flex-start"
-            spacing={2.5}
+            direction={{ xs: 'column', md: 'row' }}
+            alignItems={{ xs: 'flex-start', md: 'flex-start' }}
+            spacing={3}
             justifyContent="space-between"
-            flexWrap="wrap"
-            gap={1}
+            gap={2}
           >
-            <Stack direction="row" alignItems="center" spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'flex-start' }} spacing={3}>
               <Avatar
                 src={tutorAvatar}
-                sx={{ width: 80, height: 80, fontSize: '2rem', bgcolor: BRAND_BLUE }}
+                sx={{ 
+                  width: 120, 
+                  height: 120, 
+                  fontSize: '3rem', 
+                  bgcolor: BRAND_BLUE,
+                  border: '4px solid #fff',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
+                  zIndex: 2,
+                }}
               >
                 {tutorName.charAt(0)}
               </Avatar>
 
-              <Box>
+              <Box sx={{ pt: { xs: 2, sm: 7.5 } }}>
                 <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
-                  <Typography variant="h5" fontWeight={700}>
+                  <Typography variant="h4" fontWeight={800}>
                     {tutorName}
                   </Typography>
                   <Tooltip title="Verified tutor">
@@ -262,7 +351,7 @@ const TutorBookingPageView = ({
               </Box>
             </Stack>
 
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ pt: { xs: 0, md: 7.5 } }}>
               <Button
                 variant="outlined"
                 startIcon={<BookmarkBorder />}
@@ -536,181 +625,33 @@ const TutorBookingPageView = ({
                 </Typography>
               </Paper>
 
-              {/* ── 3. Choose Your Plan ────────────────────────────────────── */}
+              {/* ── 3. Session Pricing & Duration ─────────────────────────── */}
               <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                <Typography sx={sectionLabelSx}>3. Choose Your Plan</Typography>
+                <Typography sx={sectionLabelSx}>3. Pricing & Details</Typography>
 
-                <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-                  Session Duration
-                </Typography>
-                <Stack direction="row" spacing={1} mb={1.5} flexWrap="wrap" useFlexGap>
-                  {DURATION_OPTIONS.map((minutes) => {
-                    const active = durationMinutes === minutes;
-                    return (
-                      <Button
-                        key={minutes}
-                        size="small"
-                        variant={active ? 'contained' : 'outlined'}
-                        onClick={() => setDurationMinutes(minutes)}
-                        sx={{
-                          textTransform: 'none',
-                          borderRadius: 2,
-                          fontWeight: 700,
-                          minWidth: 68,
-                          bgcolor: active ? BRAND_BLUE : undefined,
-                          borderColor: active ? BRAND_BLUE : 'divider',
-                          '&:hover': { bgcolor: active ? '#1d4ed8' : undefined },
-                        }}
-                      >
-                        {minutes}m
-                      </Button>
-                    );
-                  })}
-                </Stack>
+                {selectedSlot ? (
+                  <Stack spacing={2} sx={{ mt: 1.5 }}>
+                    <Box sx={{ p: 1.8, borderRadius: 2, border: '1px solid rgba(124, 58, 237, 0.15)', bgcolor: 'rgba(124, 58, 237, 0.04)' }}>
+                      <Typography variant="body2" color="text.secondary" fontWeight={500}>Session Duration</Typography>
+                      <Typography variant="h6" fontWeight={700} sx={{ color: BRAND_PURPLE }}>
+                        ⏱️ {selectedSlot.duration_minutes || 60} minutes
+                      </Typography>
+                    </Box>
 
-                <Stack spacing={1.5}>
-
-                  {/* Standard Card */}
-                  <Paper
-                    variant="outlined"
-                    onClick={() => setSelectedPlan('standard')}
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      cursor: 'pointer',
-                      borderWidth: selectedPlan === 'standard' ? 2 : 1,
-                      borderColor: selectedPlan === 'standard' ? BRAND_BLUE : 'divider',
-                      bgcolor: selectedPlan === 'standard' ? SOFT_BLUE_BG : 'background.paper',
-                      transition: 'all 0.18s ease',
-                      '&:hover': {
-                        borderColor: BRAND_BLUE,
-                        bgcolor:
-                          selectedPlan === 'standard'
-                            ? 'rgba(37, 99, 235, 0.13)'
-                            : 'rgba(37, 99, 235, 0.04)',
-                      },
-                    }}
-                  >
-                    <Stack direction="row" alignItems="flex-start" spacing={1.5}>
-                      {/* Radio dot */}
-                      <Box
-                        sx={{
-                          mt: 0.3,
-                          width: 18,
-                          height: 18,
-                          borderRadius: '50%',
-                          border: `2px solid ${selectedPlan === 'standard' ? BRAND_BLUE : '#9ca3af'
-                            }`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          transition: 'border-color 0.15s ease',
-                        }}
-                      >
-                        {selectedPlan === 'standard' && (
-                          <Box
-                            sx={{
-                              width: 9,
-                              height: 9,
-                              borderRadius: '50%',
-                              bgcolor: BRAND_BLUE,
-                            }}
-                          />
-                        )}
-                      </Box>
-
-                      {/* Text */}
-                      <Box>
-                        <Typography
-                          variant="body1"
-                          fontWeight={700}
-                          color={selectedPlan === 'standard' ? BRAND_BLUE : 'text.primary'}
-                          lineHeight={1.2}
-                        >
-                          Standard
-                        </Typography>
-                        <Stack direction="row" alignItems="baseline" spacing={0.4} mt={0.5}>
-                          <Typography
-                            variant="h5"
-                            fontWeight={800}
-                            color={selectedPlan === 'standard' ? BRAND_BLUE : 'text.primary'}
-                            lineHeight={1}
-                          >
-                            ${pricing.standard.rate}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" fontWeight={400}>
-                            /hr
-                          </Typography>
-                        </Stack>
-                      </Box>
-                    </Stack>
-                  </Paper>
-
-                  {/* Premium Card */}
-                  <Paper
-                    variant="outlined"
-                    onClick={() => setSelectedPlan('premium')}
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      cursor: 'pointer',
-                      borderWidth: selectedPlan === 'premium' ? 2 : 1,
-                      borderColor: selectedPlan === 'premium' ? BRAND_PURPLE : 'divider',
-                      bgcolor:
-                        selectedPlan === 'premium'
-                          ? 'rgba(124, 58, 237, 0.08)'
-                          : 'background.paper',
-                      transition: 'all 0.18s ease',
-                      '&:hover': {
-                        borderColor: BRAND_PURPLE,
-                        bgcolor:
-                          selectedPlan === 'premium'
-                            ? 'rgba(124, 58, 237, 0.13)'
-                            : 'rgba(124, 58, 237, 0.04)',
-                      },
-                    }}
-                  >
-                    <Stack direction="row" alignItems="flex-start" spacing={1.5}>
-                      {/* Star icon as indicator */}
-                      <Box sx={{ mt: 0.2, flexShrink: 0 }}>
-                        <StarBorder
-                          sx={{
-                            fontSize: 20,
-                            color: selectedPlan === 'premium' ? BRAND_PURPLE : '#9ca3af',
-                            transition: 'color 0.15s ease',
-                          }}
-                        />
-                      </Box>
-
-                      {/* Text */}
-                      <Box>
-                        <Typography
-                          variant="body1"
-                          fontWeight={700}
-                          color={selectedPlan === 'premium' ? BRAND_PURPLE : 'text.primary'}
-                          lineHeight={1.2}
-                        >
-                          Premium
-                        </Typography>
-                        <Stack direction="row" alignItems="baseline" spacing={0.4} mt={0.5}>
-                          <Typography
-                            variant="h5"
-                            fontWeight={800}
-                            color={selectedPlan === 'premium' ? BRAND_PURPLE : 'text.primary'}
-                            lineHeight={1}
-                          >
-                            ${pricing.premium.rate}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" fontWeight={400}>
-                            /hr
-                          </Typography>
-                        </Stack>
-                      </Box>
-                    </Stack>
-                  </Paper>
-
-                </Stack>
+                    <Box sx={{ p: 1.8, borderRadius: 2, border: '1px solid rgba(37, 99, 235, 0.15)', bgcolor: 'rgba(37, 99, 235, 0.04)' }}>
+                      <Typography variant="body2" color="text.secondary" fontWeight={500}>Tutor Price</Typography>
+                      <Typography variant="h6" fontWeight={700} sx={{ color: BRAND_BLUE }}>
+                        💵 ${Number(selectedSlot.price || 0).toFixed(2)}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                ) : (
+                  <Box sx={{ p: 3, textAlign: 'center', border: '1px dashed divider', borderRadius: 2, mt: 1.5 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Select a date and time slot first to view details.
+                    </Typography>
+                  </Box>
+                )}
               </Paper>
             </Box>
 
@@ -741,11 +682,8 @@ const TutorBookingPageView = ({
                       : '—',
                   },
                   { label: 'Time', value: selectedTime || '—' },
-                  { label: 'Duration', value: `${durationMinutes} minutes` },
-                  {
-                    label: 'Plan',
-                    value: selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1),
-                  },
+                  { label: 'Duration', value: selectedSlot ? `${selectedSlot.duration_minutes || 60} minutes` : '—' },
+                  { label: 'Rate', value: selectedSlot ? `$${Number(selectedSlot.price || 0).toFixed(2)}` : '—' },
                 ].map(({ label, value }) => (
                   <Box key={label} sx={summaryRowSx}>
                     <Typography variant="body2" color="text.secondary">{label}</Typography>
@@ -756,9 +694,9 @@ const TutorBookingPageView = ({
                 <Divider sx={{ my: 1.2 }} />
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <Typography variant="body2" fontWeight={700}>Total</Typography>
+                  <Typography variant="body2" fontWeight={700}>Total (incl. $2 fee)</Typography>
                   <Typography variant="h6" fontWeight={800} color={BRAND_BLUE}>
-                    ${selectedPrice.total.toFixed(2)}{' '}
+                    ${pricing.total_amount.toFixed(2)}{' '}
                     <Typography
                       component="span"
                       variant="caption"
@@ -793,6 +731,7 @@ const TutorBookingPageView = ({
                   variant="contained"
                   size="large"
                   onClick={handleBook}
+                  disabled={!selectedSlot}
                   sx={{
                     textTransform: 'none',
                     fontWeight: 700,
@@ -819,7 +758,197 @@ const TutorBookingPageView = ({
                 </Stack>
               </Paper>
             </Box>
+          </Box>
+        )}
 
+        {/* ── Profile Panel ────────────────────────────────────────────────── */}
+        {activeTab === 'Profile' && (
+          <Box sx={{ p: { xs: 2, sm: 4 } }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '2fr 1.2fr' }, gap: 5 }}>
+              
+              {/* Left Column: About & Timeline */}
+              <Stack spacing={5}>
+                
+                {/* About Me Card */}
+                <Box>
+                  <Typography variant="h6" fontWeight={800} mb={2} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <PersonIcon sx={{ color: BRAND_BLUE }} /> About {tutorName.split(' ')[0]}
+                  </Typography>
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3.5, 
+                      borderRadius: 4, 
+                      bgcolor: 'rgba(255, 255, 255, 0.4)', 
+                      backdropFilter: 'blur(16px)',
+                      border: '1px solid rgba(255, 255, 255, 0.6)',
+                      boxShadow: '0 8px 32px rgba(37, 99, 235, 0.04)',
+                      lineHeight: 1.8,
+                      color: 'text.secondary'
+                    }}
+                  >
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                      Hello! I'm <strong style={{color: '#1e293b'}}>{tutorName}</strong>, a passionate and dedicated <strong>{subject} expert</strong> with over <strong>{experience}</strong> of experience helping students achieve their academic and professional goals. My teaching philosophy centers around making complex concepts intuitive and building strong foundational understanding rather than just memorizing facts.
+                    </Typography>
+                    <Typography variant="body1">
+                      Whether you are preparing for critical exams, working on complex projects, or simply looking to deepen your understanding of {subject}, I tailor every session to your unique learning style and pace.
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Education Timeline */}
+                <Box>
+                  <Typography variant="h6" fontWeight={800} mb={3} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <SchoolIcon sx={{ color: BRAND_PURPLE }} /> Education & Credentials
+                  </Typography>
+                  <Box sx={{ ml: 2, pl: 4, borderLeft: '2px solid rgba(124, 58, 237, 0.15)', position: 'relative' }}>
+                    
+                    {/* Item 1 */}
+                    <Box sx={{ position: 'relative', mb: 4 }}>
+                      <Box sx={{ 
+                        position: 'absolute', left: -50, top: 0, 
+                        width: 32, height: 32, borderRadius: '50%', 
+                        bgcolor: '#fff', border: `2px solid ${BRAND_PURPLE}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 2px 8px rgba(124,58,237,0.2)'
+                      }}>
+                        <EmojiEvents sx={{ fontSize: 16, color: BRAND_PURPLE }} />
+                      </Box>
+                      <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, bgcolor: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(255,255,255,0.8)' }}>
+                        <Typography variant="subtitle1" fontWeight={800} color="text.primary">Ph.D. in Computer Science</Typography>
+                        <Typography variant="body2" fontWeight={600} sx={{ mb: 1, color: BRAND_PURPLE }}>Stanford University · 2018 - 2022</Typography>
+                        <Typography variant="body2" color="text.secondary">Specialized in Distributed Systems and Artificial Intelligence. Authored 3 major research papers.</Typography>
+                      </Paper>
+                    </Box>
+
+                    {/* Item 2 */}
+                    <Box sx={{ position: 'relative' }}>
+                      <Box sx={{ 
+                        position: 'absolute', left: -50, top: 0, 
+                        width: 32, height: 32, borderRadius: '50%', 
+                        bgcolor: '#fff', border: `2px solid #f59e0b`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 2px 8px rgba(245,158,11,0.2)'
+                      }}>
+                        <StarBorder sx={{ fontSize: 16, color: '#f59e0b' }} />
+                      </Box>
+                      <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, bgcolor: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(255,255,255,0.8)' }}>
+                        <Typography variant="subtitle1" fontWeight={800} color="text.primary">B.Sc. in Software Engineering</Typography>
+                        <Typography variant="body2" fontWeight={600} sx={{ mb: 1, color: '#d97706' }}>MIT · 2014 - 2018</Typography>
+                        <Typography variant="body2" color="text.secondary">Graduated with Honors. Dean's List. Led the university robotics club.</Typography>
+                      </Paper>
+                    </Box>
+
+                  </Box>
+                </Box>
+              </Stack>
+
+              {/* Right Column: Expertise & Stats */}
+              <Stack spacing={4}>
+                
+                {/* Expertise Glass Card */}
+                <Paper 
+                  elevation={0} 
+                  sx={{ 
+                    p: 3, 
+                    borderRadius: 4, 
+                    bgcolor: 'rgba(37, 99, 235, 0.02)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(37, 99, 235, 0.1)',
+                    boxShadow: '0 8px 24px rgba(37, 99, 235, 0.04)'
+                  }}
+                >
+                  <Typography variant="subtitle1" fontWeight={800} mb={2.5} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CodeIcon sx={{ color: BRAND_BLUE }} /> Areas of Expertise
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.2 }}>
+                    {['Advanced Algorithms', 'System Design', 'React & Node.js', 'Machine Learning', 'Cloud Architecture', 'Mentorship'].map((skill) => (
+                      <Chip
+                        key={skill}
+                        label={skill}
+                        sx={{
+                          bgcolor: 'rgba(255, 255, 255, 0.9)',
+                          border: '1px solid rgba(37, 99, 235, 0.15)',
+                          color: '#1e293b',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          borderRadius: 2,
+                          px: 0.5,
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                        }}
+                      />
+                    ))}
+                  </Box>
+                </Paper>
+
+                {/* Stats Grid */}
+                <Paper 
+                  elevation={0} 
+                  sx={{ 
+                    p: 3, 
+                    borderRadius: 4, 
+                    bgcolor: 'rgba(34, 197, 94, 0.02)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(34, 197, 94, 0.1)',
+                    boxShadow: '0 8px 24px rgba(34, 197, 94, 0.04)'
+                  }}
+                >
+                  <Typography variant="subtitle1" fontWeight={800} mb={3} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <TimelineIcon sx={{ color: BRAND_GREEN }} /> Tutor Performance
+                  </Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                    
+                    <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#fff', border: '1px solid rgba(0,0,0,0.04)', textAlign: 'center' }}>
+                      <Typography variant="h5" fontWeight={800} color={BRAND_BLUE}>342</Typography>
+                      <Typography variant="caption" fontWeight={600} color="text.secondary">Total Sessions</Typography>
+                    </Box>
+
+                    <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#fff', border: '1px solid rgba(0,0,0,0.04)', textAlign: 'center' }}>
+                      <Typography variant="h5" fontWeight={800} color={BRAND_PURPLE}>&lt; 1 hr</Typography>
+                      <Typography variant="caption" fontWeight={600} color="text.secondary">Response Time</Typography>
+                    </Box>
+
+                    <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#fff', border: '1px solid rgba(0,0,0,0.04)', textAlign: 'center' }}>
+                      <Typography variant="h5" fontWeight={800} color={BRAND_GREEN}>100%</Typography>
+                      <Typography variant="caption" fontWeight={600} color="text.secondary">Attendance</Typography>
+                    </Box>
+
+                    <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#fff', border: '1px solid rgba(0,0,0,0.04)', textAlign: 'center' }}>
+                      <Typography variant="h5" fontWeight={800} color="#f59e0b">{studentsCount}</Typography>
+                      <Typography variant="caption" fontWeight={600} color="text.secondary">Students</Typography>
+                    </Box>
+
+                  </Box>
+                </Paper>
+
+              </Stack>
+            </Box>
+          </Box>
+        )}
+
+        {/* ── Resources Panel ──────────────────────────────────────────────── */}
+        {activeTab === 'Resources' && (
+          <Box sx={{ p: { xs: 2, sm: 4 } }}>
+            {cardResources.length > 0 ? (
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
+                {cardResources.map((resourceCard, index) => (
+                  <ResourceCard
+                    key={resourceCard.id || index}
+                    resource={resourceCard}
+                    onOpen={() => onResourceOpen(resources[index])}
+                  />
+                ))}
+              </Box>
+            ) : (
+              <Box sx={{ p: { xs: 4, sm: 8 }, textAlign: 'center' }}>
+                <Typography variant="h6" fontWeight={700} color="text.secondary" mb={1}>
+                  No Resources Yet
+                </Typography>
+                <Typography variant="body2" color="text.disabled">
+                  This tutor hasn't published any public resources.
+                </Typography>
+              </Box>
+            )}
           </Box>
         )}
 
@@ -837,28 +966,47 @@ const TutorBookingPage = () => {
 
   const tutor = location.state?.tutor || {};
   const subjectModule = String(location.state?.subjectModule || '').trim();
+  const initialTab = String(location.state?.initialTab || 'Booking');
 
   const [slots, setSlots] = useState([]);
+  const [resources, setResources] = useState([]);
+  const [viewingResource, setViewingResource] = useState(null);
+  const [openResourceDialog, setOpenResourceDialog] = useState(false);
   const [baseRatePerHour, setBaseRatePerHour] = useState(25);
   const [currency, setCurrency] = useState('USD');
+
+  const handleOpenResource = (resource) => {
+    const detail = toTutorResourceDetail(resource);
+    if (!detail?.id) return;
+    setViewingResource(detail);
+    setOpenResourceDialog(true);
+  };
+
+  const handleCloseResource = () => {
+    setOpenResourceDialog(false);
+    setViewingResource(null);
+  };
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       if (!tutorId) return;
       try {
-        const [slotRows, pricing] = await Promise.all([
-          sessionService.listBookableSlots({ teacherId: tutorId, limit: 300 }),
+        const [slotRows, pricing, resourceList] = await Promise.all([
+          sessionService.listBookableSlots({ teacherId: tutorId, limit: 200 }),
           sessionService.getTutorPricingProfile(tutorId).catch(() => null),
+          resourcesService.listResourcesByCreator(tutorId).catch(() => []),
         ]);
         if (cancelled) return;
         const safeSlots = Array.isArray(slotRows) ? slotRows : [];
         setSlots(safeSlots);
+        setResources(Array.isArray(resourceList) ? resourceList : []);
         setBaseRatePerHour(Number(pricing?.base_rate_per_hour || 25));
         setCurrency(String(pricing?.currency || 'USD').toUpperCase());
       } catch {
         if (!cancelled) {
           setSlots([]);
+          setResources([]);
           setBaseRatePerHour(25);
           setCurrency('USD');
         }
@@ -873,8 +1021,18 @@ const TutorBookingPage = () => {
   const slotIndex = useMemo(() => {
     const map = {};
     slots.forEach((slot) => {
-      const dateKey = toDateKey(slot.start_at);
-      const timeLabel = formatSlotTimeLabel(slot.start_at);
+      const dateKey = (slot.available_date || "").split("T")[0] || toDateKey(slot.start_at);
+      const timeParts = (slot.available_time || "").split(":");
+      let timeLabel = "";
+      if (timeParts.length >= 2) {
+        const h = Number(timeParts[0]);
+        const m = Number(timeParts[1]);
+        const suffix = h >= 12 ? 'PM' : 'AM';
+        const hour12 = h % 12 || 12;
+        timeLabel = `${String(hour12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${suffix}`;
+      } else {
+        timeLabel = formatSlotTimeLabel(slot.start_at);
+      }
       if (!map[dateKey]) map[dateKey] = {};
       map[dateKey][timeLabel] = slot;
     });
@@ -906,25 +1064,27 @@ const TutorBookingPage = () => {
     }
   };
 
-  const handleBook = async ({ date, time, plan, duration, total, currency: selectedCurrency }) => {
+  const handleBook = async ({ date, time }) => {
     const slot = slotIndex?.[date]?.[time] || null;
     if (!slot?.id) {
       showError('Selected time is not available with tutor slots.');
       return;
     }
     try {
+      const price = Number(slot.price || 0);
+      const dur = Number(slot.duration_minutes || 60);
       const payload = {
         slot_id: Number(slot.id),
-        duration_minutes: Number(duration || 60),
+        duration_minutes: dur,
         session_mode: 'remote',
         subject_module: subjectModule || 'Resource support',
         pricing_snapshot: {
-          duration_minutes: Number(duration || 60),
-          session_amount: Number(total || 0),
+          duration_minutes: dur,
+          session_amount: price,
           platform_fee: 2,
-          total_amount: Number((Number(total || 0) + 2).toFixed(2)),
-          currency: selectedCurrency || currency,
-          plan,
+          total_amount: Number((price + 2).toFixed(2)),
+          currency: currency,
+          plan: 'standard',
         },
         booking_metadata: { source: 'tutor_profile_page' },
       };
@@ -940,17 +1100,28 @@ const TutorBookingPage = () => {
   };
 
   return (
-    <TutorBookingPageView
-      tutorName={String(tutor?.name || slots?.[0]?.teacher_name || 'Tutor')}
-      tutorAvatar={String(tutor?.avatar || tutor?.avatar_url || slots?.[0]?.teacher_avatar_url || '')}
-      subject={subjectModule || 'Chemistry'}
-      baseRatePerHour={baseRatePerHour}
-      currency={currency}
-      availableDates={availableDates}
-      availableSlots={availableSlots}
-      onBook={handleBook}
-      onMessage={handleMessage}
-    />
+    <>
+      <TutorBookingPageView
+        tutorName={String(tutor?.name || slots?.[0]?.teacher_name || 'Tutor')}
+        tutorAvatar={String(tutor?.avatar || tutor?.avatar_url || slots?.[0]?.teacher_avatar_url || '')}
+        subject={subjectModule || 'Chemistry'}
+        baseRatePerHour={baseRatePerHour}
+        currency={currency}
+        availableDates={availableDates}
+        availableSlots={availableSlots}
+        slotIndex={slotIndex}
+        resources={resources}
+        initialTab={TABS.includes(initialTab) ? initialTab : 'Booking'}
+        onResourceOpen={handleOpenResource}
+        onBook={handleBook}
+        onMessage={handleMessage}
+      />
+      <ResourceDetailsDialog
+        open={openResourceDialog}
+        resource={viewingResource}
+        onClose={handleCloseResource}
+      />
+    </>
   );
 };
 

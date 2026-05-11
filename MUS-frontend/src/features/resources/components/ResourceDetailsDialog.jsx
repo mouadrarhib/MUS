@@ -224,6 +224,7 @@ const ResourceDetailsDialog = memo(({ open, resource, onClose, onOpenPreviewPage
     onClose?.();
     navigate(`/discover/tutors/${uploaderId}`, {
       state: {
+        initialTab: 'Profile',
         tutor: {
           id: uploaderId,
           name: resource?.author?.name || 'Tutor',

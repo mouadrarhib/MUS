@@ -36,8 +36,14 @@ const sessionService = {
     return Array.isArray(response?.data) ? response.data : [];
   },
 
-  createTeacherSlot: async ({ start_at, end_at, timezone = "UTC" }) => {
-    const response = await post("/sessions/teacher/slots", { start_at, end_at, timezone });
+  createTeacherSlot: async ({ available_date, available_time, duration_minutes, price, timezone = "Africa/Casablanca" }) => {
+    const response = await post("/sessions/teacher/slots", {
+      available_date,
+      available_time,
+      duration_minutes,
+      price,
+      timezone,
+    });
     return response?.data || null;
   },
 

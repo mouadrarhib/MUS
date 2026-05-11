@@ -21,7 +21,7 @@ export const PublicSlotCard = ({ slot, index, isStudent, loadingId, onBook }) =>
               {slot.teacher_name || "Teacher"}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {formatDate(slot.start_at)} - {formatDate(slot.end_at)} ({slot.timezone || "UTC"})
+              {formatDate(slot.start_at)} ({slot.duration_minutes || 60}m) • ${Number(slot.price || 0).toFixed(2)} ({slot.timezone || "Africa/Casablanca"})
             </Typography>
           </Box>
         </Stack>
@@ -33,7 +33,7 @@ export const PublicSlotCard = ({ slot, index, isStudent, loadingId, onBook }) =>
             startIcon={<EventAvailable sx={{ fontSize: 16 }} />}
             sx={{ borderRadius: 2, textTransform: "none", fontWeight: 700 }}
           >
-            Book Session
+            Book Session (${Number(slot.price || 0).toFixed(2)})
           </AsyncButton>
         ) : (
           <Chip label="Public slot" size="small" />
@@ -48,7 +48,7 @@ export const TeacherSlotCard = ({ slot, onEdit, onDelete }) => (
     <Stack direction={{ xs: "column", md: "row" }} alignItems={{ md: "center" }} spacing={1.25}>
       <Box sx={{ flex: 1 }}>
         <Typography variant="subtitle2" fontWeight={700}>
-          {formatDate(slot.start_at)} - {formatDate(slot.end_at)}
+          {formatDate(slot.start_at)} ({slot.duration_minutes || 60}m) • ${Number(slot.price || 0).toFixed(2)}
         </Typography>
         <Typography variant="caption" color="text.secondary">
           {slot.timezone || "UTC"} • {slot.is_booked ? "Booked" : slot.is_active ? "Active" : "Inactive"}

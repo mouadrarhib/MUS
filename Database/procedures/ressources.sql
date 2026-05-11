@@ -149,22 +149,81 @@ END;
 $$;
 
 -- 6. Get Resources by Creator
-CREATE OR REPLACE FUNCTION public.sp_resource_get_by_creator(
-    p_created_by UUID
-)
-RETURNS TABLE(id BIGINT, title TEXT, description TEXT, type TEXT, status TEXT, 
-              url TEXT, language TEXT, license TEXT, created_by UUID,
-              created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ) 
+DROP FUNCTION IF EXISTS public.sp_resource_get_by_creator(UUID);
+
+CREATE OR REPLACE FUNCTION public.sp_resource_get_by_creator(p_created_by UUID)
+RETURNS TABLE (
+    id BIGINT,
+    title TEXT,
+    description TEXT,
+    status TEXT,
+    url TEXT,
+    language TEXT,
+    license TEXT,
+    created_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ,
+    created_by UUID,
+    educational_type TEXT,
+    format TEXT,
+    resource_type_id BIGINT,
+    metadata JSONB,
+    access_tier TEXT,
+    creator_name TEXT,
+    creator_avatar_url TEXT,
+    view_count BIGINT,
+    likes BIGINT,
+    rating NUMERIC,
+    reviews_count BIGINT
+) 
 LANGUAGE plpgsql
 AS $$
 BEGIN
     RETURN QUERY
-    SELECT r.id, r.title, r.description, r.type::TEXT, r.status::TEXT, 
-           r.url, r.language, r.license, r.created_by,
-           r.created_at, r.updated_at
-    FROM public.resources r
-    WHERE r.created_by = p_created_by
-    ORDER BY r.created_at DESC;
+    SELECT 
+        r.id::BIGINT,
+        r.title::TEXT,
+        r.description::TEXT,
+        r.status::TEXT,
+        r.url::TEXT,
+        r.language::TEXT,
+        r.license::TEXT,
+        r.created_at,
+        r.updated_at,
+        r.created_by,
+        r.educational_type::TEXT,
+        r.format::TEXT,
+        r.resource_type_id::BIGINT,
+        r.metadata::JSONB,
+        COALESCE(r.access_tier, 'free')::TEXT AS access_tier,
+        u.full_name::TEXT AS creator_name,
+        u.avatar_url::TEXT AS creator_avatar_url,
+        COALESCE(rd.view_count, 0)::BIGINT AS view_count,
+        COALESCE(f.likes_count, 0)::BIGINT AS likes,
+        COALESCE(rt.avg_rating, 0.0)::NUMERIC AS rating,
+        COALESCE(rt.reviews_count, 0)::BIGINT AS reviews_count
+    FROM 
+        public.resources r
+    LEFT JOIN 
+        public.users u ON r.created_by = u.id
+    LEFT JOIN (
+        SELECT resource_id, COUNT(*) AS view_count 
+        FROM public.resource_downloads 
+        GROUP BY resource_id
+    ) rd ON rd.resource_id = r.id
+    LEFT JOIN (
+        SELECT resource_id, COUNT(*) AS likes_count 
+        FROM public.favorites 
+        GROUP BY resource_id
+    ) f ON f.resource_id = r.id
+    LEFT JOIN (
+        SELECT resource_id, ROUND(AVG(score)::numeric, 1) AS avg_rating, COUNT(*) AS reviews_count 
+        FROM public.ratings 
+        GROUP BY resource_id
+    ) rt ON rt.resource_id = r.id
+    WHERE 
+        r.created_by = p_created_by
+    ORDER BY 
+        r.created_at DESC;
 END;
 $$;
 

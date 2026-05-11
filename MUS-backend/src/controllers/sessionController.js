@@ -58,11 +58,13 @@ export const listTeacherSlotsHandler = asyncHandler(async (req, res) => {
 });
 
 export const createTeacherSlotHandler = asyncHandler(async (req, res) => {
-  const { start_at, end_at, timezone } = req.body;
+  const { available_date, available_time, duration_minutes, price, timezone } = req.body;
   const data = await createTeacherSlot({
     actor: req.user,
-    startAt: start_at,
-    endAt: end_at,
+    availableDate: available_date,
+    availableTime: available_time,
+    durationMinutes: duration_minutes,
+    price,
     timezone,
   });
   return successResponse(res, "Teacher slot created successfully", data, 201);
@@ -70,12 +72,14 @@ export const createTeacherSlotHandler = asyncHandler(async (req, res) => {
 
 export const updateTeacherSlotHandler = asyncHandler(async (req, res) => {
   const { slotId } = req.params;
-  const { start_at, end_at, timezone, is_active } = req.body;
+  const { available_date, available_time, duration_minutes, price, timezone, is_active } = req.body;
   const data = await updateTeacherSlot({
     actor: req.user,
     slotId: Number(slotId),
-    startAt: start_at,
-    endAt: end_at,
+    availableDate: available_date,
+    availableTime: available_time,
+    durationMinutes: duration_minutes,
+    price,
     timezone,
     isActive: is_active,
   });

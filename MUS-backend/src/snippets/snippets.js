@@ -717,9 +717,9 @@ export const SQL = {
 
     GET_TEACHER_SLOTS: `SELECT * FROM public.sp_teacher_slot_get_by_teacher(:teacher_id, :include_inactive)`,
 
-    CREATE_TEACHER_SLOT: `SELECT * FROM public.sp_teacher_slot_create(:teacher_id, :start_at, :end_at, :timezone)`,
+    CREATE_TEACHER_SLOT: `SELECT * FROM public.sp_teacher_slot_create(:teacher_id, :available_date, :available_time, :duration_minutes, :price, :timezone)`,
 
-    UPDATE_TEACHER_SLOT: `SELECT * FROM public.sp_teacher_slot_update(:slot_id, :teacher_id, :start_at, :end_at, :timezone, :is_active)`,
+    UPDATE_TEACHER_SLOT: `SELECT * FROM public.sp_teacher_slot_update(:slot_id, :teacher_id, :available_date, :available_time, :duration_minutes, :price, :timezone, :is_active)`,
 
     DELETE_TEACHER_SLOT: `SELECT public.sp_teacher_slot_delete(:slot_id, :teacher_id) AS deleted`,
 

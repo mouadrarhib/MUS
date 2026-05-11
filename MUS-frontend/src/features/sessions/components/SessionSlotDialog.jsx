@@ -88,6 +88,14 @@ StepSidebar.propTypes = {
   onClose: PropTypes.func.isRequired,
 };
 
+const DURATION_OPTIONS = [
+  { label: "30 mins", value: 30 },
+  { label: "45 mins", value: 45 },
+  { label: "60 mins (1 hr)", value: 60 },
+  { label: "90 mins (1.5 hrs)", value: 90 },
+  { label: "120 mins (2 hrs)", value: 120 },
+];
+
 const SessionSlotDialog = ({ open, editingSlot, draft, setDraft, submitting, onClose, onSave }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [displayMonth, setDisplayMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
@@ -95,7 +103,8 @@ const SessionSlotDialog = ({ open, editingSlot, draft, setDraft, submitting, onC
   const [selectedDateForTime, setSelectedDateForTime] = useState("");
   const [dateSlotsMap, setDateSlotsMap] = useState({});
   const [startTime, setStartTime] = useState(DEFAULT_START_TIME);
-  const [endTime, setEndTime] = useState(DEFAULT_END_TIME);
+  const [duration, setDuration] = useState(60);
+  const [price, setPrice] = useState(25.00);
 
   const timeOptions = useMemo(() => {
     const list = [];
@@ -107,12 +116,6 @@ const SessionSlotDialog = ({ open, editingSlot, draft, setDraft, submitting, onC
     }
     return list;
   }, []);
-
-  const endTimeOptions = useMemo(() => {
-    const idx = timeOptions.indexOf(startTime);
-    if (idx < 0) return timeOptions;
-    return timeOptions.slice(Math.min(idx + 1, timeOptions.length - 1));
-  }, [startTime, timeOptions]);
 
   const calendarCells = useMemo(() => {
     const year = displayMonth.getFullYear();
@@ -130,22 +133,25 @@ const SessionSlotDialog = ({ open, editingSlot, draft, setDraft, submitting, onC
     if (!open) return;
     setActiveStep(0);
     if (editingSlot) {
-      const start = splitDateTime(draft.start_at);
-      const end = splitDateTime(draft.end_at);
-      setSelectedDates([start.date]);
-      setSelectedDateForTime(start.date);
-      setDateSlotsMap({ [start.date]: [{ start: start.time, end: end.time }] });
-      setDisplayMonth(new Date(`${start.date}T00:00`));
+      const date = draft.available_date || (draft.start_at ? splitDateTime(draft.start_at).date : toDateKey(new Date()));
+      const time = draft.available_time || (draft.start_at ? splitDateTime(draft.start_at).time : "09:00");
+      const dur = Number(draft.duration_minutes || 60);
+      const prc = Number(draft.price || 25.00);
+      setSelectedDates([date]);
+      setSelectedDateForTime(date);
+      setDateSlotsMap({ [date]: [{ start: time, duration: dur, price: prc }] });
+      setDisplayMonth(new Date(`${date}T00:00`));
     } else {
       setSelectedDates([]);
       setSelectedDateForTime("");
       setDateSlotsMap({});
       setStartTime(DEFAULT_START_TIME);
-      setEndTime(DEFAULT_END_TIME);
+      setDuration(60);
+      setPrice(25.00);
       const now = new Date();
       setDisplayMonth(new Date(now.getFullYear(), now.getMonth(), 1));
     }
-  }, [open, editingSlot, draft.start_at, draft.end_at]);
+  }, [open, editingSlot, draft.available_date, draft.available_time, draft.duration_minutes, draft.price, draft.start_at]);
 
   const toggleDate = (dateKey) => {
     setSelectedDates((prev) => {
@@ -158,6 +164,7 @@ const SessionSlotDialog = ({ open, editingSlot, draft, setDraft, submitting, onC
           const copy = { ...m };
           delete copy[dateKey];
           return copy;
+          return copy;
         });
       }
       if (!next.includes(selectedDateForTime)) setSelectedDateForTime(next[0] || "");
@@ -167,28 +174,14 @@ const SessionSlotDialog = ({ open, editingSlot, draft, setDraft, submitting, onC
 
   const addTimeRangeToSelectedDate = () => {
     if (!selectedDateForTime) return;
-    if (!startTime || !endTime) return;
+    if (!startTime) return;
     setDateSlotsMap((prev) => {
       const current = prev[selectedDateForTime] || [];
-      if (current.some((item) => item.start === startTime && item.end === endTime)) return prev;
-      return { ...prev, [selectedDateForTime]: [...current, { start: startTime, end: endTime }] };
+      if (current.some((item) => item.start === startTime)) return prev;
+      return { ...prev, [selectedDateForTime]: [...current, { start: startTime, duration, price: Number(price || 0) }] };
     });
     setStartTime(DEFAULT_START_TIME);
-    setEndTime(DEFAULT_END_TIME);
   };
-
-  const availableEndTimeOptions = useMemo(() => {
-    if (!selectedDateForTime) return endTimeOptions;
-    const rows = dateSlotsMap[selectedDateForTime] || [];
-    return endTimeOptions.filter((candidateEnd) => !rows.some((item) => item.start === startTime && item.end === candidateEnd));
-  }, [dateSlotsMap, selectedDateForTime, startTime, endTimeOptions]);
-
-  useEffect(() => {
-    if (!availableEndTimeOptions.length) return;
-    if (!availableEndTimeOptions.includes(endTime)) {
-      setEndTime(availableEndTimeOptions[0]);
-    }
-  }, [availableEndTimeOptions, endTime]);
 
   const removeTimeRange = (dateKey, idx) => {
     setDateSlotsMap((prev) => ({
@@ -213,8 +206,10 @@ const SessionSlotDialog = ({ open, editingSlot, draft, setDraft, submitting, onC
       if (!dateKey || !first) return;
       setDraft((prev) => ({
         ...prev,
-        start_at: toDraftDateTime(dateKey, first.start),
-        end_at: toDraftDateTime(dateKey, first.end),
+        available_date: dateKey,
+        available_time: first.start,
+        duration_minutes: first.duration,
+        price: first.price,
       }));
       onSave();
       return;
@@ -222,8 +217,10 @@ const SessionSlotDialog = ({ open, editingSlot, draft, setDraft, submitting, onC
 
     const rows = selectedDates.flatMap((dateKey) =>
       (dateSlotsMap[dateKey] || []).map((slot) => ({
-        start_at: toDraftDateTime(dateKey, slot.start),
-        end_at: toDraftDateTime(dateKey, slot.end),
+        available_date: dateKey,
+        available_time: slot.start,
+        duration_minutes: slot.duration,
+        price: slot.price,
         timezone: draft.timezone,
       }))
     );
@@ -295,7 +292,7 @@ const SessionSlotDialog = ({ open, editingSlot, draft, setDraft, submitting, onC
               </Stack>
             ) : (
               <Stack spacing={2}>
-                <Typography variant="body2" color="text.secondary">Select one of your created dates, then add one or more time ranges for that date.</Typography>
+                <Typography variant="body2" color="text.secondary">Select one of your created dates, then add available times with their duration and pricing.</Typography>
 
                 <TextField
                   select
@@ -313,19 +310,28 @@ const SessionSlotDialog = ({ open, editingSlot, draft, setDraft, submitting, onC
                 </TextField>
 
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
-                  <TextField select label="Start" value={startTime} onChange={(event) => setStartTime(event.target.value)} size="small" fullWidth>
+                  <TextField select label="Start Time" value={startTime} onChange={(event) => setStartTime(event.target.value)} size="small" fullWidth>
                     {timeOptions.map((time) => <MenuItem key={time} value={time}>{time}</MenuItem>)}
                   </TextField>
-                  <TextField select label="End" value={endTime} onChange={(event) => setEndTime(event.target.value)} size="small" fullWidth>
-                    {availableEndTimeOptions.map((time) => <MenuItem key={time} value={time}>{time}</MenuItem>)}
+                  <TextField select label="Duration" value={duration} onChange={(event) => setDuration(Number(event.target.value))} size="small" fullWidth>
+                    {DURATION_OPTIONS.map((opt) => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
                   </TextField>
+                  <TextField
+                    label="Price ($)"
+                    type="number"
+                    value={price}
+                    onChange={(event) => setPrice(Number(event.target.value))}
+                    size="small"
+                    fullWidth
+                    inputProps={{ min: 0, step: 1 }}
+                  />
                   <Button
                     variant="outlined"
                     onClick={addTimeRangeToSelectedDate}
-                    disabled={!selectedDateForTime || !availableEndTimeOptions.length}
+                    disabled={!selectedDateForTime}
                     sx={{ textTransform: "none", minWidth: 140 }}
                   >
-                    Add Time
+                    Add Slot
                   </Button>
                 </Stack>
 
@@ -340,8 +346,8 @@ const SessionSlotDialog = ({ open, editingSlot, draft, setDraft, submitting, onC
                         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                           {rows.map((slot, idx) => (
                             <Chip
-                              key={`${dateKey}-${slot.start}-${slot.end}-${idx}`}
-                              label={`${slot.start} - ${slot.end}`}
+                              key={`${dateKey}-${slot.start}-${idx}`}
+                              label={`${slot.start} (${slot.duration}m) • $${slot.price}`}
                               onDelete={() => removeTimeRange(dateKey, idx)}
                               color="primary"
                               variant="outlined"

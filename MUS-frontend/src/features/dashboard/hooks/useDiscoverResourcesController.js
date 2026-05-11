@@ -470,9 +470,8 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
     }
 
     try {
-      const [resourceRes, statsRes, tagsRes] = await Promise.allSettled([
+      const [resourceRes, tagsRes] = await Promise.allSettled([
         resourcesService.getResourceById(baseResource.id),
-        resourcesService.getResourceStatistics(baseResource.id),
         resourcesService.getResourceTags(baseResource.id),
       ]);
 
@@ -480,12 +479,12 @@ export const useDiscoverResourcesController = ({ recommendationsOnly = false }) 
         resourceRes.status === 'fulfilled' && resourceRes.value
           ? {
               ...toResourceDetailModel(resourceRes.value),
-              stats: statsRes.status === 'fulfilled' ? statsRes.value || {} : {},
+              stats: baseResource?.stats || {},
               tags: tagsRes.status === 'fulfilled' ? tagsRes.value || [] : [],
             }
           : {
               ...baseResource,
-              stats: statsRes.status === 'fulfilled' ? statsRes.value || {} : {},
+              stats: baseResource?.stats || {},
               tags: tagsRes.status === 'fulfilled' ? tagsRes.value || [] : [],
             };
 

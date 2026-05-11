@@ -25,9 +25,11 @@ const Sessions = () => {
   const [editingSlot, setEditingSlot] = useState(null);
   const [slotSubmitting, setSlotSubmitting] = useState(false);
   const [slotDraft, setSlotDraft] = useState({
-    start_at: toInputDateTime(),
-    end_at: toInputDateTime(Date.now() + 5400_000),
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+    available_date: "",
+    available_time: "",
+    duration_minutes: 60,
+    price: 25.00,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Africa/Casablanca",
   });
 
   const [bookingSubmittingId, setBookingSubmittingId] = useState(null);
@@ -130,9 +132,11 @@ const Sessions = () => {
   const handleOpenSlotDialog = (slot = null) => {
     setEditingSlot(slot);
     setSlotDraft({
-      start_at: toInputDateTime(slot?.start_at),
-      end_at: toInputDateTime(slot?.end_at || Date.now() + 5400_000),
-      timezone: slot?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+      available_date: slot?.available_date || "",
+      available_time: slot?.available_time || "",
+      duration_minutes: Number(slot?.duration_minutes || 60),
+      price: Number(slot?.price || 25.00),
+      timezone: slot?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "Africa/Casablanca",
     });
     setSlotDialogOpen(true);
   };
@@ -140,24 +144,33 @@ const Sessions = () => {
   const handleSaveSlot = async (bulkSlots = null) => {
     setSlotSubmitting(true);
     try {
-      const payload = {
-        start_at: new Date(slotDraft.start_at).toISOString(),
-        end_at: new Date(slotDraft.end_at).toISOString(),
-        timezone: slotDraft.timezone,
-      };
-
       if (editingSlot?.id) {
+        const payload = {
+          available_date: slotDraft.available_date,
+          available_time: slotDraft.available_time,
+          duration_minutes: Number(slotDraft.duration_minutes || 60),
+          price: Number(slotDraft.price || 0),
+          timezone: slotDraft.timezone,
+        };
         await sessionService.updateTeacherSlot(editingSlot.id, payload);
         showSuccess("Slot updated successfully.");
       } else {
         const entries = Array.isArray(bulkSlots) && bulkSlots.length
           ? bulkSlots
-          : [{ start_at: slotDraft.start_at, end_at: slotDraft.end_at, timezone: slotDraft.timezone }];
+          : [{
+              available_date: slotDraft.available_date,
+              available_time: slotDraft.available_time,
+              duration_minutes: Number(slotDraft.duration_minutes || 60),
+              price: Number(slotDraft.price || 0),
+              timezone: slotDraft.timezone,
+            }];
         await Promise.all(
           entries.map((entry) =>
             sessionService.createTeacherSlot({
-              start_at: new Date(entry.start_at).toISOString(),
-              end_at: new Date(entry.end_at).toISOString(),
+              available_date: entry.available_date,
+              available_time: entry.available_time,
+              duration_minutes: entry.duration_minutes,
+              price: entry.price,
               timezone: entry.timezone || slotDraft.timezone,
             })
           )

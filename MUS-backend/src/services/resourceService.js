@@ -637,7 +637,8 @@ export const getResourcesByCreator = async (createdBy, actor = null) => {
   });
   const admin = isAdmin(actor?.roles || []);
   const self = actor?.id && actor.id === createdBy;
-  return admin || self ? results : filterPublishedOnly(results);
+  const filtered = admin || self ? results : filterPublishedOnly(results);
+  return await enrichDiscoverResources(filtered);
 };
 
 export const getResourcesByConnectedUser = async () => {

@@ -228,14 +228,16 @@ export const listTeacherSlots = async ({ actor, includeInactive = true }) => {
   return rows;
 };
 
-export const createTeacherSlot = async ({ actor, startAt, endAt, timezone = "UTC" }) => {
+export const createTeacherSlot = async ({ actor, availableDate, availableTime, durationMinutes = 60, price = 0.00, timezone = "Africa/Casablanca" }) => {
   await requireTutor(actor);
   try {
     const [rows] = await sequelize.query(SQL.SESSION.CREATE_TEACHER_SLOT, {
       replacements: {
         teacher_id: actor.id,
-        start_at: startAt,
-        end_at: endAt,
+        available_date: availableDate,
+        available_time: availableTime,
+        duration_minutes: Number(durationMinutes || 60),
+        price: Number(price || 0.00),
         timezone,
       },
     });
@@ -245,15 +247,17 @@ export const createTeacherSlot = async ({ actor, startAt, endAt, timezone = "UTC
   }
 };
 
-export const updateTeacherSlot = async ({ actor, slotId, startAt = null, endAt = null, timezone = null, isActive = null }) => {
+export const updateTeacherSlot = async ({ actor, slotId, availableDate = null, availableTime = null, durationMinutes = null, price = null, timezone = null, isActive = null }) => {
   await requireTutor(actor);
   try {
     const [rows] = await sequelize.query(SQL.SESSION.UPDATE_TEACHER_SLOT, {
       replacements: {
         slot_id: slotId,
         teacher_id: actor.id,
-        start_at: startAt,
-        end_at: endAt,
+        available_date: availableDate,
+        available_time: availableTime,
+        duration_minutes: durationMinutes !== null ? Number(durationMinutes) : null,
+        price: price !== null ? Number(price) : null,
         timezone,
         is_active: typeof isActive === "boolean" ? isActive : null,
       },
