@@ -31,6 +31,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import sessionService from '@/services/sessionService';
 import DiscoveryHeader from '@/features/discover/components/DiscoveryHeader';
 import resourcesService from '@/services/resourcesService';
+import tutorProfileService from '@/services/tutorProfileService';
 import ResourceCard from '@/features/discover/components/ResourceCard';
 import { toResourceCardModel } from '@/features/discover/components/resourceCardMapper';
 import { toResourceDetailModel } from '@/entities/resource/mappers/resourceViewModel';
@@ -139,6 +140,11 @@ const TutorBookingPageView = ({
   studentsCount = '4,200+',
   rating = 4.8,
   reviewCount = '1,842',
+  bio = '',
+  expertise = [],
+  education = [],
+  sessionsCount = 0,
+  responseTimeMinutes = null,
   baseRatePerHour = 25,
   currency = 'USD',
   availableDates = [],
@@ -788,11 +794,13 @@ const TutorBookingPageView = ({
                     }}
                   >
                     <Typography variant="body1" sx={{ mb: 2 }}>
-                      Hello! I'm <strong style={{color: '#1e293b'}}>{tutorName}</strong>, a passionate and dedicated <strong>{subject} expert</strong> with over <strong>{experience}</strong> of experience helping students achieve their academic and professional goals. My teaching philosophy centers around making complex concepts intuitive and building strong foundational understanding rather than just memorizing facts.
+                      {bio || `Hello! I'm ${tutorName}, a dedicated ${subject} tutor focused on helping students learn with confidence and practical understanding.`}
                     </Typography>
-                    <Typography variant="body1">
-                      Whether you are preparing for critical exams, working on complex projects, or simply looking to deepen your understanding of {subject}, I tailor every session to your unique learning style and pace.
-                    </Typography>
+                    {!bio && (
+                      <Typography variant="body1">
+                        Whether you are preparing for exams, working on projects, or building fundamentals, sessions are tailored to your pace and goals.
+                      </Typography>
+                    )}
                   </Paper>
                 </Box>
 
@@ -803,41 +811,36 @@ const TutorBookingPageView = ({
                   </Typography>
                   <Box sx={{ ml: 2, pl: 4, borderLeft: '2px solid rgba(124, 58, 237, 0.15)', position: 'relative' }}>
                     
-                    {/* Item 1 */}
-                    <Box sx={{ position: 'relative', mb: 4 }}>
-                      <Box sx={{ 
-                        position: 'absolute', left: -50, top: 0, 
-                        width: 32, height: 32, borderRadius: '50%', 
-                        bgcolor: '#fff', border: `2px solid ${BRAND_PURPLE}`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 2px 8px rgba(124,58,237,0.2)'
-                      }}>
-                        <EmojiEvents sx={{ fontSize: 16, color: BRAND_PURPLE }} />
-                      </Box>
-                      <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, bgcolor: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(255,255,255,0.8)' }}>
-                        <Typography variant="subtitle1" fontWeight={800} color="text.primary">Ph.D. in Computer Science</Typography>
-                        <Typography variant="body2" fontWeight={600} sx={{ mb: 1, color: BRAND_PURPLE }}>Stanford University · 2018 - 2022</Typography>
-                        <Typography variant="body2" color="text.secondary">Specialized in Distributed Systems and Artificial Intelligence. Authored 3 major research papers.</Typography>
-                      </Paper>
-                    </Box>
+                    {(Array.isArray(education) && education.length > 0 ? education : []).map((item, index) => {
+                      const accent = index % 2 === 0 ? BRAND_PURPLE : '#f59e0b';
+                      const years = [item?.start_year, item?.end_year].filter(Boolean).join(' - ');
+                      return (
+                        <Box key={`edu-${index}`} sx={{ position: 'relative', mb: index === education.length - 1 ? 0 : 4 }}>
+                          <Box sx={{
+                            position: 'absolute', left: -50, top: 0,
+                            width: 32, height: 32, borderRadius: '50%',
+                            bgcolor: '#fff', border: `2px solid ${accent}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 2px 8px rgba(124,58,237,0.2)'
+                          }}>
+                            {index % 2 === 0 ? <EmojiEvents sx={{ fontSize: 16, color: accent }} /> : <StarBorder sx={{ fontSize: 16, color: accent }} />}
+                          </Box>
+                          <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, bgcolor: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(255,255,255,0.8)' }}>
+                            <Typography variant="subtitle1" fontWeight={800} color="text.primary">{item?.degree || 'Education'}</Typography>
+                            <Typography variant="body2" fontWeight={600} sx={{ mb: 1, color: accent }}>
+                              {item?.institution || 'Institution'}{years ? ` · ${years}` : ''}
+                            </Typography>
+                            {item?.description && <Typography variant="body2" color="text.secondary">{item.description}</Typography>}
+                          </Paper>
+                        </Box>
+                      );
+                    })}
 
-                    {/* Item 2 */}
-                    <Box sx={{ position: 'relative' }}>
-                      <Box sx={{ 
-                        position: 'absolute', left: -50, top: 0, 
-                        width: 32, height: 32, borderRadius: '50%', 
-                        bgcolor: '#fff', border: `2px solid #f59e0b`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 2px 8px rgba(245,158,11,0.2)'
-                      }}>
-                        <StarBorder sx={{ fontSize: 16, color: '#f59e0b' }} />
-                      </Box>
+                    {(!Array.isArray(education) || education.length === 0) && (
                       <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, bgcolor: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(255,255,255,0.8)' }}>
-                        <Typography variant="subtitle1" fontWeight={800} color="text.primary">B.Sc. in Software Engineering</Typography>
-                        <Typography variant="body2" fontWeight={600} sx={{ mb: 1, color: '#d97706' }}>MIT · 2014 - 2018</Typography>
-                        <Typography variant="body2" color="text.secondary">Graduated with Honors. Dean's List. Led the university robotics club.</Typography>
+                        <Typography variant="body2" color="text.secondary">No education details added yet.</Typography>
                       </Paper>
-                    </Box>
+                    )}
 
                   </Box>
                 </Box>
@@ -862,7 +865,7 @@ const TutorBookingPageView = ({
                     <CodeIcon sx={{ color: BRAND_BLUE }} /> Areas of Expertise
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.2 }}>
-                    {['Advanced Algorithms', 'System Design', 'React & Node.js', 'Machine Learning', 'Cloud Architecture', 'Mentorship'].map((skill) => (
+                    {(Array.isArray(expertise) && expertise.length > 0 ? expertise : ['General Tutoring']).map((skill) => (
                       <Chip
                         key={skill}
                         label={skill}
@@ -899,12 +902,12 @@ const TutorBookingPageView = ({
                   <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                     
                     <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#fff', border: '1px solid rgba(0,0,0,0.04)', textAlign: 'center' }}>
-                      <Typography variant="h5" fontWeight={800} color={BRAND_BLUE}>342</Typography>
+                      <Typography variant="h5" fontWeight={800} color={BRAND_BLUE}>{sessionsCount || 0}</Typography>
                       <Typography variant="caption" fontWeight={600} color="text.secondary">Total Sessions</Typography>
                     </Box>
 
                     <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#fff', border: '1px solid rgba(0,0,0,0.04)', textAlign: 'center' }}>
-                      <Typography variant="h5" fontWeight={800} color={BRAND_PURPLE}>&lt; 1 hr</Typography>
+                      <Typography variant="h5" fontWeight={800} color={BRAND_PURPLE}>{responseTimeMinutes != null ? `${responseTimeMinutes} min` : 'N/A'}</Typography>
                       <Typography variant="caption" fontWeight={600} color="text.secondary">Response Time</Typography>
                     </Box>
 
@@ -974,6 +977,7 @@ const TutorBookingPage = () => {
   const [openResourceDialog, setOpenResourceDialog] = useState(false);
   const [baseRatePerHour, setBaseRatePerHour] = useState(25);
   const [currency, setCurrency] = useState('USD');
+  const [publicTutorProfile, setPublicTutorProfile] = useState(null);
 
   const handleOpenResource = (resource) => {
     const detail = toTutorResourceDetail(resource);
@@ -992,10 +996,11 @@ const TutorBookingPage = () => {
     const load = async () => {
       if (!tutorId) return;
       try {
-        const [slotRows, pricing, resourceList] = await Promise.all([
+        const [slotRows, pricing, resourceList, profile] = await Promise.all([
           sessionService.listBookableSlots({ teacherId: tutorId, limit: 200 }),
           sessionService.getTutorPricingProfile(tutorId).catch(() => null),
           resourcesService.listResourcesByCreator(tutorId).catch(() => []),
+          tutorProfileService.getPublicTutorProfile(tutorId).catch(() => null),
         ]);
         if (cancelled) return;
         const safeSlots = Array.isArray(slotRows) ? slotRows : [];
@@ -1003,12 +1008,14 @@ const TutorBookingPage = () => {
         setResources(Array.isArray(resourceList) ? resourceList : []);
         setBaseRatePerHour(Number(pricing?.base_rate_per_hour || 25));
         setCurrency(String(pricing?.currency || 'USD').toUpperCase());
+        setPublicTutorProfile(profile || null);
       } catch {
         if (!cancelled) {
           setSlots([]);
           setResources([]);
           setBaseRatePerHour(25);
           setCurrency('USD');
+          setPublicTutorProfile(null);
         }
       }
     };
@@ -1102,9 +1109,18 @@ const TutorBookingPage = () => {
   return (
     <>
       <TutorBookingPageView
-        tutorName={String(tutor?.name || slots?.[0]?.teacher_name || 'Tutor')}
-        tutorAvatar={String(tutor?.avatar || tutor?.avatar_url || slots?.[0]?.teacher_avatar_url || '')}
+        tutorName={String(publicTutorProfile?.full_name || tutor?.name || slots?.[0]?.teacher_name || 'Tutor')}
+        tutorAvatar={String(publicTutorProfile?.avatar_url || tutor?.avatar || tutor?.avatar_url || slots?.[0]?.teacher_avatar_url || '')}
         subject={subjectModule || 'Chemistry'}
+        experience={publicTutorProfile?.years_experience ? `${publicTutorProfile.years_experience}+ years experience` : 'Tutor'}
+        studentsCount={String(publicTutorProfile?.students_taught_count || 0)}
+        rating={Number(publicTutorProfile?.rating_avg || 0)}
+        reviewCount={String(publicTutorProfile?.rating_count || 0)}
+        bio={String(publicTutorProfile?.bio || '')}
+        expertise={(publicTutorProfile?.skills || []).map((entry) => entry?.skill_name).filter(Boolean)}
+        education={Array.isArray(publicTutorProfile?.education) ? publicTutorProfile.education : []}
+        sessionsCount={Number(publicTutorProfile?.sessions_taught_count || 0)}
+        responseTimeMinutes={publicTutorProfile?.response_time_minutes ?? null}
         baseRatePerHour={baseRatePerHour}
         currency={currency}
         availableDates={availableDates}
