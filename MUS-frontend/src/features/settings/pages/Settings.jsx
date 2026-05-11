@@ -9,7 +9,7 @@ import {
   Palette, DarkMode, LightMode, FormatSize, Notifications, Email,
   NotificationsActive, NotificationsOff, Security, VpnKey, Devices,
   VisibilityOff, Language, AccessTime, CalendarToday, ManageAccounts,
-  Delete, Download, Link, Check, LocalOffer, Settings as SettingsIcon,
+  Delete, Download, Link, Check, LocalOffer, School as SchoolIcon, Settings as SettingsIcon,
   PhotoCamera,
 } from '@mui/icons-material';
 import { useThemeMode } from '@/app/providers/ThemeContext';
@@ -24,21 +24,7 @@ import levelService from '@/services/levelService';
 import semesterService from '@/services/semesterService';
 import studentProfileService from '@/services/studentProfileService';
 import authService from '@/services/authService';
-import { PageHeader, useNotification } from '@/shared/components/ui';
-import { SettingSection, SettingRow } from '@/features/settings/components/SettingLayout';
-import DeleteAccountDialog from '@/features/settings/components/DeleteAccountDialog';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const toList = (response) => {
-  const payload = response?.data ?? response;
-  return Array.isArray(payload) ? payload : [];
-};
-
-const applyFontSize = (size) => {
-  localStorage.setItem('fontSize', size);
-  document.documentElement.style.fontSize =
-    size === 'small' ? '14px' : size === 'large' ? '18px' : '16px';
+import tutorProfileService from '@/services/tutorProfileService';
 import { PageHeader, useNotification } from '@/shared/components/ui';
 import { SettingSection, SettingRow } from '@/features/settings/components/SettingLayout';
 import DeleteAccountDialog from '@/features/settings/components/DeleteAccountDialog';
@@ -125,6 +111,20 @@ const Settings = () => {
   });
   const [studentContributionMode, setStudentContributionMode] = useState('contributor');
   const [contributionModeSaving, setContributionModeSaving] = useState(false);
+  const [tutorProfileLoading, setTutorProfileLoading] = useState(false);
+  const [tutorProfileSaving, setTutorProfileSaving] = useState(false);
+  const [tutorProfileFeedback, setTutorProfileFeedback] = useState({ type: '', message: '' });
+  const [tutorProfileForm, setTutorProfileForm] = useState({
+    headline: '',
+    bio: '',
+    years_experience: '',
+    hourly_rate: '',
+    currency: 'USD',
+    response_time_minutes: '',
+    visibility_status: 'draft',
+    skillsText: '',
+    education: [],
+  });
 
   // ── Persist helpers — stable refs, never trigger re-renders ───────────────
   const persistAppearance = useCallback(async (values) => {
@@ -334,6 +334,58 @@ const Settings = () => {
   useEffect(() => {
     setProfileName(user?.full_name || '');
   }, [user?.full_name]);
+
+  useEffect(() => {
+    if (!user?.id || !(canContribute || isAdmin)) {
+      setTutorProfileForm({
+        headline: '',
+        bio: '',
+        years_experience: '',
+        hourly_rate: '',
+        currency: 'USD',
+        response_time_minutes: '',
+        visibility_status: 'draft',
+        skillsText: '',
+        education: [],
+      });
+      setTutorProfileFeedback({ type: '', message: '' });
+      return;
+    }
+
+    let mounted = true;
+    (async () => {
+      setTutorProfileLoading(true);
+      setTutorProfileFeedback({ type: '', message: '' });
+      try {
+        const profile = await tutorProfileService.getMyTutorProfile();
+        if (!mounted || !profile) return;
+
+        setTutorProfileForm({
+          headline: String(profile.headline || ''),
+          bio: String(profile.bio || ''),
+          years_experience: profile.years_experience ?? '',
+          hourly_rate: profile.hourly_rate ?? '',
+          currency: String(profile.currency || 'USD').toUpperCase(),
+          response_time_minutes: profile.response_time_minutes ?? '',
+          visibility_status: String(profile.visibility_status || 'draft'),
+          skillsText: Array.isArray(profile.skills)
+            ? profile.skills.map((entry) => String(entry.skill_name || '').trim()).filter(Boolean).join(', ')
+            : '',
+          education: Array.isArray(profile.education) ? profile.education : [],
+        });
+      } catch (err) {
+        if (!mounted) return;
+        setTutorProfileFeedback({
+          type: 'error',
+          message: err?.response?.data?.message || 'Failed to load tutor profile.',
+        });
+      } finally {
+        if (mounted) setTutorProfileLoading(false);
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, [user?.id, canContribute, isAdmin]);
 
   // ── Cleanup export timer on unmount ───────────────────────────────────────
   useEffect(() => () => clearTimeout(exportTimerRef.current), []);
@@ -603,6 +655,88 @@ const Settings = () => {
       setProfileSaving(false);
     }
   }, [profileName, refreshProfile]);
+
+  const handleTutorProfileFieldChange = useCallback((key, value) => {
+    setTutorProfileForm((prev) => ({ ...prev, [key]: value }));
+    setTutorProfileFeedback({ type: '', message: '' });
+  }, []);
+
+  const handleTutorEducationChange = useCallback((index, key, value) => {
+    setTutorProfileForm((prev) => {
+      const next = Array.isArray(prev.education) ? [...prev.education] : [];
+      next[index] = { ...(next[index] || {}), [key]: value };
+      return { ...prev, education: next };
+    });
+    setTutorProfileFeedback({ type: '', message: '' });
+  }, []);
+
+  const addTutorEducationItem = useCallback(() => {
+    setTutorProfileForm((prev) => ({
+      ...prev,
+      education: [
+        ...(Array.isArray(prev.education) ? prev.education : []),
+        { degree: '', institution: '', start_year: '', end_year: '', description: '', sort_order: (prev.education?.length || 0) + 1 },
+      ],
+    }));
+  }, []);
+
+  const removeTutorEducationItem = useCallback((index) => {
+    setTutorProfileForm((prev) => ({
+      ...prev,
+      education: (Array.isArray(prev.education) ? prev.education : []).filter((_, idx) => idx !== index),
+    }));
+  }, []);
+
+  const saveTutorProfile = useCallback(async (targetVisibility = null) => {
+    if (!user?.id) return;
+    const skills = String(tutorProfileForm.skillsText || '')
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+
+    const education = (Array.isArray(tutorProfileForm.education) ? tutorProfileForm.education : [])
+      .map((entry, index) => ({
+        degree: String(entry?.degree || '').trim(),
+        institution: String(entry?.institution || '').trim(),
+        start_year: entry?.start_year === '' ? null : Number(entry?.start_year),
+        end_year: entry?.end_year === '' ? null : Number(entry?.end_year),
+        description: String(entry?.description || '').trim() || null,
+        sort_order: Number(entry?.sort_order || index + 1) || index + 1,
+      }))
+      .filter((entry) => entry.degree && entry.institution);
+
+    const visibilityStatus = targetVisibility || tutorProfileForm.visibility_status || 'draft';
+    if (visibilityStatus === 'published') {
+      if (!String(tutorProfileForm.headline || '').trim() || !String(tutorProfileForm.bio || '').trim()) {
+        setTutorProfileFeedback({ type: 'error', message: 'Headline and bio are required before publishing.' });
+        return;
+      }
+    }
+
+    setTutorProfileSaving(true);
+    setTutorProfileFeedback({ type: '', message: '' });
+    try {
+      await tutorProfileService.upsertMyTutorProfile({
+        headline: String(tutorProfileForm.headline || '').trim(),
+        bio: String(tutorProfileForm.bio || '').trim(),
+        years_experience: tutorProfileForm.years_experience === '' ? undefined : Number(tutorProfileForm.years_experience),
+        hourly_rate: tutorProfileForm.hourly_rate === '' ? undefined : Number(tutorProfileForm.hourly_rate),
+        currency: String(tutorProfileForm.currency || 'USD').trim().toUpperCase(),
+        response_time_minutes: tutorProfileForm.response_time_minutes === '' ? undefined : Number(tutorProfileForm.response_time_minutes),
+        visibility_status: visibilityStatus,
+      });
+
+      await tutorProfileService.replaceMyTutorProfileSkills(skills);
+      await tutorProfileService.replaceMyTutorProfileEducation(education);
+
+      setTutorProfileForm((prev) => ({ ...prev, visibility_status: visibilityStatus }));
+      setTutorProfileFeedback({ type: 'success', message: `Tutor profile ${visibilityStatus === 'published' ? 'published' : 'saved'} successfully.` });
+    } catch (err) {
+      setTutorProfileFeedback({ type: 'error', message: err?.response?.data?.message || 'Failed to save tutor profile.' });
+    } finally {
+      setTutorProfileSaving(false);
+    }
+  }, [user?.id, tutorProfileForm]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
@@ -923,6 +1057,81 @@ const Settings = () => {
                   {academicSaving ? 'Saving...' : 'Save Academic Info'}
                 </Button>
               </Box>
+            </Box>
+          </SettingSection>
+        )}
+
+        {(canContribute || isAdmin) && (
+          <SettingSection icon={<SchoolIcon />} title="Tutor Profile" subtitle="Build and publish your public tutor profile" color="secondary">
+            {tutorProfileFeedback.message && (
+              <Alert severity={tutorProfileFeedback.type || 'info'} sx={{ m: 2, mb: 0 }}>
+                {tutorProfileFeedback.message}
+              </Alert>
+            )}
+            <Box sx={{ p: { xs: 2.5, sm: 3 }, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <TextField
+                label="Headline"
+                size="small"
+                value={tutorProfileForm.headline}
+                onChange={(event) => handleTutorProfileFieldChange('headline', event.target.value)}
+                disabled={tutorProfileLoading || tutorProfileSaving}
+              />
+              <TextField
+                label="Bio"
+                size="small"
+                multiline
+                minRows={3}
+                value={tutorProfileForm.bio}
+                onChange={(event) => handleTutorProfileFieldChange('bio', event.target.value)}
+                disabled={tutorProfileLoading || tutorProfileSaving}
+              />
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 1.5 }}>
+                <TextField label="Years Experience" size="small" type="number" value={tutorProfileForm.years_experience} onChange={(event) => handleTutorProfileFieldChange('years_experience', event.target.value)} disabled={tutorProfileLoading || tutorProfileSaving} />
+                <TextField label="Hourly Rate" size="small" type="number" value={tutorProfileForm.hourly_rate} onChange={(event) => handleTutorProfileFieldChange('hourly_rate', event.target.value)} disabled={tutorProfileLoading || tutorProfileSaving} />
+                <TextField label="Currency" size="small" value={tutorProfileForm.currency} onChange={(event) => handleTutorProfileFieldChange('currency', event.target.value)} disabled={tutorProfileLoading || tutorProfileSaving} />
+              </Box>
+              <TextField
+                label="Response Time (minutes)"
+                size="small"
+                type="number"
+                value={tutorProfileForm.response_time_minutes}
+                onChange={(event) => handleTutorProfileFieldChange('response_time_minutes', event.target.value)}
+                disabled={tutorProfileLoading || tutorProfileSaving}
+              />
+              <TextField
+                label="Skills (comma separated)"
+                size="small"
+                value={tutorProfileForm.skillsText}
+                onChange={(event) => handleTutorProfileFieldChange('skillsText', event.target.value)}
+                disabled={tutorProfileLoading || tutorProfileSaving}
+              />
+
+              <Box>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="body2" fontWeight={600}>Education</Typography>
+                  <Button size="small" variant="outlined" onClick={addTutorEducationItem} disabled={tutorProfileSaving || tutorProfileLoading}>Add</Button>
+                </Stack>
+                <Stack spacing={1.5}>
+                  {(Array.isArray(tutorProfileForm.education) ? tutorProfileForm.education : []).map((entry, index) => (
+                    <Box key={`edu-${index}`} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1 }}>
+                        <TextField label="Degree" size="small" value={entry?.degree || ''} onChange={(event) => handleTutorEducationChange(index, 'degree', event.target.value)} />
+                        <TextField label="Institution" size="small" value={entry?.institution || ''} onChange={(event) => handleTutorEducationChange(index, 'institution', event.target.value)} />
+                        <TextField label="Start Year" size="small" type="number" value={entry?.start_year ?? ''} onChange={(event) => handleTutorEducationChange(index, 'start_year', event.target.value)} />
+                        <TextField label="End Year" size="small" type="number" value={entry?.end_year ?? ''} onChange={(event) => handleTutorEducationChange(index, 'end_year', event.target.value)} />
+                      </Box>
+                      <TextField label="Description" size="small" multiline minRows={2} fullWidth sx={{ mt: 1 }} value={entry?.description || ''} onChange={(event) => handleTutorEducationChange(index, 'description', event.target.value)} />
+                      <Button color="error" size="small" sx={{ mt: 1 }} onClick={() => removeTutorEducationItem(index)}>Remove</Button>
+                    </Box>
+                  ))}
+                </Stack>
+              </Box>
+
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                <Button variant="outlined" disabled={tutorProfileSaving || tutorProfileLoading} onClick={() => saveTutorProfile('draft')}>Save Draft</Button>
+                <Button variant="contained" color="secondary" disabled={tutorProfileSaving || tutorProfileLoading} onClick={() => saveTutorProfile('published')} startIcon={tutorProfileSaving ? <CircularProgress size={14} /> : <Check />}>Publish Profile</Button>
+                <Button variant="text" color="warning" disabled={tutorProfileSaving || tutorProfileLoading} onClick={() => saveTutorProfile('hidden')}>Hide Profile</Button>
+              </Stack>
             </Box>
           </SettingSection>
         )}
