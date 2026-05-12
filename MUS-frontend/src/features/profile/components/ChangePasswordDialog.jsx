@@ -12,6 +12,8 @@ import {
   Chip,
   Button,
   alpha,
+  InputAdornment,
+  CircularProgress,
 } from '@mui/material';
 import {
   Close,
@@ -112,9 +114,17 @@ const ChangePasswordDialog = ({ open, onClose }) => {
       maxWidth="sm"
       fullWidth
       PaperProps={{
-        sx: { borderRadius: 3, overflow: 'hidden' }
+        sx: {
+          borderRadius: 4,
+          overflow: 'hidden',
+          bgcolor: 'background.paper',
+          backgroundImage: 'none',
+          border: (theme) => `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+          boxShadow: (theme) => theme.palette.mode === 'dark' 
+            ? '0 12px 40px rgba(0,0,0,0.6)' 
+            : '0 12px 40px rgba(0,0,0,0.08)',
+        }
       }}
-    
       keepMounted
       transitionDuration={{ enter: 120, exit: 80 }}
     >
@@ -122,43 +132,46 @@ const ChangePasswordDialog = ({ open, onClose }) => {
         <Box
           sx={{
             px: 3,
-            py: 2.5,
-            background: (theme) => `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.08)} 0%, ${alpha(theme.palette.secondary.main, 0.02)} 100%)`,
+            py: 3,
+            background: (theme) => theme.palette.mode === 'dark'
+              ? `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.12)} 0%, ${alpha(theme.palette.secondary.main, 0.02)} 100%)`
+              : `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.08)} 0%, ${alpha(theme.palette.secondary.main, 0.02)} 100%)`,
             borderBottom: '1px solid',
             borderColor: 'divider',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
           }}
         >
-          <Box display="flex" alignItems="center" gap={2}>
-            <Box
-              sx={{
-                width: 48,
-                height: 48,
-                borderRadius: 2.5,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: (theme) => `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.secondary.dark} 100%)`,
-                boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.secondary.main, 0.3)}`,
-              }}
-            >
-              <Lock sx={{ fontSize: 24, color: 'white' }} />
-            </Box>
-            <Box>
-              <Typography variant="h6" fontWeight={700}>
-                Change Password
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Keep your account secure
-              </Typography>
-            </Box>
+          <Box
+            sx={{
+              width: 44,
+              height: 44,
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: (theme) => `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.secondary.dark} 100%)`,
+              boxShadow: (theme) => `0 4px 14px ${alpha(theme.palette.secondary.main, 0.35)}`,
+            }}
+          >
+            <Lock sx={{ fontSize: 20, color: 'white' }} />
+          </Box>
+          <Box>
+            <Typography variant="h6" fontWeight={700} sx={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+              Change Password
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Keep your account secure with a strong password
+            </Typography>
           </Box>
         </Box>
         <IconButton
           onClick={handleClose}
           sx={{
             position: 'absolute',
-            right: 12,
-            top: 12,
+            right: 16,
+            top: 24,
             color: 'text.secondary',
             bgcolor: (theme) => alpha(theme.palette.action.active, 0.04),
             '&:hover': {
@@ -166,7 +179,7 @@ const ChangePasswordDialog = ({ open, onClose }) => {
             }
           }}
         >
-          <Close sx={{ fontSize: 20 }} />
+          <Close sx={{ fontSize: 18 }} />
         </IconButton>
       </DialogTitle>
 
@@ -174,17 +187,20 @@ const ChangePasswordDialog = ({ open, onClose }) => {
         {error && (
           <Box
             sx={{
-              px: 3,
-              py: 2,
+              mx: 3,
+              mt: 2.5,
+              px: 2,
+              py: 1.5,
+              borderRadius: '8px',
               bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
-              borderBottom: '1px solid',
+              border: '1px solid',
               borderColor: (theme) => alpha(theme.palette.error.main, 0.2),
               display: 'flex',
               alignItems: 'center',
               gap: 1.5,
             }}
           >
-            <Close sx={{ fontSize: 20, color: 'error.main' }} />
+            <Close sx={{ fontSize: 18, color: 'error.main' }} />
             <Typography variant="body2" color="error.main" fontWeight={500}>
               {error}
             </Typography>
@@ -194,7 +210,6 @@ const ChangePasswordDialog = ({ open, onClose }) => {
         <Box sx={{ p: 3 }}>
           <Box sx={{ mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <LockOpen sx={{ fontSize: 18, color: 'text.secondary' }} />
               <Typography variant="body2" fontWeight={600} color="text.secondary">
                 Current Password
               </Typography>
@@ -206,6 +221,11 @@ const ChangePasswordDialog = ({ open, onClose }) => {
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockOpen sx={{ color: 'text.secondary', fontSize: 20 }} />
+                  </InputAdornment>
+                ),
                 endAdornment: (
                   <IconButton
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
@@ -218,20 +238,37 @@ const ChangePasswordDialog = ({ open, onClose }) => {
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                  bgcolor: (theme) => alpha(theme.palette.action.active, 0.02),
+                  bgcolor: (theme) => theme.palette.mode === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.02)' 
+                    : 'rgba(0, 0, 0, 0.01)',
+                  '&:hover': {
+                    bgcolor: (theme) => theme.palette.mode === 'dark' 
+                      ? 'rgba(255, 255, 255, 0.04)' 
+                      : 'rgba(0, 0, 0, 0.02)',
+                  }
                 }
               }}
             />
           </Box>
 
-          <Divider sx={{ my: 3 }}>
-            <Chip label="New Password" size="small" sx={{ fontWeight: 600, fontSize: '0.75rem' }} />
+          <Divider sx={{ my: 3.5 }}>
+            <Chip 
+              label="New Credentials" 
+              size="small" 
+              sx={{ 
+                fontWeight: 600, 
+                fontSize: '0.7rem',
+                letterSpacing: '0.03em',
+                px: 1.2,
+                bgcolor: (theme) => theme.palette.mode === 'dark' ? alpha(theme.palette.secondary.main, 0.15) : alpha(theme.palette.secondary.main, 0.08),
+                color: 'secondary.main',
+                border: (theme) => `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
+              }} 
+            />
           </Divider>
 
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ mb: 2.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Lock sx={{ fontSize: 18, color: 'text.secondary' }} />
               <Typography variant="body2" fontWeight={600} color="text.secondary">
                 New Password
               </Typography>
@@ -243,6 +280,11 @@ const ChangePasswordDialog = ({ open, onClose }) => {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Lock sx={{ color: 'text.secondary', fontSize: 20 }} />
+                  </InputAdornment>
+                ),
                 endAdornment: (
                   <IconButton
                     onClick={() => setShowNewPassword(!showNewPassword)}
@@ -255,8 +297,14 @@ const ChangePasswordDialog = ({ open, onClose }) => {
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                  bgcolor: (theme) => alpha(theme.palette.action.active, 0.02),
+                  bgcolor: (theme) => theme.palette.mode === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.02)' 
+                    : 'rgba(0, 0, 0, 0.01)',
+                  '&:hover': {
+                    bgcolor: (theme) => theme.palette.mode === 'dark' 
+                      ? 'rgba(255, 255, 255, 0.04)' 
+                      : 'rgba(0, 0, 0, 0.02)',
+                  }
                 }
               }}
             />
@@ -287,15 +335,14 @@ const ChangePasswordDialog = ({ open, onClose }) => {
                     fontWeight: 600,
                   }}
                 >
-                  {passwordStrength.label}
+                  Password Strength: {passwordStrength.label}
                 </Typography>
               </Box>
             )}
           </Box>
 
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Security sx={{ fontSize: 18, color: 'text.secondary' }} />
               <Typography variant="body2" fontWeight={600} color="text.secondary">
                 Confirm New Password
               </Typography>
@@ -307,6 +354,11 @@ const ChangePasswordDialog = ({ open, onClose }) => {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Security sx={{ color: 'text.secondary', fontSize: 20 }} />
+                  </InputAdornment>
+                ),
                 endAdornment: (
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     {confirmPassword && (
@@ -328,8 +380,14 @@ const ChangePasswordDialog = ({ open, onClose }) => {
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                  bgcolor: (theme) => alpha(theme.palette.action.active, 0.02),
+                  bgcolor: (theme) => theme.palette.mode === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.02)' 
+                    : 'rgba(0, 0, 0, 0.01)',
+                  '&:hover': {
+                    bgcolor: (theme) => theme.palette.mode === 'dark' 
+                      ? 'rgba(255, 255, 255, 0.04)' 
+                      : 'rgba(0, 0, 0, 0.02)',
+                  },
                   ...(confirmPassword && {
                     borderColor: passwordsMatch ? 'success.main' : 'error.main',
                   }),
@@ -345,18 +403,22 @@ const ChangePasswordDialog = ({ open, onClose }) => {
 
           <Box
             sx={{
-              mt: 3,
+              mt: 3.5,
               p: 2,
-              borderRadius: 2,
-              bgcolor: (theme) => alpha(theme.palette.info.main, 0.04),
+              borderRadius: '12px',
+              bgcolor: (theme) => theme.palette.mode === 'dark'
+                ? alpha(theme.palette.info.main, 0.08)
+                : alpha(theme.palette.info.main, 0.04),
               border: '1px solid',
-              borderColor: (theme) => alpha(theme.palette.info.main, 0.1),
+              borderColor: (theme) => theme.palette.mode === 'dark'
+                ? alpha(theme.palette.info.main, 0.15)
+                : alpha(theme.palette.info.main, 0.1),
             }}
           >
-            <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+            <Typography variant="caption" fontWeight={600} color="info.main" sx={{ display: 'block', mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Password Requirements:
             </Typography>
-            <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
+            <Box component="ul" sx={{ m: 0, pl: 0, listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: 0.75 }}>
               {[
                 { text: 'At least 6 characters', met: newPassword.length >= 6 },
                 { text: 'Contains uppercase & lowercase', met: /[a-z]/.test(newPassword) && /[A-Z]/.test(newPassword) },
@@ -369,10 +431,21 @@ const ChangePasswordDialog = ({ open, onClose }) => {
                   sx={{
                     color: newPassword ? (req.met ? 'success.main' : 'text.secondary') : 'text.secondary',
                     fontSize: '0.75rem',
-                    mb: 0.25,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
                     transition: 'color 0.2s ease',
                   }}
                 >
+                  <Box
+                    sx={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      bgcolor: newPassword ? (req.met ? 'success.main' : 'text.disabled') : 'text.disabled',
+                      transition: 'all 0.2s ease',
+                    }}
+                  />
                   {req.text}
                 </Box>
               ))}
@@ -387,7 +460,9 @@ const ChangePasswordDialog = ({ open, onClose }) => {
           py: 2.5,
           borderTop: '1px solid',
           borderColor: 'divider',
-          bgcolor: (theme) => alpha(theme.palette.action.active, 0.02),
+          bgcolor: (theme) => theme.palette.mode === 'dark'
+            ? 'rgba(255, 255, 255, 0.01)'
+            : 'rgba(0, 0, 0, 0.01)',
           gap: 1.5,
         }}
       >
@@ -395,10 +470,16 @@ const ChangePasswordDialog = ({ open, onClose }) => {
           onClick={handleClose}
           variant="outlined"
           sx={{
-            borderRadius: 2,
+            borderRadius: '8px',
             textTransform: 'none',
             fontWeight: 600,
-            px: 3,
+            px: 3.5,
+            color: 'text.primary',
+            borderColor: 'divider',
+            '&:hover': {
+              bgcolor: (theme) => alpha(theme.palette.action.active, 0.04),
+              borderColor: 'text.secondary',
+            }
           }}
         >
           Cancel
@@ -410,15 +491,20 @@ const ChangePasswordDialog = ({ open, onClose }) => {
           disabled={loading || !currentPassword || !newPassword || !confirmPassword || !passwordsMatch}
           startIcon={loading ? null : <Security sx={{ fontSize: 18 }} />}
           sx={{
-            borderRadius: 2,
+            borderRadius: '8px',
             textTransform: 'none',
             fontWeight: 600,
-            boxShadow: 'none',
-            px: 3,
-            '&:hover': { boxShadow: 'none' },
+            px: 3.5,
+            boxShadow: (theme) => `0 4px 14px ${alpha(theme.palette.secondary.main, 0.35)}`,
+            bgcolor: 'secondary.main',
+            color: 'secondary.contrastText',
+            '&:hover': {
+              bgcolor: 'secondary.dark',
+              boxShadow: (theme) => `0 6px 20px ${alpha(theme.palette.secondary.main, 0.45)}`,
+            },
           }}
         >
-          {loading ? 'Updating...' : 'Update Password'}
+          {loading ? <CircularProgress size={18} color="inherit" /> : 'Update Password'}
         </Button>
       </DialogActions>
     </Dialog>
