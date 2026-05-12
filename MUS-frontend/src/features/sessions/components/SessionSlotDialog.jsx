@@ -164,7 +164,6 @@ const SessionSlotDialog = ({ open, editingSlot, draft, setDraft, submitting, onC
           const copy = { ...m };
           delete copy[dateKey];
           return copy;
-          return copy;
         });
       }
       if (!next.includes(selectedDateForTime)) setSelectedDateForTime(next[0] || "");
