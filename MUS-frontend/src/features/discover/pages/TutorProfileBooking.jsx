@@ -1131,7 +1131,14 @@ const TutorBookingPage = () => {
     <>
       <TutorBookingPageView
         tutorName={String(publicTutorProfile?.full_name || tutor?.name || slots?.[0]?.teacher_name || 'Tutor')}
-        tutorAvatar={String(publicTutorProfile?.avatar_url || tutor?.avatar || tutor?.avatar_url || slots?.[0]?.teacher_avatar_url || '')}
+        tutorAvatar={String(
+          publicTutorProfile?.avatar_url ||
+          tutor?.avatar ||
+          tutor?.avatar_url ||
+          slots?.[0]?.teacher_avatar_url ||
+          resources?.find((item) => String(item?.creator_avatar_url || '').trim())?.creator_avatar_url ||
+          ''
+        )}
         subject={subjectModule || 'Chemistry'}
         experience={publicTutorProfile?.years_experience ? `${publicTutorProfile.years_experience}+ years experience` : 'Tutor'}
         studentsCount={String(publicTutorProfile?.students_taught_count || 0)}
