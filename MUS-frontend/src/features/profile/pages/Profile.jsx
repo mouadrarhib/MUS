@@ -10,19 +10,13 @@ import {
   IconButton,
   alpha,
   Stack,
+  Divider,
 } from '@mui/material';
 import {
-  Person,
-  Email,
-  Badge,
-  CalendarToday,
   Edit,
   Security,
-  School,
-  Business,
   Verified,
   ContentCopy,
-  EmojiEvents,
 } from '@mui/icons-material';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { PageHeader } from '@/shared/components/ui';
@@ -32,7 +26,7 @@ import ChangePasswordDialog from '@/features/profile/components/ChangePasswordDi
 
 const Profile = () => {
   const { t } = useLanguage();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isStudent, contributionMode } = useAuth();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -59,328 +53,452 @@ const Profile = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-
   const getRoleColor = (role) => {
     const colors = {
       ADMIN: 'error',
       MODERATOR: 'warning',
-      STUDENT: 'info',
+      STUDENT: 'primary',
       USER: 'info',
     };
     return colors[role?.toUpperCase()] || 'default';
   };
 
-  const InfoItem = ({ icon, label, value, action }) => (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        py: 2,
-        px: 0,
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-        '&:last-child': { borderBottom: 'none' },
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, minWidth: 0 }}>
+  const InfoItem = ({ label, value, action, stacked }) => {
+    if (stacked) {
+      return (
         <Box
           sx={{
-            width: 40,
-            height: 40,
-            minWidth: 40,
-            borderRadius: 2,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-            color: 'primary.main',
+            py: 2,
+            borderBottom: '1px solid',
+            borderColor: (theme) => alpha(theme.palette.divider, 0.05),
+            '&:last-child': { borderBottom: 'none' },
           }}
         >
-          {icon}
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', mb: 0.5 }}>
             {label}
           </Typography>
-          <Typography 
-            variant="body1" 
-            fontWeight={500} 
-            sx={{ 
-              mt: 0.25,
-              wordBreak: 'break-all',
-              fontFamily: label === 'User ID' ? 'monospace' : 'inherit',
-              fontSize: label === 'User ID' ? '0.85rem' : 'inherit',
-            }}
-          >
-            {value || 'N/A'}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              {typeof value === 'string' || typeof value === 'number' ? (
+                <Typography variant="body1" fontWeight={600} color="text.primary">
+                  {value || 'N/A'}
+                </Typography>
+              ) : (
+                value || 'N/A'
+              )}
+            </Box>
+            {action}
+          </Box>
+        </Box>
+      );
+    }
+
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          py: 2,
+          borderBottom: '1px solid',
+          borderColor: (theme) => alpha(theme.palette.divider, 0.05),
+          '&:last-child': { borderBottom: 'none' },
+        }}
+      >
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+          {label}
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+          {typeof value === 'string' || typeof value === 'number' ? (
+            <Typography
+              variant="body1"
+              fontWeight={600}
+              color="text.primary"
+              sx={{
+                wordBreak: 'break-all',
+                fontFamily: label === 'User ID' ? 'monospace' : 'inherit',
+                fontSize: label === 'User ID' ? '0.85rem' : 'inherit',
+              }}
+            >
+              {value || 'N/A'}
+            </Typography>
+          ) : (
+            value || 'N/A'
+          )}
+          {action}
         </Box>
       </Box>
-      {action}
-    </Box>
-  );
+    );
+  };
 
   return (
     <Box sx={{ width: '100%', minHeight: '100%' }}>
       <PageHeader
         title={t('pages.profile.title')}
         subtitle={t('pages.profile.subtitle')}
-        icon={Person}
+        icon={Person => null} // clean representation without duplicating top icons
         breadcrumbs={[
           { label: t('common.dashboard'), to: '/dashboard' },
           { label: t('pages.profile.title') },
         ]}
-        actions={
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+      />
+
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', lg: '340px 1fr' },
+          gap: 4,
+          mt: 4,
+        }}
+      >
+        {/* Left Column: Profile Card */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: 4,
+            borderRadius: 4,
+            bgcolor: (theme) => theme.palette.mode === 'dark'
+              ? 'rgba(20, 20, 22, 0.6)'
+              : 'rgba(255, 255, 255, 0.8)',
+            border: (theme) => `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
+            backdropFilter: 'blur(16px)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            position: 'relative',
+            height: 'fit-content',
+            transition: 'transform 0.22s ease-in-out, box-shadow 0.22s ease-in-out',
+            boxShadow: (theme) => theme.palette.mode === 'dark'
+              ? '0 8px 32px rgba(0,0,0,0.35)'
+              : '0 8px 32px rgba(0,0,0,0.03)',
+            '&:hover': {
+              transform: 'translateY(-2px)',
+              boxShadow: (theme) => theme.palette.mode === 'dark'
+                ? '0 12px 40px rgba(0,0,0,0.45)'
+                : '0 12px 40px rgba(0,0,0,0.06)',
+            }
+          }}
+        >
+          {/* Avatar Container with glowing ring & Overlaid Verified Badge */}
+          <Box sx={{ position: 'relative', mb: 3 }}>
+            <Avatar
+              src={user?.avatar_url || user?.avatar || user?.avatarUrl || ''}
+              sx={{
+                width: 120,
+                height: 120,
+                fontSize: '3.5rem',
+                fontWeight: 700,
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                color: 'primary.main',
+                border: (theme) => `4px solid ${theme.palette.background.paper}`,
+                boxShadow: (theme) => `0 0 0 2px ${alpha(theme.palette.primary.main, 0.45)}, 0 8px 24px rgba(0,0,0,0.14)`,
+              }}
+            >
+              {!(user?.avatar_url || user?.avatar || user?.avatarUrl) ? (user?.full_name?.charAt(0) || 'U') : null}
+            </Avatar>
+            {user?.is_active !== false && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: 6,
+                  right: 6,
+                  width: 24,
+                  height: 24,
+                  borderRadius: '50%',
+                  bgcolor: 'primary.main',
+                  color: 'primary.contrastText',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                  border: (theme) => `2px solid ${theme.palette.background.paper}`,
+                }}
+              >
+                <Verified sx={{ fontSize: 16, color: '#fff' }} />
+              </Box>
+            )}
+          </Box>
+
+          {/* User Name */}
+          <Typography variant="h5" fontWeight={700} sx={{ fontFamily: '"Space Grotesk", sans-serif', mb: 0.5 }}>
+            {user?.full_name || 'User'}
+          </Typography>
+
+          {/* Subtitle bio */}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+            {isStudent && contributionMode === 'contributor'
+              ? 'Student · Contributor'
+              : 'Student, Academic Platform'}
+          </Typography>
+
+          {/* Roles stack */}
+          <Stack direction="row" spacing={1} justifyContent="center" sx={{ mb: 4, flexWrap: 'wrap', gap: 1 }}>
+            {(user?.roles || [user?.role]).filter(Boolean).map((role, index) => (
+              <Chip
+                key={index}
+                label={role}
+                color={getRoleColor(role)}
+                size="small"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: '0.7rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  px: 0.5,
+                  height: 22,
+                }}
+              />
+            ))}
+            {/* Contributor badge shown only when student has contributor mode */}
+            {isStudent && contributionMode === 'contributor' && (
+              <Chip
+                label="Contributor"
+                size="small"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: '0.7rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  px: 0.5,
+                  height: 22,
+                  bgcolor: (theme) => alpha(theme.palette.warning.main, 0.12),
+                  color: 'warning.main',
+                  border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+                }}
+              />
+            )}
+          </Stack>
+
+          <Divider sx={{ width: '100%', mb: 3 }} />
+
+          {/* Actions Column */}
+          <Stack spacing={1.5} sx={{ width: '100%' }}>
             <Button
+              fullWidth
               variant="contained"
-              startIcon={<Edit sx={{ fontSize: 18 }} />}
+              startIcon={<Edit sx={{ fontSize: 16 }} />}
               onClick={handleOpenEditDialog}
               sx={{
-                borderRadius: 2,
+                borderRadius: '8px',
                 textTransform: 'none',
                 fontWeight: 600,
-                px: 3,
-                boxShadow: 'none',
-                '&:hover': { boxShadow: 'none' },
+                py: 1,
+                boxShadow: (theme) => `0 4px 14px ${alpha(theme.palette.primary.main, 0.35)}`,
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                '&:hover': {
+                  bgcolor: 'primary.dark',
+                  boxShadow: (theme) => `0 6px 20px ${alpha(theme.palette.primary.main, 0.45)}`,
+                },
               }}
             >
               Edit Profile
             </Button>
             <Button
+              fullWidth
               variant="outlined"
-              startIcon={<Security sx={{ fontSize: 18 }} />}
+              startIcon={<Security sx={{ fontSize: 16 }} />}
               onClick={handleOpenPasswordDialog}
               sx={{
-                borderRadius: 2,
+                borderRadius: '8px',
                 textTransform: 'none',
                 fontWeight: 600,
-                px: 3,
+                py: 1,
+                color: 'primary.main',
+                borderColor: (theme) => alpha(theme.palette.primary.main, 0.35),
+                '&:hover': {
+                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                  borderColor: 'primary.main',
+                }
               }}
             >
               Change Password
             </Button>
           </Stack>
-        }
-      />
-      {/* Profile Header */}
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: 3,
-          border: '1px solid',
-          borderColor: 'divider',
-          overflow: 'hidden',
-          mb: 3,
-        }}
-      >
-        {/* Banner */}
-        <Box
-          sx={{
-            height: 120,
-            background: (theme) =>
-              `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-            position: 'relative',
-          }}
-        />
+        </Paper>
 
-        {/* Profile Info */}
-        <Box sx={{ px: 4, pb: 4, position: 'relative' }}>
-          {/* Avatar - positioned to overlap banner */}
-          <Box sx={{ display: 'flex', justifyContent: { xs: 'center', sm: 'flex-start' }, mt: -8 }}>
-            <Avatar
-              src={user?.avatar_url || user?.avatar || user?.avatarUrl || ''}
+        {/* Right Column: Sections Grid (Stacked cards on top of each other) */}
+        <Stack spacing={4} sx={{ flex: 1 }}>
+          {/* Account Information Card */}
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 4,
+              bgcolor: (theme) => theme.palette.mode === 'dark'
+                ? 'rgba(20, 20, 22, 0.6)'
+                : 'rgba(255, 255, 255, 0.8)',
+              border: (theme) => `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
+              backdropFilter: 'blur(16px)',
+              p: 3.5,
+              transition: 'transform 0.22s ease-in-out, box-shadow 0.22s ease-in-out',
+              boxShadow: (theme) => theme.palette.mode === 'dark'
+                ? '0 8px 32px rgba(0,0,0,0.3)'
+                : '0 8px 32px rgba(0,0,0,0.02)',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: (theme) => theme.palette.mode === 'dark'
+                  ? '0 12px 40px rgba(0,0,0,0.4)'
+                  : '0 12px 40px rgba(0,0,0,0.04)',
+              }
+            }}
+          >
+            {/* Header */}
+            <Typography
+              variant="h6"
+              fontWeight={700}
               sx={{
-                width: 130,
-                height: 130,
-                fontSize: '3.5rem',
-                fontWeight: 700,
-                bgcolor: 'primary.main',
-                border: '5px solid',
-                borderColor: 'background.paper',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+                fontFamily: '"Space Grotesk", sans-serif',
+                mb: 2,
+                pb: 1.5,
+                borderBottom: '1px solid',
+                borderColor: (theme) => alpha(theme.palette.divider, 0.06),
               }}
             >
-              {!(user?.avatar_url || user?.avatar || user?.avatarUrl) ? (user?.full_name?.charAt(0) || 'U') : null}
-            </Avatar>
-          </Box>
+              Account Information
+            </Typography>
 
-          {/* User Info - clearly below the banner */}
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: { xs: 'column', md: 'row' },
-              alignItems: { xs: 'center', md: 'flex-start' },
-              justifyContent: 'space-between',
-              gap: 3,
-              mt: 2,
-            }}
-          >
-            <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: { xs: 'center', md: 'flex-start' }, flexWrap: 'wrap' }}>
-                <Typography variant="h4" fontWeight={700} color="text.primary">
-                  {user?.full_name || 'User'}
-                </Typography>
-                {user?.is_active !== false && (
-                  <Verified sx={{ color: 'primary.main', fontSize: 26 }} />
-                )}
-              </Box>
-              <Typography variant="body1" color="text.secondary" sx={{ mt: 0.75 }}>
-                {user?.email || 'No email'}
-              </Typography>
-              <Stack direction="row" spacing={1} sx={{ mt: 1.5, justifyContent: { xs: 'center', md: 'flex-start' }, flexWrap: 'wrap', gap: 0.5 }}>
-                {(user?.roles || [user?.role]).filter(Boolean).map((role, index) => (
-                  <Chip
-                    key={index}
-                    label={role}
-                    color={getRoleColor(role)}
-                    size="small"
-                    sx={{ fontWeight: 600, fontSize: '0.75rem' }}
-                  />
-                ))}
-              </Stack>
-            </Box>
-
-          </Box>
-        </Box>
-      </Paper>
-
-      {/* Content Grid */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-          gap: 3,
-        }}
-      >
-        {/* Account Information */}
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: 3,
-            border: '1px solid',
-            borderColor: 'divider',
-            overflow: 'hidden',
-          }}
-        >
-          <Box
-            sx={{
-              px: 3,
-              py: 2,
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Person sx={{ fontSize: 20, color: 'primary.main' }} />
-              <Typography variant="subtitle1" fontWeight={600}>
-                Account Information
-              </Typography>
-            </Box>
-          </Box>
-
-          <Box sx={{ px: 3 }}>
-            <InfoItem
-              icon={<Person sx={{ fontSize: 20 }} />}
-              label="Full Name"
-              value={user?.full_name}
-            />
-            {!isAdmin ? (
+            {/* List */}
+            <Box>
               <InfoItem
-                icon={<EmojiEvents sx={{ fontSize: 20 }} />}
-                label="Points"
-                value={Number(user?.points || 0)}
+                label="Full Name"
+                value={user?.full_name}
               />
-            ) : null}
-            <InfoItem
-              icon={<Email sx={{ fontSize: 20 }} />}
-              label="Email Address"
-              value={user?.email}
-            />
-            <InfoItem
-              icon={<Badge sx={{ fontSize: 20 }} />}
-              label="User ID"
-              value={user?.id || 'N/A'}
-              action={
-                <IconButton size="small" onClick={handleCopyId} sx={{ color: copied ? 'success.main' : 'text.secondary' }}>
-                  <ContentCopy sx={{ fontSize: 18 }} />
-                </IconButton>
-              }
-            />
-            <InfoItem
-              icon={<CalendarToday sx={{ fontSize: 20 }} />}
-              label="Account Status"
-              value={
-                <Chip
-                  label={user?.is_active !== false ? 'Active' : 'Inactive'}
-                  color={user?.is_active !== false ? 'success' : 'error'}
-                  size="small"
-                  sx={{ fontWeight: 600, fontSize: '0.7rem', height: 24 }}
+              {!isAdmin && (
+                <InfoItem
+                  label="Points"
+                  value={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      <Typography variant="body1" fontWeight={600}>
+                        {Number(user?.points || 0)} Points
+                      </Typography>
+                      <span role="img" aria-label="trophy" style={{ fontSize: '1.1rem' }}>🏆</span>
+                    </Box>
+                  }
                 />
-              }
-            />
-          </Box>
-        </Paper>
+              )}
+              <InfoItem
+                label="Email Address"
+                value={user?.email}
+                stacked={true}
+              />
+              <InfoItem
+                label="User ID"
+                value={user?.id || 'N/A'}
+                action={
+                  <IconButton
+                    size="small"
+                    onClick={handleCopyId}
+                    sx={{
+                      color: copied ? 'success.main' : 'text.secondary',
+                      bgcolor: (theme) => alpha(theme.palette.action.active, 0.04),
+                      '&:hover': {
+                        bgcolor: (theme) => alpha(theme.palette.action.active, 0.08),
+                      }
+                    }}
+                  >
+                    <ContentCopy sx={{ fontSize: 16 }} />
+                  </IconButton>
+                }
+              />
+              <InfoItem
+                label="Account Status"
+                value={
+                  <Chip
+                    label={user?.is_active !== false ? 'Active' : 'Inactive'}
+                    size="small"
+                    sx={{
+                      bgcolor: (theme) => user?.is_active !== false ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.error.main, 0.1),
+                      color: user?.is_active !== false ? 'success.main' : 'error.main',
+                      border: (theme) => `1px solid ${user?.is_active !== false ? alpha(theme.palette.success.main, 0.2) : alpha(theme.palette.error.main, 0.2)}`,
+                      fontWeight: 600,
+                      height: 24,
+                      fontSize: '0.75rem',
+                      borderRadius: '12px',
+                      px: 1,
+                    }}
+                  />
+                }
+              />
+            </Box>
+          </Paper>
 
-        {/* Academic Information */}
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: 3,
-            border: '1px solid',
-            borderColor: 'divider',
-            overflow: 'hidden',
-          }}
-        >
-          <Box
+          {/* Academic Information Card */}
+          <Paper
+            elevation={0}
             sx={{
-              px: 3,
-              py: 2,
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              bgcolor: (theme) => alpha(theme.palette.success.main, 0.02),
+              borderRadius: 4,
+              bgcolor: (theme) => theme.palette.mode === 'dark'
+                ? 'rgba(20, 20, 22, 0.6)'
+                : 'rgba(255, 255, 255, 0.8)',
+              border: (theme) => `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
+              backdropFilter: 'blur(16px)',
+              p: 3.5,
+              transition: 'transform 0.22s ease-in-out, box-shadow 0.22s ease-in-out',
+              boxShadow: (theme) => theme.palette.mode === 'dark'
+                ? '0 8px 32px rgba(0,0,0,0.3)'
+                : '0 8px 32px rgba(0,0,0,0.02)',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: (theme) => theme.palette.mode === 'dark'
+                  ? '0 12px 40px rgba(0,0,0,0.4)'
+                  : '0 12px 40px rgba(0,0,0,0.04)',
+              }
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <School sx={{ fontSize: 20, color: 'success.main' }} />
-              <Typography variant="subtitle1" fontWeight={600}>
-                Academic Information
-              </Typography>
-            </Box>
-          </Box>
+            {/* Header */}
+            <Typography
+              variant="h6"
+              fontWeight={700}
+              sx={{
+                fontFamily: '"Space Grotesk", sans-serif',
+                mb: 2,
+                pb: 1.5,
+                borderBottom: '1px solid',
+                borderColor: (theme) => alpha(theme.palette.divider, 0.06),
+              }}
+            >
+              Academic Information
+            </Typography>
 
-          <Box sx={{ px: 3 }}>
-            <InfoItem
-              icon={<Business sx={{ fontSize: 20 }} />}
-              label="Institution"
-              value={user?.institution_name}
-            />
-            <InfoItem
-              icon={<School sx={{ fontSize: 20 }} />}
-              label="Program"
-              value={user?.program_name}
-            />
-            <InfoItem
-              icon={<Badge sx={{ fontSize: 20 }} />}
-              label="Current Level"
-              value={user?.current_level_name}
-            />
-            <InfoItem
-              icon={<Verified sx={{ fontSize: 20 }} />}
-              label="Enrollment Status"
-              value={
-                <Chip
-                  label="Enrolled"
-                  color="info"
-                  size="small"
-                  sx={{ fontWeight: 600, fontSize: '0.7rem', height: 24 }}
-                />
-              }
-            />
-          </Box>
-        </Paper>
+            {/* List */}
+            <Box>
+              <InfoItem
+                label="Institution"
+                value={user?.institution_name}
+                stacked={true}
+              />
+              <InfoItem
+                label="Program"
+                value={user?.program_name}
+                stacked={true}
+              />
+              <InfoItem
+                label="Current Level"
+                value={user?.current_level_name}
+              />
+              <InfoItem
+                label="Enrollment Status"
+                value={
+                  <Chip
+                    label="Enrolled"
+                    size="small"
+                    sx={{
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                      color: 'primary.main',
+                      border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                      fontWeight: 600,
+                      height: 24,
+                      fontSize: '0.75rem',
+                      borderRadius: '12px',
+                      px: 1,
+                    }}
+                  />
+                }
+              />
+            </Box>
+          </Paper>
+        </Stack>
       </Box>
 
       <EditProfileDialog open={editDialogOpen} onClose={handleCloseEditDialog} />
