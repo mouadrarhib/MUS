@@ -335,8 +335,14 @@ CREATE TABLE public.teacher_availability_slots (
 	is_active bool DEFAULT true NOT NULL,
 	created_at timestamptz DEFAULT now() NOT NULL,
 	updated_at timestamptz DEFAULT now() NOT NULL,
+	available_date date NOT NULL,
+	available_time time NOT NULL,
+	duration_minutes int4 DEFAULT 60 NOT NULL,
+	price numeric(10, 2) DEFAULT 0.00 NOT NULL,
 	CONSTRAINT teacher_availability_slots_pkey PRIMARY KEY (id),
 	CONSTRAINT teacher_availability_slots_time_check CHECK ((end_at > start_at)),
+	CONSTRAINT teacher_slots_duration_check CHECK ((duration_minutes > 0)),
+	CONSTRAINT teacher_slots_price_check CHECK ((price >= (0)::numeric)),
 	CONSTRAINT teacher_availability_slots_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
 CREATE INDEX idx_teacher_slots_bookable ON public.teacher_availability_slots USING btree (is_active, start_at) WHERE (is_active = true);
@@ -348,6 +354,12 @@ create trigger trg_teacher_availability_slots_set_updated_at before
 update
     on
     public.teacher_availability_slots for each row execute function sp_teacher_session_set_updated_at();
+create trigger trg_teacher_slots_sync_timestamps before
+insert
+    or
+update
+    on
+    public.teacher_availability_slots for each row execute function trg_fn_teacher_slots_sync_timestamps();
 
 
 -- public.teacher_session_bookings definition
@@ -369,10 +381,17 @@ CREATE TABLE public.teacher_session_bookings (
 	completed_at timestamptz NULL,
 	created_at timestamptz DEFAULT now() NOT NULL,
 	updated_at timestamptz DEFAULT now() NOT NULL,
+	confirmed_at timestamptz NULL,
+	rejected_at timestamptz NULL,
+	rejection_reason text NULL,
+	confirmed_by uuid NULL,
+	rejected_by uuid NULL,
 	CONSTRAINT teacher_session_bookings_pkey PRIMARY KEY (id),
-	CONSTRAINT teacher_session_bookings_status_check CHECK ((status = ANY (ARRAY['confirmed'::text, 'cancelled'::text, 'completed'::text, 'no_show'::text]))),
+	CONSTRAINT teacher_session_bookings_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'rejected'::text, 'cancelled'::text, 'completed'::text, 'no_show'::text]))),
 	CONSTRAINT teacher_session_bookings_teacher_student_diff CHECK ((teacher_id <> student_id)),
 	CONSTRAINT teacher_session_bookings_cancelled_by_fkey FOREIGN KEY (cancelled_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT teacher_session_bookings_confirmed_by_fkey FOREIGN KEY (confirmed_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT teacher_session_bookings_rejected_by_fkey FOREIGN KEY (rejected_by) REFERENCES public.users(id) ON DELETE SET NULL,
 	CONSTRAINT teacher_session_bookings_slot_id_fkey FOREIGN KEY (slot_id) REFERENCES public.teacher_availability_slots(id) ON DELETE CASCADE,
 	CONSTRAINT teacher_session_bookings_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.users(id) ON DELETE CASCADE,
 	CONSTRAINT teacher_session_bookings_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.users(id) ON DELETE CASCADE
@@ -407,6 +426,43 @@ CREATE TABLE public.teacher_session_messages (
 	CONSTRAINT teacher_session_messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
 CREATE INDEX idx_teacher_session_messages_booking_created ON public.teacher_session_messages USING btree (booking_id, created_at);
+
+
+-- public.tutor_profiles definition
+
+-- Drop table
+
+-- DROP TABLE public.tutor_profiles;
+
+CREATE TABLE public.tutor_profiles (
+	user_id uuid NOT NULL,
+	headline text NULL,
+	bio text NULL,
+	years_experience int4 NULL,
+	hourly_rate numeric(10, 2) NULL,
+	currency text DEFAULT 'USD'::text NOT NULL,
+	response_time_minutes int4 NULL,
+	verification_status text DEFAULT 'unverified'::text NOT NULL,
+	visibility_status text DEFAULT 'draft'::text NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT tutor_profiles_currency_check CHECK ((char_length(TRIM(BOTH FROM currency)) = 3)),
+	CONSTRAINT tutor_profiles_hourly_rate_check CHECK (((hourly_rate IS NULL) OR (hourly_rate >= (0)::numeric))),
+	CONSTRAINT tutor_profiles_pkey PRIMARY KEY (user_id),
+	CONSTRAINT tutor_profiles_response_time_check CHECK (((response_time_minutes IS NULL) OR (response_time_minutes >= 0))),
+	CONSTRAINT tutor_profiles_verification_status_check CHECK ((verification_status = ANY (ARRAY['unverified'::text, 'pending'::text, 'verified'::text, 'rejected'::text]))),
+	CONSTRAINT tutor_profiles_visibility_status_check CHECK ((visibility_status = ANY (ARRAY['draft'::text, 'published'::text, 'hidden'::text]))),
+	CONSTRAINT tutor_profiles_years_experience_check CHECK (((years_experience IS NULL) OR (years_experience >= 0))),
+	CONSTRAINT tutor_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_tutor_profiles_visibility ON public.tutor_profiles USING btree (visibility_status, updated_at DESC);
+
+-- Table Triggers
+
+create trigger trg_tutor_profiles_set_updated_at before
+update
+    on
+    public.tutor_profiles for each row execute function sp_tutor_profiles_set_updated_at();
 
 
 -- public.user_memberships definition
@@ -453,9 +509,11 @@ CREATE TABLE public.user_notifications (
 	is_read bool DEFAULT false NOT NULL,
 	read_at timestamptz NULL,
 	created_at timestamptz DEFAULT now() NOT NULL,
+	is_cleared bool DEFAULT false NOT NULL,
 	CONSTRAINT user_notifications_pkey PRIMARY KEY (id),
 	CONSTRAINT user_notifications_recipient_user_id_fkey FOREIGN KEY (recipient_user_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
+CREATE INDEX idx_notifications_recipient_not_cleared ON public.user_notifications USING btree (recipient_user_id, created_at DESC) WHERE (is_cleared = false);
 CREATE INDEX idx_notifications_recipient_unread_created ON public.user_notifications USING btree (recipient_user_id, is_read, created_at DESC);
 
 
@@ -508,6 +566,25 @@ CREATE TABLE public.user_roles (
 CREATE INDEX idx_user_roles_composite ON public.user_roles USING btree (user_id, role_id);
 CREATE INDEX idx_user_roles_role_id ON public.user_roles USING btree (role_id);
 CREATE INDEX idx_user_roles_user_id ON public.user_roles USING btree (user_id);
+
+
+-- public.user_session_inbox_clears definition
+
+-- Drop table
+
+-- DROP TABLE public.user_session_inbox_clears;
+
+CREATE TABLE public.user_session_inbox_clears (
+	user_id uuid NOT NULL,
+	booking_id int8 NOT NULL,
+	cleared_at timestamptz DEFAULT now() NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT user_session_inbox_clears_pkey PRIMARY KEY (user_id, booking_id),
+	CONSTRAINT user_session_inbox_clears_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.teacher_session_bookings(id) ON DELETE CASCADE,
+	CONSTRAINT user_session_inbox_clears_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_user_session_inbox_clears_user ON public.user_session_inbox_clears USING btree (user_id, cleared_at DESC);
 
 
 -- public.user_settings definition
@@ -807,6 +884,61 @@ create trigger trg_student_profiles_set_updated_at before
 update
     on
     public.student_profiles for each row execute function sp_student_profile_set_updated_at();
+
+
+-- public.tutor_profile_education definition
+
+-- Drop table
+
+-- DROP TABLE public.tutor_profile_education;
+
+CREATE TABLE public.tutor_profile_education (
+	id bigserial NOT NULL,
+	user_id uuid NOT NULL,
+	"degree" text NOT NULL,
+	institution text NOT NULL,
+	start_year int4 NULL,
+	end_year int4 NULL,
+	description text NULL,
+	sort_order int4 DEFAULT 100 NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT tutor_profile_education_degree_not_blank CHECK ((length(TRIM(BOTH FROM degree)) > 0)),
+	CONSTRAINT tutor_profile_education_end_year_check CHECK (((end_year IS NULL) OR ((end_year >= 1900) AND (end_year <= 2200)))),
+	CONSTRAINT tutor_profile_education_institution_not_blank CHECK ((length(TRIM(BOTH FROM institution)) > 0)),
+	CONSTRAINT tutor_profile_education_pkey PRIMARY KEY (id),
+	CONSTRAINT tutor_profile_education_start_year_check CHECK (((start_year IS NULL) OR ((start_year >= 1900) AND (start_year <= 2200)))),
+	CONSTRAINT tutor_profile_education_year_order_check CHECK (((start_year IS NULL) OR (end_year IS NULL) OR (end_year >= start_year))),
+	CONSTRAINT tutor_profile_education_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.tutor_profiles(user_id) ON DELETE CASCADE
+);
+CREATE INDEX idx_tutor_profile_education_user_sort ON public.tutor_profile_education USING btree (user_id, sort_order, id);
+
+-- Table Triggers
+
+create trigger trg_tutor_profile_education_set_updated_at before
+update
+    on
+    public.tutor_profile_education for each row execute function sp_tutor_profiles_set_updated_at();
+
+
+-- public.tutor_profile_skills definition
+
+-- Drop table
+
+-- DROP TABLE public.tutor_profile_skills;
+
+CREATE TABLE public.tutor_profile_skills (
+	id bigserial NOT NULL,
+	user_id uuid NOT NULL,
+	skill_name text NOT NULL,
+	sort_order int4 DEFAULT 100 NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT tutor_profile_skills_name_not_blank CHECK ((length(TRIM(BOTH FROM skill_name)) > 0)),
+	CONSTRAINT tutor_profile_skills_pkey PRIMARY KEY (id),
+	CONSTRAINT tutor_profile_skills_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.tutor_profiles(user_id) ON DELETE CASCADE
+);
+CREATE INDEX idx_tutor_profile_skills_user_sort ON public.tutor_profile_skills USING btree (user_id, sort_order, id);
+CREATE UNIQUE INDEX uq_tutor_profile_skills_user_skill_ci ON public.tutor_profile_skills USING btree (user_id, lower(skill_name));
 
 
 -- public.modules definition
