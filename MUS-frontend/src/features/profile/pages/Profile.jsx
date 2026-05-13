@@ -1,5 +1,5 @@
 // src/features/profile/pages/Profile.jsx
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -23,6 +23,7 @@ import { PageHeader } from '@/shared/components/ui';
 import { useLanguage } from '@/app/providers/LanguageContext';
 import EditProfileDialog from '@/features/profile/components/EditProfileDialog';
 import ChangePasswordDialog from '@/features/profile/components/ChangePasswordDialog';
+import studentProfileService from '@/services/studentProfileService';
 
 const Profile = () => {
   const { t } = useLanguage();
@@ -30,6 +31,48 @@ const Profile = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [academicProfile, setAcademicProfile] = useState(null);
+  const [academicLoaded, setAcademicLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!isStudent || !user?.id) {
+      setAcademicProfile(null);
+      setAcademicLoaded(false);
+      return;
+    }
+
+    let mounted = true;
+    (async () => {
+      try {
+        const full = await studentProfileService.getStudentProfileFullDetails(user.id);
+        const payload = full?.data ?? full ?? null;
+        if (!mounted) return;
+        setAcademicProfile(payload && typeof payload === 'object' ? payload : null);
+      } catch {
+        if (mounted) setAcademicProfile(null);
+      } finally {
+        if (mounted) setAcademicLoaded(true);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isStudent, user?.id]);
+
+  const academicView = useMemo(() => {
+    const source = academicProfile || user || {};
+    return {
+      institution_name: source?.institution_name || source?.institutionName || '',
+      program_name: source?.program_name || source?.programName || '',
+      current_level_name:
+        source?.current_level_name ||
+        source?.currentLevelName ||
+        source?.level_name ||
+        source?.levelName ||
+        '',
+    };
+  }, [academicProfile, user]);
 
   const handleOpenEditDialog = () => {
     setEditDialogOpen(true);
@@ -423,81 +466,94 @@ const Profile = () => {
             </Box>
           </Paper>
 
-          {/* Academic Information Card */}
-          <Paper
-            elevation={0}
-            sx={{
-              borderRadius: 4,
-              bgcolor: (theme) => theme.palette.mode === 'dark'
-                ? 'rgba(20, 20, 22, 0.6)'
-                : 'rgba(255, 255, 255, 0.8)',
-              border: (theme) => `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
-              backdropFilter: 'blur(16px)',
-              p: 3.5,
-              transition: 'transform 0.22s ease-in-out, box-shadow 0.22s ease-in-out',
-              boxShadow: (theme) => theme.palette.mode === 'dark'
-                ? '0 8px 32px rgba(0,0,0,0.3)'
-                : '0 8px 32px rgba(0,0,0,0.02)',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: (theme) => theme.palette.mode === 'dark'
-                  ? '0 12px 40px rgba(0,0,0,0.4)'
-                  : '0 12px 40px rgba(0,0,0,0.04)',
-              }
-            }}
-          >
-            {/* Header */}
-            <Typography
-              variant="h6"
-              fontWeight={700}
+          {isStudent && (
+            <Paper
+              elevation={0}
               sx={{
-                fontFamily: '"Space Grotesk", sans-serif',
-                mb: 2,
-                pb: 1.5,
-                borderBottom: '1px solid',
-                borderColor: (theme) => alpha(theme.palette.divider, 0.06),
+                borderRadius: 4,
+                bgcolor: (theme) => theme.palette.mode === 'dark'
+                  ? 'rgba(20, 20, 22, 0.6)'
+                  : 'rgba(255, 255, 255, 0.8)',
+                border: (theme) => `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
+                backdropFilter: 'blur(16px)',
+                p: 3.5,
+                transition: 'transform 0.22s ease-in-out, box-shadow 0.22s ease-in-out',
+                boxShadow: (theme) => theme.palette.mode === 'dark'
+                  ? '0 8px 32px rgba(0,0,0,0.3)'
+                  : '0 8px 32px rgba(0,0,0,0.02)',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: (theme) => theme.palette.mode === 'dark'
+                    ? '0 12px 40px rgba(0,0,0,0.4)'
+                    : '0 12px 40px rgba(0,0,0,0.04)',
+                }
               }}
             >
-              Academic Information
-            </Typography>
+              <Typography
+                variant="h6"
+                fontWeight={700}
+                sx={{
+                  fontFamily: '"Space Grotesk", sans-serif',
+                  mb: 2,
+                  pb: 1.5,
+                  borderBottom: '1px solid',
+                  borderColor: (theme) => alpha(theme.palette.divider, 0.06),
+                }}
+              >
+                Academic Information
+              </Typography>
 
-            {/* List */}
-            <Box>
-              <InfoItem
-                label="Institution"
-                value={user?.institution_name}
-                stacked={true}
-              />
-              <InfoItem
-                label="Program"
-                value={user?.program_name}
-                stacked={true}
-              />
-              <InfoItem
-                label="Current Level"
-                value={user?.current_level_name}
-              />
-              <InfoItem
-                label="Enrollment Status"
-                value={
-                  <Chip
-                    label="Enrolled"
-                    size="small"
+              <Box>
+                {!academicLoaded ? (
+                  <Typography variant="body2" color="text.secondary">
+                    Loading academic information...
+                  </Typography>
+                ) : !academicProfile ? (
+                  <Box
                     sx={{
-                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
-                      color: 'primary.main',
-                      border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-                      fontWeight: 600,
-                      height: 24,
-                      fontSize: '0.75rem',
-                      borderRadius: '12px',
-                      px: 1,
+                      p: 2,
+                      borderRadius: 2,
+                      border: '1px dashed',
+                      borderColor: 'divider',
+                      bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
                     }}
-                  />
-                }
-              />
-            </Box>
-          </Paper>
+                  >
+                    <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+                      Academic information not set yet
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Complete your institution, program, and semester in Settings to personalize recommendations.
+                    </Typography>
+                  </Box>
+                ) : (
+                  <>
+                    <InfoItem label="Institution" value={academicView.institution_name} stacked={true} />
+                    <InfoItem label="Program" value={academicView.program_name} stacked={true} />
+                    <InfoItem label="Current Level" value={academicView.current_level_name} />
+                    <InfoItem
+                      label="Enrollment Status"
+                      value={
+                        <Chip
+                          label="Enrolled"
+                          size="small"
+                          sx={{
+                            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                            color: 'primary.main',
+                            border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                            fontWeight: 600,
+                            height: 24,
+                            fontSize: '0.75rem',
+                            borderRadius: '12px',
+                            px: 1,
+                          }}
+                        />
+                      }
+                    />
+                  </>
+                )}
+              </Box>
+            </Paper>
+          )}
         </Stack>
       </Box>
 
