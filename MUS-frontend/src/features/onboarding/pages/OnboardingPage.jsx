@@ -59,7 +59,7 @@ export default function OnboardingPage() {
       program_id: '',
       level_id: '',
       current_semester_id: '',
-      contribution_mode: 'contributor',
+      contribution_mode: 'learner',
       preferred_tag_ids: [],
     },
   });

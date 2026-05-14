@@ -97,7 +97,6 @@ export const RegisterForm = () => {
       program_id: '',
       level_id: '',
       current_semester_id: '',
-      contribution_mode: 'contributor',
       preferred_tag_ids: [],
     },
   });
@@ -327,7 +326,6 @@ export const RegisterForm = () => {
         program_id: Number(formData.program_id),
         level_id: Number(formData.level_id),
         current_semester_id: Number(formData.current_semester_id),
-        contribution_mode: formData.contribution_mode,
         preferred_tag_ids: Array.isArray(formData.preferred_tag_ids)
           ? formData.preferred_tag_ids.map((id) => Number(id)).filter(Number.isFinite)
           : [],
@@ -670,28 +668,6 @@ export const RegisterForm = () => {
 
                 {activeStep === 2 && (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <FormControl fullWidth error={Boolean(errors.contribution_mode)}>
-                      <InputLabel id="register-contribution-mode-label">Contribution Mode</InputLabel>
-                      <Controller
-                        name="contribution_mode"
-                        control={control}
-                        rules={{ required: 'Contribution mode is required' }}
-                        render={({ field }) => (
-                          <Select
-                            {...field}
-                            labelId="register-contribution-mode-label"
-                            label="Contribution Mode"
-                          >
-                            <MenuItem value="contributor">Contributor (upload and earn points)</MenuItem>
-                            <MenuItem value="learner">Learner (learn only)</MenuItem>
-                          </Select>
-                        )}
-                      />
-                      <Typography variant="caption" color={errors.contribution_mode ? 'error' : 'text.secondary'} sx={{ mt: 0.5 }}>
-                        {errors.contribution_mode?.message || 'You can change this later from Settings.'}
-                      </Typography>
-                    </FormControl>
-
                     <Controller
                       name="preferred_tag_ids"
                       control={control}

@@ -27,7 +27,7 @@ import {
 } from "./userRolePolicyService.js";
 
 const DEFAULT_ROLE = "student";
-const DEFAULT_STUDENT_CONTRIBUTION_MODE = "contributor";
+const DEFAULT_STUDENT_CONTRIBUTION_MODE = "learner";
 const DEFAULT_USER_SETTINGS = {
   theme_mode: "light",
   font_size: "medium",
@@ -914,7 +914,7 @@ export const loginOrRegisterWithGoogle = async (accessToken) => {
          VALUES (:user_id, :contribution_mode)
          ON CONFLICT (user_id) DO NOTHING`,
         {
-          replacements: { user_id: userInstance.id, contribution_mode: DEFAULT_STUDENT_CONTRIBUTION_MODE },
+          replacements: { user_id: userInstance.id, contribution_mode: "learner" },
           transaction,
         }
       );
