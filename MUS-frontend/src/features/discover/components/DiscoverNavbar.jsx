@@ -46,6 +46,7 @@ const DiscoverNavbar = memo(({ onLogout, isAuthenticated = true }) => {
   const navItems = useMemo(() => [
     { label: 'Discover', to: '/discover', active: location.pathname === '/discover' },
     { label: 'Recommendations', to: '/discover/recommendations', active: location.pathname === '/discover/recommendations' },
+    { label: 'Tutors', to: '/discover/tutors', active: location.pathname.startsWith('/discover/tutors') },
   ], [location.pathname]);
 
   return (

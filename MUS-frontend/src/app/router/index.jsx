@@ -98,7 +98,7 @@ const AppRouter = () => {
         <Route
           path="/discover/tutors"
           element={
-            <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER']} blockedRoles={['ADMIN']}>
+            <ProtectedRoute>
               <DiscoverTutorsPage />
             </ProtectedRoute>
           }
@@ -106,7 +106,7 @@ const AppRouter = () => {
         <Route
           path="/discover/tutors/:tutorId"
           element={
-            <ProtectedRoute requiredRoles={['STUDENT', 'TEACHER']} blockedRoles={['ADMIN']}>
+            <ProtectedRoute>
               <TutorProfileBookingPage />
             </ProtectedRoute>
           }

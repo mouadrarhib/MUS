@@ -15,8 +15,6 @@ const Overview = () => {
     myResourceStats,
     rejections,
     rejectionsLoading,
-    recommendations,
-    recommendationsLoading,
     likedResourcesCount,
   } = useOverviewData({ isAdmin });
 
@@ -128,8 +126,6 @@ const Overview = () => {
           myResourceStats={myResourceStats}
           rejections={rejections}
           rejectionsLoading={rejectionsLoading}
-          recommendations={recommendations}
-          recommendationsLoading={recommendationsLoading}
         />
       )}
     </Box>
