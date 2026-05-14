@@ -26,6 +26,7 @@ import DiscoveryHeader from '@/features/discover/components/DiscoveryHeader';
 import sessionService from '@/services/sessionService';
 import tutorProfileService from '@/services/tutorProfileService';
 import { useNotification } from '@/shared/components/ui';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 // ---------------------------------------------------------------------------
 // Formatters
@@ -417,7 +418,8 @@ const PricingTiers = ({ selectedTier }) => {
 // ---------------------------------------------------------------------------
 const DiscoverTutors = () => {
   const navigate = useNavigate();
-  const { showError, showSuccess } = useNotification();
+  const { showError, showSuccess, showInfo } = useNotification();
+  const { isAuthenticated } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [slots, setSlots] = useState([]);
@@ -508,10 +510,23 @@ const DiscoverTutors = () => {
     return selectedTutor.slots.find((s) => s.id === selectedSlotId) ?? null;
   }, [selectedTutor, selectedSlotId]);
 
-  const selectedTier = useMemo(() => {
-    const tiers = Array.isArray(pricingProfile?.pricing_tiers) ? pricingProfile.pricing_tiers : [];
-    return tiers.find((t) => t.duration_minutes === selectedDuration) ?? null;
-  }, [pricingProfile, selectedDuration]);
+  const pricing = useMemo(() => {
+    if (selectedSlot) {
+      const price = Number(selectedSlot.price || 0);
+      return {
+        session_amount: price,
+        platform_fee: 2,
+        total_amount: price + 2,
+        currency: pricingProfile?.currency || 'USD',
+      };
+    }
+    return {
+      session_amount: 0,
+      platform_fee: 2,
+      total_amount: 2,
+      currency: pricingProfile?.currency || 'USD',
+    };
+  }, [selectedSlot, pricingProfile]);
 
   // Auto-select first tutor
   useEffect(() => {
@@ -585,6 +600,12 @@ const DiscoverTutors = () => {
   }, [tutors]);
 
   const handleBookSession = async () => {
+    if (!isAuthenticated) {
+      showInfo('Please login to book a session.');
+      navigate('/auth/login', { state: { returnUrl: '/discover/tutors' } });
+      return;
+    }
+
     if (!selectedSlot?.id) {
       showError('Please choose a tutor and a time slot first.');
       return;
@@ -596,21 +617,23 @@ const DiscoverTutors = () => {
         navigate('/dashboard/sessions');
         return;
       }
+
+      const dur = Number(selectedSlot.duration_minutes || 60);
+      const price = Number(selectedSlot.price || 0);
+
       const payload = {
-        slot_id: selectedSlot.id,
-        note: subjectModule ? `Subject/Module: ${subjectModule}` : undefined,
-        duration_minutes: selectedDuration,
+        slot_id: Number(selectedSlot.id),
+        duration_minutes: dur,
         session_mode: 'remote',
-        subject_module: subjectModule || null,
-        pricing_snapshot: selectedTier
-          ? {
-              duration_minutes: selectedTier.duration_minutes,
-              session_amount: selectedTier.session_amount,
-              platform_fee: selectedTier.platform_fee,
-              total_amount: selectedTier.total_amount,
-              currency: selectedTier.currency,
-            }
-          : {},
+        subject_module: subjectModule || 'Resource support',
+        pricing_snapshot: {
+          duration_minutes: dur,
+          session_amount: price,
+          platform_fee: 2,
+          total_amount: Number((price + 2).toFixed(2)),
+          currency: pricing.currency,
+          plan: 'standard',
+        },
         booking_metadata: { source: 'discover_tutors_wizard' },
       };
       const booking = await sessionService.createBooking(payload);
@@ -815,23 +838,24 @@ const DiscoverTutors = () => {
                       })}
                     </Stack>
 
-                    {/* Duration */}
-                    <Typography sx={sectionLabelSx}>Duration</Typography>
-                    <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mb: 1.75 }}>
-                      {DURATIONS.map((d) => {
-                        const active = d === selectedDuration;
-                        return (
-                          <Button
-                            key={d}
-                            size="small"
-                            onClick={() => setSelectedDuration(d)}
-                            sx={(t) => ({ ...chipBtnSx(active, t), minWidth: 80 })}
-                          >
-                            {d} min
-                          </Button>
-                        );
-                      })}
-                    </Stack>
+                    {/* Duration & Price Display */}
+                    <Box sx={{ mb: 1.75 }}>
+                      <Typography sx={sectionLabelSx}>Session Details</Typography>
+                      <Stack direction="row" spacing={1.5}>
+                        <Box sx={{ flex: 1, p: 1.5, borderRadius: 2, border: '0.5px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
+                          <Typography variant="caption" color="text.secondary" display="block">Duration</Typography>
+                          <Typography variant="body2" fontWeight={700}>
+                            {selectedSlot?.duration_minutes || 60} minutes
+                          </Typography>
+                        </Box>
+                        <Box sx={{ flex: 1, p: 1.5, borderRadius: 2, border: '0.5px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
+                          <Typography variant="caption" color="text.secondary" display="block">Price</Typography>
+                          <Typography variant="body2" fontWeight={700} color="primary.main">
+                            ${Number(selectedSlot?.price || 0).toFixed(2)}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Box>
 
                     {/* Subject */}
                     <Typography sx={sectionLabelSx}>Subject or module</Typography>
@@ -878,13 +902,25 @@ const DiscoverTutors = () => {
                       />
                     </Stack>
 
-                    {/* Pricing tiers */}
-                    <Typography sx={sectionLabelSx}>Pricing overview</Typography>
-                    {pricingLoading ? (
-                      <CircularProgress size={16} thickness={3} />
-                    ) : (
-                      <PricingTiers selectedTier={selectedTier} />
-                    )}
+                    {/* Pricing breakdown info */}
+                    <Typography sx={sectionLabelSx}>Pricing summary</Typography>
+                    <Box sx={{ p: 1.5, borderRadius: 2, border: '0.5px solid', borderColor: 'divider' }}>
+                      <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                        <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>Session rate</Typography>
+                        <Typography sx={{ fontSize: '0.78rem', fontWeight: 500 }}>${pricing.session_amount.toFixed(2)}</Typography>
+                      </Stack>
+                      <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.75 }}>
+                        <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>Service fee</Typography>
+                        <Typography sx={{ fontSize: '0.78rem', fontWeight: 500 }}>${pricing.platform_fee.toFixed(2)}</Typography>
+                      </Stack>
+                      <Divider sx={{ mb: 0.75 }} />
+                      <Stack direction="row" justifyContent="space-between">
+                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 700 }}>Total</Typography>
+                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: 'primary.main' }}>
+                          ${pricing.total_amount.toFixed(2)}
+                        </Typography>
+                      </Stack>
+                    </Box>
                   </>
                 )}
               </Box>
@@ -935,7 +971,7 @@ const DiscoverTutors = () => {
                       },
                       {
                         icon: <AccessTimeIcon sx={{ fontSize: 14, color: 'text.disabled' }} />,
-                        text: `${selectedDuration} minutes`,
+                        text: `${selectedSlot?.duration_minutes || 60} minutes`,
                       },
                       {
                         icon: <VideocamIcon sx={{ fontSize: 14, color: 'text.disabled' }} />,
@@ -966,17 +1002,16 @@ const DiscoverTutors = () => {
                       <Stack alignItems="center" sx={{ py: 0.75 }}>
                         <CircularProgress size={16} thickness={3} />
                       </Stack>
-                    ) : selectedTier ? (
+                    ) : (
                       <>
-                        {[
-                          { label: 'Session fee', value: `$${selectedTier.session_amount.toFixed(2)}` },
-                          { label: 'Platform fee', value: `$${selectedTier.platform_fee.toFixed(2)}` },
-                        ].map(({ label, value }) => (
-                          <Stack key={label} direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
-                            <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>{label}</Typography>
-                            <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>{value}</Typography>
-                          </Stack>
-                        ))}
+                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>Session fee</Typography>
+                          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>${pricing.session_amount.toFixed(2)}</Typography>
+                        </Stack>
+                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>Platform fee</Typography>
+                          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>${pricing.platform_fee.toFixed(2)}</Typography>
+                        </Stack>
                         <Stack
                           direction="row"
                           justifyContent="space-between"
@@ -984,17 +1019,13 @@ const DiscoverTutors = () => {
                         >
                           <Typography sx={{ fontSize: '0.85rem', fontWeight: 500 }}>Total</Typography>
                           <Typography sx={{ fontSize: '0.85rem', fontWeight: 500 }}>
-                            ${selectedTier.total_amount.toFixed(2)}{' '}
+                            ${pricing.total_amount.toFixed(2)}{' '}
                             <Typography component="span" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                              {selectedTier.currency}
+                              {pricing.currency}
                             </Typography>
                           </Typography>
                         </Stack>
                       </>
-                    ) : (
-                      <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
-                        Default pricing will apply.
-                      </Typography>
                     )}
 
                     {/* CTA */}

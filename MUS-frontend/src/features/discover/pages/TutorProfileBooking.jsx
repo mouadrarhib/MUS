@@ -28,6 +28,7 @@ import SchoolIcon from '@mui/icons-material/School';
 import CodeIcon from '@mui/icons-material/Code';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import sessionService from '@/services/sessionService';
 import DiscoveryHeader from '@/features/discover/components/DiscoveryHeader';
 import resourcesService from '@/services/resourcesService';
@@ -987,6 +988,7 @@ const TutorBookingPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { showError, showInfo, showSuccess } = useNotification();
+  const { isAuthenticated } = useAuth();
 
   const tutor = location.state?.tutor || {};
   const subjectModule = String(location.state?.subjectModule || '').trim();
@@ -1093,6 +1095,12 @@ const TutorBookingPage = () => {
   };
 
   const handleBook = async ({ date, time }) => {
+    if (!isAuthenticated) {
+      showInfo('Please login to book a session.');
+      navigate('/auth/login', { state: { returnUrl: location.pathname } });
+      return;
+    }
+
     const slot = slotIndex?.[date]?.[time] || null;
     if (!slot?.id) {
       showError('Selected time is not available with tutor slots.');
@@ -1120,7 +1128,9 @@ const TutorBookingPage = () => {
       const bookingId = Number(booking?.booking_id || booking?.id || 0);
       showSuccess('Session booked successfully!');
       if (bookingId > 0) {
-        navigate(`/dashboard/sessions?booking=${bookingId}`);
+        navigate(`/dashboard/sessions?booking=${bookingId}&chat=1`);
+      } else {
+        navigate('/dashboard/sessions');
       }
     } catch (error) {
       showError(error?.response?.data?.message || error?.message || 'Failed to create booking request.');
