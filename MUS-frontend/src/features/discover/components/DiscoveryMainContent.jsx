@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useState, useRef, useMemo } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -638,6 +639,8 @@ const DiscoveryMainContent = ({
             style={{ flexShrink: 0 }}
           >
             <Button
+              component={RouterLink}
+              to="/discover/how-to-become-creator"
               variant="contained"
               disableElevation
               endIcon={<ArrowForwardIcon sx={{ fontSize: 15 }} />}
