@@ -1582,7 +1582,6 @@ const CatalogManagement = () => {
                             onClick={handleAddExplorerMapping}
                             disabled={!explorerMappingProgramId || submitting}
                             sx={{
-                              borderRadius: 2,
                               textTransform: "none",
                               fontWeight: 700,
                               fontSize: { xs: "0.78rem", sm: "0.82rem" },
@@ -1831,7 +1830,6 @@ const CatalogManagement = () => {
               onClick={handleAddMapping}
                disabled={!selectedMappingInstitutionId || !selectedMappingProgramId || submitting || mappingLoading}
               sx={{
-                borderRadius: 2,
                 fontWeight: 700,
                 textTransform: "none",
                 background: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
@@ -2240,7 +2238,6 @@ const CatalogManagement = () => {
         startIcon={<Add />}
         onClick={action.onClick}
         sx={{
-          borderRadius: 2,
           px: 2.2,
           py: 0.85,
           textTransform: "none",

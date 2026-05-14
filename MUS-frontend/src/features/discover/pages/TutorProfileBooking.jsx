@@ -364,21 +364,16 @@ const TutorBookingPageView = ({
                 variant="outlined"
                 startIcon={<BookmarkBorder />}
                 onClick={onSave}
-                sx={{ textTransform: 'none', borderRadius: 2, fontWeight: 600 }}
+                sx={{ textTransform: 'none' }}
               >
                 Save
               </Button>
               <Button
                 variant="contained"
+                color="primary"
                 startIcon={<Chat />}
                 onClick={onMessage}
-                sx={{
-                  textTransform: 'none',
-                  borderRadius: 2,
-                  fontWeight: 600,
-                  bgcolor: BRAND_BLUE,
-                  '&:hover': { bgcolor: '#1d4ed8' },
-                }}
+                sx={{ textTransform: 'none' }}
               >
                 Message
               </Button>
@@ -512,20 +507,20 @@ const TutorBookingPageView = ({
                           color: isSelected
                             ? '#fff'
                             : isAvailable
-                              ? '#22C55E'
+                              ? theme.palette.success.main
                               : cell.isCurrentMonth
                                 ? 'text.primary'
                                 : 'text.disabled',
                           bgcolor: isSelected
-                            ? BRAND_BLUE
+                            ? theme.palette.primary.main
                             : isAvailable
-                              ? SOFT_GREEN_BG
+                              ? alpha(theme.palette.success.main, 0.14)
                               : 'transparent',
                           '&:hover': {
                             bgcolor: isSelected
-                              ? '#1d4ed8'
+                              ? theme.palette.primary.dark
                               : isAvailable
-                                ? 'rgba(34, 197, 94, 0.22)'
+                                ? alpha(theme.palette.success.main, 0.22)
                                 : 'transparent',
                           },
                           '&.Mui-disabled': {
@@ -580,22 +575,21 @@ const TutorBookingPageView = ({
                           onClick={() => setSelectedTime(slot)}
                           sx={(theme) => ({
                             textTransform: 'none',
-                            borderRadius: 1.5,
                             py: 0.8,
                             px: 0.6,
                             fontSize: '0.84rem',
                             fontWeight: active ? 700 : 500,
                             justifyContent: 'center',
-                            borderColor: active ? BRAND_GREEN : 'rgba(0,0,0,0.08)',
-                            bgcolor: active ? 'rgba(34, 197, 94, 0.08)' : 'background.paper',
-                            color: active ? '#16a34a' : 'text.primary',
+                            borderColor: active ? theme.palette.success.main : 'rgba(0,0,0,0.08)',
+                            bgcolor: active ? alpha(theme.palette.success.main, 0.08) : 'background.paper',
+                            color: active ? 'success.dark' : 'text.primary',
                             boxShadow: 'none',
                             '&:hover': {
                               bgcolor: active
-                                ? 'rgba(34, 197, 94, 0.14)'
-                                : 'rgba(34, 197, 94, 0.03)',
-                              borderColor: active ? BRAND_GREEN : BRAND_GREEN,
-                              color: active ? '#16a34a' : '#16a34a',
+                                ? alpha(theme.palette.success.main, 0.14)
+                                : alpha(theme.palette.success.main, 0.03),
+                              borderColor: theme.palette.success.main,
+                              color: 'success.dark',
                             },
                             '&.Mui-disabled': { color: 'text.disabled' },
                             transition: 'all 0.15s ease',
@@ -740,20 +734,19 @@ const TutorBookingPageView = ({
                   size="large"
                   onClick={handleBook}
                   disabled={!selectedSlot}
-                  sx={{
+                  sx={(theme) => ({
                     textTransform: 'none',
                     fontWeight: 700,
                     fontSize: '1rem',
-                    borderRadius: 2.5,
                     py: 1.5,
-                    bgcolor: BRAND_PURPLE,
-                    boxShadow: '0 4px 14px rgba(124,58,237,0.35)',
+                    bgcolor: 'secondary.main',
+                    boxShadow: `0 4px 14px ${alpha(theme.palette.secondary.main, 0.35)}`,
                     '&:hover': {
-                      bgcolor: '#6d28d9',
-                      boxShadow: '0 6px 18px rgba(124,58,237,0.45)',
+                      bgcolor: 'secondary.dark',
+                      boxShadow: `0 6px 18px ${alpha(theme.palette.secondary.main, 0.45)}`,
                     },
                     transition: 'all 0.2s ease',
-                  }}
+                  })}
                 >
                   📅 Book Now
                 </Button>

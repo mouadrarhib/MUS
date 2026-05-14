@@ -322,19 +322,14 @@ const Profile = () => {
               variant="contained"
               startIcon={<Edit sx={{ fontSize: 16 }} />}
               onClick={handleOpenEditDialog}
-              sx={{
-                borderRadius: '8px',
+              sx={(theme) => ({
                 textTransform: 'none',
-                fontWeight: 600,
                 py: 1,
-                boxShadow: (theme) => `0 4px 14px ${alpha(theme.palette.primary.main, 0.35)}`,
-                bgcolor: 'primary.main',
-                color: 'primary.contrastText',
+                boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.35)}`,
                 '&:hover': {
-                  bgcolor: 'primary.dark',
-                  boxShadow: (theme) => `0 6px 20px ${alpha(theme.palette.primary.main, 0.45)}`,
+                  boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.45)}`,
                 },
-              }}
+              })}
             >
               Edit Profile
             </Button>
@@ -343,18 +338,16 @@ const Profile = () => {
               variant="outlined"
               startIcon={<Security sx={{ fontSize: 16 }} />}
               onClick={handleOpenPasswordDialog}
-              sx={{
-                borderRadius: '8px',
+              sx={(theme) => ({
                 textTransform: 'none',
-                fontWeight: 600,
                 py: 1,
                 color: 'primary.main',
-                borderColor: (theme) => alpha(theme.palette.primary.main, 0.35),
+                borderColor: alpha(theme.palette.primary.main, 0.35),
                 '&:hover': {
-                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                  bgcolor: alpha(theme.palette.primary.main, 0.04),
                   borderColor: 'primary.main',
-                }
-              }}
+                },
+              })}
             >
               Change Password
             </Button>
