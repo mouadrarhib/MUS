@@ -924,6 +924,12 @@ export const loginOrRegisterWithGoogle = async (accessToken) => {
     const userPayload = await buildAuthUserPayload(userInstance, roles, transaction);
     const token = generateToken({ sub: userInstance.id, roles });
 
-    return { token, user: userPayload };
+    const [profileRows] = await sequelize.query(
+      `SELECT institution_id FROM public.student_profiles WHERE user_id = :user_id LIMIT 1`,
+      { replacements: { user_id: userInstance.id }, transaction }
+    );
+    const needs_onboarding = !profileRows?.[0]?.institution_id;
+
+    return { token, user: userPayload, needs_onboarding };
   });
 };

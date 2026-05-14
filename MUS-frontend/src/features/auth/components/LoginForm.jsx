@@ -130,7 +130,10 @@ export const LoginForm = () => {
       const response = await authService.googleAuth(tokenResponse.access_token);
       authLogin(response.data);
       await refreshProfile();
-      navigate(resolveRedirectPath(inferAdminFromLoginPayload(response.data)), { replace: true });
+      const dest = response.data?.needs_onboarding
+        ? '/onboarding'
+        : resolveRedirectPath(inferAdminFromLoginPayload(response.data));
+      navigate(dest, { replace: true });
     } catch (err) {
       const message = err.response?.data?.message || 'Google sign-in failed. Please try again.';
       setLoginError(message);

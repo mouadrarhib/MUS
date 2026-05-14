@@ -6,6 +6,7 @@ import { ProtectedRoute } from '@/features/auth/components';
 // Lazy load Auth Pages
 const Login = lazy(() => import('@/pages/auth/LoginPage'));
 const Register = lazy(() => import('@/pages/auth/RegisterPage'));
+const OnboardingPage = lazy(() => import('@/features/onboarding/pages/OnboardingPage'));
 const PublicHome = lazy(() => import('@/pages/PublicHome'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
@@ -59,6 +60,16 @@ const AppRouter = () => {
         {/* 2. Public Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+
+        {/* 3. Onboarding — authenticated Google users without academic profile */}
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute>
+              <OnboardingPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/discover"

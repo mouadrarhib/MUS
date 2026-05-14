@@ -301,7 +301,7 @@ export const RegisterForm = () => {
       const response = await authService.googleAuth(tokenResponse.access_token);
       authLogin(response.data);
       await refreshProfile();
-      navigate('/discover', { replace: true });
+      navigate(response.data?.needs_onboarding ? '/onboarding' : '/discover', { replace: true });
     } catch (err) {
       setRegisterError(err.response?.data?.message || 'Google sign-up failed. Please try again.');
     }

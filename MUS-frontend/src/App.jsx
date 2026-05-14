@@ -17,6 +17,7 @@ function App() {
       { match: '/login', title: `Login - ${baseTitle}` },
       { match: '/register', title: `Create Account - ${baseTitle}` },
       { match: '/discover', title: `Discover Resources - ${baseTitle}` },
+      { match: '/onboarding', title: `Complete Your Profile - ${baseTitle}` },
       { match: '/dashboard/users', title: `${t('pages.users.title')} - ${baseTitle}` },
       { match: '/dashboard/points', title: `${t('pages.points.title')} - ${baseTitle}` },
       { match: '/dashboard/resources', title: `${t('pages.resources.title')} - ${baseTitle}` },
