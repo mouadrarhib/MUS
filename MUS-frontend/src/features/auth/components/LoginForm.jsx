@@ -28,6 +28,7 @@ import { useLogin } from '@/features/auth/hooks/useAuthHooks';
 import logo from '@/assets/images/logo.png';
 import { useNotification } from '@/shared/components/ui/notifications';
 import { ForgotPasswordModal } from '@/features/auth/components/ForgotPasswordModal';
+import { SocialAuthSection } from '@/features/auth/components/SocialAuthSection';
 import { pageTransitionSx } from '@/styles/motion';
 import { useForm, Controller } from 'react-hook-form';
 import gsap from 'gsap';
@@ -121,6 +122,11 @@ export const LoginForm = () => {
     setShowPassword(!showPassword);
   };
 
+  const handleGoogleLogin = () => {
+    console.log('Google login clicked');
+    // Implement Google Auth logic here
+  };
+
   const handleSubmitForm = handleSubmit(async (formData) => {
     setLoginError('');
 
@@ -202,6 +208,8 @@ export const LoginForm = () => {
                   {loginError || apiError}
                 </Alert>
               )}
+
+              <SocialAuthSection onGoogleClick={handleGoogleLogin} loading={loading} />
 
               <Stack ref={formRef} component="form" spacing={2} onSubmit={handleSubmitForm} noValidate>
                 <TextField
