@@ -9,6 +9,7 @@ import {
   getProfile,
   getUserWithRolesById,
   loginUser,
+  loginOrRegisterWithGoogle,
   registerUser,
   resetPassword,
   requestPasswordReset,
@@ -239,6 +240,48 @@ export const login = asyncHandler(async (req, res) => {
     });
   }
   return successResponse(res, "Login successful", result);
+});
+
+/**
+ * @swagger
+ * /auth/google:
+ *   post:
+ *     summary: Sign in or register with Google
+ *     tags: [Auth]
+ *     description: Accepts a Google ID token, verifies it, and returns a JWT. Creates the account if it does not exist.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [credential]
+ *             properties:
+ *               credential:
+ *                 type: string
+ *                 description: Google ID token from the frontend OAuth flow
+ *     responses:
+ *       200:
+ *         description: Login or registration successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ */
+export const googleAuth = asyncHandler(async (req, res) => {
+  const { access_token } = req.body;
+  const result = await loginOrRegisterWithGoogle(access_token);
+  if (result?.token) {
+    const isProduction = process.env.NODE_ENV === "production";
+    res.cookie("auth_token", result.token, {
+      httpOnly: true,
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      path: "/",
+    });
+  }
+  return successResponse(res, "Google authentication successful", result);
 });
 
 /**

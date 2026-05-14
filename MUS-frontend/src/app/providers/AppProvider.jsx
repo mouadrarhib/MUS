@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { GlobalStyles } from '@mui/material';
@@ -198,14 +199,16 @@ ThemeProviderComponent.propTypes = {
 
 export const AppProviders = ({ children }) => {
   return (
-    <LanguageProvider>
-      <ThemeProviderComponent>
-        <AuthProvider>
-          <UserAppearanceBootstrap />
-          {children}
-        </AuthProvider>
-      </ThemeProviderComponent>
-    </LanguageProvider>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <LanguageProvider>
+        <ThemeProviderComponent>
+          <AuthProvider>
+            <UserAppearanceBootstrap />
+            {children}
+          </AuthProvider>
+        </ThemeProviderComponent>
+      </LanguageProvider>
+    </GoogleOAuthProvider>
   );
 };
 

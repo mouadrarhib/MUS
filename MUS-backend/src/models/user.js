@@ -23,7 +23,12 @@ const User = sequelize.define(
     },
     password_hash: {
       type: DataTypes.TEXT,
-      allowNull: false,
+      allowNull: true,
+    },
+    google_id: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      unique: true,
     },
     is_active: {
       type: DataTypes.BOOLEAN,

@@ -6,6 +6,7 @@ import { requireRole } from "../middleware/authorization.js";
 import { authRateLimit, forgotPasswordRateLimit, registerRateLimit } from "../middleware/rateLimit.js";
 import {
   login,
+  googleAuth,
   me,
   register,
   removeUserById,
@@ -78,6 +79,14 @@ router.post(
   ],
   validateRequest,
   login
+);
+
+router.post(
+  "/google",
+  authRateLimit,
+  [body("access_token").notEmpty().withMessage("Google access token is required")],
+  validateRequest,
+  googleAuth
 );
 
 router.post(

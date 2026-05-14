@@ -1,3 +1,4 @@
+import { OAuth2Client } from "google-auth-library";
 import AppError from "../helpers/appError.js";
 import { User, Role, UserRole, sequelize } from "../models/index.js";
 import { hashPassword, comparePassword } from "../utils/password.js";
@@ -855,4 +856,74 @@ export const updateUserById = async (userId, { email, full_name, is_active }) =>
 
   updatedUser = (await getUserWithRolesById(userId)).user;
   return { user: updatedUser };
+};
+
+export const loginOrRegisterWithGoogle = async (accessToken) => {
+  if (!accessToken) {
+    throw new AppError("Google access token is required", 400);
+  }
+
+  const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!userInfoRes.ok) {
+    throw new AppError("Invalid Google access token", 401);
+  }
+
+  const { sub: googleId, email, name: fullName, picture: googlePicture } = await userInfoRes.json();
+
+  if (!email) {
+    throw new AppError("Google account has no email", 400);
+  }
+
+  return sequelize.transaction(async (transaction) => {
+    // 1. Find by google_id
+    let userInstance = await User.findOne({ where: { google_id: googleId }, transaction });
+    if (userInstance && !userInstance.avatar_url && googlePicture) {
+      await userInstance.update({ avatar_url: googlePicture }, { transaction });
+    }
+
+    // 2. Find by email and link google_id + backfill avatar if missing
+    if (!userInstance) {
+      userInstance = await User.findOne({ where: { email }, transaction });
+      if (userInstance) {
+        const updates = { google_id: googleId };
+        if (!userInstance.avatar_url && googlePicture) {
+          updates.avatar_url = googlePicture;
+        }
+        await userInstance.update(updates, { transaction });
+      }
+    }
+
+    // 3. Create new user
+    if (!userInstance) {
+      userInstance = await User.create(
+        { full_name: fullName, email, google_id: googleId, password_hash: null, avatar_url: googlePicture || null },
+        { transaction }
+      );
+
+      const role = await ensureStudentRole(transaction);
+      await UserRole.create(
+        { user_id: userInstance.id, role_id: role.id },
+        { transaction }
+      );
+
+      await sequelize.query(
+        `INSERT INTO public.student_profiles (user_id, contribution_mode)
+         VALUES (:user_id, :contribution_mode)
+         ON CONFLICT (user_id) DO NOTHING`,
+        {
+          replacements: { user_id: userInstance.id, contribution_mode: DEFAULT_STUDENT_CONTRIBUTION_MODE },
+          transaction,
+        }
+      );
+    }
+
+    const roles = await getRolesForUser(userInstance.id, transaction);
+    const userPayload = await buildAuthUserPayload(userInstance, roles, transaction);
+    const token = generateToken({ sub: userInstance.id, roles });
+
+    return { token, user: userPayload };
+  });
 };

@@ -15,4 +15,9 @@ export default defineConfig({
       'react-hook-form': path.resolve(__dirname, './node_modules/react-hook-form/dist/index.esm.mjs'),
     },
   },
+  server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+    },
+  },
 })

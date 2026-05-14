@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useGoogleLogin } from '@react-oauth/google';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -25,6 +26,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useLogin } from '@/features/auth/hooks/useAuthHooks';
+import { authService } from '@/services/authService';
 import logo from '@/assets/images/logo.png';
 import { useNotification } from '@/shared/components/ui/notifications';
 import { ForgotPasswordModal } from '@/features/auth/components/ForgotPasswordModal';
@@ -36,7 +38,7 @@ import gsap from 'gsap';
 export const LoginForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login: authLogin, isAuthenticated, isAdmin, loading: authLoading } = useAuth();
+  const { login: authLogin, refreshProfile, isAuthenticated, isAdmin, loading: authLoading } = useAuth();
   const { login: apiLogin, loading, error: apiError } = useLogin();
   const { showError } = useNotification();
   
@@ -122,10 +124,26 @@ export const LoginForm = () => {
     setShowPassword(!showPassword);
   };
 
-  const handleGoogleLogin = () => {
-    console.log('Google login clicked');
-    // Implement Google Auth logic here
-  };
+  const handleGoogleSuccess = useCallback(async (tokenResponse) => {
+    setLoginError('');
+    try {
+      const response = await authService.googleAuth(tokenResponse.access_token);
+      authLogin(response.data);
+      await refreshProfile();
+      navigate(resolveRedirectPath(inferAdminFromLoginPayload(response.data)), { replace: true });
+    } catch (err) {
+      const message = err.response?.data?.message || 'Google sign-in failed. Please try again.';
+      setLoginError(message);
+      showError(message);
+    }
+  }, [authLogin, refreshProfile, navigate, showError]);
+
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: handleGoogleSuccess,
+    onError: () => {
+      setLoginError('Google sign-in was cancelled or failed.');
+    },
+  });
 
   const handleSubmitForm = handleSubmit(async (formData) => {
     setLoginError('');

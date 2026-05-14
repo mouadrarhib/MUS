@@ -136,6 +136,11 @@ export const lightTheme = createTheme({
   shape,
   transitions,
   components: {
+    MuiAvatar: {
+      defaultProps: {
+        imgProps: { referrerPolicy: 'no-referrer' },
+      },
+    },
     MuiButton: {
       defaultProps: {
         disableElevation: true,
@@ -340,6 +345,11 @@ export const darkTheme = createTheme({
   shape,
   transitions,
   components: {
+    MuiAvatar: {
+      defaultProps: {
+        imgProps: { referrerPolicy: 'no-referrer' },
+      },
+    },
     MuiButton: {
       defaultProps: {
         disableElevation: true,

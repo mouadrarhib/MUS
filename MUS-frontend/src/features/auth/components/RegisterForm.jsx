@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useGoogleLogin } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -41,6 +42,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { SocialAuthSection } from '@/features/auth/components/SocialAuthSection';
+import { authService } from '@/services/authService';
 import logo from '@/assets/images/logo.png';
 import { useRegister } from '@/features/auth/hooks/useAuthHooks';
 import { pageTransitionSx } from '@/styles/motion';
@@ -54,7 +56,7 @@ import gsap from 'gsap';
 
 export const RegisterForm = () => {
   const navigate = useNavigate();
-  const { login: authLogin } = useAuth();
+  const { login: authLogin, refreshProfile } = useAuth();
   const { register: apiRegister, loading, error: apiError } = useRegister();
 
   const [activeStep, setActiveStep] = useState(0);
@@ -293,10 +295,24 @@ export const RegisterForm = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
-  const handleGoogleRegister = () => {
-    console.log('Google register clicked');
-    // Implement Google Auth logic here
-  };
+  const handleGoogleSuccess = useCallback(async (tokenResponse) => {
+    if (registerError) setRegisterError('');
+    try {
+      const response = await authService.googleAuth(tokenResponse.access_token);
+      authLogin(response.data);
+      await refreshProfile();
+      navigate('/discover', { replace: true });
+    } catch (err) {
+      setRegisterError(err.response?.data?.message || 'Google sign-up failed. Please try again.');
+    }
+  }, [authLogin, refreshProfile, navigate, registerError]);
+
+  const handleGoogleRegister = useGoogleLogin({
+    onSuccess: handleGoogleSuccess,
+    onError: () => {
+      setRegisterError('Google sign-up was cancelled or failed.');
+    },
+  });
 
   const handleSubmitForm = handleSubmit(async (formData) => {
     if (registerError) setRegisterError('');

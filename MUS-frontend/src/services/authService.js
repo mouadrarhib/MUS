@@ -1,6 +1,7 @@
 import { del, get, patch, post } from "@/services/http";
 
 const AUTH = {
+  GOOGLE: "/auth/google",
   REGISTER: "/auth/register",
   LOGIN: "/auth/login",
   ME: "/auth/me",
@@ -20,6 +21,8 @@ const AUTH = {
 };
 
 export const authService = {
+  googleAuth: (accessToken) => post(AUTH.GOOGLE, { access_token: accessToken }),
+
   register: (payloadOrEmail, password, fullName) => {
     if (typeof payloadOrEmail === "object" && payloadOrEmail !== null) {
       return post(AUTH.REGISTER, payloadOrEmail);
