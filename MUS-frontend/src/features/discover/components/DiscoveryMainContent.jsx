@@ -274,20 +274,42 @@ const MOTION_BTN_TRANSITION = { type: 'spring', damping: 22, stiffness: 300 };
 // Sub-components
 // ---------------------------------------------------------------------------
 
-const ResourceCardSkeleton = memo(() => (
-  <Box sx={{ borderRadius: 3, overflow: 'hidden', border: '0.5px solid', borderColor: 'divider' }}>
-    <Skeleton variant="rectangular" height={160} sx={{ borderRadius: 0 }} />
-    <Box sx={{ p: 1.5 }}>
-      <Skeleton variant="text" width="45%" height={12} sx={{ mb: 0.75 }} />
-      <Skeleton variant="text" width="85%" height={16} sx={{ mb: 0.4 }} />
-      <Skeleton variant="text" width="70%" height={16} sx={{ mb: 1 }} />
-      <Stack direction="row" alignItems="center" gap={1}>
-        <Skeleton variant="circular" width={24} height={24} />
-        <Skeleton variant="text" width={55} height={12} />
-      </Stack>
+const ResourceCardSkeleton = memo(({ viewMode = 'grid' }) => {
+  const isList = viewMode === 'list';
+
+  return (
+    <Box
+      sx={{
+        borderRadius: isList ? '16px' : 3,
+        overflow: 'hidden',
+        border: '0.5px solid',
+        borderColor: 'divider',
+        display: 'flex',
+        flexDirection: isList ? { xs: 'column', sm: 'row' } : 'column',
+      }}
+    >
+      <Skeleton
+        variant="rectangular"
+        sx={{
+          width: isList ? { xs: '100%', sm: 240, md: 280 } : '100%',
+          height: isList ? { xs: 160, sm: 135, md: 157 } : 160,
+          aspectRatio: isList ? { xs: '16/9', sm: 'auto' } : 'auto',
+          borderRadius: 0,
+          flexShrink: 0,
+        }}
+      />
+      <Box sx={{ p: isList ? { xs: 2, sm: 2.5 } : 1.5, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: isList ? 'center' : 'flex-start' }}>
+        <Skeleton variant="text" width="45%" height={12} sx={{ mb: 0.75 }} />
+        <Skeleton variant="text" width="85%" height={16} sx={{ mb: 0.4 }} />
+        <Skeleton variant="text" width="70%" height={16} sx={{ mb: 1 }} />
+        <Stack direction="row" alignItems="center" gap={1} sx={{ mt: isList ? 'auto' : 0 }}>
+          <Skeleton variant="circular" width={24} height={24} />
+          <Skeleton variant="text" width={55} height={12} />
+        </Stack>
+      </Box>
     </Box>
-  </Box>
-));
+  );
+});
 ResourceCardSkeleton.displayName = 'ResourceCardSkeleton';
 
 /** Debounced search bar — local state prevents parent re-renders on every keystroke */
@@ -529,7 +551,7 @@ const DiscoveryMainContent = ({
       {loading ? (
         <Box sx={viewMode === 'grid' ? GRID_SX_GRID : GRID_SX_LIST}>
           {Array.from({ length: 8 }).map((_, i) => (
-            <ResourceCardSkeleton key={i} />
+            <ResourceCardSkeleton key={i} viewMode={viewMode} />
           ))}
         </Box>
       ) : cardResources.length === 0 ? (

@@ -873,7 +873,7 @@ const ResourceDialog = memo(({
                 ? 'Ready to replace thumbnail'
                 : existingThumbnailRef
                   ? 'Current thumbnail saved - click to replace'
-                  : 'JPG, PNG, WEBP (recommended: 1280x720)'}
+                  : 'JPG, PNG, WEBP (Recommended: 1280x720, 16:9)'}
             </Typography>
           </Box>
         </Box>

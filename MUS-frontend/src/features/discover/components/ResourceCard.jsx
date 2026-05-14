@@ -69,7 +69,8 @@ const ResourceCard = ({ resource, view, viewMode, onClick, onOpen }) => {
           sx={{
             position: 'relative',
             width: { xs: '100%', sm: 240, md: 280 },
-            minHeight: { xs: 160, sm: 'auto' },
+            height: { xs: 'auto', sm: 135, md: 157 },
+            aspectRatio: { xs: '16/9', sm: 'auto' },
             flexShrink: 0,
             overflow: 'hidden',
             bgcolor: 'action.hover',
