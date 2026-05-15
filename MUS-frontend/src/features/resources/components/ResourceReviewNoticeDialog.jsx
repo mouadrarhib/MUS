@@ -19,7 +19,7 @@ import AccessTimeOutlined from '@mui/icons-material/AccessTimeOutlined';
 const dialogPaperSx = {
   borderRadius: (t) => `${t.shape.xl}px`,
   overflow: 'hidden',
-  boxShadow: '0 24px 48px rgba(0,0,0,0.14)',
+  boxShadow: 'var(--shadow-lg)',
 };
 
 const headerSx = (theme) => ({

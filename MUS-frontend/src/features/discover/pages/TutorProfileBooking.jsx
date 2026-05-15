@@ -290,7 +290,7 @@ const TutorBookingPageView = ({
           borderRadius: 4, 
           overflow: 'hidden',
           border: '1px solid rgba(255,255,255,0.4)',
-          boxShadow: '0 12px 40px rgba(0,0,0,0.05)',
+          boxShadow: 'var(--shadow-lg)',
           bgcolor: 'background.paper'
         }}
       >
@@ -313,7 +313,7 @@ const TutorBookingPageView = ({
                   fontSize: '3rem', 
                   bgcolor: BRAND_BLUE,
                   border: '4px solid #fff',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
+                  boxShadow: 'var(--shadow-md)',
                   zIndex: 2,
                 }}
               >

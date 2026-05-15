@@ -451,7 +451,7 @@ export default function OnboardingPage() {
                   height: 'auto',
                   borderRadius: 4,
                   border: (theme) => `1px solid ${theme.palette.divider}`,
-                  boxShadow: '0 18px 45px rgba(15, 23, 42, 0.18)',
+                  boxShadow: 'var(--shadow-lg)',
                   backgroundColor: 'white',
                   mt: 1,
                 }}

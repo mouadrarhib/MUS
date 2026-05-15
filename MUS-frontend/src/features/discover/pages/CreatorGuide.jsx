@@ -83,7 +83,7 @@ const StepCard = ({ step, isLast }) => (
           fontWeight: 800,
           fontSize: '1.1rem',
           mb: 1.5,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+          boxShadow: 'var(--shadow-md)',
           zIndex: 2,
         }}
       >

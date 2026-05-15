@@ -236,7 +236,7 @@ const ResourcesTable = ({ resources, loading, onView, onEdit, onDelete }) => {
           sx: {
             borderRadius: 2,
             minWidth: 150,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+            boxShadow: 'var(--shadow-md)',
           }
         }}
       >

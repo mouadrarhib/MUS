@@ -242,7 +242,7 @@ const UsersTable = ({ users, loading, onView, onEdit, onDelete, onToggleStatus }
           sx: {
             borderRadius: 2,
             minWidth: 150,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+            boxShadow: 'var(--shadow-md)',
           }
         }}
       >

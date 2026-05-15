@@ -171,7 +171,7 @@ export const Sidebar = ({
             height: `calc(100% - ${navbarHeight}px)`,
             borderTopRightRadius: 16,
             borderBottomRightRadius: 16,
-            boxShadow: '0 12px 30px rgba(0,0,0,0.18)',
+            boxShadow: 'var(--shadow-lg)',
           }),
         },
       }}

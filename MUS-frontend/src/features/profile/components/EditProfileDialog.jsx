@@ -285,7 +285,7 @@ const EditProfileDialog = ({ open, onClose }) => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.16)',
+                        boxShadow: 'var(--shadow-sm)',
                         border: (theme) => `2px solid ${theme.palette.background.paper}`,
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                       }}

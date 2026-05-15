@@ -170,14 +170,14 @@ const ThemeProviderComponent = ({ children }) => {
                 '--spacing-xl': 'calc(var(--spacing-unit) * 4)',
                 '--spacing-xxl': 'calc(var(--spacing-unit) * 6)',
                 '--shadow-sm': isDark
-                  ? '0 2px 4px rgba(0, 0, 0, 0.3)'
-                  : '0 2px 4px rgba(0, 0, 0, 0.08)',
+                  ? '0 1px 3px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.25)'
+                  : '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)',
                 '--shadow-md': isDark
-                  ? '0 4px 8px rgba(0, 0, 0, 0.4)'
-                  : '0 4px 8px rgba(0, 0, 0, 0.1)',
+                  ? '0 4px 12px rgba(0,0,0,0.45), 0 2px 4px rgba(0,0,0,0.30)'
+                  : '0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06)',
                 '--shadow-lg': isDark
-                  ? '0 8px 24px rgba(0, 0, 0, 0.5)'
-                  : '0 8px 24px rgba(0, 0, 0, 0.12)',
+                  ? '0 8px 28px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.40)'
+                  : '0 8px 28px rgba(0,0,0,0.14), 0 4px 8px rgba(0,0,0,0.08)',
                 '--transition-fast': '150ms ease-in-out',
                 '--transition-normal': '300ms ease-in-out',
                 '--transition-slow': '500ms ease-in-out',
