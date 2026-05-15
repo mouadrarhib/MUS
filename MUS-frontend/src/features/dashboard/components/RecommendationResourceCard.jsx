@@ -97,8 +97,7 @@ const RecommendationResourceCard = ({
         p: { xs: 1.8, md: 2 },
         borderRadius: (t) => `${t.shape.xl}px`,
         border: '1px solid',
-        borderColor: (theme) =>
-          theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+        borderColor: 'var(--border)',
         bgcolor: (theme) =>
           theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)',
         overflow: 'hidden',
@@ -243,7 +242,7 @@ const RecommendationResourceCard = ({
               fontSize: '0.95rem',
             }}
           />
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, fontSize: '0.74rem' }}>
+          <Typography variant="metaLabel" color="text.secondary" sx={{ fontWeight: 600 }}>
             {rating > 0 ? rating.toFixed(1) : '—'}
           </Typography>
         </Box>

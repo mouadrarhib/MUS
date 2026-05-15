@@ -14,6 +14,7 @@ import {
 import PropTypes from 'prop-types';
 import StatsOverview from '@/features/dashboard/components/StatsOverview';
 import { ResourceDonut, EngagementBars } from '@/features/dashboard/components/MiniChart';
+import { getCardBackground } from '@/styles/theme';
 
 const AdminOverviewWidgets = ({ loading, stats }) => {
   return (
@@ -35,10 +36,7 @@ const AdminOverviewWidgets = ({ loading, stats }) => {
                 borderRadius: (t) => `${t.shape.xl}px`,
                 border: '1px solid',
                 borderColor: 'divider',
-                background: (theme) =>
-                  theme.palette.mode === 'dark'
-                    ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-                    : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                background: (theme) => getCardBackground(theme.palette.mode),
               }}
             >
               <Skeleton variant="text" width={110} height={18} />
@@ -107,10 +105,7 @@ const AdminOverviewWidgets = ({ loading, stats }) => {
                 borderRadius: (t) => `${t.shape.xl}px`,
                 border: '1px solid',
                 borderColor: 'divider',
-                background: (theme) =>
-                  theme.palette.mode === 'dark'
-                    ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-                    : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                background: (theme) => getCardBackground(theme.palette.mode),
                 height: '100%',
               }}
             >
@@ -217,10 +212,7 @@ const AdminOverviewWidgets = ({ loading, stats }) => {
               borderRadius: (t) => `${t.shape.xl}px`,
               border: '1px solid',
               borderColor: 'divider',
-              background: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-                  : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+              background: (theme) => getCardBackground(theme.palette.mode),
             }}
           >
             <Skeleton variant="text" width={140} height={24} />
@@ -238,10 +230,7 @@ const AdminOverviewWidgets = ({ loading, stats }) => {
               borderRadius: (t) => `${t.shape.xl}px`,
               border: '1px solid',
               borderColor: 'divider',
-              background: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-                  : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+              background: (theme) => getCardBackground(theme.palette.mode),
             }}
           >
             <Box display="flex" alignItems="center" gap={1} mb={2}>
@@ -313,10 +302,7 @@ const AdminOverviewWidgets = ({ loading, stats }) => {
                 borderRadius: (t) => `${t.shape.xl}px`,
                 border: '1px solid',
                 borderColor: 'divider',
-                background: (theme) =>
-                  theme.palette.mode === 'dark'
-                    ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-                    : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                background: (theme) => getCardBackground(theme.palette.mode),
               }}
             >
               <Skeleton variant="text" width={160} height={20} />
@@ -336,10 +322,7 @@ const AdminOverviewWidgets = ({ loading, stats }) => {
                 borderRadius: (t) => `${t.shape.xl}px`,
                 border: '1px solid',
                 borderColor: 'divider',
-                background: (theme) =>
-                  theme.palette.mode === 'dark'
-                    ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-                    : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                background: (theme) => getCardBackground(theme.palette.mode),
               }}
             >
               <Box display="flex" alignItems="center" gap={1} mb={2}>
@@ -383,10 +366,7 @@ const AdminOverviewWidgets = ({ loading, stats }) => {
                 borderRadius: (t) => `${t.shape.xl}px`,
                 border: '1px solid',
                 borderColor: 'divider',
-                background: (theme) =>
-                  theme.palette.mode === 'dark'
-                    ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-                    : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                background: (theme) => getCardBackground(theme.palette.mode),
               }}
             >
               <Box display="flex" alignItems="center" gap={1} mb={2}>

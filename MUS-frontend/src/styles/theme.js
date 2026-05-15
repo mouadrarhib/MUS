@@ -57,6 +57,18 @@ const typography = {
     textTransform: 'none',
     fontWeight: 500,
   },
+  fontWeightExtraBold: 800,
+  statValue: {
+    fontSize: '2rem',
+    fontWeight: 700,
+    lineHeight: 1.2,
+  },
+  metaLabel: {
+    fontSize: '0.75rem',
+    fontWeight: 500,
+    lineHeight: 1.4,
+    letterSpacing: '0.02em',
+  },
 };
 
 // Espacements et bordures
@@ -310,6 +322,14 @@ export const lightTheme = createTheme({
         },
       },
     },
+    MuiTypography: {
+      defaultProps: {
+        variantsMapping: {
+          statValue: 'p',
+          metaLabel: 'span',
+        },
+      },
+    },
   },
 });
 
@@ -533,6 +553,14 @@ export const darkTheme = createTheme({
           '&:not(.MuiBackdrop-invisible)': {
             transition: 'opacity 120ms cubic-bezier(0.4, 0, 0.2, 1) !important',
           },
+        },
+      },
+    },
+    MuiTypography: {
+      defaultProps: {
+        variantsMapping: {
+          statValue: 'p',
+          metaLabel: 'span',
         },
       },
     },

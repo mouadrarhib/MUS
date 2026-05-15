@@ -108,8 +108,8 @@ const HeroSearchBar = memo(({ onSearch, onPopularSearch, t }) => {
       </Box>
 
       <Stack direction="row" flexWrap="wrap" spacing={1} useFlexGap sx={{ mt: 2 }}>
-        <Typography variant="caption" color="text.disabled"
-          sx={{ alignSelf: 'center', fontSize: '0.75rem' }}>
+        <Typography variant="metaLabel" color="text.disabled"
+          sx={{ alignSelf: 'center' }}>
           {t('publicHome.hero.popularLabel', 'Popular:')}
         </Typography>
         {POPULAR_SEARCHES.map((term) => (

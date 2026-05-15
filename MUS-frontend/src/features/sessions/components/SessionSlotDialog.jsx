@@ -55,13 +55,13 @@ const StepSidebar = ({ activeStep, onClose }) => {
       <Box sx={{ px: 2.5, py: 2 }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between">
           <Box>
-            <Typography sx={{ color: "white", fontWeight: 800, fontSize: "0.95rem" }}>Create Slots</Typography>
+            <Typography sx={{ color: "white", fontWeight: (t) => t.typography.fontWeightExtraBold, fontSize: "0.95rem" }}>Create Slots</Typography>
             <Typography sx={{ color: "rgba(255,255,255,0.45)", fontSize: "0.72rem", mt: 0.4 }}>Two-step availability setup</Typography>
           </Box>
           <IconButton size="small" onClick={onClose} sx={{ color: "rgba(255,255,255,0.6)" }}>x</IconButton>
         </Stack>
       </Box>
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.08)" }} />
+      <Divider sx={{ borderColor: 'var(--border-dark)' }} />
       <Box sx={{ p: 2.5 }}>
         {steps.map((step, i) => {
           const done = i < activeStep;

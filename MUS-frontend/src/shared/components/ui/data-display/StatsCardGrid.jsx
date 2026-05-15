@@ -1,6 +1,7 @@
 import { Box, Typography, alpha } from '@mui/material';
 import PropTypes from 'prop-types';
 import { staggerContainerSx } from '@/styles/motion';
+import { getCardBackground } from '@/styles/theme';
 
 export const StatsCardGrid = ({ items, columns, variant = 'default' }) => {
   return (
@@ -23,10 +24,7 @@ export const StatsCardGrid = ({ items, columns, variant = 'default' }) => {
                 borderRadius: (t) => `${t.shape.xl}px`,
                 border: '1px solid',
                 borderColor: 'divider',
-                background: (theme) =>
-                  theme.palette.mode === 'dark'
-                    ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-                    : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                background: (theme) => getCardBackground(theme.palette.mode),
                 position: 'relative',
                 overflow: 'hidden',
                 '&::before': {
@@ -77,10 +75,7 @@ export const StatsCardGrid = ({ items, columns, variant = 'default' }) => {
               borderRadius: (t) => `${t.shape.xl}px`,
               border: '1px solid',
               borderColor: 'divider',
-              background: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-                  : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+              background: (theme) => getCardBackground(theme.palette.mode),
               transition: 'all 0.2s ease',
               position: 'relative',
               overflow: 'hidden',

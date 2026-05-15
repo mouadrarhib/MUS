@@ -6,6 +6,7 @@ import QuickActions from '@/features/dashboard/components/QuickActions';
 import AdminOverviewWidgets from '@/features/dashboard/components/AdminOverviewWidgets';
 import ContributorOverviewWidgets from '@/features/dashboard/components/ContributorOverviewWidgets';
 import { useOverviewData } from '@/features/dashboard/hooks/useOverviewData';
+import { getCardBackground } from '@/styles/theme';
 
 const Overview = () => {
   const { user, isAdmin, isStudent } = useAuth();
@@ -95,10 +96,7 @@ const Overview = () => {
               borderRadius: (t) => `${t.shape.xl}px`,
               border: '1px solid',
               borderColor: 'divider',
-              background: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-                  : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+              background: (theme) => getCardBackground(theme.palette.mode),
             }}
           >
             <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>

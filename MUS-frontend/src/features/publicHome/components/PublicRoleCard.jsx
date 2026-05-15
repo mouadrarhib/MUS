@@ -123,7 +123,7 @@ const PublicRoleCard = memo(({ pillar, t, isDark, reducedMotion }) => {
 
         {/* Title */}
         <Typography component="h3" sx={{
-          fontWeight:800, lineHeight:1.25,
+          fontWeight: (t) => t.typography.fontWeightExtraBold, lineHeight:1.25,
           fontSize:{ xs:"1.15rem", md:"1.25rem" },
           letterSpacing:"-0.3px", color:"#fff",
         }}>
@@ -139,7 +139,7 @@ const PublicRoleCard = memo(({ pillar, t, isDark, reducedMotion }) => {
           ? "linear-gradient(180deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.02) 100%)"
           : "#fff",
         border: "1px solid", borderTop: "none",
-        borderColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
+        borderColor: 'var(--border)',
         borderRadius: "0 0 24px 24px",
       }}>
 
@@ -200,7 +200,7 @@ const PublicRoleCard = memo(({ pillar, t, isDark, reducedMotion }) => {
               )}
               <Box>
                 <Typography sx={{
-                  fontWeight:800, fontSize:"1rem", lineHeight:1,
+                  fontWeight: (t) => t.typography.fontWeightExtraBold, fontSize:"1rem", lineHeight:1,
                   color: isDark ? "#f0ecff" : "#0f0d1c",
                   fontVariantNumeric:"tabular-nums",
                 }}>

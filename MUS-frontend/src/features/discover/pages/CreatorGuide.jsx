@@ -108,7 +108,7 @@ const StepCard = ({ step, isLast }) => (
         })}
       >
         <Box component="img" src={step.image} alt={step.title} sx={{ width: 140, height: 140, objectFit: 'contain', mb: 2 }} />
-        <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: 'primary.main', mb: 0.5 }}>
+        <Typography sx={{ fontWeight: (t) => t.typography.fontWeightExtraBold, fontSize: '1.15rem', color: 'primary.main', mb: 0.5 }}>
           {step.title}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 'auto', lineHeight: 1.5 }}>
@@ -168,8 +168,8 @@ const CreatorGuide = () => {
           <Typography 
             variant="h2" 
             sx={{ 
-              fontWeight: 800, 
-              mb: 1.5, 
+              fontWeight: (t) => t.typography.fontWeightExtraBold,
+              mb: 1.5,
               background: 'linear-gradient(92deg, #1D72F2 0%, #7C3AED 100%)', 
               WebkitBackgroundClip: 'text', 
               WebkitTextFillColor: 'transparent',
@@ -216,7 +216,7 @@ const CreatorGuide = () => {
             <Box sx={{ flex: 1, p: { xs: 3, md: 4 }, display: 'flex', gap: 2.5, alignItems: 'flex-start' }}>
               <EmojiEvents sx={{ fontSize: 40, color: '#2563EB' }} />
               <Box>
-                <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', mb: 0.5 }}>Rewards & Gamification</Typography>
+                <Typography sx={{ fontWeight: (t) => t.typography.fontWeightExtraBold, fontSize: '1.05rem', mb: 0.5 }}>Rewards & Gamification</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
                   Earn points when users download or favorite your content.
                 </Typography>
@@ -226,7 +226,7 @@ const CreatorGuide = () => {
             <Box sx={{ flex: 1, p: { xs: 3, md: 4 }, display: 'flex', gap: 2.5, alignItems: 'flex-start' }}>
               <LockOpen sx={{ fontSize: 40, color: '#F59E0B' }} />
               <Box>
-                <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', mb: 0.5 }}>Unlock Premium Resources</Typography>
+                <Typography sx={{ fontWeight: (t) => t.typography.fontWeightExtraBold, fontSize: '1.05rem', mb: 0.5 }}>Unlock Premium Resources</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
                   Use your points to unlock and download premium resources.
                 </Typography>
@@ -236,7 +236,7 @@ const CreatorGuide = () => {
             <Box sx={{ flex: 1, p: { xs: 3, md: 4 }, display: 'flex', gap: 2.5, alignItems: 'flex-start' }}>
               <AccountBalanceWallet sx={{ fontSize: 40, color: '#10B981' }} />
               <Box>
-                <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', mb: 0.5 }}>Your Earnings</Typography>
+                <Typography sx={{ fontWeight: (t) => t.typography.fontWeightExtraBold, fontSize: '1.05rem', mb: 0.5 }}>Your Earnings</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
                   Points are stored in your wallet. More contribution, more rewards!
                 </Typography>
@@ -272,7 +272,7 @@ const CreatorGuide = () => {
 
         {/* â”€â”€ Short FAQ â”€â”€ */}
         <Box sx={{ maxWidth: 800, mx: 'auto' }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, textAlign: 'center' }}>Frequently Asked Questions</Typography>
+          <Typography variant="h6" sx={{ fontWeight: (t) => t.typography.fontWeightExtraBold, mb: 3, textAlign: 'center' }}>Frequently Asked Questions</Typography>
           <Box>
             {faqs.map((faq, index) => (
               <Accordion 

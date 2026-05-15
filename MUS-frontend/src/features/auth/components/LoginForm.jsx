@@ -406,7 +406,7 @@ export const LoginForm = () => {
                 gap: 2,
               }}
             >
-              <Typography variant="h5" sx={{ mb: 0.5, fontWeight: 800 }}>
+              <Typography variant="h5" sx={{ mb: 0.5, fontWeight: (t) => t.typography.fontWeightExtraBold }}>
                 Moroccan Uni Student
               </Typography>
               <Typography variant="body2" color="text.secondary">

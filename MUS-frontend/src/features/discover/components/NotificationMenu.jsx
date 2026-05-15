@@ -62,9 +62,7 @@ const NotificationMenu = memo(({
             color: 'text.primary',
             bgcolor: alpha(theme.palette.primary.main, 0.06),
             border: '1px solid',
-            borderColor: theme.palette.mode === 'dark'
-              ? 'rgba(255,255,255,0.08)'
-              : 'rgba(0,0,0,0.08)',
+            borderColor: 'var(--border)',
             borderRadius: 2,
             p: 0.8,
             transition: 'all 0.18s ease',

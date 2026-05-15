@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import PropTypes from 'prop-types';
 import { DialogSectionTitle, InfoFieldCard } from '@/shared/components/ui';
+import { getCardBackground } from '@/styles/theme';
 
 const FavoriteDetailsDialog = ({ open, favorite, onClose }) => {
   if (!favorite) return null;
@@ -129,9 +130,7 @@ const FavoriteDetailsDialog = ({ open, favorite, onClose }) => {
             borderRadius: (t) => `${t.shape.xl}px`,
             border: '1px solid',
             borderColor: 'divider',
-            background: (theme) => theme.palette.mode === 'dark' 
-              ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-              : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+            background: (theme) => getCardBackground(theme.palette.mode),
           }}
         >
           <Typography variant="h6" fontWeight="700" gutterBottom>

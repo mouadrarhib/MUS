@@ -79,8 +79,7 @@ const UserProfileMenu = ({ user, roles, isArabic = false, onProfile, onSettings,
           py: { xs: 0.5, sm: 0.75 },
           borderRadius: 2.5,
           border: '1px solid',
-          borderColor: (theme) =>
-            theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+          borderColor: 'var(--border)',
           bgcolor: (theme) =>
             theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
           transition: 'all 0.22s ease',
@@ -201,8 +200,7 @@ const UserProfileMenu = ({ user, roles, isArabic = false, onProfile, onSettings,
             mt: 1.5,
             borderRadius: (t) => `${t.shape.xl}px`,
             border: '1px solid',
-            borderColor: (theme) =>
-              theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
+            borderColor: 'var(--border)',
             backdropFilter: 'blur(20px)',
             bgcolor: (theme) =>
               theme.palette.mode === 'dark' ? 'rgba(22,18,34,0.96)' : 'rgba(255,255,255,0.97)',
@@ -257,7 +255,7 @@ const UserProfileMenu = ({ user, roles, isArabic = false, onProfile, onSettings,
               <Typography variant="subtitle2" fontWeight={800} noWrap sx={{ fontSize: '0.92rem', lineHeight: 1.3 }}>
                 {user?.full_name || 'User'}
               </Typography>
-              <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', fontSize: '0.76rem', mt: 0.15 }}>
+              <Typography variant="metaLabel" color="text.secondary" noWrap sx={{ display: 'block', mt: 0.15 }}>
                 {user?.email || 'No email'}
               </Typography>
             </Box>

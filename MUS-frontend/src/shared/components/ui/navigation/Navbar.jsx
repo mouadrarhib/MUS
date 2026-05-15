@@ -227,10 +227,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
         backdropFilter: 'blur(16px) saturate(1.6)',
         WebkitBackdropFilter: 'blur(16px) saturate(1.6)',
         borderBottom: '1px solid',
-        borderColor: (theme) =>
-          theme.palette.mode === 'dark'
-            ? 'rgba(255,255,255,0.06)'
-            : 'rgba(0,0,0,0.06)',
+        borderColor: 'var(--border)',
         boxShadow: (theme) =>
           theme.palette.mode === 'dark'
             ? '0 1px 12px rgba(0,0,0,0.4)'
@@ -261,8 +258,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
             ml: isArabic ? { xs: 0.75, sm: 1.25 } : 0,
             color: 'text.primary',
             border: '1px solid',
-            borderColor: (theme) =>
-              theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+            borderColor: 'var(--border)',
             borderRadius: 2,
             p: { xs: 0.65, sm: 0.8 },
             transition: 'all 0.2s ease',
@@ -354,8 +350,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen }) => {
             color: 'text.primary',
             bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
             border: '1px solid',
-            borderColor: (theme) =>
-              theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+            borderColor: 'var(--border)',
             borderRadius: 2,
             p: { xs: 0.65, sm: 0.8 },
             transition: 'all 0.22s ease',

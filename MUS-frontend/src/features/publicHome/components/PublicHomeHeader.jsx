@@ -83,10 +83,7 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
             ? "rgba(18,15,30,0.82)"
             : "rgba(255,255,255,0.78)",
         borderBottom: "1px solid",
-        borderColor: (theme) =>
-          theme.palette.mode === "dark"
-            ? "rgba(255,255,255,0.06)"
-            : "rgba(0,0,0,0.06)",
+        borderColor: 'var(--border)',
         boxShadow: (theme) =>
           theme.palette.mode === "dark"
             ? "0 1px 12px rgba(0,0,0,0.4)"
@@ -268,8 +265,7 @@ const PublicHomeHeader = ({ navLinks = [] }) => {
                 minWidth: 180,
                 borderRadius: 2.5,
                 border: "1px solid",
-                borderColor: (theme) =>
-                  theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
+                borderColor: 'var(--border)',
                 backdropFilter: "blur(16px)",
                 bgcolor: (theme) =>
                   theme.palette.mode === "dark"

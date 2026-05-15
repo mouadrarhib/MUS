@@ -823,7 +823,7 @@ export const RegisterForm = () => {
           >
             <Stack spacing={4}>
               <Box>
-                <Typography variant="h5" sx={{ mb: 1, fontWeight: 800, color: 'primary.main' }}>
+                <Typography variant="h5" sx={{ mb: 1, fontWeight: (t) => t.typography.fontWeightExtraBold, color: 'primary.main' }}>
                   Start your journey
                 </Typography>
                 <Typography variant="body2" color="text.secondary">

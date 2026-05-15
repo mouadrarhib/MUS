@@ -13,6 +13,7 @@ import ResourceDetailsDialog from '@/features/resources/components/ResourceDetai
 import ResourceReviewNoticeDialog from '@/features/resources/components/ResourceReviewNoticeDialog';
 import { AsyncButton, EmptyState, PageHeader } from '@/shared/components/ui';
 import { useLanguage } from '@/app/providers/LanguageContext';
+import { getCardBackground } from '@/styles/theme';
 
 const asList = (payload, key = null) => {
   if (Array.isArray(payload)) return payload;
@@ -398,10 +399,7 @@ const MyUploads = () => {
               borderRadius: (t) => `${t.shape.xl}px`,
               border: '1px solid',
               borderColor: 'divider',
-              background: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-                  : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+              background: (theme) => getCardBackground(theme.palette.mode),
             }}
           >
             <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>

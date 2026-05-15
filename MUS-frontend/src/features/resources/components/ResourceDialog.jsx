@@ -264,7 +264,7 @@ const Sidebar = memo(({ steps, stepIcons, activeStep, onClose, resource, preview
       <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
         <Box>
           <Typography
-            sx={{ fontWeight: 800, color: 'white', fontSize: '0.9375rem', letterSpacing: -0.2, lineHeight: 1.2 }}
+            sx={{ fontWeight: (t) => t.typography.fontWeightExtraBold, color: 'white', fontSize: '0.9375rem', letterSpacing: -0.2, lineHeight: 1.2 }}
           >
             {resource ? 'Edit Resource' : 'New Resource'}
           </Typography>
@@ -376,7 +376,7 @@ const Sidebar = memo(({ steps, stepIcons, activeStep, onClose, resource, preview
             sx={{
               p: 1.5, borderRadius: '10px',
               bgcolor: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--border-dark)',
             }}
           >
             <Typography

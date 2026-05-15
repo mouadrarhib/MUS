@@ -20,13 +20,13 @@ import SessionInboxMenu from '@/shared/components/ui/navigation/SessionInboxMenu
 const NAVBAR_WRAPPER_SX = (theme) => ({
   position: 'sticky', top: 0, zIndex: theme.zIndex.appBar, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
   bgcolor: theme.palette.mode === 'dark' ? 'rgba(18,15,30,0.82)' : 'rgba(255,255,255,0.78)',
-  borderBottom: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+  borderBottom: '1px solid', borderColor: 'var(--border)',
   boxShadow: theme.palette.mode === 'dark' ? '0 1px 12px rgba(0,0,0,0.4)' : '0 1px 12px rgba(0,0,0,0.04)',
 });
 
 const THEME_BTN_SX = (theme) => ({
   color: 'text.primary', bgcolor: alpha(theme.palette.primary.main, 0.06),
-  border: '1px solid', borderColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+  border: '1px solid', borderColor: 'var(--border)',
   borderRadius: 2, p: 0.8, transition: 'all 0.22s ease',
   '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.14), borderColor: alpha(theme.palette.primary.main, 0.3), transform: 'rotate(15deg)' },
 });

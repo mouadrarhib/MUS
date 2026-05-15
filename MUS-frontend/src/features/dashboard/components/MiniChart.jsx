@@ -10,6 +10,7 @@ import {
   XAxis,
   Tooltip,
 } from 'recharts';
+import { getCardBackground } from '@/styles/theme';
 
 const COLORS = ['#2e7d32', '#ed6c02', '#9e9e9e', '#1976d2'];
 
@@ -33,9 +34,7 @@ export const ResourceDonut = ({ published, draft, archived, total }) => {
         borderRadius: `${theme.shape.xl}px`,
         border: '1px solid',
         borderColor: 'divider',
-        background: (t) => t.palette.mode === 'dark'
-          ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-          : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+        background: (t) => getCardBackground(t.palette.mode),
         height: '100%',
       }}
     >
@@ -102,9 +101,7 @@ export const EngagementBars = ({ favorites, ratings, avgRating }) => {
         borderRadius: `${theme.shape.xl}px`,
         border: '1px solid',
         borderColor: 'divider',
-        background: (t) => t.palette.mode === 'dark'
-          ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-          : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+        background: (t) => getCardBackground(t.palette.mode),
         height: '100%',
       }}
     >

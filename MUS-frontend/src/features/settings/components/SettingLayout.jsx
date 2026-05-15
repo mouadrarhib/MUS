@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Box, Paper, Typography, alpha } from '@mui/material';
 import PropTypes from 'prop-types';
+import { getCardBackground } from '@/styles/theme';
 
 // ─── SettingSection ───────────────────────────────────────────────────────────
 // Wraps a group of settings rows with a branded header (icon + title + subtitle).
@@ -14,10 +15,7 @@ export const SettingSection = memo(({ icon, title, subtitle, color, children }) 
       overflow: 'hidden',
       border: '1px solid',
       borderColor: 'divider',
-      background: (theme) =>
-        theme.palette.mode === 'dark'
-          ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-          : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+      background: (theme) => getCardBackground(theme.palette.mode),
     }}
   >
     {/* Colored top accent bar */}

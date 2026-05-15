@@ -103,7 +103,7 @@ export function StatCard({ title, value, icon, trend, trendValue, color = 'prima
               ) : (
                 <TrendingDown sx={{ fontSize: 16 }} />
               )}
-              <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>
+              <Typography variant="metaLabel" sx={{ fontWeight: 700 }}>
                 {trendValue}
               </Typography>
             </Box>
@@ -127,13 +127,10 @@ export function StatCard({ title, value, icon, trend, trendValue, color = 'prima
 
         {/* Value */}
         <Typography
-          variant="h3"
+          variant="statValue"
           sx={{
-            fontWeight: 700,
             color: 'text.primary',
             mb: subtitle ? 1 : 0,
-            fontSize: '2rem',
-            lineHeight: 1.2,
           }}
         >
           {value}
@@ -142,9 +139,9 @@ export function StatCard({ title, value, icon, trend, trendValue, color = 'prima
         {/* Subtitle */}
         {subtitle && (
           <Typography
-            variant="caption"
+            variant="metaLabel"
             color="text.secondary"
-            sx={{ display: 'block', fontSize: '0.75rem' }}
+            sx={{ display: 'block' }}
           >
             {subtitle}
           </Typography>

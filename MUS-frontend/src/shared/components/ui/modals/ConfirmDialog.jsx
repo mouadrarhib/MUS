@@ -57,7 +57,7 @@ export const ConfirmDialog = ({
         sx: {
           borderRadius: (t) => `${t.shape.xl}px`,
           border: '1px solid',
-          borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+          borderColor: 'var(--border)',
           overflow: 'hidden',
         },
       }}
@@ -99,7 +99,7 @@ export const ConfirmDialog = ({
                 <Typography variant="subtitle1" fontWeight={800} sx={{ lineHeight: 1.2 }}>
                   {title}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.76rem' }}>
+                <Typography variant="metaLabel" color="text.secondary">
                   Review this action carefully before continuing.
                 </Typography>
               </Box>
@@ -124,7 +124,7 @@ export const ConfirmDialog = ({
         <Box
           sx={{
             border: '1px solid',
-            borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)',
+            borderColor: 'var(--border)',
             borderRadius: 2.5,
             p: 2.5,
             bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.025)' : 'rgba(248,249,255,0.8)',
@@ -155,7 +155,7 @@ export const ConfirmDialog = ({
           pt: 1,
           gap: 1,
           borderTop: '1px solid',
-          borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)',
+          borderColor: 'var(--border)',
         }}
       >
         <Button

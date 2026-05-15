@@ -45,8 +45,7 @@ const NotificationInboxMenu = memo(({
             color: 'text.primary',
             bgcolor: (theme) => alpha(theme.palette.secondary.main, 0.09),
             border: '1px solid',
-            borderColor: (theme) =>
-              theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+            borderColor: 'var(--border)',
             borderRadius: 2,
             p: 0.8,
             transition: 'all 0.22s ease',

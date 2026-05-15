@@ -2,6 +2,7 @@ import { Box, Typography, alpha, Chip, Paper, Skeleton } from '@mui/material';
 import { Favorite, Article, Star, TrendingUp, NewReleases } from '@mui/icons-material';
 import PropTypes from 'prop-types';
 import StatsOverview from '@/features/dashboard/components/StatsOverview';
+import { getCardBackground } from '@/styles/theme';
 
 const ContributorOverviewWidgets = ({
   loading,
@@ -22,10 +23,7 @@ const ContributorOverviewWidgets = ({
               borderRadius: (t) => `${t.shape.xl}px`,
               border: '1px solid',
               borderColor: 'divider',
-              background: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-                  : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+              background: (theme) => getCardBackground(theme.palette.mode),
             }}
           >
             <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
@@ -113,10 +111,7 @@ const ContributorOverviewWidgets = ({
                 borderRadius: (t) => `${t.shape.xl}px`,
                 border: '1px solid',
                 borderColor: 'divider',
-                background: (theme) =>
-                  theme.palette.mode === 'dark'
-                    ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-                    : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                background: (theme) => getCardBackground(theme.palette.mode),
               }}
             >
               <Skeleton variant="text" width={110} height={18} />
@@ -168,10 +163,7 @@ const ContributorOverviewWidgets = ({
             borderRadius: (t) => `${t.shape.xl}px`,
             border: '1px solid',
             borderColor: 'divider',
-            background: (theme) =>
-              theme.palette.mode === 'dark'
-                ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-                : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+            background: (theme) => getCardBackground(theme.palette.mode),
           }}
         >
           <Box display="flex" alignItems="center" gap={1} mb={2}>

@@ -432,7 +432,7 @@ export default function OnboardingPage() {
             })}
           >
             <Box sx={{ textAlign: 'left', maxWidth: 300, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Typography variant="h5" sx={{ fontWeight: 800 }}>
+              <Typography variant="h5" sx={{ fontWeight: (t) => t.typography.fontWeightExtraBold }}>
                 Almost there!
               </Typography>
               <Typography variant="body2" color="text.secondary">

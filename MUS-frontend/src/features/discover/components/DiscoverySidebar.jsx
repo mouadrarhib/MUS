@@ -83,7 +83,7 @@ const DIVIDER_SX = { my: 1.75 };
 
 const SIDEBAR_CONTAINER_SX = (theme) => ({
   bgcolor: theme.palette.background.paper, border: '1px solid',
-  borderColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
+  borderColor: 'var(--border)',
   borderRadius: '20px', p: 2.25,
   boxShadow: theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.32)' : '0 4px 20px rgba(17,24,39,0.06)',
   overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'thin',

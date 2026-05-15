@@ -40,9 +40,7 @@ const ResourceCard = ({ resource, view, viewMode, onClick, onOpen }) => {
         sx={(theme) => ({
           borderRadius: '16px',
           border: '1px solid',
-          borderColor: theme.palette.mode === 'dark'
-            ? 'rgba(255,255,255,0.07)'
-            : 'rgba(0,0,0,0.06)',
+          borderColor: 'var(--border)',
           bgcolor: theme.palette.background.paper,
           boxShadow: theme.palette.mode === 'dark'
             ? '0 2px 12px rgba(0,0,0,0.28)'

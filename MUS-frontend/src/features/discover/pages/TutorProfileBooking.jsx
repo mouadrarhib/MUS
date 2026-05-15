@@ -580,7 +580,7 @@ const TutorBookingPageView = ({
                             fontSize: '0.84rem',
                             fontWeight: active ? 700 : 500,
                             justifyContent: 'center',
-                            borderColor: active ? theme.palette.success.main : 'rgba(0,0,0,0.08)',
+                            borderColor: active ? theme.palette.success.main : 'var(--border-light)',
                             bgcolor: active ? alpha(theme.palette.success.main, 0.08) : 'background.paper',
                             color: active ? 'success.dark' : 'text.primary',
                             boxShadow: 'none',

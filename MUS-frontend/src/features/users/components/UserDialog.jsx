@@ -146,7 +146,7 @@ const Sidebar = memo(({ user, onClose, fullName, selectedRole }) => {
           <Box>
             <Typography
               sx={{
-                fontWeight: 800,
+                fontWeight: (t) => t.typography.fontWeightExtraBold,
                 color: "white",
                 fontSize: "0.9375rem",
                 letterSpacing: -0.2,

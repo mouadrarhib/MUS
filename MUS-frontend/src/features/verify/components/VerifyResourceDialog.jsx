@@ -35,6 +35,7 @@ import PropTypes from 'prop-types';
 import { useEffect, useState } from 'react';
 import { AsyncButton, DialogSectionTitle, InfoFieldCard } from '@/shared/components/ui';
 import resourcesService from '@/services/resourcesService';
+import { getCardBackground } from '@/styles/theme';
 
 const VerifyResourceDialog = ({ 
   open, 
@@ -235,9 +236,7 @@ const VerifyResourceDialog = ({
             borderRadius: (t) => `${t.shape.xl}px`,
             border: '1px solid',
             borderColor: 'divider',
-            background: (theme) => theme.palette.mode === 'dark' 
-              ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-              : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+            background: (theme) => getCardBackground(theme.palette.mode),
           }}
         >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>

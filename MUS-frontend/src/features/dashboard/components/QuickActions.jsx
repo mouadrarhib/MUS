@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { getCardBackground } from '@/styles/theme';
 
 const QuickActions = () => {
   const navigate = useNavigate();
@@ -106,9 +107,7 @@ const QuickActions = () => {
         borderRadius: (t) => `${t.shape.xl}px`,
         border: '1px solid',
         borderColor: 'divider',
-        background: (theme) => theme.palette.mode === 'dark' 
-          ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
-          : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+        background: (theme) => getCardBackground(theme.palette.mode),
       }}
     >
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>

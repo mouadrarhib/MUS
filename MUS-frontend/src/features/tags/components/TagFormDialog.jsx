@@ -61,7 +61,7 @@ const Sidebar = memo(({ editingTag, draftName, draftCategory, steps, activeStep,
     <Box sx={{ px: 2.5, pt: 2.5, pb: 2 }}>
       <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
         <Box>
-          <Typography sx={{ fontWeight: 800, color: 'white', fontSize: '0.9rem', letterSpacing: -0.2, lineHeight: 1.2 }}>
+          <Typography sx={{ fontWeight: (t) => t.typography.fontWeightExtraBold, color: 'white', fontSize: '0.9rem', letterSpacing: -0.2, lineHeight: 1.2 }}>
             {editingTag ? 'Edit Tag' : 'Create Tag'}
           </Typography>
           <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.38)', mt: 0.4, display: 'block', lineHeight: 1.4 }} noWrap>
@@ -139,7 +139,7 @@ const Sidebar = memo(({ editingTag, draftName, draftCategory, steps, activeStep,
             color: 'rgba(255,255,255,0.28)', display: 'block', mb: 1.25 }}>
             Preview
           </Typography>
-          <Box sx={{ p: 1.5, borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <Box sx={{ p: 1.5, borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-dark)' }}>
             <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: 'rgba(255,255,255,0.85)', mb: 0.75,
               display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               {draftName}

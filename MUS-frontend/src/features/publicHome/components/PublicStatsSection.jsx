@@ -93,7 +93,7 @@ const StatCard = memo(({ item, active, reducedMotion, t, isDark }) => {
         position:       "relative",
         borderRadius:   "20px",
         border:         "1px solid",
-        borderColor:    isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)",
+        borderColor:    'var(--border)',
         background:     isDark
           ? "linear-gradient(155deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.02) 100%)"
           : "rgba(255,255,255,0.90)",

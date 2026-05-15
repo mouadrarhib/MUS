@@ -724,7 +724,7 @@ const CatalogManagement = () => {
         sx={{
           borderRadius: (t) => `${t.shape.xl}px`,
           border: "1px solid",
-          borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
+          borderColor: 'var(--border)',
           bgcolor: (theme) => theme.palette.mode === "dark"
             ? "rgba(255,255,255,0.025)"
             : "rgba(255,255,255,0.85)",
@@ -752,7 +752,7 @@ const CatalogManagement = () => {
                       color: "text.secondary",
                       py: 1.5,
                       borderBottom: "1px solid",
-                      borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
+                      borderColor: 'var(--border)',
                     }}
                   >
                     {col.label}
@@ -768,7 +768,7 @@ const CatalogManagement = () => {
                     color: "text.secondary",
                     py: 1.5,
                     borderBottom: "1px solid",
-                    borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
+                    borderColor: 'var(--border)',
                   }}
                 >
                   Actions
@@ -889,8 +889,7 @@ const CatalogManagement = () => {
             sx={{
               borderRadius: (t) => `${t.shape.xl}px`,
               border: "1px solid",
-              borderColor: (theme) =>
-                theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)",
+              borderColor: 'var(--border)',
               bgcolor: (theme) =>
                 theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.92)",
               overflow: "hidden",
@@ -1203,8 +1202,7 @@ const CatalogManagement = () => {
             sx={{
               borderRadius: (t) => `${t.shape.xl}px`,
               border: "1px solid",
-              borderColor: (theme) =>
-                theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)",
+              borderColor: 'var(--border)',
               bgcolor: (theme) =>
                 theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.92)",
               overflow: "hidden",
@@ -1427,8 +1425,8 @@ const CatalogManagement = () => {
                       selectedExplorerInstitutionId
                         ? alpha("#ec4899", 0.3)
                         : theme.palette.mode === "dark"
-                        ? "rgba(255,255,255,0.08)"
-                        : "rgba(0,0,0,0.07)",
+                        ? 'var(--border-dark)'
+                        : 'var(--border-light)',
                     bgcolor: (theme) =>
                       theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.92)",
                     overflow: "hidden",
@@ -1461,8 +1459,7 @@ const CatalogManagement = () => {
                         py: { xs: 1.2, sm: 1.6 },
                         pt: { xs: 1.8, sm: 2.2 },
                         borderBottom: "1px solid",
-                        borderColor: (theme) =>
-                          theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)",
+                        borderColor: 'var(--border)',
                     }}
                   >
                     <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap={1}>
@@ -1504,7 +1501,7 @@ const CatalogManagement = () => {
                                   borderColor: alpha("#ec4899", 0.25),
                                 }}
                               >
-                                <Typography sx={{ fontSize: "0.64rem", fontWeight: 800, color: "#ec4899", lineHeight: 1 }}>
+                                <Typography sx={{ fontSize: "0.64rem", fontWeight: (t) => t.typography.fontWeightExtraBold, color: "#ec4899", lineHeight: 1 }}>
                                   {institutionPrograms.length}
                                 </Typography>
                               </Box>
@@ -1778,7 +1775,7 @@ const CatalogManagement = () => {
             p: 2.5,
             borderRadius: (t) => `${t.shape.xl}px`,
             border: "1px solid",
-            borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
+            borderColor: 'var(--border)',
             bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.85)",
           }}
         >
@@ -1882,7 +1879,7 @@ const CatalogManagement = () => {
             sx={{
               borderRadius: (t) => `${t.shape.xl}px`,
               border: "1px solid",
-              borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
+              borderColor: 'var(--border)',
               bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.85)",
               overflow: "hidden",
             }}
@@ -1903,7 +1900,7 @@ const CatalogManagement = () => {
                           color: "text.secondary",
                           py: 1.5,
                           borderBottom: "1px solid",
-                          borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
+                          borderColor: 'var(--border)',
                         }}
                       >
                         {h}
@@ -2293,7 +2290,7 @@ const CatalogManagement = () => {
           mb: { xs: 2, md: 2.5 },
           borderRadius: (t) => `${t.shape.xl}px`,
           border: "1px solid",
-          borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
+          borderColor: 'var(--border)',
           bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.85)",
           overflow: "hidden",
         }}
@@ -2384,7 +2381,7 @@ const CatalogManagement = () => {
           sx: {
             borderRadius: { xs: 0, sm: 3 },
             border: "1px solid",
-            borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)",
+            borderColor: 'var(--border)',
             overflow: "hidden",
             backdropFilter: "blur(16px)",
           },
@@ -2455,7 +2452,7 @@ const CatalogManagement = () => {
           <Box
             sx={{
               border: "1px solid",
-              borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
+              borderColor: 'var(--border)',
               borderRadius: 2.5,
               p: { xs: 1.6, sm: 2.5 },
               bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(248,249,255,0.8)",
@@ -2472,7 +2469,7 @@ const CatalogManagement = () => {
             pt: 1,
             gap: 1,
             borderTop: "1px solid",
-            borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
+            borderColor: 'var(--border)',
           }}
         >
           <Button

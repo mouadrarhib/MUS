@@ -14,8 +14,7 @@ export const BreadcrumbFlow = ({ steps }) => (
       px: { xs: 1.5, sm: 2 },
       borderRadius: 2.5,
       border: '1px solid',
-      borderColor: (theme) =>
-        theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
+      borderColor: 'var(--border)',
       bgcolor: (theme) =>
         theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(248,250,255,0.85)',
     }}
@@ -252,8 +251,7 @@ export const HierarchyPanel = ({
     sx={{
       borderRadius: (t) => `${t.shape.xl}px`,
       border: '1px solid',
-      borderColor: (theme) =>
-        theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
+      borderColor: 'var(--border)',
       bgcolor: (theme) =>
         theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.025)' : 'rgba(255,255,255,0.92)',
       overflow: 'hidden',
@@ -287,8 +285,7 @@ export const HierarchyPanel = ({
         py: { xs: 1.15, sm: 1.5 },
         pt: { xs: 1.8, sm: 2.2 },
         borderBottom: '1px solid',
-        borderColor: (theme) =>
-          theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
+        borderColor: 'var(--border)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -332,7 +329,7 @@ export const HierarchyPanel = ({
                   flexShrink: 0,
                 }}
               >
-                <Typography sx={{ fontSize: '0.62rem', fontWeight: 800, color, lineHeight: 1 }}>{items.length}</Typography>
+                <Typography sx={{ fontSize: '0.62rem', fontWeight: (t) => t.typography.fontWeightExtraBold, color, lineHeight: 1 }}>{items.length}</Typography>
               </Box>
             )}
           </Box>
@@ -409,7 +406,7 @@ export const HierarchyPanel = ({
                 border: '1px solid',
                 borderColor: selected
                   ? alpha(color, 0.5)
-                  : (theme) => (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'),
+                  : 'var(--border)',
                 bgcolor: selected
                   ? alpha(color, 0.1)
                   : (theme) =>
