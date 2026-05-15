@@ -22,7 +22,7 @@ const DeleteAccountDialog = memo(({ open, confirmText, onConfirmTextChange, onCl
       disableEscapeKeyDown={false}
       PaperProps={{
         sx: {
-          borderRadius: 3,
+          borderRadius: (t) => `${t.shape.xl}px`,
           overflow: 'hidden',
           background: (theme) =>
             theme.palette.mode === 'dark'

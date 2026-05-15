@@ -59,7 +59,7 @@ const FavoriteDetailsDialog = ({ open, favorite, onClose }) => {
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 3,
+          borderRadius: (t) => `${t.shape.xl}px`,
           overflow: 'hidden',
         }
       }}
@@ -126,7 +126,7 @@ const FavoriteDetailsDialog = ({ open, favorite, onClose }) => {
           sx={{
             p: 2.5,
             mb: 3,
-            borderRadius: 3,
+            borderRadius: (t) => `${t.shape.xl}px`,
             border: '1px solid',
             borderColor: 'divider',
             background: (theme) => theme.palette.mode === 'dark' 

@@ -200,7 +200,7 @@ const ResourceQA = ({ resourceId }) => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Box sx={{ mb: 4, p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+      <Box sx={{ mb: 4, p: 3, borderRadius: (t) => `${t.shape.xl}px`, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="h6" fontWeight={700} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
           <QuestionAnswerIcon color="primary" /> Ask a Question
         </Typography>

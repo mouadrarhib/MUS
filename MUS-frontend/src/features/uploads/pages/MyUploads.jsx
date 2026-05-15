@@ -395,7 +395,7 @@ const MyUploads = () => {
             elevation={0}
             sx={{
               p: 2.5,
-              borderRadius: 3,
+              borderRadius: (t) => `${t.shape.xl}px`,
               border: '1px solid',
               borderColor: 'divider',
               background: (theme) =>
@@ -535,7 +535,7 @@ const MyUploads = () => {
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: 3,
+            borderRadius: (t) => `${t.shape.xl}px`,
             overflow: 'hidden',
           },
         }}

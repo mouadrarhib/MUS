@@ -14,7 +14,7 @@ const EmptyState = ({
     <Box
       sx={{
         p: { xs: 3, md: 4 },
-        borderRadius: 3,
+        borderRadius: (t) => `${t.shape.xl}px`,
         border: '1px solid',
         borderColor: 'divider',
         background: (theme) =>

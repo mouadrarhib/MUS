@@ -206,7 +206,7 @@ export const ForgotPasswordModal = ({ open, onClose }) => {
       closeOnBackdropClick={!loading}
       PaperProps={{
         sx: {
-          borderRadius: 3,
+          borderRadius: (t) => `${t.shape.xl}px`,
           bgcolor: (theme) => (theme.palette.mode === 'dark' ? '#1f2937' : '#f7f8fa'),
           border: '1px solid',
           borderColor: 'divider',

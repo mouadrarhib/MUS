@@ -1,5 +1,5 @@
 // src/features/dashboard/components/MiniChart.jsx
-import { Box, Typography, alpha } from '@mui/material';
+import { Box, Typography, alpha, useTheme } from '@mui/material';
 import {
   PieChart,
   Pie,
@@ -15,6 +15,7 @@ const COLORS = ['#2e7d32', '#ed6c02', '#9e9e9e', '#1976d2'];
 
 // Donut chart for resource distribution
 export const ResourceDonut = ({ published, draft, archived, total }) => {
+  const theme = useTheme();
   const data = [
     { name: 'Published', value: parseInt(published) || 0, color: COLORS[0] },
     { name: 'Draft', value: parseInt(draft) || 0, color: COLORS[1] },
@@ -29,10 +30,10 @@ export const ResourceDonut = ({ published, draft, archived, total }) => {
     <Box
       sx={{
         p: 2,
-        borderRadius: 3,
+        borderRadius: `${theme.shape.xl}px`,
         border: '1px solid',
         borderColor: 'divider',
-        background: (theme) => theme.palette.mode === 'dark' 
+        background: (t) => t.palette.mode === 'dark'
           ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
           : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
         height: '100%',
@@ -59,8 +60,8 @@ export const ResourceDonut = ({ published, draft, archived, total }) => {
             </Pie>
             <Tooltip 
               formatter={(value, name) => [value, name]}
-              contentStyle={{ 
-                borderRadius: 8, 
+              contentStyle={{
+                borderRadius: theme.shape.md,
                 border: '1px solid #e0e0e0',
                 fontSize: 12,
               }}
@@ -88,6 +89,7 @@ export const ResourceDonut = ({ published, draft, archived, total }) => {
 
 // Simple bar chart for engagement
 export const EngagementBars = ({ favorites, ratings, avgRating }) => {
+  const theme = useTheme();
   const data = [
     { name: 'Favorites', value: parseInt(favorites) || 0 },
     { name: 'Ratings', value: parseInt(ratings) || 0 },
@@ -97,10 +99,10 @@ export const EngagementBars = ({ favorites, ratings, avgRating }) => {
     <Box
       sx={{
         p: 2,
-        borderRadius: 3,
+        borderRadius: `${theme.shape.xl}px`,
         border: '1px solid',
         borderColor: 'divider',
-        background: (theme) => theme.palette.mode === 'dark' 
+        background: (t) => t.palette.mode === 'dark'
           ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
           : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
         height: '100%',
@@ -129,13 +131,13 @@ export const EngagementBars = ({ favorites, ratings, avgRating }) => {
             <XAxis type="number" hide />
             <Tooltip 
               formatter={(value) => [value, '']}
-              contentStyle={{ 
-                borderRadius: 8, 
+              contentStyle={{
+                borderRadius: theme.shape.md,
                 border: '1px solid #e0e0e0',
                 fontSize: 12,
               }}
             />
-            <Bar 
+            <Bar
               dataKey="value" 
               fill="#1976d2" 
               radius={[0, 4, 4, 0]}

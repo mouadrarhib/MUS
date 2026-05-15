@@ -14,7 +14,7 @@ const StatsOverview = ({ label, value, change, changeLabel, icon: Icon, color = 
     <Box
       sx={(theme) => ({
         p: 2.5,
-        borderRadius: 3,
+        borderRadius: `${theme.shape.xl}px`,
         border: '1px solid',
         borderColor: 'divider',
         background: theme.palette.mode === 'dark'

@@ -25,7 +25,7 @@ export function StatCard({ title, value, icon, trend, trendValue, color = 'prima
         position: 'relative',
         overflow: 'hidden',
         height: '100%',
-        borderRadius: 3,
+        borderRadius: (t) => `${t.shape.xl}px`,
         border: '1px solid',
         borderColor: 'divider',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',

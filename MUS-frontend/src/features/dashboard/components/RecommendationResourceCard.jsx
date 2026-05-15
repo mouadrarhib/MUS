@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Box, Chip, Rating, Stack, Typography, alpha, Button, IconButton, Tooltip } from '@mui/material';
+import { Box, Chip, Rating, Stack, Typography, alpha, Button, IconButton, Tooltip, useTheme } from '@mui/material';
 import {
   AccountBalanceOutlined,
   PersonOutline,
@@ -57,16 +57,6 @@ const getFormatLabel = (item) => {
   return raw.toUpperCase();
 };
 
-/* ── Accent palette cycling ── */
-const ACCENT_COLORS = [
-  { main: '#7c5cfc', bg: 'rgba(124,92,252,0.08)', border: 'rgba(124,92,252,0.18)' },
-  { main: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.18)' },
-  { main: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.18)' },
-  { main: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.18)' },
-  { main: '#ec4899', bg: 'rgba(236,72,153,0.08)', border: 'rgba(236,72,153,0.18)' },
-  { main: '#06b6d4', bg: 'rgba(6,182,212,0.08)', border: 'rgba(6,182,212,0.18)' },
-];
-
 const RecommendationResourceCard = ({
   item,
   index = 0,
@@ -82,6 +72,15 @@ const RecommendationResourceCard = ({
   onDownload,
   onOpenDetails,
 }) => {
+  const theme = useTheme();
+  const ACCENT_COLORS = [
+    { main: theme.palette.accent.purple, bg: alpha(theme.palette.accent.purple, 0.08), border: alpha(theme.palette.accent.purple, 0.18) },
+    { main: theme.palette.accent.green,  bg: alpha(theme.palette.accent.green,  0.08), border: alpha(theme.palette.accent.green,  0.18) },
+    { main: theme.palette.accent.blue,   bg: alpha(theme.palette.accent.blue,   0.08), border: alpha(theme.palette.accent.blue,   0.18) },
+    { main: theme.palette.accent.amber,  bg: alpha(theme.palette.accent.amber,  0.08), border: alpha(theme.palette.accent.amber,  0.18) },
+    { main: theme.palette.accent.pink,   bg: alpha(theme.palette.accent.pink,   0.08), border: alpha(theme.palette.accent.pink,   0.18) },
+    { main: theme.palette.accent.cyan,   bg: alpha(theme.palette.accent.cyan,   0.08), border: alpha(theme.palette.accent.cyan,   0.18) },
+  ];
   const title = item?.title || item?.resource_title || 'Untitled resource';
   const authorName = getAuthorName(item);
   const universityName = getUniversityName(item);
@@ -96,7 +95,7 @@ const RecommendationResourceCard = ({
       sx={{
         position: 'relative',
         p: { xs: 1.8, md: 2 },
-        borderRadius: 3,
+        borderRadius: (t) => `${t.shape.xl}px`,
         border: '1px solid',
         borderColor: (theme) =>
           theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
@@ -240,7 +239,7 @@ const RecommendationResourceCard = ({
             size="small"
             emptyIcon={<Star style={{ opacity: 0.22 }} fontSize="inherit" />}
             sx={{
-              '& .MuiRating-iconFilled': { color: '#f59e0b' },
+              '& .MuiRating-iconFilled': { color: theme.palette.accent.amber },
               fontSize: '0.95rem',
             }}
           />

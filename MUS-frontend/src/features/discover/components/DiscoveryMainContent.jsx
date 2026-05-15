@@ -123,7 +123,7 @@ const SEARCH_BTN_SX = {
 const PROMO_CARD_SX = {
   border: '0.5px solid',
   borderColor: 'divider',
-  borderRadius: 3,
+  borderRadius: (t) => `${t.shape.xl}px`,
   px: 1.75,
   py: 1.25,
   boxShadow: 'none',

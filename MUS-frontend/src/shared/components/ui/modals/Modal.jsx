@@ -35,7 +35,7 @@ export const Modal = ({
       fullWidth={fullWidth}
       PaperProps={{
         sx: {
-          borderRadius: 3,
+          borderRadius: (t) => `${t.shape.xl}px`,
           ...sx,
         },
       }}

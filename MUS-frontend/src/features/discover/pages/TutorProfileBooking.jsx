@@ -770,7 +770,7 @@ const TutorBookingPageView = ({
                 elevation={0}
                 sx={{
                   p: 3,
-                  borderRadius: 3,
+                  borderRadius: (t) => `${t.shape.xl}px`,
                   border: '1px solid',
                   borderColor: 'divider',
                   bgcolor: 'background.paper',
@@ -839,7 +839,7 @@ const TutorBookingPageView = ({
                           }}>
                             {index % 2 === 0 ? <EmojiEvents sx={{ fontSize: 16, color: accent }} /> : <StarBorder sx={{ fontSize: 16, color: accent }} />}
                           </Box>
-                          <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, bgcolor: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(255,255,255,0.8)' }}>
+                          <Paper elevation={0} sx={{ p: 2.5, borderRadius: (t) => `${t.shape.xl}px`, bgcolor: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(255,255,255,0.8)' }}>
                             <Typography variant="subtitle1" fontWeight={800} color="text.primary">{item?.degree || 'Education'}</Typography>
                             <Typography variant="body2" fontWeight={600} sx={{ mb: 1, color: accent }}>
                               {item?.institution || 'Institution'}{years ? ` · ${years}` : ''}
@@ -851,7 +851,7 @@ const TutorBookingPageView = ({
                     })}
 
                     {(!Array.isArray(education) || education.length === 0) && (
-                      <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, bgcolor: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(255,255,255,0.8)' }}>
+                      <Paper elevation={0} sx={{ p: 2.5, borderRadius: (t) => `${t.shape.xl}px`, bgcolor: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(255,255,255,0.8)' }}>
                         <Typography variant="body2" color="text.secondary">No education details added yet.</Typography>
                       </Paper>
                     )}
@@ -915,22 +915,22 @@ const TutorBookingPageView = ({
                   </Typography>
                   <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                     
-                    <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#fff', border: '1px solid rgba(0,0,0,0.04)', textAlign: 'center' }}>
+                    <Box sx={{ p: 2, borderRadius: (t) => `${t.shape.xl}px`, bgcolor: '#fff', border: '1px solid rgba(0,0,0,0.04)', textAlign: 'center' }}>
                       <Typography variant="h5" fontWeight={800} color={BRAND_BLUE}>{sessionsCount || 0}</Typography>
                       <Typography variant="caption" fontWeight={600} color="text.secondary">Total Sessions</Typography>
                     </Box>
 
-                    <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#fff', border: '1px solid rgba(0,0,0,0.04)', textAlign: 'center' }}>
+                    <Box sx={{ p: 2, borderRadius: (t) => `${t.shape.xl}px`, bgcolor: '#fff', border: '1px solid rgba(0,0,0,0.04)', textAlign: 'center' }}>
                       <Typography variant="h5" fontWeight={800} color={BRAND_PURPLE}>{responseTimeMinutes != null ? `${responseTimeMinutes} min` : 'N/A'}</Typography>
                       <Typography variant="caption" fontWeight={600} color="text.secondary">Response Time</Typography>
                     </Box>
 
-                    <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#fff', border: '1px solid rgba(0,0,0,0.04)', textAlign: 'center' }}>
+                    <Box sx={{ p: 2, borderRadius: (t) => `${t.shape.xl}px`, bgcolor: '#fff', border: '1px solid rgba(0,0,0,0.04)', textAlign: 'center' }}>
                       <Typography variant="h5" fontWeight={800} color={BRAND_GREEN}>100%</Typography>
                       <Typography variant="caption" fontWeight={600} color="text.secondary">Attendance</Typography>
                     </Box>
 
-                    <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#fff', border: '1px solid rgba(0,0,0,0.04)', textAlign: 'center' }}>
+                    <Box sx={{ p: 2, borderRadius: (t) => `${t.shape.xl}px`, bgcolor: '#fff', border: '1px solid rgba(0,0,0,0.04)', textAlign: 'center' }}>
                       <Typography variant="h5" fontWeight={800} color="#f59e0b">{studentsCount}</Typography>
                       <Typography variant="caption" fontWeight={600} color="text.secondary">Students</Typography>
                     </Box>

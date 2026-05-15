@@ -88,7 +88,7 @@ const ResourceRating = ({ resourceId }) => {
   return (
     <Box sx={{ width: '100%' }}>
       {/* Review Submission Section */}
-      <Box sx={{ mb: 4, p: 3, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+      <Box sx={{ mb: 4, p: 3, borderRadius: (t) => `${t.shape.xl}px`, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Leave a Review</Typography>
         
         <Stack spacing={2}>

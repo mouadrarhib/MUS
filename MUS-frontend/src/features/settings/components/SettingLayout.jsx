@@ -10,7 +10,7 @@ export const SettingSection = memo(({ icon, title, subtitle, color, children }) 
   <Paper
     elevation={0}
     sx={{
-      borderRadius: 3,
+      borderRadius: (t) => `${t.shape.xl}px`,
       overflow: 'hidden',
       border: '1px solid',
       borderColor: 'divider',

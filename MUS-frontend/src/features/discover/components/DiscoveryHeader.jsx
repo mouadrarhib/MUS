@@ -34,7 +34,7 @@ const NAV_LINK_SX = (isActive) => (theme) => ({
   textTransform: 'none', fontWeight: isActive ? 700 : 500, borderRadius: 1, px: 1.5, py: 0.5,
   transition: 'color 0.2s, background-color 0.2s',
   '&:hover': { color: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.04) },
-  '&::after': { content: '""', position: 'absolute', bottom: -4, left: 12, right: 12, height: 3, borderRadius: 3, bgcolor: theme.palette.primary.main, transform: isActive ? 'scaleX(1)' : 'scaleX(0)', transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)', transformOrigin: 'center' }
+  '&::after': { content: '""', position: 'absolute', bottom: -4, left: 12, right: 12, height: 3, borderRadius: `${theme.shape.xl}px`, bgcolor: theme.palette.primary.main, transform: isActive ? 'scaleX(1)' : 'scaleX(0)', transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)', transformOrigin: 'center' }
 });
 
 const THEME_BTN_SX = (theme) => ({

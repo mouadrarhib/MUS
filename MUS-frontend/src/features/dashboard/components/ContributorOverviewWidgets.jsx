@@ -19,7 +19,7 @@ const ContributorOverviewWidgets = ({
             elevation={0}
             sx={{
               p: 2.5,
-              borderRadius: 3,
+              borderRadius: (t) => `${t.shape.xl}px`,
               border: '1px solid',
               borderColor: 'divider',
               background: (theme) =>
@@ -110,7 +110,7 @@ const ContributorOverviewWidgets = ({
               key={index}
               sx={{
                 p: 2.5,
-                borderRadius: 3,
+                borderRadius: (t) => `${t.shape.xl}px`,
                 border: '1px solid',
                 borderColor: 'divider',
                 background: (theme) =>
@@ -165,7 +165,7 @@ const ContributorOverviewWidgets = ({
           elevation={0}
           sx={{
             p: 2,
-            borderRadius: 3,
+            borderRadius: (t) => `${t.shape.xl}px`,
             border: '1px solid',
             borderColor: 'divider',
             background: (theme) =>

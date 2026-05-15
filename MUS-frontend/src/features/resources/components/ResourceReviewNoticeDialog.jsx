@@ -17,7 +17,7 @@ import AccessTimeOutlined from '@mui/icons-material/AccessTimeOutlined';
 
 // ─── sx constants ─────────────────────────────────────────────────────────────
 const dialogPaperSx = {
-  borderRadius: 3,
+  borderRadius: (t) => `${t.shape.xl}px`,
   overflow: 'hidden',
   boxShadow: '0 24px 48px rgba(0,0,0,0.14)',
 };
@@ -79,7 +79,7 @@ const ConfirmButton = styled(Button)(({ theme }) => ({
   textTransform: 'none',
   fontWeight: 700,
   fontSize: '0.95rem',
-  borderRadius: 8,
+  borderRadius: theme.shape.md,
   paddingTop: theme.spacing(1.2),
   paddingBottom: theme.spacing(1.2),
   backgroundColor: theme.palette.primary.main,

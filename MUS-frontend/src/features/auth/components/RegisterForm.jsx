@@ -858,7 +858,7 @@ export const RegisterForm = () => {
                 <Box
                   sx={{
                     p: 2,
-                    borderRadius: 3,
+                    borderRadius: (t) => `${t.shape.xl}px`,
                     bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'white',
                     border: '1px solid',
                     borderColor: 'divider',

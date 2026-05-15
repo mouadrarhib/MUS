@@ -722,7 +722,7 @@ const CatalogManagement = () => {
     return (
       <Box
         sx={{
-          borderRadius: 3,
+          borderRadius: (t) => `${t.shape.xl}px`,
           border: "1px solid",
           borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
           bgcolor: (theme) => theme.palette.mode === "dark"
@@ -887,7 +887,7 @@ const CatalogManagement = () => {
           {/* ─── Academic Hierarchy Explorer ─── */}
           <Box
             sx={{
-              borderRadius: 3.5,
+              borderRadius: (t) => `${t.shape.xl}px`,
               border: "1px solid",
               borderColor: (theme) =>
                 theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)",
@@ -1201,7 +1201,7 @@ const CatalogManagement = () => {
           {/* ─── Institution Mapping Explorer ─── */}
           <Box
             sx={{
-              borderRadius: 3.5,
+              borderRadius: (t) => `${t.shape.xl}px`,
               border: "1px solid",
               borderColor: (theme) =>
                 theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)",
@@ -1421,7 +1421,7 @@ const CatalogManagement = () => {
                   sx={{
                     flex: 1.15,
                     minWidth: 0,
-                    borderRadius: 3,
+                    borderRadius: (t) => `${t.shape.xl}px`,
                     border: "1px solid",
                     borderColor: (theme) =>
                       selectedExplorerInstitutionId
@@ -1498,7 +1498,7 @@ const CatalogManagement = () => {
                                 sx={{
                                   px: 0.7,
                                   py: 0.15,
-                                  borderRadius: 10,
+                                  borderRadius: (t) => `${t.shape.md}px`,
                                   bgcolor: alpha("#ec4899", 0.12),
                                   border: "1px solid",
                                   borderColor: alpha("#ec4899", 0.25),
@@ -1776,7 +1776,7 @@ const CatalogManagement = () => {
         <Box
           sx={{
             p: 2.5,
-            borderRadius: 3,
+            borderRadius: (t) => `${t.shape.xl}px`,
             border: "1px solid",
             borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
             bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.85)",
@@ -1880,7 +1880,7 @@ const CatalogManagement = () => {
 
           <Box
             sx={{
-              borderRadius: 3,
+              borderRadius: (t) => `${t.shape.xl}px`,
               border: "1px solid",
               borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
               bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.85)",
@@ -2291,7 +2291,7 @@ const CatalogManagement = () => {
       <Box
         sx={{
           mb: { xs: 2, md: 2.5 },
-          borderRadius: 3,
+          borderRadius: (t) => `${t.shape.xl}px`,
           border: "1px solid",
           borderColor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)",
           bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.85)",

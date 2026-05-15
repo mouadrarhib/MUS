@@ -128,7 +128,7 @@ const DiscoverResourceSections = ({
       {!recommendationsOnly && showHeavySections ? (
         <Box sx={{ display: 'grid', gap: 2 }}>
           {loadingResources ? (
-            [...Array(3)].map((_, idx) => <Skeleton key={`group-skeleton-${idx}`} variant="rounded" height={120} sx={{ borderRadius: 3 }} />)
+            [...Array(3)].map((_, idx) => <Skeleton key={`group-skeleton-${idx}`} variant="rounded" height={120} sx={{ borderRadius: (t) => `${t.shape.xl}px` }} />)
           ) : groupsToRender.length === 0 ? (
             <Box sx={(theme) => ({ ...panelSx(theme), p: 4, textAlign: 'center' })}>
               <Typography variant="body2" color="text.secondary" sx={{ opacity: 0.7 }}>
@@ -163,7 +163,7 @@ const DiscoverResourceSections = ({
 
       {!recommendationsOnly && !showHeavySections && !loadingResources ? (
         <Box sx={{ display: 'grid', gap: 2 }}>
-          {[...Array(2)].map((_, idx) => <Skeleton key={`deferred-group-skeleton-${idx}`} variant="rounded" height={120} sx={{ borderRadius: 3 }} />)}
+          {[...Array(2)].map((_, idx) => <Skeleton key={`deferred-group-skeleton-${idx}`} variant="rounded" height={120} sx={{ borderRadius: (t) => `${t.shape.xl}px` }} />)}
         </Box>
       ) : null}
     </>

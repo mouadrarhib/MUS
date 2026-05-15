@@ -191,7 +191,7 @@ const getTutorMetaFromProfile = (profile, tutorId) => {
 // Shared style helpers
 // ---------------------------------------------------------------------------
 const cardSx = {
-  borderRadius: 3,
+  borderRadius: (t) => `${t.shape.xl}px`,
   border: '0.5px solid',
   borderColor: 'divider',
   boxShadow: 'none',

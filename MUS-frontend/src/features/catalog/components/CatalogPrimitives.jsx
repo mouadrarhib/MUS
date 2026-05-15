@@ -52,7 +52,7 @@ export const BreadcrumbFlow = ({ steps }) => (
             gap: 0.6,
             px: 1.1,
             py: 0.4,
-            borderRadius: 10,
+            borderRadius: (t) => `${t.shape.md}px`,
             border: '1px solid',
             borderColor: step.active
               ? alpha(step.color, 0.45)
@@ -250,7 +250,7 @@ export const HierarchyPanel = ({
   return (
   <Box
     sx={{
-      borderRadius: 3,
+      borderRadius: (t) => `${t.shape.xl}px`,
       border: '1px solid',
       borderColor: (theme) =>
         theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
@@ -324,7 +324,7 @@ export const HierarchyPanel = ({
                 sx={{
                   px: 0.65,
                   py: 0.12,
-                  borderRadius: 10,
+                  borderRadius: (t) => `${t.shape.md}px`,
                   bgcolor: alpha(color, 0.12),
                   border: '1px solid',
                   borderColor: alpha(color, 0.25),

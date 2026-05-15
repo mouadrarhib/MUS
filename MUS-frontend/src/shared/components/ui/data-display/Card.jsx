@@ -20,7 +20,7 @@ export const Card = ({
     <MuiCard
       elevation={elevation}
       sx={{
-        borderRadius: 3,
+        borderRadius: (t) => `${t.shape.xl}px`,
         ...sx,
       }}
       {...props}

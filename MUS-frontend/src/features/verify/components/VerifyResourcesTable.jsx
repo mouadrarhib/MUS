@@ -267,7 +267,7 @@ const VerifyResourcesTable = ({
                       sx={{
                         width: 56,
                         height: 56,
-                        borderRadius: 3,
+                        borderRadius: (t) => `${t.shape.xl}px`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',

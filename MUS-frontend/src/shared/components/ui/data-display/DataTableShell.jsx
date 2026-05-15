@@ -21,7 +21,7 @@ export const DataTableShell = ({
       <Paper
         elevation={0}
         sx={{
-          borderRadius: 3,
+          borderRadius: (t) => `${t.shape.xl}px`,
           border: '1px solid',
           borderColor: 'divider',
           background: (theme) =>
@@ -41,7 +41,7 @@ export const DataTableShell = ({
     <Paper
       elevation={0}
       sx={{
-        borderRadius: 3,
+        borderRadius: (t) => `${t.shape.xl}px`,
         border: '1px solid',
         borderColor: 'divider',
         background: (theme) =>

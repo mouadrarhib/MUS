@@ -316,7 +316,7 @@ const Sessions = () => {
         elevation={0}
         sx={(theme) => ({
           p: { xs: 2, md: 2.5 },
-          borderRadius: 3,
+          borderRadius: `${theme.shape.xl}px`,
           mb: 2,
           border: "1px solid",
           borderColor: "divider",

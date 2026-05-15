@@ -20,7 +20,7 @@ export const StatsCardGrid = ({ items, columns, variant = 'default' }) => {
               sx={{
                 p: 2,
                 '--stagger-index': index,
-                borderRadius: 3,
+                borderRadius: (t) => `${t.shape.xl}px`,
                 border: '1px solid',
                 borderColor: 'divider',
                 background: (theme) =>
@@ -74,7 +74,7 @@ export const StatsCardGrid = ({ items, columns, variant = 'default' }) => {
             sx={{
               p: 2.5,
               '--stagger-index': index,
-              borderRadius: 3,
+              borderRadius: (t) => `${t.shape.xl}px`,
               border: '1px solid',
               borderColor: 'divider',
               background: (theme) =>

@@ -10,6 +10,7 @@ import {
   DialogTitle,
   IconButton,
   Typography,
+  useTheme,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -25,12 +26,6 @@ const ICON_BY_SEVERITY = {
   info: InfoOutlined,
 };
 
-const COLOR_BY_SEVERITY = {
-  error: '#ef4444',
-  warning: '#f59e0b',
-  info: '#3b82f6',
-};
-
 export const ConfirmDialog = ({
   open,
   onClose,
@@ -43,6 +38,12 @@ export const ConfirmDialog = ({
   severity = 'warning',
   loading = false,
 }) => {
+  const theme = useTheme();
+  const COLOR_BY_SEVERITY = {
+    error: theme.palette.error.main,
+    warning: theme.palette.warning.main,
+    info: theme.palette.primary.main,
+  };
   const AccentIcon = ICON_BY_SEVERITY[severity] || WarningAmber;
   const accentColor = COLOR_BY_SEVERITY[severity] || COLOR_BY_SEVERITY.warning;
 
@@ -54,7 +55,7 @@ export const ConfirmDialog = ({
       maxWidth="xs"
       PaperProps={{
         sx: {
-          borderRadius: 3,
+          borderRadius: (t) => `${t.shape.xl}px`,
           border: '1px solid',
           borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
           overflow: 'hidden',

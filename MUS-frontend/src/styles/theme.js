@@ -64,6 +64,11 @@ const spacing = 8; // Base spacing unit
 
 const shape = {
   borderRadius: 8,
+  sm: 6,
+  md: 8,
+  lg: 16,
+  xl: 24,
+  pill: 999,
 };
 
 // Animations et transitions
@@ -121,6 +126,19 @@ export const lightTheme = createTheme({
       light: '#03a9f4',
       dark: '#01579b',
     },
+    accent: {
+      purple: '#7c5cfc',
+      green: '#10b981',
+      blue: '#3b82f6',
+      amber: '#f59e0b',
+      pink: '#ec4899',
+      cyan: '#06b6d4',
+    },
+    severity: {
+      danger: '#ef4444',
+      warning: '#f59e0b',
+      info: '#3b82f6',
+    },
     background: {
       default: '#f5f7fa',
       paper: '#ffffff',
@@ -147,7 +165,7 @@ export const lightTheme = createTheme({
       },
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: shape.md,
           padding: '8px 20px',
           fontSize: '0.9rem',
           fontWeight: 600,
@@ -232,7 +250,7 @@ export const lightTheme = createTheme({
       styleOverrides: {
         root: ({ theme }) => ({
           '& .MuiOutlinedInput-root': {
-            borderRadius: 8,
+            borderRadius: shape.md,
             transition: 'box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover fieldset': {
               borderColor: theme.palette.primary.light,
@@ -254,7 +272,7 @@ export const lightTheme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 6,
+          borderRadius: shape.sm,
           fontWeight: 500,
           transition: 'background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1)',
         },
@@ -329,6 +347,19 @@ export const darkTheme = createTheme({
       light: '#4fc3f7',
       dark: '#0288d1',
     },
+    accent: {
+      purple: '#7c5cfc',
+      green: '#10b981',
+      blue: '#3b82f6',
+      amber: '#f59e0b',
+      pink: '#ec4899',
+      cyan: '#06b6d4',
+    },
+    severity: {
+      danger: '#ef4444',
+      warning: '#f59e0b',
+      info: '#3b82f6',
+    },
     background: {
       default: '#0a0a0a',
       paper: '#141414',
@@ -356,7 +387,7 @@ export const darkTheme = createTheme({
       },
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: shape.md,
           padding: '8px 20px',
           fontSize: '0.9rem',
           fontWeight: 600,
@@ -463,7 +494,7 @@ export const darkTheme = createTheme({
       styleOverrides: {
         root: ({ theme }) => ({
           '& .MuiOutlinedInput-root': {
-            borderRadius: 8,
+            borderRadius: shape.md,
             transition: 'box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover fieldset': {
               borderColor: theme.palette.primary.light,
@@ -478,7 +509,7 @@ export const darkTheme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 6,
+          borderRadius: shape.sm,
           fontWeight: 500,
           transition: 'background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1)',
         },

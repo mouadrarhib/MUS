@@ -9,7 +9,7 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 
 import DescriptionIcon from '@mui/icons-material/Description';
 import CodeIcon from '@mui/icons-material/Code';
@@ -36,7 +36,7 @@ import { useNavigate } from 'react-router-dom';
 // ─── Static Styles ────────────────────────────────────────────────────────────
 
 const PAPER_PROPS_SX = (theme) => ({
-  borderRadius: 3,
+  borderRadius: `${theme.shape.xl}px`,
   border: '1px solid',
   borderColor: 'divider',
   height: { xs: 'auto', md: '90vh' },
@@ -59,7 +59,7 @@ const ERROR_BOX_SX = (theme) => ({
 });
 
 const PREVIEW_BOX_SX = (theme) => ({
-  borderRadius: 3, border: '1px solid', borderColor: 'divider',
+  borderRadius: `${theme.shape.xl}px`, border: '1px solid', borderColor: 'divider',
   bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.common.black, 0.2) : alpha(theme.palette.grey[100], 0.4),
   display: 'flex', flexDirection: 'column',
   overflow: 'hidden', minHeight: 300,
@@ -109,6 +109,7 @@ RoleBadge.propTypes = { role: PropTypes.string };
 // ─── Main component ──────────────────────────────────────────────────────────
 
 const ResourceDetailsDialog = memo(({ open, resource, onClose, onOpenPreviewPage = null }) => {
+  const theme = useTheme();
   const navigate = useNavigate();
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState('');
@@ -313,9 +314,9 @@ const ResourceDetailsDialog = memo(({ open, resource, onClose, onOpenPreviewPage
               {previewError ? <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ m: 'auto' }}>{previewError}</Typography>
                 : !previewUrl ? <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ m: 'auto' }}>No preview URL available. Use Open or Download.</Typography>
                 : normalizedFormat === 'pdf' ? <iframe src={previewUrl} title="PDF preview" style={{ width: '100%', height: '100%', border: 'none', flexGrow: 1, display: 'block' }} />
-                : normalizedFormat === 'video' ? <video src={previewUrl} controls style={{ width: '100%', maxHeight: '65vh', borderRadius: 8, margin: 'auto' }} />
+                : normalizedFormat === 'video' ? <video src={previewUrl} controls style={{ width: '100%', maxHeight: '65vh', borderRadius: theme.shape.md, margin: 'auto' }} />
                 : normalizedFormat === 'audio' ? <audio src={previewUrl} controls style={{ width: '100%', margin: 'auto' }} />
-                : normalizedFormat === 'image' ? <img src={previewUrl} alt={resource?.title || 'Resource preview'} loading="lazy" style={{ maxWidth: '100%', maxHeight: '65vh', objectFit: 'contain', borderRadius: 8, margin: 'auto' }} />
+                : normalizedFormat === 'image' ? <img src={previewUrl} alt={resource?.title || 'Resource preview'} loading="lazy" style={{ maxWidth: '100%', maxHeight: '65vh', objectFit: 'contain', borderRadius: theme.shape.md, margin: 'auto' }} />
                 : isOfficeFormat ? <iframe src={officePreviewUrl} title="Office document preview" style={{ width: '100%', height: '100%', border: 'none', flexGrow: 1, display: 'block' }} />
                 : <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ m: 'auto' }}>Inline preview is not supported for this format. Use Open or Download.</Typography>
               }

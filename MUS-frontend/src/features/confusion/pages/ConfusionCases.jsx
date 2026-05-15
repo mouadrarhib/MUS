@@ -332,7 +332,7 @@ const ConfusionCases = () => {
       </Alert>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: '360px 1fr' }, gap: 2 }}>
-        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: 2, backgroundColor: 'background.paper' }}>
+        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: (t) => `${t.shape.xl}px`, p: 2, backgroundColor: 'background.paper' }}>
           <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>Case filters</Typography>
           <Stack spacing={1.5}>
             <FormControl size="small" fullWidth>
@@ -429,7 +429,7 @@ const ConfusionCases = () => {
               )}
         </Box>
 
-        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: 2, backgroundColor: 'background.paper', minHeight: 420 }}>
+        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: (t) => `${t.shape.xl}px`, p: 2, backgroundColor: 'background.paper', minHeight: 420 }}>
           {!selectedCaseId ? (
             <EmptyState title="Select a case" description="Choose a confusion case to review details, update status, or assign a referent." icon={ReportProblem} />
           ) : detailLoading ? (

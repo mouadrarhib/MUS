@@ -199,7 +199,7 @@ const UserProfileMenu = ({ user, roles, isArabic = false, onProfile, onSettings,
             width: 'min(100vw - 20px, 340px)',
             minWidth: { xs: 250, sm: 280 },
             mt: 1.5,
-            borderRadius: 3,
+            borderRadius: (t) => `${t.shape.xl}px`,
             border: '1px solid',
             borderColor: (theme) =>
               theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',

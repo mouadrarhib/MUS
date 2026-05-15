@@ -103,7 +103,7 @@ const QuickActions = () => {
       elevation={0}
       sx={{
         p: 2,
-        borderRadius: 3,
+        borderRadius: (t) => `${t.shape.xl}px`,
         border: '1px solid',
         borderColor: 'divider',
         background: (theme) => theme.palette.mode === 'dark' 

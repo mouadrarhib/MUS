@@ -43,7 +43,7 @@ const StatCard = ({ label, value, hint, icon, color }) => {
       elevation={0}
       sx={{
         p: 2.25,
-        borderRadius: 3,
+        borderRadius: (t) => `${t.shape.xl}px`,
         border: '1px solid',
         borderColor: alpha(color, 0.18),
         bgcolor: alpha(color, 0.05),
@@ -221,7 +221,7 @@ const PointsManagement = () => {
         />
       </Stack>
 
-      <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden', mb: 3 }}>
+      <Paper elevation={0} sx={{ borderRadius: (t) => `${t.shape.xl}px`, border: '1px solid', borderColor: 'divider', overflow: 'hidden', mb: 3 }}>
         <Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
           <Box>
             <Typography variant="subtitle1" fontWeight={700}>{t('pages.points.sections.contributors.title', 'Contributor Rewards')}</Typography>
@@ -385,7 +385,7 @@ const PointsManagement = () => {
       </Paper>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: '1.1fr 0.9fr' }, gap: 2 }}>
-        <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+        <Paper elevation={0} sx={{ borderRadius: (t) => `${t.shape.xl}px`, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
           <Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
             <Typography variant="subtitle1" fontWeight={700}>{t('pages.points.sections.topResources.title', 'Top Reward-Earning Resources')}</Typography>
             <Typography variant="caption" color="text.secondary">{t('pages.points.sections.topResources.subtitle', 'Ranked by automated reward events, then by downloads and favorites received.')}</Typography>
@@ -446,7 +446,7 @@ const PointsManagement = () => {
           </TableContainer>
         </Paper>
 
-        <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+        <Paper elevation={0} sx={{ borderRadius: (t) => `${t.shape.xl}px`, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
           <Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
             <Typography variant="subtitle1" fontWeight={700}>{t('pages.points.sections.activity.title', 'Recent Reward Activity')}</Typography>
             <Typography variant="caption" color="text.secondary">{t('pages.points.sections.activity.subtitle', 'Latest reward ledger events for contributor-owned resources.')}</Typography>

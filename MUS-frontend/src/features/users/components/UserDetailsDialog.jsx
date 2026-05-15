@@ -66,7 +66,7 @@ const UserDetailsDialog = ({ open, user, onClose }) => {
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 3,
+          borderRadius: (t) => `${t.shape.xl}px`,
           overflow: 'hidden',
         }
       }}
@@ -133,10 +133,10 @@ const UserDetailsDialog = ({ open, user, onClose }) => {
           sx={{
             p: 2.5,
             mb: 3,
-            borderRadius: 3,
+            borderRadius: (t) => `${t.shape.xl}px`,
             border: '1px solid',
             borderColor: 'divider',
-            background: (theme) => theme.palette.mode === 'dark' 
+            background: (theme) => theme.palette.mode === 'dark'
               ? 'linear-gradient(135deg, #1a1a1a 0%, #141414 100%)'
               : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
           }}
